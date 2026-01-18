@@ -165,9 +165,17 @@ function detectProjectType(files: ProjectFile[]): { type: string; icon: React.Re
   const hasPackageJson = filePaths.some(f => f.endsWith('package.json'));
   const hasTsConfig = filePaths.some(f => f.includes('tsconfig'));
   const hasReact = files.some(f => f.content.includes('import React') || f.content.includes("from 'react'") || f.path.endsWith('.jsx') || f.path.endsWith('.tsx'));
-  const hasNode = files.some(f => f.content.includes('express') || f.content.includes('require(') || f.path.includes('server'));
+  const hasNode = files.some(f => f.content.includes('express') || f.content.includes('require(') || f.path.includes('server.'));
   const hasPython = filePaths.some(f => f.endsWith('.py'));
-  const isSimpleHtml = filePaths.every(f => f.endsWith('.html') || f.endsWith('.css') || f.endsWith('.js'));
+  const hasHtml = filePaths.some(f => f.endsWith('.html') || f.endsWith('.htm'));
+  const hasOnlyWebFiles = filePaths.every(f => 
+    f.endsWith('.html') || f.endsWith('.htm') || 
+    f.endsWith('.css') || 
+    f.endsWith('.js') ||
+    f.endsWith('.json') ||
+    f.endsWith('.md') ||
+    f.endsWith('.txt')
+  );
   
   if (hasReact) {
     return {
@@ -205,7 +213,8 @@ function detectProjectType(files: ProjectFile[]): { type: string; icon: React.Re
     };
   }
   
-  if (isSimpleHtml) {
+  // Any project with HTML and only web files can be previewed
+  if (hasHtml && hasOnlyWebFiles) {
     return {
       type: 'Static Website',
       icon: <FileCode className="w-4 h-4 text-orange-500" />,
@@ -322,22 +331,38 @@ export function ProjectFilesPreview({ files }: ProjectFilesPreviewProps) {
     
     // Find main HTML file (index.html or first .html file)
     const htmlFile = files.find(f => f.path.toLowerCase().endsWith('index.html')) 
+      || files.find(f => f.path.toLowerCase().endsWith('.html'))
       || files.find(f => f.language === 'html');
-    const cssFiles = files.filter(f => f.language === 'css');
-    const jsFiles = files.filter(f => f.language === 'javascript' || f.path.endsWith('.js'));
+    const cssFiles = files.filter(f => f.language === 'css' || f.path.toLowerCase().endsWith('.css'));
+    const jsFiles = files.filter(f => f.language === 'javascript' || f.path.toLowerCase().endsWith('.js'));
     
     if (!htmlFile) return "";
     
     let html = htmlFile.content;
     
-    // Inject CSS into head
+    // Ensure we have a proper HTML structure
+    if (!html.includes('<!DOCTYPE') && !html.includes('<html')) {
+      html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview</title>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+    }
+    
+    // Inject CSS into head (make sure not to duplicate if already embedded)
     if (cssFiles.length > 0) {
-      const combinedCss = cssFiles.map(f => f.content).join('\n');
-      const styleTag = `<style>\n${combinedCss}\n</style>`;
+      const combinedCss = cssFiles.map(f => f.content).join('\n\n');
+      const styleTag = `<style>\n/* Combined CSS from project files */\n${combinedCss}\n</style>`;
       if (html.includes('</head>')) {
         html = html.replace('</head>', `${styleTag}\n</head>`);
       } else if (html.includes('<body')) {
-        html = html.replace(/<body[^>]*>/, (match) => `${styleTag}\n${match}`);
+        html = html.replace(/<body[^>]*>/i, (match) => `${styleTag}\n${match}`);
       } else {
         html = styleTag + '\n' + html;
       }
@@ -345,8 +370,8 @@ export function ProjectFilesPreview({ files }: ProjectFilesPreviewProps) {
     
     // Inject JS before </body>
     if (jsFiles.length > 0) {
-      const combinedJs = jsFiles.map(f => f.content).join('\n');
-      const scriptTag = `<script>\n${combinedJs}\n</script>`;
+      const combinedJs = jsFiles.map(f => f.content).join('\n\n');
+      const scriptTag = `<script>\n// Combined JS from project files\n${combinedJs}\n</script>`;
       if (html.includes('</body>')) {
         html = html.replace('</body>', `${scriptTag}\n</body>`);
       } else {
