@@ -308,10 +308,54 @@ function FileTreeNode({
 export function ProjectFilesPreview({ files }: ProjectFilesPreviewProps) {
   const [activeFile, setActiveFile] = useState(files[0]?.path || '');
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const activeContent = files.find(f => f.path === activeFile);
   const fileTree = useMemo(() => buildFileTree(files), [files]);
   const projectInfo = useMemo(() => detectProjectType(files), [files]);
+
+  // Build combined preview for static websites
+  const combinedPreview = useMemo(() => {
+    if (!projectInfo.canPreview) return "";
+    
+    // Find main HTML file (index.html or first .html file)
+    const htmlFile = files.find(f => f.path.toLowerCase().endsWith('index.html')) 
+      || files.find(f => f.language === 'html');
+    const cssFiles = files.filter(f => f.language === 'css');
+    const jsFiles = files.filter(f => f.language === 'javascript' || f.path.endsWith('.js'));
+    
+    if (!htmlFile) return "";
+    
+    let html = htmlFile.content;
+    
+    // Inject CSS into head
+    if (cssFiles.length > 0) {
+      const combinedCss = cssFiles.map(f => f.content).join('\n');
+      const styleTag = `<style>\n${combinedCss}\n</style>`;
+      if (html.includes('</head>')) {
+        html = html.replace('</head>', `${styleTag}\n</head>`);
+      } else if (html.includes('<body')) {
+        html = html.replace(/<body[^>]*>/, (match) => `${styleTag}\n${match}`);
+      } else {
+        html = styleTag + '\n' + html;
+      }
+    }
+    
+    // Inject JS before </body>
+    if (jsFiles.length > 0) {
+      const combinedJs = jsFiles.map(f => f.content).join('\n');
+      const scriptTag = `<script>\n${combinedJs}\n</script>`;
+      if (html.includes('</body>')) {
+        html = html.replace('</body>', `${scriptTag}\n</body>`);
+      } else {
+        html = html + '\n' + scriptTag;
+      }
+    }
+    
+    return html;
+  }, [files, projectInfo.canPreview]);
 
   const copyFile = async (path: string, content: string) => {
     await navigator.clipboard.writeText(content);
@@ -343,6 +387,14 @@ export function ProjectFilesPreview({ files }: ProjectFilesPreviewProps) {
     URL.revokeObjectURL(url);
   };
 
+  const openInNewTab = () => {
+    if (!combinedPreview) return;
+    const blob = new Blob([combinedPreview], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   if (files.length === 0) return null;
 
   return (
@@ -359,6 +411,52 @@ export function ProjectFilesPreview({ files }: ProjectFilesPreviewProps) {
           </Badge>
         </div>
         <div className="flex items-center gap-2">
+          {/* Preview button for static websites */}
+          {projectInfo.canPreview && combinedPreview && (
+            <>
+              <Button
+                size="sm"
+                variant={showPreview ? "default" : "outline"}
+                onClick={() => setShowPreview(!showPreview)}
+                className="text-xs gap-1"
+                data-testid="button-preview-project"
+              >
+                {showPreview ? (
+                  <>
+                    <EyeOff className="w-3 h-3" />
+                    Hide Preview
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3" />
+                    Run Preview
+                  </>
+                )}
+              </Button>
+              {showPreview && (
+                <>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    data-testid="button-fullscreen-project"
+                  >
+                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={openInNewTab}
+                    data-testid="button-open-project-new-tab"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+            </>
+          )}
           <Button
             size="sm"
             variant="ghost"
@@ -380,6 +478,27 @@ export function ProjectFilesPreview({ files }: ProjectFilesPreviewProps) {
           </Button>
         </div>
       </div>
+
+      {/* Live Preview iframe for static websites */}
+      {showPreview && projectInfo.canPreview && combinedPreview && (
+        <div className={`border-b border-border ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''}`}>
+          {isFullscreen && (
+            <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
+              <span className="text-sm font-medium">Live Preview</span>
+              <Button size="icon" variant="ghost" onClick={() => setIsFullscreen(false)}>
+                <Minimize2 className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          <iframe
+            ref={iframeRef}
+            srcDoc={combinedPreview}
+            className={`w-full bg-white ${isFullscreen ? 'h-[calc(100vh-48px)]' : 'h-[400px]'}`}
+            sandbox="allow-scripts"
+            title="Project Preview"
+          />
+        </div>
+      )}
 
       {/* Preview notice for non-previewable projects */}
       {!projectInfo.canPreview && (
