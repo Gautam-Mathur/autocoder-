@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CodePreview, CombinedAppPreview } from "./code-preview";
+import { CodePreview, CombinedAppPreview, MultiFilePreview, parseMultiFileHtml, parseProjectFiles, ProjectFilesPreview } from "./code-preview";
 
 interface CodeBlockProps {
   code: string;
@@ -91,26 +91,55 @@ export function parseCodeBlocks(content: string): React.ReactNode[] {
   const hasCss = codeBlocks.some(b => b.language === 'css');
   const hasJs = codeBlocks.some(b => b.language === 'javascript' || b.language === 'js');
   
-  const hasMultipleWebLanguages = hasHtml && (hasCss || hasJs);
+  // Check for multi-file project (--- FILE: path --- format)
+  const allCode = codeBlocks.map(b => b.code).join('\n');
+  const projectFiles = parseProjectFiles(allCode);
   
-  if (hasMultipleWebLanguages) {
+  if (projectFiles && projectFiles.length >= 2) {
+    // Multi-file project detected - show project files preview
+    parts.push(
+      <ProjectFilesPreview 
+        key="project-files-preview"
+        files={projectFiles}
+      />
+    );
+  } else {
+    // Check for multi-file HTML (multiple pages in one code block)
     const htmlBlocks = codeBlocks.filter(b => b.language === 'html' || b.language === 'htm');
-    const cssBlocks = codeBlocks.filter(b => b.language === 'css');
-    const jsBlocks = codeBlocks.filter(b => b.language === 'javascript' || b.language === 'js');
+    const combinedHtmlForParsing = htmlBlocks.map(b => b.code).join('\n');
+    const multiFiles = parseMultiFileHtml(combinedHtmlForParsing);
     
-    const combinedHtml = htmlBlocks.map(b => b.code).join('\n');
-    const combinedCss = cssBlocks.map(b => b.code).join('\n');
-    const combinedJs = jsBlocks.map(b => b.code).join('\n');
-    
-    if (combinedHtml || combinedCss || combinedJs) {
+    if (multiFiles && multiFiles.length >= 2) {
+      // Multi-page website detected - show multi-file preview
       parts.push(
-        <CombinedAppPreview 
-          key="combined-preview"
-          html={combinedHtml}
-          css={combinedCss}
-          javascript={combinedJs}
+        <MultiFilePreview 
+          key="multi-file-preview"
+          files={multiFiles}
         />
       );
+    } else {
+      // Check for combined HTML + CSS + JS
+      const hasMultipleWebLanguages = hasHtml && (hasCss || hasJs);
+      
+      if (hasMultipleWebLanguages) {
+        const cssBlocks = codeBlocks.filter(b => b.language === 'css');
+        const jsBlocks = codeBlocks.filter(b => b.language === 'javascript' || b.language === 'js');
+        
+        const combinedHtml = htmlBlocks.map(b => b.code).join('\n');
+        const combinedCss = cssBlocks.map(b => b.code).join('\n');
+        const combinedJs = jsBlocks.map(b => b.code).join('\n');
+        
+        if (combinedHtml || combinedCss || combinedJs) {
+          parts.push(
+            <CombinedAppPreview 
+              key="combined-preview"
+              html={combinedHtml}
+              css={combinedCss}
+              javascript={combinedJs}
+            />
+          );
+        }
+      }
     }
   }
 

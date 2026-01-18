@@ -37,6 +37,26 @@ Preferred communication style: Simple, everyday language.
 - **Combined App Preview**: When AI generates multiple code blocks (HTML + CSS + JS), they are automatically combined into a single runnable preview with "Run App" button
 - **Full App Generation**: AI is prompted to generate complete, interactive web apps with embedded CSS/JS for instant preview
 
+### Single Page App (SPA) Generation
+- **Pattern**: AI generates real SPAs with JavaScript navigation like professional web apps
+- **Button Navigation**: Clickable nav buttons that switch views instantly (no page reloads)
+- **View Sections**: All content in one HTML file with `.view` sections toggled via JavaScript
+- **Active States**: Current tab is highlighted with `.active` class
+- **Smooth Transitions**: Fade/slide animations between views using CSS keyframes
+- **Navigation Styles**:
+  - Top nav bar (default) - Horizontal buttons at top
+  - Sidebar nav - Vertical navigation for dashboards
+  - Tab bar - Underlined tabs below header
+- **When Used**: Triggered when user asks for apps, websites, or multiple views/sections
+
+### Multi-File Project Generation
+- **Pattern**: AI generates complete project structures with multiple files
+- **File Markers**: Uses `--- FILE: path/to/file.ext ---` syntax to separate files
+- **Component**: `client/src/components/code-preview.tsx` contains `ProjectFilesPreview`
+- **UI Features**: File tree sidebar on left, file content on right, copy buttons
+- **Language Detection**: Auto-detects file type from extension for syntax highlighting
+- **When Used**: Triggered when user asks for "full project", "full app", or organized multi-file structure
+
 ### AI Design Capabilities
 - **Thinking Process**: AI mentally plans before coding (intent, visual strategy, interactions, components, technical approach)
 - **Sophisticated Animations**: fadeInUp, pulse, glow, typing effects, blink cursors
@@ -47,6 +67,15 @@ Preferred communication style: Simple, everyday language.
   - Finance: Clean/professional, data visualization, trust indicators
   - SaaS: Modern gradients, feature cards, conversion-focused
 - **Quality Standards**: Every button has hover effects, cards have transforms, entrance animations on all elements
+
+### Project Memory & Continuous Development
+- **Persistent Context**: Each conversation stores project details (name, description, tech stack, features built)
+- **Auto-Extraction**: System automatically extracts project info from user messages and AI responses
+- **Feature Tracking**: Features like Navigation, Dashboard, Forms, Settings Panel are detected and tracked
+- **Project Header**: Shows project name and feature count in header when context is available
+- **Upgrade Intelligence**: AI understands previous work and suggests relevant upgrades
+- **Consistent Styling**: AI maintains same colors, fonts, and component styles across all code in a project
+- **Storage**: Project context stored in conversation (projectName, projectDescription, techStack, featuresBuilt, projectSummary, lastCodeGenerated)
 
 ### AI Contextual Intelligence
 - **Context Extraction**: Extracts product name, purpose, audience, and features from user messages

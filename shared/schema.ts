@@ -21,6 +21,13 @@ export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  // Project context for persistent memory
+  projectName: text("project_name"),
+  projectDescription: text("project_description"),
+  techStack: text("tech_stack").array(),
+  featuresBuilt: text("features_built").array(),
+  projectSummary: text("project_summary"),
+  lastCodeGenerated: text("last_code_generated"),
 });
 
 export const messages = pgTable("messages", {

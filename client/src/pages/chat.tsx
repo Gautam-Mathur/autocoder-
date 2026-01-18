@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu } from "lucide-react";
+import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
@@ -33,6 +34,95 @@ import type { Conversation, Message } from "@shared/schema";
 
 interface ConversationWithMessages extends Conversation {
   messages: Message[];
+}
+
+// Extract and update project context from user messages and AI responses
+async function updateProjectContextFromResponse(conversationId: number, userMessage: string, aiResponse: string) {
+  try {
+    // First fetch current conversation to get existing context
+    const convRes = await fetch(`/api/conversations/${conversationId}`);
+    const currentConv = convRes.ok ? await convRes.json() : null;
+    
+    const context: Record<string, unknown> = {};
+    
+    // Extract project name from user message (only if not already set)
+    if (!currentConv?.projectName) {
+      const namePatterns = [
+        /(?:building|create|making|develop)\s+(?:a\s+)?(?:an?\s+)?["']?([A-Z][a-zA-Z0-9\s]+?)["']?\s+(?:app|website|dashboard|platform|tool|system)/i,
+        /["']([A-Z][a-zA-Z0-9]+)["']\s+(?:is\s+(?:a|an)|will\s+be)/i,
+        /(?:called|named)\s+["']?([A-Z][a-zA-Z0-9]+)["']?/i,
+      ];
+      
+      for (const pattern of namePatterns) {
+        const match = userMessage.match(pattern);
+        if (match && match[1]) {
+          context.projectName = match[1].trim();
+          break;
+        }
+      }
+    }
+    
+    // Extract tech stack from AI response
+    const techKeywords = ['HTML', 'CSS', 'JavaScript', 'React', 'TypeScript'];
+    const foundTech = techKeywords.filter(tech => 
+      aiResponse.toLowerCase().includes(tech.toLowerCase())
+    );
+    if (foundTech.length > 0) {
+      const existingTech = currentConv?.techStack || [];
+      const combined = [...existingTech, ...foundTech];
+      const uniqueTech = combined.filter((t, i) => combined.indexOf(t) === i);
+      if (uniqueTech.length > existingTech.length) {
+        context.techStack = uniqueTech;
+      }
+    }
+    
+    // Extract features from code
+    const featurePatterns = [
+      { pattern: /<nav|navigation|navbar/i, feature: 'Navigation' },
+      { pattern: /<form|contact.*form/i, feature: 'Forms' },
+      { pattern: /dashboard|admin.*panel/i, feature: 'Dashboard' },
+      { pattern: /hero.*section|landing/i, feature: 'Hero Section' },
+      { pattern: /settings|preferences/i, feature: 'Settings Panel' },
+    ];
+    
+    const existingFeatures = currentConv?.featuresBuilt || [];
+    const features = [...existingFeatures];
+    for (const { pattern, feature } of featurePatterns) {
+      if (pattern.test(aiResponse) && !features.includes(feature)) {
+        features.push(feature);
+      }
+    }
+    if (features.length > existingFeatures.length) {
+      context.featuresBuilt = features;
+    }
+    
+    // Only update if we found something new
+    if (Object.keys(context).length > 0) {
+      const res = await apiRequest("PUT", `/api/conversations/${conversationId}/context`, context);
+      const updatedConv = await res.json();
+      
+      // Directly update the cache with the updated conversation
+      queryClient.setQueryData<ConversationWithMessages>(
+        ["/api/conversations", conversationId],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            projectName: updatedConv.projectName,
+            projectDescription: updatedConv.projectDescription,
+            techStack: updatedConv.techStack,
+            featuresBuilt: updatedConv.featuresBuilt,
+            projectSummary: updatedConv.projectSummary,
+          };
+        }
+      );
+      
+      // Also refresh the conversations list
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+    }
+  } catch (error) {
+    console.error("Error updating project context:", error);
+  }
 }
 
 export default function Chat() {
@@ -190,6 +280,9 @@ export default function Chat() {
                   }
                 );
                 
+                // Update project context for local engine too
+                await updateProjectContextFromResponse(conversationId, data.userMessage, localResponse);
+                
                 setIsStreaming(false);
                 setStreamingContent("");
                 return;
@@ -217,6 +310,9 @@ export default function Chat() {
       setStreamingContent(localResponse);
       setAiMode("local");
       
+      // Update project context for fallback too
+      await updateProjectContextFromResponse(conversationId, content, localResponse);
+      
       setTimeout(() => {
         setIsStreaming(false);
         setStreamingContent("");
@@ -227,6 +323,10 @@ export default function Chat() {
 
   const handleNewChat = () => {
     setActiveConversationId(null);
+    setStreamingContent("");
+    setIsStreaming(false);
+    // Clear any cached conversation data to ensure fresh start
+    queryClient.removeQueries({ queryKey: ["/api/conversations", null] });
   };
 
   const handleSelectConversation = (id: number) => {
@@ -365,6 +465,17 @@ export default function Chat() {
                   <span className="font-semibold hidden sm:inline">CodeAI</span>
                 </div>
               </Link>
+              {activeConversation?.projectName && (
+                <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground border-l border-border pl-3" data-testid="project-context-indicator">
+                  <Layers className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-medium text-foreground">{activeConversation.projectName}</span>
+                  {activeConversation.featuresBuilt && activeConversation.featuresBuilt.length > 0 && (
+                    <Badge variant="secondary" className="text-xs" data-testid="badge-features-count">
+                      {activeConversation.featuresBuilt.length} features
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <ThemeToggle />

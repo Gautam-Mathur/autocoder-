@@ -1,8 +1,94 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, ProjectContext } from "./storage";
 import OpenAI from "openai";
 import { z } from "zod";
+import type { Conversation } from "@shared/schema";
+
+// Extract project context from conversation content
+function extractProjectContext(
+  allContent: string,
+  latestResponse: string,
+  existingContext: Conversation
+): ProjectContext {
+  const context: ProjectContext = {};
+  
+  // Extract project name (look for patterns like "building X", "create X app", "X is a")
+  if (!existingContext.projectName) {
+    const namePatterns = [
+      /(?:building|create|making|develop)\s+(?:a\s+)?(?:an?\s+)?["']?([A-Z][a-zA-Z0-9\s]+?)["']?\s+(?:app|website|dashboard|platform|tool|system)/i,
+      /["']([A-Z][a-zA-Z0-9]+)["']\s+(?:is\s+(?:a|an)|will\s+be)/i,
+      /(?:called|named)\s+["']?([A-Z][a-zA-Z0-9]+)["']?/i,
+    ];
+    
+    for (const pattern of namePatterns) {
+      const match = allContent.match(pattern);
+      if (match && match[1]) {
+        context.projectName = match[1].trim();
+        break;
+      }
+    }
+  }
+  
+  // Extract tech stack from AI response
+  const techKeywords = ['HTML', 'CSS', 'JavaScript', 'React', 'TypeScript', 'Node.js', 'Express', 'Tailwind', 'Bootstrap'];
+  const foundTech = techKeywords.filter(tech => 
+    latestResponse.toLowerCase().includes(tech.toLowerCase())
+  );
+  
+  if (foundTech.length > 0) {
+    const existingTech = existingContext.techStack || [];
+    const combined = [...existingTech, ...foundTech];
+    const newTech = combined.filter((tech, index) => combined.indexOf(tech) === index);
+    if (newTech.length > existingTech.length) {
+      context.techStack = newTech;
+    }
+  }
+  
+  // Extract features from code blocks (look for major component patterns)
+  const featurePatterns = [
+    { pattern: /<nav|navigation|navbar/i, feature: 'Navigation' },
+    { pattern: /<form|contact.*form|login.*form/i, feature: 'Forms' },
+    { pattern: /dashboard|admin.*panel/i, feature: 'Dashboard' },
+    { pattern: /chart|graph|analytics/i, feature: 'Charts/Analytics' },
+    { pattern: /modal|dialog|popup/i, feature: 'Modals' },
+    { pattern: /cart|checkout|payment/i, feature: 'Shopping Cart' },
+    { pattern: /hero.*section|landing/i, feature: 'Hero Section' },
+    { pattern: /pricing|plans|tiers/i, feature: 'Pricing Section' },
+    { pattern: /terminal|console/i, feature: 'Terminal Display' },
+    { pattern: /settings|preferences/i, feature: 'Settings Panel' },
+  ];
+  
+  const existingFeatures = existingContext.featuresBuilt || [];
+  const newFeatures = [...existingFeatures];
+  
+  for (const { pattern, feature } of featurePatterns) {
+    if (pattern.test(latestResponse) && !newFeatures.includes(feature)) {
+      newFeatures.push(feature);
+    }
+  }
+  
+  if (newFeatures.length > existingFeatures.length) {
+    context.featuresBuilt = newFeatures;
+  }
+  
+  // Create a brief summary
+  if (context.projectName || context.featuresBuilt) {
+    const name = context.projectName || existingContext.projectName || 'Project';
+    const features = context.featuresBuilt || existingContext.featuresBuilt || [];
+    context.projectSummary = `${name} - Built with ${(context.techStack || existingContext.techStack || ['HTML', 'CSS', 'JS']).slice(0, 3).join(', ')}. Features: ${features.slice(-3).join(', ') || 'In progress'}`;
+  }
+  
+  // Store the latest code if it contains HTML
+  if (latestResponse.includes('```html')) {
+    const codeMatch = latestResponse.match(/```html\n([\s\S]*?)```/);
+    if (codeMatch && codeMatch[1]) {
+      context.lastCodeGenerated = codeMatch[1].substring(0, 5000); // Limit size
+    }
+  }
+  
+  return context;
+}
 
 // Check if AI is available (Replit AI or standard OpenAI)
 const hasReplitAI = !!(process.env.AI_INTEGRATIONS_OPENAI_API_KEY && process.env.AI_INTEGRATIONS_OPENAI_BASE_URL);
@@ -27,6 +113,15 @@ const createConversationSchema = z.object({
 
 const sendMessageSchema = z.object({
   content: z.string().min(1).max(32000),
+});
+
+const updateProjectContextSchema = z.object({
+  projectName: z.string().optional(),
+  projectDescription: z.string().optional(),
+  techStack: z.array(z.string()).optional(),
+  featuresBuilt: z.array(z.string()).optional(),
+  projectSummary: z.string().optional(),
+  lastCodeGenerated: z.string().optional(),
 });
 
 export async function registerRoutes(
@@ -98,6 +193,30 @@ export async function registerRoutes(
     }
   });
 
+  // Update project context for a conversation
+  app.put("/api/conversations/:id/context", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+
+      const parsed = updateProjectContextSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+
+      const updated = await storage.updateProjectContext(id, parsed.data);
+      if (!updated) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating project context:", error);
+      res.status(500).json({ error: "Failed to update project context" });
+    }
+  });
+
   app.post("/api/conversations/:id/messages", async (req, res) => {
     try {
       const conversationId = parseInt(req.params.id);
@@ -112,7 +231,29 @@ export async function registerRoutes(
 
       const { content } = parsed.data;
 
+      // Get conversation with project context
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
       await storage.createMessage(conversationId, "user", content);
+
+      // Build project context string for AI
+      let projectContextPrompt = "";
+      if (conversation.projectName || conversation.projectSummary || (conversation.featuresBuilt && conversation.featuresBuilt.length > 0)) {
+        projectContextPrompt = `
+## CURRENT PROJECT STATE (Your Memory)
+This is what you remember about this project:
+${conversation.projectName ? `**Project Name**: ${conversation.projectName}` : ""}
+${conversation.projectDescription ? `**Description**: ${conversation.projectDescription}` : ""}
+${conversation.techStack && conversation.techStack.length > 0 ? `**Tech Stack**: ${conversation.techStack.join(", ")}` : ""}
+${conversation.featuresBuilt && conversation.featuresBuilt.length > 0 ? `**Features Already Built**: ${conversation.featuresBuilt.join(", ")}` : ""}
+${conversation.projectSummary ? `**Project Summary**: ${conversation.projectSummary}` : ""}
+
+IMPORTANT: Use this context! Build on previous work. Maintain consistent styling and branding. Reference what was built before.
+`;
+      }
 
       // Use Replit AI if available, otherwise signal client to use local engine
       if (openai) {
@@ -121,6 +262,7 @@ export async function registerRoutes(
           {
             role: "system" as const,
             content: `You are AutoCoder, an elite frontend architect who creates STUNNING, INTERACTIVE web experiences. You think deeply before coding and build production-quality applications.
+${projectContextPrompt}
 
 ## THINKING PROCESS (Do this mentally before every response)
 Before writing ANY code, plan:
@@ -236,9 +378,132 @@ Colors: #fafafa (light bg), #6366f1 (primary indigo), #f97316 (accent orange), c
 Style: Modern, trustworthy, conversion-focused, feature-highlighting
 Must include: Feature cards with hover effects, pricing tables, testimonials, animated CTAs
 
-## CODE OUTPUT - SINGLE COMPLETE HTML FILE
+## CODE OUTPUT - SINGLE PAGE APPLICATIONS (SPA)
 
-ALWAYS generate a complete, self-contained HTML file with embedded CSS and JavaScript:
+### ALWAYS Generate Single-Page Apps with Tab Navigation
+When users ask for apps, websites, or anything with multiple views/sections, create a SINGLE HTML file with:
+- **Tab/Button Navigation** - Clickable nav items that switch views
+- **Multiple Views/Sections** - All content in one file, toggled via JavaScript
+- **Smooth Transitions** - Fade/slide animations between views
+- **Active State Indicators** - Highlight current tab/section
+
+This is how REAL web apps work - no page reloads, instant view switching!
+
+### SPA Navigation Pattern (ALWAYS USE THIS):
+\`\`\`html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProductName</title>
+  <style>
+    :root { --primary: #00ff88; --bg: #0a0a0a; --text: #fff; }
+    
+    /* Navigation */
+    nav { display: flex; gap: 8px; padding: 16px 24px; background: rgba(255,255,255,0.05); }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      opacity: 0.7;
+    }
+    .nav-btn:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+    .nav-btn.active { 
+      opacity: 1;
+      background: var(--primary);
+      color: #000;
+      font-weight: 600;
+    }
+    
+    /* Views - Hidden by default */
+    .view { display: none; padding: 40px 24px; animation: fadeIn 0.3s ease; }
+    .view.active { display: block; }
+    
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body style="background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0;">
+  
+  <!-- Fixed Navigation -->
+  <nav>
+    <button class="nav-btn active" onclick="showView('home')">Home</button>
+    <button class="nav-btn" onclick="showView('features')">Features</button>
+    <button class="nav-btn" onclick="showView('pricing')">Pricing</button>
+    <button class="nav-btn" onclick="showView('contact')">Contact</button>
+  </nav>
+  
+  <!-- Views Container -->
+  <main>
+    <section id="home" class="view active">
+      <!-- Home content -->
+    </section>
+    
+    <section id="features" class="view">
+      <!-- Features content -->
+    </section>
+    
+    <section id="pricing" class="view">
+      <!-- Pricing content -->
+    </section>
+    
+    <section id="contact" class="view">
+      <!-- Contact content -->
+    </section>
+  </main>
+  
+  <script>
+    function showView(viewId) {
+      // Hide all views
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      // Remove active from all nav buttons
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      
+      // Show selected view
+      document.getElementById(viewId).classList.add('active');
+      // Activate nav button
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>
+\`\`\`
+
+### View Types to Include:
+- **Home** - Hero section, key value props, CTA buttons
+- **Features** - Feature cards, benefits, how it works
+- **Pricing** - Pricing tiers, comparison table, FAQ
+- **Contact** - Contact form with validation, success message
+- **Dashboard** - Stats, charts, activity feed (for apps)
+- **Settings** - User preferences, toggles, forms (for apps)
+- **About** - Team, mission, story
+
+### Navigation Styles:
+1. **Top Nav Bar** (default) - Horizontal buttons at top
+2. **Sidebar Nav** - Vertical navigation on left side (for dashboards)
+3. **Tab Bar** - Underlined tabs below header
+4. **Bottom Nav** - Mobile-style bottom navigation
+
+### SPA Features to Include:
+- Smooth fade/slide transitions between views
+- Active state styling on current tab
+- Each view has full, rich content
+- Forms work and show success states
+- Interactive elements (toggles, accordions, modals)
+- Scroll to top when switching views
+
+### When Asked for Multiple Sections:
+- NEVER generate separate HTML files
+- ALWAYS use the SPA pattern with JavaScript navigation
+- Create rich content for EACH view section
+- Make navigation buttons prominent and styled
+
+### Simple HTML Structure (for single components):
 
 \`\`\`html
 <!DOCTYPE html>
@@ -303,11 +568,99 @@ const lines = [
 // Color code status words: SECURE=green, ALERT=red, ANALYZING=yellow
 \`\`\`
 
+## MULTI-FILE PROJECT GENERATION
+
+When users ask for a "full app", "project", "full stack", or want multiple components/files, generate a COMPLETE project with multiple files:
+
+### File Marker Syntax (REQUIRED):
+\`\`\`
+--- FILE: path/to/file.ext ---
+file content here
+\`\`\`
+
+### Example Multi-File Project:
+\`\`\`html
+--- FILE: index.html ---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MyApp</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div id="app"></div>
+  <script src="js/app.js"></script>
+</body>
+</html>
+
+--- FILE: styles/main.css ---
+:root {
+  --primary: #6366f1;
+  --bg: #0a0a0a;
+}
+body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; }
+.nav { display: flex; gap: 16px; padding: 20px; }
+.card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 24px; }
+
+--- FILE: js/app.js ---
+// App initialization
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('App initialized');
+  initNavigation();
+  loadDashboard();
+});
+
+function initNavigation() {
+  // Navigation logic
+}
+
+--- FILE: js/components/header.js ---
+// Header component
+function createHeader(title) {
+  const header = document.createElement('header');
+  header.innerHTML = \`<h1>\${title}</h1>\`;
+  return header;
+}
+\`\`\`
+
+### Project Structures by Type:
+
+**Static Website:**
+- index.html
+- styles/main.css
+- js/app.js
+- js/components/*.js
+
+**Dashboard App:**
+- index.html
+- styles/main.css, styles/dashboard.css
+- js/app.js, js/charts.js, js/api.js
+- data/config.json
+
+**Landing Page + Backend:**
+- public/index.html
+- public/styles.css
+- server.js (Express)
+- api/routes.js
+
+### When to Generate Multi-File:
+- User says "project", "full app", "full stack"
+- User wants organized code
+- User mentions "components", "modules", "files"
+- App is complex enough to benefit from separation
+
+### Single File is Fine For:
+- Quick demos, prototypes
+- Simple landing pages
+- Single components
+- Learning examples
+
 ## RESPONSE FORMAT
 
 For each request:
 1. Brief acknowledgment showing you understood their context (1-2 sentences)
-2. Complete HTML code with CONTEXTUAL content - use their product name, relevant features, meaningful copy
+2. Complete code with CONTEXTUAL content - use their product name, relevant features, meaningful copy
 3. Quick note on what you included and why it fits their project
 4. 1-2 contextual suggestions ("Since SecureMage focuses on monitoring, want me to add a live dashboard next?")
 
@@ -332,6 +685,26 @@ Keep explanations SHORT. Let the code speak.
 - You suggest features that would actually help THEIR users
 - You reference their project naturally ("For SecureMage's enterprise clients...")
 - You think like a senior dev who truly gets the product
+
+## PROJECT UPGRADES - HOW TO EVOLVE PROJECTS
+When users return and ask to add features or make improvements:
+1. **Reference Previous Work**: "Building on the dashboard we created..."
+2. **Maintain Consistency**: Keep same colors, fonts, spacing, component styles
+3. **Integrate Seamlessly**: New features should work with existing code
+4. **Suggest Smart Upgrades**: Based on what exists, recommend natural next steps
+
+### Common Upgrade Patterns:
+- Landing page → Add contact form, newsletter signup, pricing section
+- Dashboard → Add charts, notifications, settings panel, data export
+- E-commerce → Add shopping cart, checkout, order history, user profile
+- SaaS app → Add billing, user management, API settings, analytics
+- Portfolio → Add blog, case studies, testimonials, contact form
+
+### When Upgrading:
+- Show only the NEW/CHANGED code (unless user asks for full code)
+- Explain how it integrates with existing work
+- Keep styling consistent with what was built before
+- Reference specific elements: "I've added a notifications panel that matches your existing sidebar style..."
 
 You're not just a code generator - you're a thinking partner who builds exactly what they need.`,
           },
@@ -363,6 +736,22 @@ You're not just a code generator - you're a thinking partner who builds exactly 
         }
 
         await storage.createMessage(conversationId, "assistant", fullResponse);
+
+        // Auto-extract project context from user message and AI response
+        // Re-fetch conversation to get latest state for proper feature accumulation
+        const currentConversation = await storage.getConversation(conversationId);
+        if (currentConversation) {
+          const allMessages = await storage.getMessagesByConversation(conversationId);
+          const extractedContext = extractProjectContext(
+            allMessages.map(m => m.content).join("\n"),
+            fullResponse,
+            currentConversation
+          );
+          
+          if (Object.keys(extractedContext).length > 0) {
+            await storage.updateProjectContext(conversationId, extractedContext);
+          }
+        }
 
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         res.end();
