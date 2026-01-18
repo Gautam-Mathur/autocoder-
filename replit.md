@@ -37,6 +37,25 @@ Preferred communication style: Simple, everyday language.
 - **Combined App Preview**: When AI generates multiple code blocks (HTML + CSS + JS), they are automatically combined into a single runnable preview with "Run App" button
 - **Full App Generation**: AI is prompted to generate complete, interactive web apps with embedded CSS/JS for instant preview
 
+### AI Design Capabilities
+- **Thinking Process**: AI mentally plans before coding (intent, visual strategy, interactions, components, technical approach)
+- **Sophisticated Animations**: fadeInUp, pulse, glow, typing effects, blink cursors
+- **Interactive Components**: Animated terminals, live dashboards, hero sections, cards with hover effects
+- **Adaptive Design Presets**:
+  - Cybersecurity: Dark theme (#0a0a0a), green accents (#00ff88), terminal aesthetics
+  - Fitness: Energetic colors, progress rings, motivational elements
+  - Finance: Clean/professional, data visualization, trust indicators
+  - SaaS: Modern gradients, feature cards, conversion-focused
+- **Quality Standards**: Every button has hover effects, cards have transforms, entrance animations on all elements
+
+### AI Contextual Intelligence
+- **Context Extraction**: Extracts product name, purpose, audience, and features from user messages
+- **Contextual Content**: Generates meaningful copy, badges, and status messages based on actual product details
+- **Feature Badges**: Derives relevant badges from product capabilities (e.g., "ZERO CONFIG", "24/7 MONITORING")
+- **Terminal Output**: Creates contextual terminal/status messages relevant to the product domain
+- **Smart Suggestions**: Proposes next features that make sense for the specific project
+- **No Placeholders**: Never uses generic "Lorem ipsum" or "Your Product Here" text
+
 ### Backend Architecture
 - **Framework**: Express.js (v5) running on Node.js with TypeScript
 - **API Design**: RESTful endpoints under `/api/` prefix
