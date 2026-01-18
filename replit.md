@@ -99,8 +99,19 @@ Preferred communication style: Simple, everyday language.
   - `users` - User authentication (id, username, password)
   - `conversations` - Chat sessions (id, title, createdAt)
   - `messages` - Chat messages (id, conversationId, role, content, createdAt)
+  - `projectFiles` - Project files per conversation (id, conversationId, path, content, language, createdAt, updatedAt)
 - **Migrations**: Drizzle Kit with `db:push` command for schema synchronization
 - **Fallback**: MemStorage class in `server/storage.ts` provides in-memory storage when database is unavailable
+
+### Persistent File System
+- **Location**: `client/src/components/file-panel.tsx` - toggleable sidebar for file management
+- **File Scope**: Files are scoped to conversations and cascade delete when conversation is deleted
+- **Auto-Save**: AI-generated code is automatically extracted and saved to project files
+- **Code Extraction**: Supports both `--- FILE: path ---` multi-file format and individual code blocks
+- **File Naming**: Smart path naming (HTML→index.html, CSS→styles.css, JS→script.js with counters)
+- **File Panel Toggle**: FolderOpen icon in header, panel appears on right side when toggled
+- **Preview**: Combined HTML/CSS/JS preview for static site projects
+- **CRUD Operations**: Create (auto from AI), Read (file tree), Update (upsert), Delete (trash icon)
 
 ### Key Design Patterns
 - **Dual AI Mode**: Cloud AI on Replit, local template engine elsewhere

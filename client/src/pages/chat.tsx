@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers } from "lucide-react";
+import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,9 +28,92 @@ import { ChatMessage } from "@/components/chat-message";
 import { ChatInput } from "@/components/chat-input";
 import { EmptyState } from "@/components/empty-state";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { FilePanel } from "@/components/file-panel";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { generateCode } from "@/lib/code-generator";
 import type { Conversation, Message } from "@shared/schema";
+
+// Extract code files from AI response and save to project
+async function saveCodeToProject(conversationId: number, aiResponse: string) {
+  const files: { path: string; content: string; language: string }[] = [];
+  
+  // Check for multi-file format: --- FILE: path ---
+  const multiFilePattern = /---\s*FILE:\s*([^\s]+)\s*---/gi;
+  const multiFileMatches: RegExpExecArray[] = [];
+  let match: RegExpExecArray | null;
+  
+  while ((match = multiFilePattern.exec(aiResponse)) !== null) {
+    multiFileMatches.push(match);
+  }
+  
+  if (multiFileMatches.length >= 2) {
+    for (let i = 0; i < multiFileMatches.length; i++) {
+      const m = multiFileMatches[i];
+      const filePath = m[1];
+      const startIndex = m.index + m[0].length;
+      const endIndex = i < multiFileMatches.length - 1 ? multiFileMatches[i + 1].index : aiResponse.length;
+      const content = aiResponse.slice(startIndex, endIndex).trim();
+      
+      const ext = filePath.split('.').pop()?.toLowerCase() || 'text';
+      const languageMap: Record<string, string> = {
+        'js': 'javascript', 'ts': 'typescript', 'tsx': 'typescript', 'jsx': 'javascript',
+        'css': 'css', 'html': 'html', 'json': 'json', 'md': 'markdown', 'py': 'python',
+      };
+      
+      if (content) {
+        files.push({ path: filePath, content, language: languageMap[ext] || ext });
+      }
+    }
+  } else {
+    // Extract individual code blocks
+    const codeBlockPattern = /```(\w+)?\n([\s\S]*?)```/g;
+    let blockMatch;
+    let htmlCount = 0, cssCount = 0, jsCount = 0;
+    
+    while ((blockMatch = codeBlockPattern.exec(aiResponse)) !== null) {
+      const lang = (blockMatch[1] || 'text').toLowerCase();
+      const content = blockMatch[2].trim();
+      
+      if (!content || content.length < 20) continue;
+      
+      let path = '';
+      let language = lang;
+      
+      if (lang === 'html') {
+        path = htmlCount === 0 ? 'index.html' : `page${htmlCount + 1}.html`;
+        htmlCount++;
+      } else if (lang === 'css') {
+        path = cssCount === 0 ? 'styles.css' : `styles${cssCount + 1}.css`;
+        cssCount++;
+      } else if (lang === 'javascript' || lang === 'js') {
+        path = jsCount === 0 ? 'script.js' : `script${jsCount + 1}.js`;
+        language = 'javascript';
+        jsCount++;
+      } else if (lang === 'typescript' || lang === 'ts') {
+        path = 'app.ts';
+        language = 'typescript';
+      } else if (lang === 'python' || lang === 'py') {
+        path = 'main.py';
+        language = 'python';
+      } else if (lang === 'json') {
+        path = 'data.json';
+      } else {
+        continue;
+      }
+      
+      files.push({ path, content, language });
+    }
+  }
+  
+  if (files.length > 0) {
+    try {
+      await apiRequest("POST", `/api/conversations/${conversationId}/files/bulk`, { files });
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
+    } catch (error) {
+      console.error("Error saving code to project:", error);
+    }
+  }
+}
 
 interface ConversationWithMessages extends Conversation {
   messages: Message[];
@@ -130,7 +213,19 @@ export default function Chat() {
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [aiMode, setAiMode] = useState<"cloud" | "local">("cloud");
+  const [showFilePanel, setShowFilePanel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Prevent CMD+1/CMD+2 from interfering with the app
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === '1' || e.key === '2')) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Check AI mode on mount
   useEffect(() => {
@@ -283,6 +378,9 @@ export default function Chat() {
                 // Update project context for local engine too
                 await updateProjectContextFromResponse(conversationId, data.userMessage, localResponse);
                 
+                // Save code to project files
+                await saveCodeToProject(conversationId, localResponse);
+                
                 setIsStreaming(false);
                 setStreamingContent("");
                 return;
@@ -293,6 +391,10 @@ export default function Chat() {
                 setStreamingContent(fullContent);
               }
               if (data.done) {
+                // Save code to project files
+                if (fullContent) {
+                  await saveCodeToProject(conversationId, fullContent);
+                }
                 setIsStreaming(false);
                 setStreamingContent("");
                 queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
@@ -312,6 +414,9 @@ export default function Chat() {
       
       // Update project context for fallback too
       await updateProjectContextFromResponse(conversationId, content, localResponse);
+      
+      // Save code to project files
+      await saveCodeToProject(conversationId, localResponse);
       
       setTimeout(() => {
         setIsStreaming(false);
@@ -453,8 +558,9 @@ export default function Chat() {
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 border-b border-border bg-background flex items-center justify-between px-4 gap-4 flex-shrink-0">
+        <div className="flex-1 flex min-w-0">
+          <div className="flex-1 flex flex-col min-w-0">
+            <header className="h-14 border-b border-border bg-background flex items-center justify-between px-4 gap-4 flex-shrink-0">
             <div className="flex items-center gap-3">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
               <Link href="/">
@@ -478,6 +584,15 @@ export default function Chat() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFilePanel(!showFilePanel)}
+                className={showFilePanel ? 'text-primary' : ''}
+                data-testid="button-toggle-files"
+              >
+                <FolderOpen className="h-4 w-4" />
+              </Button>
               <ThemeToggle />
             </div>
           </header>
@@ -516,6 +631,13 @@ export default function Chat() {
               </div>
             </div>
           </div>
+          </div>
+          
+          {showFilePanel && (
+            <div className="w-64 border-l border-border flex-shrink-0 h-full">
+              <FilePanel conversationId={activeConversationId} />
+            </div>
+          )}
         </div>
       </div>
     </SidebarProvider>

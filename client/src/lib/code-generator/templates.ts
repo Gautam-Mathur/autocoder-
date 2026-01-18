@@ -130,6 +130,15 @@ export const htmlTemplates: CodeTemplate[] = [
       transition: color 0.2s;
     }
     .nav-links a:hover { color: var(--text); }
+    .nav-links a:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 4px; }
+    
+    /* Accessibility */
+    .skip-link { position: absolute; left: -9999px; top: 1rem; background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 4px; z-index: 999; }
+    .skip-link:focus { left: 1rem; }
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
     
     /* Hero Section */
     .hero {
@@ -221,6 +230,15 @@ export const htmlTemplates: CodeTemplate[] = [
       border: 1px solid var(--border);
     }
     .btn-secondary:hover { background: var(--card); }
+    .btn:focus-visible { outline: 2px solid white; outline-offset: 2px; }
+    .btn:active { transform: scale(0.98); }
+    
+    /* Entrance Animations */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-in { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
     
     /* Features Section */
     .features {
@@ -320,9 +338,10 @@ export const htmlTemplates: CodeTemplate[] = [
   </style>
 </head>
 <body>
-  <nav>
+  <a href="#main" class="skip-link">Skip to main content</a>
+  <nav role="navigation" aria-label="Main navigation">
     <div class="nav-content">
-      <div class="logo">${params.title || "Brand"}</div>
+      <a href="#" class="logo">${params.title || "Brand"}</a>
       <ul class="nav-links">
         <li><a href="#features">Features</a></li>
         <li><a href="#pricing">Pricing</a></li>
@@ -332,14 +351,15 @@ export const htmlTemplates: CodeTemplate[] = [
     </div>
   </nav>
 
+  <main id="main">
   <section class="hero">
-    <div class="badge">
-      <span class="badge-dot"></span>
+    <div class="badge animate-in">
+      <span class="badge-dot" aria-hidden="true"></span>
       Now Available
     </div>
-    <h1>Build Something <span>Incredible</span> Today</h1>
-    <p>${params.description || "The most powerful platform for creating amazing digital experiences. Fast, intuitive, and built for the future."}</p>
-    <div class="btn-group">
+    <h1 class="animate-in delay-1">Build Something <span>Incredible</span> Today</h1>
+    <p class="animate-in delay-2">${params.description || "The most powerful platform for creating amazing digital experiences. Fast, intuitive, and built for the future."}</p>
+    <div class="btn-group animate-in delay-3">
       <a href="#" class="btn btn-primary">Start Free Trial</a>
       <a href="#" class="btn btn-secondary">Watch Demo</a>
     </div>
@@ -379,7 +399,9 @@ export const htmlTemplates: CodeTemplate[] = [
     </div>
   </section>
 
-  <footer>
+  </main>
+
+  <footer role="contentinfo">
     <p>&copy; 2024 ${params.title || "Brand"}. All rights reserved.</p>
   </footer>
 </body>
