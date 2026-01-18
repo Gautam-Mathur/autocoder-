@@ -4,14 +4,20 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { z } from "zod";
 
-// Check if Replit AI is available
+// Check if AI is available (Replit AI or standard OpenAI)
 const hasReplitAI = !!(process.env.AI_INTEGRATIONS_OPENAI_API_KEY && process.env.AI_INTEGRATIONS_OPENAI_BASE_URL);
+const hasOpenAI = !!process.env.OPENAI_API_KEY;
+const hasCloudAI = hasReplitAI || hasOpenAI;
 
 let openai: OpenAI | null = null;
 if (hasReplitAI) {
   openai = new OpenAI({
     apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
     baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
+} else if (hasOpenAI) {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
   });
 }
 
@@ -31,8 +37,8 @@ export async function registerRoutes(
   app.get("/api/health", (req, res) => {
     res.json({ 
       status: "ok",
-      aiMode: hasReplitAI ? "cloud" : "local",
-      message: hasReplitAI ? "Cloud AI ready" : "Local template engine active"
+      aiMode: hasCloudAI ? "cloud" : "local",
+      message: hasCloudAI ? "Cloud AI ready" : "Local template engine active"
     });
   });
 

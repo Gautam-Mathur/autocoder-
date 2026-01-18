@@ -34,18 +34,13 @@ A free, intelligent coding assistant that generates professional, production-rea
 
 - **Frontend**: React, TypeScript, Tailwind CSS, Vite
 - **Backend**: Express.js, Node.js
-- **Database**: PostgreSQL with Drizzle ORM
-- **AI**: OpenAI GPT-4o (optional)
+- **Storage**: In-memory (no database required)
+- **AI**: OpenAI GPT-4o (optional - falls back to local template engine)
 - **UI**: shadcn/ui, Radix UI, Framer Motion
 
 ## Getting Started
 
-### Run on Replit (Recommended)
-1. Fork this Repl
-2. Click "Run" - that's it!
-3. Cloud AI is automatically available
-
-### Run Locally
+### Quick Start (Just npm!)
 ```bash
 # Clone the repository
 git clone https://github.com/Gautam-Mathur/autocoder-.git
@@ -58,7 +53,11 @@ npm install
 npm run dev
 ```
 
-No API keys needed for local mode - the built-in template engine works out of the box.
+**That's it!** No API keys, no database, no configuration needed. The app uses:
+- **In-memory storage** - works without any database
+- **Local template engine** - generates code without any API keys
+
+Open `http://localhost:5000` in your browser and start coding!
 
 ## Usage
 
@@ -95,13 +94,21 @@ No API keys needed for local mode - the built-in template engine works out of th
 └── README.md
 ```
 
-## Environment Variables
+## Environment Variables (Optional)
+
+All environment variables are **optional**. The app works fully without any configuration.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | No | PostgreSQL connection (uses memory storage if not set) |
-| `AI_INTEGRATIONS_OPENAI_API_KEY` | No | Enables Cloud AI mode |
-| `AI_INTEGRATIONS_OPENAI_BASE_URL` | No | OpenAI API endpoint |
+| `DATABASE_URL` | No | PostgreSQL connection (uses in-memory storage if not set) |
+| `OPENAI_API_KEY` | No | Your OpenAI API key for Cloud AI mode |
+
+### Running with OpenAI (Optional)
+If you want to use GPT-4o instead of the local template engine:
+```bash
+export OPENAI_API_KEY=your-api-key-here
+npm run dev
+```
 
 ## Contributing
 
