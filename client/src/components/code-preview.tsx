@@ -443,7 +443,9 @@ export function CodePreview({ code, language }: CodePreviewProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const canPreview = language === "html" || language === "htm";
+  // Don't show preview for multi-file content with --- FILE: markers
+  const hasFileMarkers = /---\s*FILE:\s*[^\s]+\s*---/i.test(code);
+  const canPreview = (language === "html" || language === "htm") && !hasFileMarkers;
   
   const srcdoc = useMemo(() => {
     if (!canPreview) return "";
@@ -556,7 +558,11 @@ export function CombinedAppPreview({ html, css, javascript }: CombinedPreviewPro
   const [showPreview, setShowPreview] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Don't show combined preview if content has --- FILE: markers (handled by ProjectFilesPreview)
+  const hasFileMarkers = /---\s*FILE:\s*[^\s]+\s*---/i.test(html + css + javascript);
+  
   const combinedCode = useMemo(() => {
+    if (hasFileMarkers) return "";
     let baseHtml = html.trim();
     
     if (!baseHtml.includes('<!DOCTYPE') && !baseHtml.includes('<html')) {
@@ -604,7 +610,7 @@ ${javascript ? `<script>${javascript}</script>` : ''}
   };
 
   const hasContent = html || css || javascript;
-  if (!hasContent) return null;
+  if (!hasContent || hasFileMarkers) return null;
 
   return (
     <div className="my-4 p-4 rounded-lg bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20">
