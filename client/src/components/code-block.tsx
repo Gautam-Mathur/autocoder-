@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CodePreview } from "./code-preview";
+import { CodePreview, CombinedAppPreview } from "./code-preview";
 
 interface CodeBlockProps {
   code: string;
@@ -43,10 +43,15 @@ export function CodeBlock({ code, language = "text" }: CodeBlockProps) {
         </pre>
       </div>
       
-      {/* Live Preview for HTML */}
       <CodePreview code={code} language={language} />
     </div>
   );
+}
+
+interface ParsedCodeBlock {
+  language: string;
+  code: string;
+  index: number;
 }
 
 export function parseCodeBlocks(content: string): React.ReactNode[] {
@@ -54,6 +59,8 @@ export function parseCodeBlocks(content: string): React.ReactNode[] {
   const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
   let lastIndex = 0;
   let match;
+  
+  const codeBlocks: ParsedCodeBlock[] = [];
 
   while ((match = codeBlockRegex.exec(content)) !== null) {
     if (match.index > lastIndex) {
@@ -64,8 +71,10 @@ export function parseCodeBlocks(content: string): React.ReactNode[] {
       );
     }
     
-    const language = match[1] || "text";
+    const language = (match[1] || "text").toLowerCase();
     const code = match[2].trim();
+    
+    codeBlocks.push({ language, code, index: match.index });
     parts.push(<CodeBlock key={`code-${match.index}`} code={code} language={language} />);
     lastIndex = match.index + match[0].length;
   }
@@ -76,6 +85,33 @@ export function parseCodeBlocks(content: string): React.ReactNode[] {
         {content.slice(lastIndex)}
       </span>
     );
+  }
+
+  const hasHtml = codeBlocks.some(b => b.language === 'html' || b.language === 'htm');
+  const hasCss = codeBlocks.some(b => b.language === 'css');
+  const hasJs = codeBlocks.some(b => b.language === 'javascript' || b.language === 'js');
+  
+  const hasMultipleWebLanguages = hasHtml && (hasCss || hasJs);
+  
+  if (hasMultipleWebLanguages) {
+    const htmlBlocks = codeBlocks.filter(b => b.language === 'html' || b.language === 'htm');
+    const cssBlocks = codeBlocks.filter(b => b.language === 'css');
+    const jsBlocks = codeBlocks.filter(b => b.language === 'javascript' || b.language === 'js');
+    
+    const combinedHtml = htmlBlocks.map(b => b.code).join('\n');
+    const combinedCss = cssBlocks.map(b => b.code).join('\n');
+    const combinedJs = jsBlocks.map(b => b.code).join('\n');
+    
+    if (combinedHtml || combinedCss || combinedJs) {
+      parts.push(
+        <CombinedAppPreview 
+          key="combined-preview"
+          html={combinedHtml}
+          css={combinedCss}
+          javascript={combinedJs}
+        />
+      );
+    }
   }
 
   return parts.length > 0 ? parts : [<span key="content" className="whitespace-pre-wrap">{content}</span>];

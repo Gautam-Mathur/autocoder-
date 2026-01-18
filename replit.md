@@ -34,6 +34,8 @@ Preferred communication style: Simple, everyday language.
 - **Component**: `client/src/components/code-preview.tsx`
 - **Security**: Uses iframe with srcdoc and sandbox="allow-scripts" (no same-origin access)
 - **Features**: Toggle preview, fullscreen mode, open in new tab
+- **Combined App Preview**: When AI generates multiple code blocks (HTML + CSS + JS), they are automatically combined into a single runnable preview with "Run App" button
+- **Full App Generation**: AI is prompted to generate complete, interactive web apps with embedded CSS/JS for instant preview
 
 ### Backend Architecture
 - **Framework**: Express.js (v5) running on Node.js with TypeScript

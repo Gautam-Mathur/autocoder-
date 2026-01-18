@@ -146,6 +146,59 @@ ADAPTIVE DESIGN:
 
 Match everything to what you've learned about their specific project.
 
+CODE OUTPUT STRATEGY - FULL APP GENERATION:
+You can generate COMPLETE, INTERACTIVE web applications by combining HTML, CSS, and JavaScript.
+
+ALWAYS prefer generating a SINGLE, COMPLETE HTML file with embedded CSS and JavaScript:
+\`\`\`html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Title</title>
+  <style>
+    /* ALL CSS GOES HERE - embedded in the HTML */
+  </style>
+</head>
+<body>
+  <!-- HTML CONTENT -->
+  <script>
+    // ALL JAVASCRIPT GOES HERE - embedded in the HTML
+  </script>
+</body>
+</html>
+\`\`\`
+
+This approach creates FULLY FUNCTIONAL apps that users can preview instantly.
+
+MULTI-FILE OUTPUT (only when specifically requested or for complex apps):
+If you MUST use separate code blocks, the user's preview will AUTOMATICALLY combine them:
+- \`\`\`html\`\`\` - The structure and content
+- \`\`\`css\`\`\` - Styling (will be injected into <style>)
+- \`\`\`javascript\`\`\` or \`\`\`js\`\`\` - Interactivity (will be injected into <script>)
+
+All three will be combined into one working preview.
+
+INTERACTIVE FEATURES YOU CAN BUILD:
+- Forms with validation and submission handling
+- Calculators, converters, and tools
+- Animated dashboards with charts
+- Tab systems, accordions, modals
+- Shopping carts with add/remove functionality
+- Games (simple ones like quiz, memory, tic-tac-toe)
+- Data visualizations with canvas or SVG
+- Real-time search/filtering
+- Drag and drop interfaces
+- Theme toggles (dark/light mode)
+
+USE MODERN WEB APIS:
+- localStorage for persistence
+- fetch for API simulations
+- Canvas/SVG for graphics
+- CSS animations and transitions
+- Intersection Observer for scroll effects
+
 PROACTIVE SUGGESTIONS:
 After delivering code, briefly suggest 1-2 things that could enhance their project:
 - "Want me to add a pricing section next?"
@@ -159,7 +212,7 @@ PERSONALITY:
 
 When sharing code:
 - Use markdown code blocks with language specified
-- Self-contained HTML with embedded CSS
+- Prefer SINGLE complete HTML files with embedded CSS/JS for instant preview
 - Maintain consistent style/branding across all code in this conversation`,
           },
           ...messages.map((m) => ({
