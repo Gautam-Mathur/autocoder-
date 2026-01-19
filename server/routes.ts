@@ -1012,6 +1012,426 @@ input:user-invalid ~ .error-message { display: block; }
 @keyframes gradient-shift { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
 \`\`\`
 
+### 21. Glassmorphism & Modern Effects
+
+**Glassmorphism Card:**
+\`\`\`css
+.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+[data-theme="dark"] .glass-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+\`\`\`
+
+**Gradient Border:**
+\`\`\`css
+.gradient-border {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 2rem;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-radius: 18px;
+  z-index: -1;
+}
+\`\`\`
+
+**Blob Shape Background:**
+\`\`\`css
+.blob {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+  filter: blur(60px);
+  opacity: 0.3;
+  animation: blob-morph 8s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes blob-morph {
+  0%, 100% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
+  50% { border-radius: 70% 30% 30% 70% / 70% 70% 30% 30%; }
+}
+\`\`\`
+
+**Neumorphism (Soft UI):**
+\`\`\`css
+.neumorph {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 8px 8px 16px rgba(0,0,0,0.1), -8px -8px 16px rgba(255,255,255,0.8);
+}
+[data-theme="dark"] .neumorph {
+  box-shadow: 8px 8px 16px rgba(0,0,0,0.4), -8px -8px 16px rgba(255,255,255,0.05);
+}
+.neumorph-inset {
+  box-shadow: inset 4px 4px 8px rgba(0,0,0,0.1), inset -4px -4px 8px rgba(255,255,255,0.8);
+}
+\`\`\`
+
+### 22. Scroll-Triggered Animations
+
+**Fade In on Scroll:**
+\`\`\`css
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.fade-in-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+\`\`\`
+\`\`\`javascript
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
+\`\`\`
+
+**Staggered Animation:**
+\`\`\`css
+.stagger-item { opacity: 0; transform: translateY(20px); transition: all 0.4s ease; }
+.stagger-item.visible { opacity: 1; transform: translateY(0); }
+.stagger-item:nth-child(1) { transition-delay: 0.1s; }
+.stagger-item:nth-child(2) { transition-delay: 0.2s; }
+.stagger-item:nth-child(3) { transition-delay: 0.3s; }
+.stagger-item:nth-child(4) { transition-delay: 0.4s; }
+.stagger-item:nth-child(5) { transition-delay: 0.5s; }
+\`\`\`
+
+**Parallax Effect:**
+\`\`\`css
+.parallax-container { height: 100vh; overflow-x: hidden; overflow-y: auto; perspective: 1px; }
+.parallax-bg { position: absolute; inset: 0; transform: translateZ(-1px) scale(2); z-index: -1; }
+.parallax-content { position: relative; z-index: 1; }
+\`\`\`
+
+### 23. Interactive Card Effects
+
+**3D Card Tilt on Hover:**
+\`\`\`css
+.tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+.tilt-card:hover {
+  transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) translateZ(10px);
+}
+.tilt-card-content { transform: translateZ(30px); }
+\`\`\`
+
+**Card Flip Effect:**
+\`\`\`html
+<div class="flip-card">
+  <div class="flip-card-inner">
+    <div class="flip-card-front">Front Content</div>
+    <div class="flip-card-back">Back Content</div>
+  </div>
+</div>
+\`\`\`
+\`\`\`css
+.flip-card { width: 300px; height: 200px; perspective: 1000px; }
+.flip-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+.flip-card:hover .flip-card-inner { transform: rotateY(180deg); }
+.flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.flip-card-front { background: var(--bg-card); border: 1px solid var(--border); }
+.flip-card-back { background: var(--primary); color: white; transform: rotateY(180deg); }
+\`\`\`
+
+**Hover Lift Effect:**
+\`\`\`css
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+\`\`\`
+
+### 24. Timeline & Roadmap
+
+**Vertical Timeline:**
+\`\`\`html
+<div class="timeline">
+  <div class="timeline-item">
+    <div class="timeline-marker"></div>
+    <div class="timeline-content">
+      <span class="timeline-date">Jan 2024</span>
+      <h3>Project Started</h3>
+      <p>Initial development began...</p>
+    </div>
+  </div>
+  <div class="timeline-item">
+    <div class="timeline-marker"></div>
+    <div class="timeline-content">
+      <span class="timeline-date">Mar 2024</span>
+      <h3>Beta Launch</h3>
+      <p>Released to early users...</p>
+    </div>
+  </div>
+</div>
+\`\`\`
+\`\`\`css
+.timeline { position: relative; padding-left: 2rem; }
+.timeline::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.timeline-item { position: relative; padding-bottom: 2rem; }
+.timeline-marker { position: absolute; left: -2rem; width: 16px; height: 16px; background: var(--primary); border-radius: 50%; border: 3px solid var(--bg); }
+.timeline-content { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); }
+.timeline-date { font-size: 0.75rem; color: var(--primary); font-weight: 600; text-transform: uppercase; }
+\`\`\`
+
+### 25. Feature Comparison Table
+
+\`\`\`html
+<table class="comparison-table">
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Basic</th>
+      <th>Pro</th>
+      <th>Enterprise</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Users</td><td>1</td><td>5</td><td>Unlimited</td></tr>
+    <tr><td>Storage</td><td>5 GB</td><td>50 GB</td><td>500 GB</td></tr>
+    <tr><td>API Access</td><td>✗</td><td>✓</td><td>✓</td></tr>
+    <tr><td>Priority Support</td><td>✗</td><td>✗</td><td>✓</td></tr>
+  </tbody>
+</table>
+\`\`\`
+\`\`\`css
+.comparison-table { width: 100%; border-collapse: collapse; background: var(--bg-card); border-radius: 12px; overflow: hidden; }
+.comparison-table th, .comparison-table td { padding: 1rem; text-align: center; border-bottom: 1px solid var(--border); }
+.comparison-table thead { background: var(--primary); color: white; }
+.comparison-table tbody tr:hover { background: var(--bg-secondary); }
+.comparison-table td:first-child { text-align: left; font-weight: 500; }
+\`\`\`
+
+### 26. Common UI Utilities
+
+**Scroll Progress Indicator:**
+\`\`\`html
+<div class="scroll-progress" id="scrollProgress"></div>
+\`\`\`
+\`\`\`css
+.scroll-progress { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--accent)); width: 0%; z-index: 9999; transition: width 0.1s; }
+\`\`\`
+\`\`\`javascript
+window.addEventListener('scroll', () => {
+  const scrollTop = document.documentElement.scrollTop;
+  const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = (scrollTop / scrollHeight) * 100;
+  document.getElementById('scrollProgress').style.width = progress + '%';
+});
+\`\`\`
+
+**Back to Top Button:**
+\`\`\`html
+<button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
+\`\`\`
+\`\`\`css
+.back-to-top { position: fixed; bottom: 2rem; right: 2rem; width: 48px; height: 48px; background: var(--primary); color: white; border: none; border-radius: 50%; font-size: 1.5rem; cursor: pointer; opacity: 0; visibility: hidden; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.back-to-top.visible { opacity: 1; visibility: visible; }
+.back-to-top:hover { transform: translateY(-4px); background: var(--primary-hover); }
+\`\`\`
+\`\`\`javascript
+const backToTop = document.getElementById('backToTop');
+window.addEventListener('scroll', () => {
+  backToTop.classList.toggle('visible', window.scrollY > 300);
+});
+backToTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+\`\`\`
+
+**Cookie Consent Banner:**
+\`\`\`html
+<div class="cookie-banner" id="cookieBanner">
+  <p>We use cookies to enhance your experience. By continuing, you agree to our <a href="/privacy">Privacy Policy</a>.</p>
+  <div class="cookie-actions">
+    <button class="btn-secondary" onclick="declineCookies()">Decline</button>
+    <button class="btn-primary" onclick="acceptCookies()">Accept</button>
+  </div>
+</div>
+\`\`\`
+\`\`\`css
+.cookie-banner { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; border-top: 1px solid var(--border); z-index: 1000; transform: translateY(100%); transition: transform 0.3s ease; }
+.cookie-banner.show { transform: translateY(0); }
+.cookie-actions { display: flex; gap: 1rem; }
+\`\`\`
+
+**Newsletter Signup:**
+\`\`\`html
+<form class="newsletter-form">
+  <h3>Stay Updated</h3>
+  <p>Get the latest news delivered to your inbox.</p>
+  <div class="newsletter-input-group">
+    <input type="email" placeholder="Enter your email" required>
+    <button type="submit" class="btn-primary">Subscribe</button>
+  </div>
+</form>
+\`\`\`
+\`\`\`css
+.newsletter-form { background: var(--bg-secondary); padding: 2rem; border-radius: 16px; text-align: center; }
+.newsletter-form h3 { margin-bottom: 0.5rem; }
+.newsletter-form p { color: var(--text-muted); margin-bottom: 1.5rem; }
+.newsletter-input-group { display: flex; gap: 0.5rem; max-width: 400px; margin: 0 auto; }
+.newsletter-input-group input { flex: 1; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+.newsletter-input-group button { white-space: nowrap; }
+@media (max-width: 480px) { .newsletter-input-group { flex-direction: column; } }
+\`\`\`
+
+### 27. Marquee/Ticker
+
+**Logo Marquee:**
+\`\`\`html
+<div class="marquee-container">
+  <div class="marquee-track">
+    <div class="marquee-content">
+      <img src="logo1.svg" alt="Company 1">
+      <img src="logo2.svg" alt="Company 2">
+      <img src="logo3.svg" alt="Company 3">
+      <!-- Duplicate for seamless loop -->
+      <img src="logo1.svg" alt="Company 1">
+      <img src="logo2.svg" alt="Company 2">
+      <img src="logo3.svg" alt="Company 3">
+    </div>
+  </div>
+</div>
+\`\`\`
+\`\`\`css
+.marquee-container { overflow: hidden; padding: 2rem 0; }
+.marquee-track { display: flex; }
+.marquee-content { display: flex; gap: 4rem; align-items: center; animation: marquee 20s linear infinite; }
+.marquee-content img { height: 40px; filter: grayscale(100%); opacity: 0.6; transition: all 0.3s; }
+.marquee-content img:hover { filter: grayscale(0%); opacity: 1; }
+@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+\`\`\`
+
+### 28. Advanced Text Effects
+
+**Text Reveal Animation:**
+\`\`\`css
+.text-reveal { overflow: hidden; }
+.text-reveal span { display: inline-block; transform: translateY(100%); animation: reveal 0.6s ease forwards; }
+.text-reveal span:nth-child(2) { animation-delay: 0.1s; }
+.text-reveal span:nth-child(3) { animation-delay: 0.2s; }
+@keyframes reveal { to { transform: translateY(0); } }
+\`\`\`
+
+**Highlight Animation:**
+\`\`\`css
+.highlight-text {
+  background: linear-gradient(120deg, transparent 0%, transparent 50%, var(--accent) 50%, var(--accent) 100%);
+  background-size: 200% 100%;
+  background-position: 100% 0;
+  transition: background-position 0.5s ease;
+}
+.highlight-text:hover { background-position: 0 0; }
+\`\`\`
+
+**Split Text Hover:**
+\`\`\`css
+.split-hover { position: relative; overflow: hidden; }
+.split-hover::before { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; color: var(--primary); transform: translateY(100%); transition: transform 0.3s ease; }
+.split-hover:hover::before { transform: translateY(0); }
+.split-hover:hover { color: transparent; }
+\`\`\`
+
+### 29. Image & Media Patterns
+
+**Image with Overlay:**
+\`\`\`css
+.image-overlay { position: relative; overflow: hidden; border-radius: 12px; }
+.image-overlay img { width: 100%; display: block; transition: transform 0.3s ease; }
+.image-overlay::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); opacity: 0; transition: opacity 0.3s ease; }
+.image-overlay:hover img { transform: scale(1.05); }
+.image-overlay:hover::after { opacity: 1; }
+.image-overlay-text { position: absolute; bottom: 1rem; left: 1rem; right: 1rem; color: white; opacity: 0; transform: translateY(10px); transition: all 0.3s ease; z-index: 1; }
+.image-overlay:hover .image-overlay-text { opacity: 1; transform: translateY(0); }
+\`\`\`
+
+**Aspect Ratio Container:**
+\`\`\`css
+.aspect-16-9 { aspect-ratio: 16 / 9; }
+.aspect-4-3 { aspect-ratio: 4 / 3; }
+.aspect-1-1 { aspect-ratio: 1 / 1; }
+.aspect-container img { width: 100%; height: 100%; object-fit: cover; }
+\`\`\`
+
+**Video Background:**
+\`\`\`html
+<div class="video-bg-container">
+  <video autoplay muted loop playsinline class="video-bg">
+    <source src="bg-video.mp4" type="video/mp4">
+  </video>
+  <div class="video-bg-overlay"></div>
+  <div class="video-bg-content">
+    <h1>Your Content Here</h1>
+  </div>
+</div>
+\`\`\`
+\`\`\`css
+.video-bg-container { position: relative; min-height: 100vh; overflow: hidden; }
+.video-bg { position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; transform: translate(-50%, -50%); object-fit: cover; z-index: -2; }
+.video-bg-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: -1; }
+.video-bg-content { position: relative; z-index: 1; color: white; text-align: center; padding: 4rem 2rem; }
+\`\`\`
+
+### 30. Micro-interactions
+
+**Button Ripple Effect:**
+\`\`\`css
+.btn-ripple { position: relative; overflow: hidden; }
+.btn-ripple::after { content: ''; position: absolute; width: 100%; height: 100%; top: 0; left: 0; background: radial-gradient(circle, rgba(255,255,255,0.3) 10%, transparent 10%); background-size: 1000% 1000%; background-position: center; opacity: 0; transition: background-size 0.5s, opacity 0.5s; }
+.btn-ripple:active::after { background-size: 0% 0%; opacity: 1; transition: 0s; }
+\`\`\`
+
+**Checkbox Animation:**
+\`\`\`css
+.custom-checkbox { width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 4px; position: relative; cursor: pointer; transition: all 0.2s; }
+.custom-checkbox:checked { background: var(--primary); border-color: var(--primary); }
+.custom-checkbox:checked::after { content: '✓'; position: absolute; color: white; font-size: 14px; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); animation: check-pop 0.2s ease forwards; }
+@keyframes check-pop { to { transform: translate(-50%, -50%) scale(1); } }
+\`\`\`
+
+**Toggle Switch:**
+\`\`\`html
+<label class="toggle-switch">
+  <input type="checkbox">
+  <span class="toggle-slider"></span>
+</label>
+\`\`\`
+\`\`\`css
+.toggle-switch { position: relative; width: 50px; height: 28px; display: inline-block; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: var(--bg-secondary); border-radius: 28px; cursor: pointer; transition: 0.3s; border: 1px solid var(--border); }
+.toggle-slider::before { content: ''; position: absolute; width: 22px; height: 22px; left: 2px; top: 2px; background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.toggle-switch input:checked + .toggle-slider { background: var(--primary); border-color: var(--primary); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px); }
+\`\`\`
+
 ### 9. State Design (Every Element Has Multiple States)
 For EVERY interactive element, define:
 - **Default**: Normal resting state
