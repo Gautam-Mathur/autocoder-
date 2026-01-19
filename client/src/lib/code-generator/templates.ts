@@ -373,17 +373,23 @@ export const htmlTemplates: CodeTemplate[] = [
       </div>
       <div class="features-grid">
         <div class="feature-card">
-          <div class="feature-icon">⚡</div>
+          <div class="feature-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
           <h3>Lightning Fast</h3>
           <p>Optimized performance that keeps your users engaged and coming back for more.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">🔒</div>
+          <div class="feature-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
           <h3>Secure by Default</h3>
           <p>Enterprise-grade security built into every layer of the platform.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">🎨</div>
+          <div class="feature-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="19" cy="17" r="2"/><circle cx="5" cy="17" r="2"/><path d="M3 17h4v-6h10v6h4"/></svg>
+          </div>
           <h3>Beautiful Design</h3>
           <p>Stunning templates and components that make your product shine.</p>
         </div>
@@ -1090,23 +1096,33 @@ export const htmlTemplates: CodeTemplate[] = [
     <div class="sidebar-logo">${params.title || "Dashboard"}</div>
     <nav class="sidebar-nav">
       <a href="#" class="nav-item active">
-        <span class="nav-icon">📊</span>
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </span>
         Overview
       </a>
       <a href="#" class="nav-item">
-        <span class="nav-icon">📈</span>
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </span>
         Analytics
       </a>
       <a href="#" class="nav-item">
-        <span class="nav-icon">👥</span>
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
         Users
       </a>
       <a href="#" class="nav-item">
-        <span class="nav-icon">💰</span>
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </span>
         Revenue
       </a>
       <a href="#" class="nav-item">
-        <span class="nav-icon">⚙️</span>
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
         Settings
       </a>
     </nav>
@@ -2929,10 +2945,336 @@ export const cssTemplates: CodeTemplate[] = [
   },
 ];
 
+// Cybersecurity Terminal Template - Advanced
+const advancedTemplates: CodeTemplate[] = [
+  {
+    id: "html-cyber-terminal",
+    name: "Cybersecurity Terminal",
+    keywords: ["terminal", "cyber", "security", "hacker", "console", "cli", "command", "scan", "monitor", "threat", "detection"],
+    description: "An animated cybersecurity terminal with typing effect",
+    language: "html",
+    generate: (params) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="${params.title || "SecureShield"} - Advanced cybersecurity threat monitoring and detection system. Real-time protection for your digital assets.">
+  <meta property="og:title" content="${params.title || "SecureShield"} - Threat Monitor">
+  <meta property="og:description" content="Advanced cybersecurity threat monitoring and detection system.">
+  <meta property="og:type" content="website">
+  <title>${params.title || "SecureShield"} - Threat Monitor</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #0d1117;
+      --card: #161b22;
+      --primary: #00ff88;
+      --cyan: #00d4ff;
+      --warning: #ffb800;
+      --error: #ff3366;
+      --text: #e6edf3;
+      --muted: #7d8590;
+      --border: rgba(0, 255, 136, 0.1);
+      --glow: rgba(0, 255, 136, 0.3);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    /* Skip Link */
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 1rem;
+      background: var(--primary);
+      color: var(--bg);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      z-index: 999;
+      font-family: system-ui, sans-serif;
+    }
+    .skip-link:focus { left: 1rem; }
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+    
+    /* Header */
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--primary);
+      text-shadow: 0 0 20px var(--glow);
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(0, 255, 136, 0.1);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.75rem;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--glow); } 50% { opacity: 0.8; box-shadow: 0 0 0 8px transparent; } }
+    
+    /* Main Layout */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 2rem;
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    @media (max-width: 1024px) {
+      main { grid-template-columns: 1fr; }
+    }
+    
+    /* Terminal */
+    .terminal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .terminal-dot.red { background: #ff5f56; }
+    .terminal-dot.yellow { background: #ffbd2e; }
+    .terminal-dot.green { background: #27c93f; }
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .terminal-body {
+      padding: 1.5rem;
+      min-height: 400px;
+      font-size: 0.9rem;
+      line-height: 1.8;
+    }
+    .line { opacity: 0; animation: fadeIn 0.3s ease forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+    .line.prompt::before { content: '> '; color: var(--primary); }
+    .line .highlight { color: var(--primary); }
+    .line .cyan { color: var(--cyan); }
+    .line .warning { color: var(--warning); }
+    .line .error { color: var(--error); }
+    .line .success { color: var(--primary); }
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 16px;
+      background: var(--primary);
+      animation: blink 1s step-end infinite;
+      vertical-align: middle;
+      margin-left: 2px;
+    }
+    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+    
+    /* Stats Panel */
+    .stats-panel { display: flex; flex-direction: column; gap: 1rem; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: all 0.3s;
+    }
+    .stat-card:hover { border-color: var(--primary); box-shadow: 0 0 20px var(--glow); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 2rem; font-weight: 600; color: var(--primary); font-variant-numeric: tabular-nums; }
+    .stat-value.warning { color: var(--warning); }
+    .stat-value.error { color: var(--error); }
+    .stat-change { font-size: 0.75rem; margin-top: 0.5rem; color: var(--muted); }
+    
+    /* Threat List */
+    .threat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .threat-card h3 { font-size: 0.875rem; margin-bottom: 1rem; color: var(--text); }
+    .threat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .threat-item:last-child { border-bottom: none; }
+    .threat-type { color: var(--muted); }
+    .threat-count { font-weight: 600; padding: 0.25rem 0.75rem; border-radius: 100px; font-size: 0.7rem; }
+    .threat-count.low { background: rgba(0, 255, 136, 0.1); color: var(--primary); }
+    .threat-count.medium { background: rgba(255, 184, 0, 0.1); color: var(--warning); }
+    .threat-count.high { background: rgba(255, 51, 102, 0.1); color: var(--error); }
+    
+    /* Entrance Animation */
+    .animate-in { animation: slideUp 0.5s ease forwards; opacity: 0; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+  
+  <header role="banner">
+    <div class="logo">${params.title || "SecureShield"}</div>
+    <div class="status-badge">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span>SYSTEM ACTIVE</span>
+    </div>
+  </header>
+  
+  <main id="main" role="main">
+    <section class="terminal animate-in">
+      <div class="terminal-header">
+        <div class="terminal-dot red" aria-hidden="true"></div>
+        <div class="terminal-dot yellow" aria-hidden="true"></div>
+        <div class="terminal-dot green" aria-hidden="true"></div>
+        <div class="terminal-title">threat_monitor.sh</div>
+      </div>
+      <div class="terminal-body" id="terminal" aria-live="polite" aria-label="Security scan output">
+      </div>
+    </section>
+    
+    <aside class="stats-panel" aria-label="Security statistics">
+      <div class="stat-card animate-in delay-1">
+        <div class="stat-label">Threats Blocked</div>
+        <div class="stat-value" id="threats-blocked">0</div>
+        <div class="stat-change">Last 24 hours</div>
+      </div>
+      <div class="stat-card animate-in delay-2">
+        <div class="stat-label">Active Scans</div>
+        <div class="stat-value" id="active-scans">0</div>
+        <div class="stat-change">Running now</div>
+      </div>
+      <div class="stat-card animate-in delay-3">
+        <div class="stat-label">System Health</div>
+        <div class="stat-value">98.7%</div>
+        <div class="stat-change">All systems operational</div>
+      </div>
+      <div class="threat-card animate-in delay-4">
+        <h3>Threat Types Detected</h3>
+        <div class="threat-item">
+          <span class="threat-type">Malware Attempts</span>
+          <span class="threat-count low">12</span>
+        </div>
+        <div class="threat-item">
+          <span class="threat-type">Phishing Links</span>
+          <span class="threat-count medium">47</span>
+        </div>
+        <div class="threat-item">
+          <span class="threat-type">DDoS Attacks</span>
+          <span class="threat-count high">3</span>
+        </div>
+        <div class="threat-item">
+          <span class="threat-type">SQL Injections</span>
+          <span class="threat-count low">8</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+  
+  <script>
+    const lines = [
+      { text: '[init] Starting ${params.title || "SecureShield"} threat detection engine...', delay: 0 },
+      { text: '[conn] Establishing secure connection to neural network...', delay: 800 },
+      { text: '[auth] <span class="success">Authentication successful</span>', delay: 1400 },
+      { text: '', delay: 1800 },
+      { text: '[scan] Initiating deep packet inspection...', delay: 2200 },
+      { text: '[scan] Sector 1 (Firewall)..... <span class="success">SECURE</span>', delay: 2800 },
+      { text: '[scan] Sector 2 (Database)..... <span class="success">SECURE</span>', delay: 3400 },
+      { text: '[scan] Sector 3 (API Gateway).. <span class="success">SECURE</span>', delay: 4000 },
+      { text: '[scan] Sector 4 (Auth Server).. <span class="success">SECURE</span>', delay: 4600 },
+      { text: '', delay: 5000 },
+      { text: '[detect] <span class="warning">Anomaly detected in packet_stream_04</span>', delay: 5400 },
+      { text: '[analyze] Running behavioral analysis...', delay: 6000 },
+      { text: '[result] Threat classified as: <span class="cyan">Low Risk - False Positive</span>', delay: 6800 },
+      { text: '[action] <span class="success">Threat neutralized and logged</span>', delay: 7400 },
+      { text: '', delay: 7800 },
+      { text: '[status] All systems operational. Monitoring active.', delay: 8200 },
+      { text: '[monitor] Awaiting next scan cycle...<span class="cursor"></span>', delay: 8800 }
+    ];
+    
+    const terminal = document.getElementById('terminal');
+    
+    lines.forEach((line, index) => {
+      setTimeout(() => {
+        const div = document.createElement('div');
+        div.className = 'line' + (line.text.startsWith('[') ? ' prompt' : '');
+        div.innerHTML = line.text;
+        div.style.animationDelay = '0s';
+        terminal.appendChild(div);
+        terminal.scrollTop = terminal.scrollHeight;
+      }, line.delay);
+    });
+    
+    // Animate stats
+    function animateValue(id, start, end, duration) {
+      const obj = document.getElementById(id);
+      if (!obj) return;
+      let startTime = null;
+      const step = (timestamp) => {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / duration, 1);
+        obj.textContent = Math.floor(progress * (end - start) + start).toLocaleString();
+        if (progress < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+    
+    setTimeout(() => animateValue('threats-blocked', 0, 1247, 2000), 500);
+    setTimeout(() => animateValue('active-scans', 0, 12, 1000), 700);
+  </script>
+</body>
+</html>`,
+  },
+];
+
 // All templates combined
 export const allTemplates: CodeTemplate[] = [
   ...htmlTemplates,
   ...jsTemplates,
   ...reactTemplates,
   ...cssTemplates,
+  ...advancedTemplates,
 ];
