@@ -746,6 +746,272 @@ input:user-invalid ~ .error-message { display: block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 \`\`\`
 
+### 13. Loading States & Skeletons
+
+**Skeleton Shimmer Effect:**
+\`\`\`css
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg) 50%, var(--bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skeleton-text { height: 1rem; margin-bottom: 0.5rem; }
+.skeleton-title { height: 2rem; width: 60%; margin-bottom: 1rem; }
+.skeleton-avatar { width: 48px; height: 48px; border-radius: 50%; }
+.skeleton-card { height: 200px; border-radius: 12px; }
+\`\`\`
+
+**Progress Bar:**
+\`\`\`html
+<div class="progress-bar" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
+  <div class="progress-fill" style="width: 75%"></div>
+</div>
+\`\`\`
+\`\`\`css
+.progress-bar { height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.3s ease; }
+\`\`\`
+
+### 14. Social Proof Patterns
+
+**Testimonial Card:**
+\`\`\`html
+<figure class="testimonial">
+  <blockquote>"This product changed everything for us. Highly recommend!"</blockquote>
+  <figcaption>
+    <img src="avatar.jpg" alt="Sarah J." class="testimonial-avatar">
+    <div>
+      <cite>Sarah Johnson</cite>
+      <span>CEO, TechStart</span>
+    </div>
+  </figcaption>
+</figure>
+\`\`\`
+\`\`\`css
+.testimonial { background: var(--bg-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border); }
+.testimonial blockquote { font-size: 1.125rem; font-style: italic; margin-bottom: 1.5rem; line-height: 1.6; }
+.testimonial figcaption { display: flex; align-items: center; gap: 1rem; }
+.testimonial-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.testimonial cite { font-weight: 600; font-style: normal; display: block; }
+.testimonial span { color: var(--text-muted); font-size: 0.875rem; }
+\`\`\`
+
+**Star Rating:**
+\`\`\`html
+<div class="rating" aria-label="4.5 out of 5 stars">
+  <span class="star filled">★</span>
+  <span class="star filled">★</span>
+  <span class="star filled">★</span>
+  <span class="star filled">★</span>
+  <span class="star half">★</span>
+</div>
+\`\`\`
+\`\`\`css
+.rating { display: flex; gap: 2px; color: var(--text-muted); }
+.star { font-size: 1.25rem; }
+.star.filled { color: #fbbf24; }
+.star.half { background: linear-gradient(90deg, #fbbf24 50%, var(--text-muted) 50%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+\`\`\`
+
+**Trust Badges:**
+\`\`\`html
+<div class="trust-badges">
+  <div class="trust-badge"><span class="badge-icon">🔒</span> SSL Secured</div>
+  <div class="trust-badge"><span class="badge-icon">✓</span> 30-Day Guarantee</div>
+  <div class="trust-badge"><span class="badge-icon">★</span> 4.9/5 Rating</div>
+</div>
+\`\`\`
+\`\`\`css
+.trust-badges { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; }
+.trust-badge { display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.875rem; }
+.badge-icon { font-size: 1rem; }
+\`\`\`
+
+### 15. Navigation Patterns
+
+**Breadcrumbs:**
+\`\`\`html
+<nav aria-label="Breadcrumb" class="breadcrumbs">
+  <ol>
+    <li><a href="/">Home</a></li>
+    <li><a href="/products">Products</a></li>
+    <li aria-current="page">Headphones</li>
+  </ol>
+</nav>
+\`\`\`
+\`\`\`css
+.breadcrumbs ol { display: flex; gap: 0.5rem; list-style: none; padding: 0; }
+.breadcrumbs li { display: flex; align-items: center; color: var(--text-muted); font-size: 0.875rem; }
+.breadcrumbs li:not(:last-child)::after { content: '/'; margin-left: 0.5rem; }
+.breadcrumbs a { color: var(--text-muted); text-decoration: none; }
+.breadcrumbs a:hover { color: var(--primary); }
+.breadcrumbs [aria-current] { color: var(--text); font-weight: 500; }
+\`\`\`
+
+**Mega Menu:**
+\`\`\`css
+.mega-menu { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.2s ease; }
+.nav-item:hover .mega-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+.mega-menu-section h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1rem; }
+.mega-menu-section a { display: block; padding: 0.5rem 0; color: var(--text); text-decoration: none; }
+.mega-menu-section a:hover { color: var(--primary); }
+\`\`\`
+
+### 16. Pricing Tables
+
+**Pricing Card:**
+\`\`\`html
+<div class="pricing-card popular">
+  <span class="popular-badge">Most Popular</span>
+  <h3>Pro</h3>
+  <div class="price"><span class="currency">$</span>29<span class="period">/mo</span></div>
+  <ul class="features">
+    <li><span class="check">✓</span> Unlimited projects</li>
+    <li><span class="check">✓</span> Priority support</li>
+    <li><span class="check">✓</span> Advanced analytics</li>
+  </ul>
+  <button class="btn-primary">Get Started</button>
+</div>
+\`\`\`
+\`\`\`css
+.pricing-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; text-align: center; position: relative; transition: transform 0.2s, box-shadow 0.2s; }
+.pricing-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+.pricing-card.popular { border-color: var(--primary); }
+.popular-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 4px 16px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+.price { font-size: 3rem; font-weight: 700; margin: 1rem 0; }
+.currency { font-size: 1.5rem; vertical-align: super; }
+.period { font-size: 1rem; color: var(--text-muted); }
+.features { list-style: none; padding: 0; margin: 2rem 0; text-align: left; }
+.features li { padding: 0.75rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem; }
+.check { color: var(--success); font-weight: bold; }
+\`\`\`
+
+### 17. Empty States & Error Pages
+
+**Empty State:**
+\`\`\`html
+<div class="empty-state">
+  <div class="empty-icon">📭</div>
+  <h2>No messages yet</h2>
+  <p>When you receive messages, they'll appear here.</p>
+  <button class="btn-primary">Send your first message</button>
+</div>
+\`\`\`
+\`\`\`css
+.empty-state { text-align: center; padding: 4rem 2rem; }
+.empty-icon { font-size: 4rem; margin-bottom: 1.5rem; opacity: 0.5; }
+.empty-state h2 { margin-bottom: 0.5rem; }
+.empty-state p { color: var(--text-muted); margin-bottom: 2rem; }
+\`\`\`
+
+**404 Error Page:**
+\`\`\`html
+<main class="error-page">
+  <h1>404</h1>
+  <p>Oops! The page you're looking for doesn't exist.</p>
+  <a href="/" class="btn-primary">Back to Home</a>
+</main>
+\`\`\`
+\`\`\`css
+.error-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; }
+.error-page h1 { font-size: clamp(6rem, 20vw, 12rem); font-weight: 900; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; }
+.error-page p { font-size: 1.25rem; color: var(--text-muted); margin: 1rem 0 2rem; }
+\`\`\`
+
+### 18. Notification & Badge Patterns
+
+**Notification Badge:**
+\`\`\`html
+<button class="icon-btn has-badge" aria-label="Notifications">
+  <span class="badge-count">3</span>
+  🔔
+</button>
+\`\`\`
+\`\`\`css
+.icon-btn { position: relative; background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; }
+.has-badge .badge-count { position: absolute; top: 0; right: 0; background: var(--error); color: white; font-size: 0.625rem; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+\`\`\`
+
+**Status Badge:**
+\`\`\`css
+.status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+.status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+.status-active { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.status-active::before { background: #10b981; }
+.status-pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.status-pending::before { background: #f59e0b; }
+.status-inactive { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+.status-inactive::before { background: #6b7280; }
+\`\`\`
+
+### 19. Data Visualization Basics
+
+**Stat Card:**
+\`\`\`html
+<div class="stat-card">
+  <span class="stat-label">Total Revenue</span>
+  <span class="stat-value">$48,352</span>
+  <span class="stat-change positive">+12.5%</span>
+</div>
+\`\`\`
+\`\`\`css
+.stat-card { background: var(--bg-card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); }
+.stat-label { display: block; color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem; }
+.stat-value { display: block; font-size: 2rem; font-weight: 700; }
+.stat-change { display: inline-flex; align-items: center; font-size: 0.875rem; font-weight: 600; margin-top: 0.5rem; }
+.stat-change.positive { color: var(--success); }
+.stat-change.negative { color: var(--error); }
+.stat-change::before { margin-right: 4px; }
+.stat-change.positive::before { content: '↑'; }
+.stat-change.negative::before { content: '↓'; }
+\`\`\`
+
+**Simple Bar Chart (CSS-only):**
+\`\`\`html
+<div class="chart-bars">
+  <div class="bar" style="--value: 80%"><span class="bar-label">Mon</span></div>
+  <div class="bar" style="--value: 65%"><span class="bar-label">Tue</span></div>
+  <div class="bar" style="--value: 90%"><span class="bar-label">Wed</span></div>
+  <div class="bar" style="--value: 45%"><span class="bar-label">Thu</span></div>
+  <div class="bar" style="--value: 70%"><span class="bar-label">Fri</span></div>
+</div>
+\`\`\`
+\`\`\`css
+.chart-bars { display: flex; align-items: flex-end; gap: 0.5rem; height: 150px; padding: 1rem; }
+.bar { flex: 1; background: linear-gradient(to top, var(--primary), var(--accent)); height: var(--value); border-radius: 4px 4px 0 0; position: relative; transition: height 0.5s ease; }
+.bar:hover { opacity: 0.8; }
+.bar-label { position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%); font-size: 0.75rem; color: var(--text-muted); }
+\`\`\`
+
+### 20. Advanced Animation Patterns
+
+**Typewriter Effect:**
+\`\`\`css
+.typewriter { overflow: hidden; border-right: 2px solid var(--primary); white-space: nowrap; animation: typing 3s steps(30) 1s forwards, blink 0.75s step-end infinite; }
+@keyframes typing { from { width: 0; } to { width: 100%; } }
+@keyframes blink { 50% { border-color: transparent; } }
+\`\`\`
+
+**Floating Animation:**
+\`\`\`css
+.float { animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+\`\`\`
+
+**Pulse Glow:**
+\`\`\`css
+.pulse-glow { animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); } 50% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); } }
+\`\`\`
+
+**Gradient Text Animation:**
+\`\`\`css
+.gradient-text { background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary)); background-size: 200% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradient-shift 3s linear infinite; }
+@keyframes gradient-shift { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+\`\`\`
+
 ### 9. State Design (Every Element Has Multiple States)
 For EVERY interactive element, define:
 - **Default**: Normal resting state
