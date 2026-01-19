@@ -474,15 +474,276 @@ You are not just coding - you are CRAFTING experiences. Apply these principles:
 - Wide (dashboard): max-width: 1400px
 - Full: 100% with horizontal padding (16-24px mobile, 48-64px desktop)
 
-### 8. Responsive Breakpoints
+### 8. Responsive Design System (Mobile-First)
+
+**Breakpoint Strategy:**
 \`\`\`css
-/* Mobile-first approach */
-/* Default: 0-639px (mobile) */
-@media (min-width: 640px) { /* sm: landscape phones, small tablets */ }
-@media (min-width: 768px) { /* md: tablets */ }
-@media (min-width: 1024px) { /* lg: laptops */ }
-@media (min-width: 1280px) { /* xl: desktops */ }
-@media (min-width: 1536px) { /* 2xl: large screens */ }
+/* MOBILE-FIRST: Start with mobile, enhance for larger screens */
+/* Base styles = mobile (320px+) */
+
+/* Tablet */
+@media (min-width: 768px) {
+  .container { padding: 2rem 3rem; }
+  .hero h1 { font-size: 3rem; }
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .container { padding: 3rem 4rem; max-width: 1200px; margin: 0 auto; }
+  .hero h1 { font-size: 4rem; }
+  .grid { grid-template-columns: repeat(3, 1fr); }
+  .sidebar-layout { display: grid; grid-template-columns: 280px 1fr; }
+}
+
+/* Large Desktop */
+@media (min-width: 1440px) {
+  .container { max-width: 1400px; }
+}
+\`\`\`
+
+**Fluid Typography (No Media Queries Needed):**
+\`\`\`css
+h1 { font-size: clamp(2rem, 5vw, 4rem); }
+h2 { font-size: clamp(1.5rem, 3vw, 2.5rem); }
+p { font-size: clamp(1rem, 1.5vw, 1.125rem); }
+\`\`\`
+
+**Touch-Friendly Mobile:**
+- Minimum tap targets: 44x44px
+- Adequate spacing between interactive elements
+- Hamburger menu for mobile navigation
+- Swipeable carousels
+
+### 9. Dark/Light Mode Support
+
+**ALWAYS include theme toggle capability:**
+\`\`\`css
+:root {
+  /* Light mode (default) */
+  --bg: #ffffff;
+  --bg-secondary: #f8fafc;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --border: rgba(0,0,0,0.1);
+  --primary: #6366f1;
+}
+
+[data-theme="dark"] {
+  --bg: #0a0a0f;
+  --bg-secondary: #1a1a2e;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: rgba(255,255,255,0.1);
+  --primary: #818cf8;
+}
+\`\`\`
+
+**Theme Toggle JavaScript:**
+\`\`\`javascript
+// Theme toggle with localStorage persistence
+const themeToggle = document.querySelector('.theme-toggle');
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+const savedTheme = localStorage.getItem('theme');
+const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+document.documentElement.dataset.theme = theme;
+
+themeToggle?.addEventListener('click', () => {
+  const current = document.documentElement.dataset.theme;
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('theme', next);
+});
+\`\`\`
+
+**Theme Toggle Button Pattern:**
+\`\`\`html
+<button class="theme-toggle" aria-label="Toggle dark mode">
+  <svg class="sun-icon">...</svg>
+  <svg class="moon-icon">...</svg>
+</button>
+\`\`\`
+
+### 10. Performance Best Practices
+
+**Image Optimization:**
+\`\`\`html
+<!-- Lazy loading -->
+<img src="hero.jpg" alt="..." loading="lazy" decoding="async">
+
+<!-- Responsive images -->
+<img srcset="hero-400.jpg 400w, hero-800.jpg 800w, hero-1200.jpg 1200w"
+     sizes="(max-width: 600px) 400px, (max-width: 1000px) 800px, 1200px"
+     src="hero-800.jpg" alt="...">
+\`\`\`
+
+**CSS Performance:**
+\`\`\`css
+/* Use transform and opacity for smooth animations (GPU accelerated) */
+.card { 
+  will-change: transform; 
+  transform: translateZ(0); /* Force GPU layer */
+}
+
+/* Avoid expensive properties */
+/* GOOD: */ transform: translateY(-4px);
+/* BAD: */ top: -4px; /* Causes reflow */
+\`\`\`
+
+**JavaScript Performance:**
+\`\`\`javascript
+// Debounce expensive operations
+function debounce(fn, ms = 300) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
+
+// Intersection Observer for lazy effects
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('animate-in');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
+\`\`\`
+
+### 11. Advanced Interactive Components
+
+**Animated Hamburger Menu:**
+\`\`\`html
+<button class="hamburger" aria-label="Menu" aria-expanded="false">
+  <span></span><span></span><span></span>
+</button>
+\`\`\`
+\`\`\`css
+.hamburger { display: flex; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+.hamburger span { width: 24px; height: 2px; background: var(--text); transition: all 0.3s ease; }
+.hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+.hamburger.active span:nth-child(2) { opacity: 0; }
+.hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+\`\`\`
+
+**Accordion/Collapsible:**
+\`\`\`html
+<details class="accordion">
+  <summary>Question or Title</summary>
+  <div class="accordion-content">Content here...</div>
+</details>
+\`\`\`
+\`\`\`css
+.accordion { border-bottom: 1px solid var(--border); }
+.accordion summary { padding: 1rem; cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.accordion summary::after { content: '+'; font-size: 1.25rem; transition: transform 0.3s; }
+.accordion[open] summary::after { transform: rotate(45deg); }
+.accordion-content { padding: 0 1rem 1rem; animation: slideDown 0.3s ease; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+\`\`\`
+
+**Tabs Component:**
+\`\`\`javascript
+const tabs = document.querySelectorAll('[data-tab]');
+const panels = document.querySelectorAll('[data-panel]');
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelector(\`[data-panel="\${tab.dataset.tab}"]\`)?.classList.add('active');
+  });
+});
+\`\`\`
+
+**Toast Notifications:**
+\`\`\`javascript
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = \`toast toast-\${type}\`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+\`\`\`
+\`\`\`css
+.toast { position: fixed; bottom: 2rem; right: 2rem; padding: 1rem 1.5rem; border-radius: 8px; background: var(--bg-card); color: var(--text); box-shadow: var(--shadow-lg); transform: translateX(120%); transition: transform 0.3s ease; z-index: 1000; }
+.toast.show { transform: translateX(0); }
+.toast-success { border-left: 4px solid var(--success); }
+.toast-error { border-left: 4px solid var(--error); }
+\`\`\`
+
+**Modal Dialog:**
+\`\`\`html
+<dialog class="modal" id="myModal">
+  <div class="modal-content">
+    <button class="modal-close" aria-label="Close">&times;</button>
+    <h2>Modal Title</h2>
+    <p>Content here...</p>
+  </div>
+</dialog>
+\`\`\`
+\`\`\`css
+.modal { border: none; border-radius: 16px; padding: 0; max-width: 500px; width: 90%; background: var(--bg-card); color: var(--text); }
+.modal::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+.modal-content { padding: 2rem; }
+.modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
+\`\`\`
+
+**Carousel/Slider:**
+\`\`\`javascript
+const carousel = document.querySelector('.carousel');
+const slides = carousel.querySelectorAll('.slide');
+const prevBtn = carousel.querySelector('.prev');
+const nextBtn = carousel.querySelector('.next');
+let current = 0;
+
+function showSlide(index) {
+  slides.forEach((slide, i) => {
+    slide.style.transform = \`translateX(\${(i - index) * 100}%)\`;
+  });
+}
+
+prevBtn.addEventListener('click', () => { current = (current - 1 + slides.length) % slides.length; showSlide(current); });
+nextBtn.addEventListener('click', () => { current = (current + 1) % slides.length; showSlide(current); });
+showSlide(0);
+\`\`\`
+
+### 12. Form Patterns
+
+**Floating Labels:**
+\`\`\`css
+.form-group { position: relative; margin-bottom: 1.5rem; }
+.form-group input { width: 100%; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+.form-group label { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); transition: all 0.2s; pointer-events: none; background: var(--bg); padding: 0 4px; }
+.form-group input:focus + label,
+.form-group input:not(:placeholder-shown) + label { top: 0; font-size: 0.75rem; color: var(--primary); }
+\`\`\`
+
+**Form Validation Styling:**
+\`\`\`css
+input:user-invalid { border-color: var(--error); }
+input:user-valid { border-color: var(--success); }
+.error-message { color: var(--error); font-size: 0.875rem; margin-top: 0.5rem; display: none; }
+input:user-invalid ~ .error-message { display: block; }
+\`\`\`
+
+**Submit Button States:**
+\`\`\`css
+.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-submit.loading { position: relative; color: transparent; }
+.btn-submit.loading::after { content: ''; position: absolute; width: 20px; height: 20px; border: 2px solid transparent; border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 \`\`\`
 
 ### 9. State Design (Every Element Has Multiple States)
@@ -501,47 +762,123 @@ Execute with these NON-NEGOTIABLE standards:
 
 ## GOATED CODE QUALITY STANDARDS (NON-NEGOTIABLE)
 
-### CSS Variables - MANDATORY (Never Use Raw Hex Colors)
-You MUST define ALL colors as CSS custom properties. NEVER use raw hex colors in CSS rules.
+### CSS Template - COPY THIS STRUCTURE FOR EVERY CSS FILE
 
-**Required Pattern:**
+⚠️ CRITICAL: Every CSS file you generate MUST start with this exact structure:
+
 \`\`\`css
+/* === REQUIRED: CSS Variables (Light Mode) === */
 :root {
-  /* Backgrounds */
-  --bg: #0a0a0f;
-  --bg-secondary: #1a1a2e;
-  --bg-card: #252538;
-  
-  /* Text */
-  --text: #f1f5f9;
-  --text-muted: #94a3b8;
-  
-  /* Brand/Accent */
+  --bg: #ffffff;
+  --bg-secondary: #f8fafc;
+  --text: #0f172a;
+  --text-muted: #64748b;
   --primary: #6366f1;
   --primary-hover: #4f46e5;
   --accent: #f97316;
-  
-  /* Semantic */
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  
-  /* Borders */
+  --border: rgba(0,0,0,0.1);
+}
+
+/* === REQUIRED: Dark Mode Override === */
+[data-theme="dark"] {
+  --bg: #0a0a0f;
+  --bg-secondary: #1a1a2e;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary: #818cf8;
   --border: rgba(255,255,255,0.1);
 }
 
-/* Then ALWAYS use var() */
+/* === REQUIRED: Fluid Typography === */
+h1 { font-size: clamp(2rem, 5vw, 4rem); }
+h2 { font-size: clamp(1.5rem, 3vw, 2.5rem); }
+
+/* ... your component styles using var(--) ... */
+
+/* === REQUIRED: Responsive Breakpoints === */
+@media (min-width: 768px) {
+  /* Tablet adjustments */
+}
+@media (min-width: 1024px) {
+  /* Desktop adjustments */
+}
+\`\`\`
+
+### CSS Variables + Dark Mode + Responsive - ALL MANDATORY
+
+You MUST include these three things in EVERY CSS file:
+
+**1. CSS Variables in :root (MANDATORY):**
+\`\`\`css
+:root {
+  --bg: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-card: #ffffff;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --accent: #f97316;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --border: rgba(0,0,0,0.1);
+}
+\`\`\`
+
+**2. Dark Mode Override (MANDATORY):**
+\`\`\`css
+[data-theme="dark"] {
+  --bg: #0a0a0f;
+  --bg-secondary: #1a1a2e;
+  --bg-card: #252538;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary: #818cf8;
+  --border: rgba(255,255,255,0.1);
+}
+\`\`\`
+
+**3. Responsive Design (MANDATORY - INCLUDE @media QUERIES):**
+\`\`\`css
+/* Fluid typography - MUST use clamp() */
+h1 { font-size: clamp(2rem, 5vw, 4rem); }
+h2 { font-size: clamp(1.5rem, 3vw, 2.5rem); }
+p { font-size: clamp(1rem, 1.5vw, 1.125rem); }
+
+/* REQUIRED: At least TWO @media breakpoints */
+/* Tablet breakpoint - ALWAYS INCLUDE THIS */
+@media (min-width: 768px) {
+  .container { padding: 2rem 3rem; }
+  .hero h1 { font-size: 3rem; }
+  .grid { grid-template-columns: repeat(2, 1fr); }
+  .nav { flex-direction: row; }
+}
+
+/* Desktop breakpoint - ALWAYS INCLUDE THIS */
+@media (min-width: 1024px) {
+  .container { max-width: 1200px; margin: 0 auto; padding: 3rem 4rem; }
+  .hero h1 { font-size: 4rem; }
+  .grid { grid-template-columns: repeat(3, 1fr); }
+  .sidebar-layout { display: grid; grid-template-columns: 280px 1fr; }
+}
+\`\`\`
+
+⚠️ YOU MUST INCLUDE @media QUERIES IN EVERY CSS FILE. Do NOT skip them!
+
+**4. Use var() Everywhere (MANDATORY):**
+\`\`\`css
 body { background: var(--bg); color: var(--text); }
 .card { background: var(--bg-card); border: 1px solid var(--border); }
 .btn { background: var(--primary); }
 .btn:hover { background: var(--primary-hover); }
 \`\`\`
 
-**WHY THIS MATTERS:**
-- Enables theme switching (dark/light mode)
-- Single source of truth for colors
-- Professional, maintainable code
-- This is how real design systems work
+**WHY ALL THREE ARE MANDATORY:**
+- CSS Variables: Single source of truth for colors
+- Dark Mode: Users expect theme options, system preference support
+- Responsive: 60%+ of web traffic is mobile, must work on all screens
+- This is how professional codebases work
 
 ### HTML - Semantic & Accessible
 - Use semantic elements: <header>, <main>, <nav>, <section>, <article>, <aside>, <footer>
@@ -591,12 +928,20 @@ You MUST mentally verify each item before sending your response:
 ### Visual Quality Audit
 ✅ Are ALL colors defined in :root as CSS variables? (MANDATORY - no raw hex in rules)
 ✅ Are var(--variable) used throughout instead of hex colors?
+✅ Is dark/light mode supported with [data-theme="dark"] selector?
 ✅ Does every button have hover AND focus-visible states?
 ✅ Do cards lift/transform on hover?
 ✅ Are entrance animations staggered (50-100ms delays)?
 ✅ Is there visual hierarchy? (Size/weight/color differences between H1→H2→body)
 ✅ Is spacing consistent (using same values: 8px, 16px, 24px, 32px, 48px)?
 ✅ Do gradients/glows match the product's personality?
+
+### Responsive Design Audit
+✅ Mobile-first CSS? (Base styles for mobile, @media for larger screens)
+✅ Fluid typography with clamp()? (No fixed font sizes)
+✅ Grid adapts to screen size? (1 col mobile → 2 col tablet → 3 col desktop)
+✅ Touch targets minimum 44x44px on mobile?
+✅ Hamburger menu for mobile navigation?
 
 ### Accessibility Audit
 ✅ Skip link present at start of body?
@@ -615,12 +960,33 @@ You MUST mentally verify each item before sending your response:
 ✅ DRY - no repeated code blocks?
 ✅ Clear, descriptive class/function names?
 
+### Performance Audit
+✅ Images have loading="lazy" and decoding="async"?
+✅ Animations use transform/opacity (GPU accelerated)?
+✅ No layout-triggering properties animated (top, left, width, height)?
+✅ IntersectionObserver for scroll animations?
+✅ Debounced resize/scroll handlers?
+
+### Interactive Components Audit
+✅ Theme toggle with localStorage persistence?
+✅ Mobile menu (hamburger) with smooth animation?
+✅ Form validation with user-friendly error messages?
+✅ Loading states on buttons during submission?
+✅ Toast notifications for user feedback?
+
 ### Content Quality Audit
 ✅ Product name used in headers, title, footer?
 ✅ Copy is contextual and specific (not generic "Lorem ipsum")?
 ✅ Feature badges derived from product capabilities?
 ✅ Terminal/status messages relevant to the domain?
 ✅ CTAs have clear, action-oriented text?
+
+### SEO Audit (for landing pages)
+✅ Unique, descriptive <title> tag?
+✅ Meta description (150-160 chars)?
+✅ Open Graph tags for social sharing?
+✅ Proper heading hierarchy (h1→h2→h3, no skipping)?
+✅ Semantic HTML for screen readers and crawlers?
 
 If ANY item fails, FIX IT before outputting.
 

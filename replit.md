@@ -57,16 +57,31 @@ Preferred communication style: Simple, everyday language.
 - **Language Detection**: Auto-detects file type from extension for syntax highlighting
 - **When Used**: Triggered when user asks for "full project", "full app", or organized multi-file structure
 
-### AI Design Capabilities
-- **Thinking Process**: AI mentally plans before coding (intent, visual strategy, interactions, components, technical approach)
-- **Sophisticated Animations**: fadeInUp, pulse, glow, typing effects, blink cursors
-- **Interactive Components**: Animated terminals, live dashboards, hero sections, cards with hover effects
-- **Adaptive Design Presets**:
-  - Cybersecurity: Dark theme (#0a0a0a), green accents (#00ff88), terminal aesthetics
-  - Fitness: Energetic colors, progress rings, motivational elements
-  - Finance: Clean/professional, data visualization, trust indicators
-  - SaaS: Modern gradients, feature cards, conversion-focused
-- **Quality Standards**: Every button has hover effects, cards have transforms, entrance animations on all elements
+### AI Design Capabilities - "GOATED" Methodology
+- **3-Phase Approach**: UNDERSTAND (intent, scope, architecture) → DESIGN (visual mastery) → BUILD (production code)
+- **Visual Design Mastery**:
+  - Z-Pattern and F-Pattern scan psychology for layouts
+  - Golden Ratio typography scale (3.5-5rem headlines, 1rem body)
+  - 60-30-10 color rule (dominant/secondary/accent)
+  - 8-Point spacing grid system (consistent spacing values)
+  - Elevation & depth system (shadows for hierarchy)
+  - Motion design principles (staggered animations, reduced motion)
+  - State design (default, hover, focus, active, disabled, loading, error, success)
+- **Mandatory CSS Variables**: All colors defined in :root, used via var(--) throughout
+- **Dark/Light Mode Support**: [data-theme="dark"] selector with theme toggle
+- **Responsive Design**: Mobile-first with @media breakpoints, fluid clamp() typography
+- **Self-Review Checklist**: AI verifies visual quality, accessibility, responsiveness, and code quality
+- **PLAN Block**: Shows planning for complex new projects (product, audience, design, sections, features)
+- **Adaptive Design Presets** (industry-specific with full color palettes):
+  - Cybersecurity: Matrix aesthetics, terminal animations, glow effects
+  - Fitness/Health: Progress rings, energy colors, motivational elements
+  - Finance/Professional: Trust indicators, data visualization, clean design
+  - SaaS/Startup: Gradient text, feature cards, conversion-focused
+  - E-Commerce: Product cards, quick-add overlays, sale badges
+  - Portfolio/Creative: Full-width images, minimal text, video backgrounds
+- **Interactive Components**: Hamburger menus, accordions, tabs, modals, toast notifications, carousels
+- **Performance Patterns**: Lazy loading, IntersectionObserver, debounce, GPU-accelerated animations
+- **Form Patterns**: Floating labels, validation states, loading buttons
 
 ### Project Memory & Continuous Development
 - **Persistent Context**: Each conversation stores project details (name, description, tech stack, features built)
