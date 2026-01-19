@@ -471,11 +471,11 @@ export default function Chat() {
     <SidebarProvider style={sidebarStyle}>
       <div className="flex h-screen w-full bg-background">
         <Sidebar>
-          <SidebarHeader className="p-3 border-b border-sidebar-border">
+          <SidebarHeader className="p-4 border-b border-sidebar-border">
             <Button
               onClick={handleNewChat}
               disabled={createConversationMutation.isPending}
-              className="w-full justify-start gap-2"
+              className="w-full justify-center gap-2 h-10 rounded-xl"
               variant="default"
               data-testid="button-new-chat"
             >
@@ -541,17 +541,17 @@ export default function Chat() {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="p-3 border-t border-sidebar-border">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground" data-testid="text-ai-status">
+          <SidebarFooter className="p-4 border-t border-sidebar-border">
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground" data-testid="text-ai-status">
               {aiMode === "cloud" ? (
                 <>
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <span>Cloud AI Active</span>
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span>Cloud AI</span>
                 </>
               ) : (
                 <>
                   <Cpu className="w-3 h-3 text-primary" />
-                  <span>Local Engine Active</span>
+                  <span>Local Engine</span>
                 </>
               )}
             </div>
@@ -560,15 +560,15 @@ export default function Chat() {
 
         <div className="flex-1 flex min-w-0">
           <div className="flex-1 flex flex-col min-w-0">
-            <header className="h-14 border-b border-border bg-background flex items-center justify-between px-4 gap-4 flex-shrink-0">
+            <header className="h-14 border-b border-border bg-background/80 backdrop-blur-sm flex items-center justify-between px-4 gap-4 flex-shrink-0">
             <div className="flex items-center gap-3">
               <SidebarTrigger data-testid="button-sidebar-toggle" />
               <Link href="/">
                 <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home">
-                  <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                    <Terminal className="h-3.5 w-3.5 text-primary-foreground" />
+                  <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
+                    <Terminal className="h-4 w-4 text-primary-foreground" />
                   </div>
-                  <span className="font-semibold hidden sm:inline">CodeAI</span>
+                  <span className="font-semibold text-lg hidden sm:inline">CodeAI</span>
                 </div>
               </Link>
               {activeConversation?.projectName && (
@@ -583,7 +583,7 @@ export default function Chat() {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
@@ -616,17 +616,17 @@ export default function Chat() {
               </ScrollArea>
             )}
 
-            <div className="p-4 border-t border-border bg-background flex-shrink-0">
-              <div className="max-w-3xl mx-auto">
+            <div className="p-4 pb-6 bg-gradient-to-t from-background via-background to-transparent flex-shrink-0">
+              <div className="max-w-3xl mx-auto space-y-3">
                 <ChatInput
                   onSend={handleSendMessage}
                   isLoading={isStreaming}
-                  placeholder={activeConversationId ? "Continue the conversation..." : "Ask me anything about coding..."}
+                  placeholder={activeConversationId ? "Continue the conversation..." : "Describe what you want to build..."}
                 />
-                <p className="text-xs text-center text-muted-foreground mt-2" data-testid="text-disclaimer">
+                <p className="text-xs text-center text-muted-foreground" data-testid="text-disclaimer">
                   {aiMode === "cloud" 
-                    ? "Cloud AI powered by GPT-4o. No API keys needed."
-                    : "Local Code Engine - generates code from templates. No API required."}
+                    ? "Powered by GPT-4o"
+                    : "Local Code Engine"}
                 </p>
               </div>
             </div>

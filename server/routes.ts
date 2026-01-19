@@ -239,9 +239,36 @@ export async function registerRoutes(
 
       await storage.createMessage(conversationId, "user", content);
 
-      // Build project context string for AI
+      // Fetch existing project files
+      const existingFiles = await storage.getProjectFiles(conversationId);
+      
+      // Build project context string for AI including existing files
       let projectContextPrompt = "";
-      if (conversation.projectName || conversation.projectSummary || (conversation.featuresBuilt && conversation.featuresBuilt.length > 0)) {
+      
+      // Build existing files context
+      let existingFilesContext = "";
+      if (existingFiles.length > 0) {
+        existingFilesContext = `
+## EXISTING PROJECT FILES (Your codebase - ALWAYS UPDATE THESE)
+You have already written these files for this project. When the user asks for changes, MODIFY these existing files - DO NOT create new code blocks.
+
+${existingFiles.map((f: { path: string; language: string; content: string }) => `### ${f.path}
+\`\`\`${f.language}
+${f.content}
+\`\`\``).join('\n\n')}
+
+**CRITICAL FILE UPDATE RULES:**
+1. When user asks for ANY changes, you MUST update the existing files above
+2. Use the EXACT same file path (e.g., index.html, styles.css) 
+3. Always use the --- FILE: path --- format so files get properly updated
+4. Show the COMPLETE updated file content, not just the changes
+5. Reference specific changes you made: "I've updated index.html to add..."
+6. NEVER generate new code blocks without the FILE: marker - that creates duplicates
+
+`;
+      }
+      
+      if (conversation.projectName || conversation.projectSummary || (conversation.featuresBuilt && conversation.featuresBuilt.length > 0) || existingFiles.length > 0) {
         projectContextPrompt = `
 ## CURRENT PROJECT STATE (Your Memory)
 This is what you remember about this project:
@@ -250,7 +277,7 @@ ${conversation.projectDescription ? `**Description**: ${conversation.projectDesc
 ${conversation.techStack && conversation.techStack.length > 0 ? `**Tech Stack**: ${conversation.techStack.join(", ")}` : ""}
 ${conversation.featuresBuilt && conversation.featuresBuilt.length > 0 ? `**Features Already Built**: ${conversation.featuresBuilt.join(", ")}` : ""}
 ${conversation.projectSummary ? `**Project Summary**: ${conversation.projectSummary}` : ""}
-
+${existingFilesContext}
 IMPORTANT: Use this context! Build on previous work. Maintain consistent styling and branding. Reference what was built before.
 `;
       }

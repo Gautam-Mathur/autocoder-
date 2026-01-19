@@ -9,7 +9,7 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-export function ChatInput({ onSend, isLoading, placeholder = "Ask me anything about coding..." }: ChatInputProps) {
+export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..." }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -38,7 +38,7 @@ export function ChatInput({ onSend, isLoading, placeholder = "Ask me anything ab
   };
 
   return (
-    <div className="relative">
+    <div className="relative flex items-end gap-2 p-3 rounded-2xl bg-card border border-border">
       <Textarea
         ref={textareaRef}
         value={message}
@@ -46,7 +46,7 @@ export function ChatInput({ onSend, isLoading, placeholder = "Ask me anything ab
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={isLoading}
-        className="min-h-[52px] max-h-[200px] resize-none pr-14 text-base"
+        className="flex-1 min-h-[24px] max-h-[200px] resize-none border-0 bg-transparent text-base leading-6 focus-visible:ring-0 focus-visible:ring-offset-0"
         rows={1}
         data-testid="input-chat-message"
       />
@@ -54,7 +54,7 @@ export function ChatInput({ onSend, isLoading, placeholder = "Ask me anything ab
         size="icon"
         onClick={handleSubmit}
         disabled={!message.trim() || isLoading}
-        className="absolute right-2 bottom-2"
+        className="flex-shrink-0 rounded-xl"
         data-testid="button-send-message"
       >
         {isLoading ? (

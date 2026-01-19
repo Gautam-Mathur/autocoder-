@@ -113,6 +113,13 @@ Preferred communication style: Simple, everyday language.
 - **Preview**: Combined HTML/CSS/JS preview for static site projects
 - **CRUD Operations**: Create (auto from AI), Read (file tree), Update (upsert), Delete (trash icon)
 
+### File-Based Code Updates (NEW)
+- **AI Context Awareness**: When generating responses, the AI receives existing project files in its context
+- **In-Place Updates**: AI updates existing files instead of creating duplicate code blocks
+- **File Markers**: AI uses `--- FILE: path ---` format to ensure proper file updates
+- **Upsert Logic**: Files with matching paths are updated, new paths create new files
+- **Continuous Development**: Changes build on previous work rather than replacing it
+
 ### Key Design Patterns
 - **Dual AI Mode**: Cloud AI on Replit, local template engine elsewhere
 - **Shared Types**: Schema types are defined once in `shared/schema.ts` and used by both frontend and backend
