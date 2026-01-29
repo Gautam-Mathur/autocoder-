@@ -1,12 +1,19 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SiHtml5, SiCss3, SiJavascript, SiTypescript, SiReact, SiPython } from "react-icons/si";
 import type { ProjectFile } from "@shared/schema";
-import { checkErrors, recordCodeChange, getDebugStats, CodeError } from "@/lib/code-generator/engine";
+import { checkErrors, recordCodeChange, getDebugStats, CodeError, quickTestAndFix, tryFixRuntimeError } from "@/lib/code-generator/engine";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+
+interface AutoFixLog {
+  timestamp: number;
+  fileName: string;
+  fixes: string[];
+}
 
 interface PreviewPanelProps {
   conversationId: number | null;
@@ -164,6 +171,99 @@ function FileTreeNode({
   );
 }
 
+// Auto-Test Section Component
+function AutoTestSection({ 
+  code, 
+  onCodeFixed 
+}: { 
+  code: string; 
+  onCodeFixed: (fixedCode: string, fixes: string[]) => void;
+}) {
+  const [isRunning, setIsRunning] = useState(false);
+  const [lastResult, setLastResult] = useState<{ fixes: string[]; report: string } | null>(null);
+  
+  const runAutoTest = useCallback(() => {
+    if (!code) return;
+    
+    setIsRunning(true);
+    
+    // Use setTimeout to allow UI to update
+    setTimeout(() => {
+      try {
+        const result = quickTestAndFix(code);
+        setLastResult(result);
+        
+        if (result.fixes.length > 0) {
+          onCodeFixed(result.code, result.fixes);
+        }
+      } catch (e) {
+        console.error('Auto-test error:', e);
+      }
+      setIsRunning(false);
+    }, 100);
+  }, [code, onCodeFixed]);
+  
+  if (!code) {
+    return null;
+  }
+  
+  return (
+    <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium">Self-Test & Auto-Fix</span>
+        </div>
+        <Button
+          size="sm"
+          variant="default"
+          className="h-7 text-xs gap-1"
+          onClick={runAutoTest}
+          disabled={isRunning}
+          data-testid="button-auto-test"
+        >
+          {isRunning ? (
+            <>
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              Testing...
+            </>
+          ) : (
+            <>
+              <Bug className="w-3 h-3" />
+              Test & Fix Code
+            </>
+          )}
+        </Button>
+      </div>
+      
+      {lastResult && (
+        <div className="text-xs space-y-1">
+          {lastResult.fixes.length > 0 ? (
+            <>
+              <div className="text-green-600 dark:text-green-400 font-medium">
+                ✓ Auto-fixed {lastResult.fixes.length} issue{lastResult.fixes.length > 1 ? 's' : ''}:
+              </div>
+              <ul className="list-disc list-inside text-muted-foreground pl-1">
+                {lastResult.fixes.slice(0, 5).map((fix, i) => (
+                  <li key={i}>{fix}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <div className="text-muted-foreground">
+              No auto-fixable issues found. Code looks good!
+            </div>
+          )}
+        </div>
+      )}
+      
+      <p className="text-xs text-muted-foreground mt-2">
+        Automatically tests code and fixes common issues like missing doctype, viewport, accessibility, and security problems.
+      </p>
+    </div>
+  );
+}
+
 export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps) {
   const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug">("preview");
   const [activeFile, setActiveFile] = useState<string>("index.html");
@@ -174,12 +274,24 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
   const [runtimeErrors, setRuntimeErrors] = useState<RuntimeError[]>([]);
   const [debugStats, setDebugStats] = useState({ errorsFound: 0, fixesLearned: 0, changesObserved: 0 });
   const [previousCode, setPreviousCode] = useState<Map<string, string>>(new Map());
+  const [autoFixLogs, setAutoFixLogs] = useState<AutoFixLog[]>([]);
+  const [fixedFileHashes, setFixedFileHashes] = useState<Set<string>>(new Set());
+  const [isAutoFixing, setIsAutoFixing] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const { data: files = [] } = useQuery<ProjectFile[]>({
     queryKey: ["/api/conversations", conversationId, "files"],
     enabled: !!conversationId,
     refetchInterval: 2000,
+  });
+
+  const updateFileMutation = useMutation({
+    mutationFn: async ({ fileId, content }: { fileId: number; content: string }) => {
+      await apiRequest("PATCH", `/api/files/${fileId}`, { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
+    }
   });
 
   const fileTree = useMemo(() => buildFileTree(files), [files]);
@@ -195,9 +307,9 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
     }
   }, [files, activeFile]);
 
-  // Listen for runtime errors from iframe
+  // Listen for runtime errors from iframe AND auto-fix them
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    const handleMessage = async (event: MessageEvent) => {
       if (event.data?.type === 'PREVIEW_ERROR') {
         const error: RuntimeError = {
           message: event.data.message,
@@ -205,17 +317,42 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
           line: event.data.line,
           timestamp: Date.now()
         };
+        
         setRuntimeErrors(prev => {
-          // Avoid duplicates
           if (prev.some(e => e.message === error.message)) return prev;
-          return [...prev.slice(-9), error]; // Keep last 10
+          return [...prev.slice(-9), error];
         });
+        
+        // ========== AUTO-FIX RUNTIME ERRORS ==========
+        // Try to fix the runtime error automatically
+        const htmlFile = files.find(f => f.path.endsWith('.html'));
+        if (htmlFile && !isAutoFixing) {
+          const runtimeFix = tryFixRuntimeError(htmlFile.content, error.message);
+          if (runtimeFix.fixed) {
+            setIsAutoFixing(true);
+            try {
+              await updateFileMutation.mutateAsync({
+                fileId: htmlFile.id,
+                content: runtimeFix.code
+              });
+              setAutoFixLogs(prev => [...prev.slice(-9), {
+                timestamp: Date.now(),
+                fileName: htmlFile.path,
+                fixes: [`Runtime fix: ${runtimeFix.fixDescription}`]
+              }]);
+              setRefreshKey(prev => prev + 1);
+            } catch (e) {
+              console.error('Runtime fix failed:', e);
+            }
+            setIsAutoFixing(false);
+          }
+        }
       }
     };
     
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [files, isAutoFixing]);
 
   // Clear runtime errors on refresh
   useEffect(() => {
@@ -251,6 +388,64 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
     files.forEach(f => newPrevCode.set(f.path, f.content));
     setPreviousCode(newPrevCode);
   }, [files]);
+
+  // AUTOMATIC CODE FIXING - runs when new code is detected
+  useEffect(() => {
+    if (files.length === 0 || isAutoFixing) return;
+    
+    const runAutoFix = async () => {
+      const filesToFix: { file: ProjectFile; result: ReturnType<typeof quickTestAndFix> }[] = [];
+      
+      for (const file of files) {
+        // Only fix HTML, JS, CSS files
+        if (!file.path.match(/\.(html|js|jsx|ts|tsx|css)$/i)) continue;
+        
+        // Create a hash of the content to avoid re-fixing
+        const contentHash = `${file.id}-${file.content.length}-${file.content.slice(0, 100)}`;
+        if (fixedFileHashes.has(contentHash)) continue;
+        
+        // Run auto-fix
+        const result = quickTestAndFix(file.content);
+        
+        if (result.fixes.length > 0) {
+          filesToFix.push({ file, result });
+        }
+        
+        // Mark as processed (even if no fixes)
+        setFixedFileHashes(prev => new Set(Array.from(prev).concat(contentHash)));
+      }
+      
+      // Apply fixes
+      if (filesToFix.length > 0) {
+        setIsAutoFixing(true);
+        
+        for (const { file, result } of filesToFix) {
+          try {
+            await updateFileMutation.mutateAsync({ 
+              fileId: file.id, 
+              content: result.code 
+            });
+            
+            // Log the fix
+            setAutoFixLogs(prev => [...prev.slice(-9), {
+              timestamp: Date.now(),
+              fileName: file.path,
+              fixes: result.fixes
+            }]);
+          } catch (e) {
+            console.error('Auto-fix failed for', file.path, e);
+          }
+        }
+        
+        setIsAutoFixing(false);
+        setRefreshKey(prev => prev + 1); // Refresh preview
+      }
+    };
+    
+    // Small delay to batch rapid changes
+    const timer = setTimeout(runAutoFix, 500);
+    return () => clearTimeout(timer);
+  }, [files, fixedFileHashes, isAutoFixing]);
 
   // Get all code as string for fix requests
   const getAllCode = useCallback(() => {
@@ -508,7 +703,7 @@ ${html}
                   ref={iframeRef}
                   srcDoc={combinedPreview}
                   className="w-full h-full border-0"
-                  sandbox="allow-scripts"
+                  sandbox="allow-scripts allow-forms allow-modals allow-popups"
                   title="Live Preview"
                 />
               </div>
@@ -608,7 +803,7 @@ ${html}
                 ref={iframeRef}
                 srcDoc={combinedPreview}
                 className="flex-1 w-full bg-white border-0"
-                sandbox="allow-scripts"
+                sandbox="allow-scripts allow-forms allow-modals allow-popups"
                 title="Live Preview"
               />
             ) : (
@@ -621,6 +816,56 @@ ${html}
           <div className="flex-1 flex flex-col overflow-hidden">
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
+                {/* Automatic Fix Status */}
+                {isAutoFixing && (
+                  <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                    <span className="text-sm font-medium">Auto-fixing code issues...</span>
+                  </div>
+                )}
+                
+                {autoFixLogs.length > 0 && (
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                        Auto-Fixed {autoFixLogs.reduce((acc, log) => acc + log.fixes.length, 0)} Issues
+                      </span>
+                      <Badge variant="secondary" className="ml-auto text-xs">Automatic</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      {autoFixLogs.slice(-3).map((log, i) => (
+                        <div key={i} className="text-xs">
+                          <div className="text-muted-foreground">{log.fileName}:</div>
+                          <ul className="list-disc list-inside text-green-600 dark:text-green-400 pl-2">
+                            {log.fixes.slice(0, 3).map((fix, j) => (
+                              <li key={j}>{fix}</li>
+                            ))}
+                            {log.fixes.length > 3 && (
+                              <li className="text-muted-foreground">+{log.fixes.length - 3} more</li>
+                            )}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Code is automatically tested and fixed as it's generated.
+                    </p>
+                  </div>
+                )}
+                
+                {!isAutoFixing && autoFixLogs.length === 0 && (
+                  <div className="bg-muted/50 border rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">Auto-Fix Active</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Code is automatically scanned and fixed when issues are detected.
+                    </p>
+                  </div>
+                )}
+                
                 {/* Debug Stats */}
                 <div className="flex gap-3">
                   <div className="flex-1 bg-card border rounded-lg p-3">

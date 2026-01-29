@@ -67,6 +67,117 @@ export const htmlTemplates: CodeTemplate[] = [
 </html>`,
   },
   {
+    id: "html-counter",
+    name: "Counter App",
+    keywords: ["counter", "increment", "decrement", "number", "click", "count", "clicker", "tally", "plus", "minus", "add", "subtract"],
+    description: "A simple counter with increment/decrement buttons",
+    language: "html",
+    generate: (params) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${params.title || "Counter App"}</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --danger: #ef4444;
+      --danger-dark: #dc2626;
+      --bg: #0f0f23;
+      --surface: #1a1a2e;
+      --text: #e2e8f0;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+    }
+    h1 { font-size: 1.5rem; color: #94a3b8; }
+    .counter-display {
+      font-size: 6rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .buttons {
+      display: flex;
+      gap: 1rem;
+    }
+    button {
+      padding: 1rem 2rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .increment {
+      background: var(--primary);
+      color: white;
+    }
+    .increment:hover { background: var(--primary-dark); transform: translateY(-2px); }
+    .decrement {
+      background: var(--danger);
+      color: white;
+    }
+    .decrement:hover { background: var(--danger-dark); transform: translateY(-2px); }
+    .reset {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .reset:hover { background: rgba(255,255,255,0.1); }
+  </style>
+</head>
+<body>
+  <h1>${params.title || "Counter"}</h1>
+  <div class="counter-display" id="counter">0</div>
+  <div class="buttons">
+    <button type="button" class="decrement" id="decrementBtn">-</button>
+    <button type="button" class="reset" id="resetBtn">Reset</button>
+    <button type="button" class="increment" id="incrementBtn">+</button>
+  </div>
+  <script>
+    let count = 0;
+    const counterDisplay = document.getElementById('counter');
+    const incrementBtn = document.getElementById('incrementBtn');
+    const decrementBtn = document.getElementById('decrementBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    
+    function updateDisplay() {
+      counterDisplay.textContent = count;
+    }
+    
+    incrementBtn.addEventListener('click', function() {
+      count++;
+      updateDisplay();
+    });
+    
+    decrementBtn.addEventListener('click', function() {
+      count--;
+      updateDisplay();
+    });
+    
+    resetBtn.addEventListener('click', function() {
+      count = 0;
+      updateDisplay();
+    });
+  </script>
+</body>
+</html>`,
+  },
+  {
     id: "html-landing",
     name: "Landing Page",
     keywords: ["landing", "hero", "marketing", "homepage", "home", "startup", "saas", "product"],

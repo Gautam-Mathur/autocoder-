@@ -687,6 +687,14 @@ export const conceptLibrary: Record<string, ConceptDefinition> = {
     features: ["add tasks", "complete", "delete", "filter", "priority"],
     relatedConcepts: ["tasks", "productivity", "project-management"]
   },
+  "counter": {
+    keywords: ["counter", "count", "increment", "decrement", "clicker", "tally", "number counter", "click counter", "plus minus", "incrementer", "add subtract"],
+    type: "app",
+    template: "html-counter",
+    description: "Counter app with increment/decrement buttons",
+    features: ["increment", "decrement", "reset", "display number"],
+    relatedConcepts: ["calculator", "utility", "interactive"]
+  },
   "calculator": {
     keywords: ["calculator", "calc", "math", "compute", "calculate"],
     type: "app",

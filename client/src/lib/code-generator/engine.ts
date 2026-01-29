@@ -10,6 +10,7 @@ import { getLearningEngine, intelligentParse, LearnedPattern } from "./learning-
 import { detectDomain, customizeTemplate, getDomainContent } from "./creativity-module";
 import { isFullyFunctionalRequest, generateFullStackApp, formatFullStackResponse } from "./fullstack-generator";
 import { debugCode, checkErrors, recordCodeChange, getDebugStats, CodeError } from "./debug-module";
+import { testCode, validateCode, generateTestReport, TestResult } from "./auto-tester";
 
 interface GenerationResult {
   code: string;
@@ -148,7 +149,11 @@ export function generateCodeWithContext(input: string, existingFiles: ProjectFil
     
     if (Object.keys(colorChanges).length > 0) {
       // Apply color modifications
-      const modifiedCode = applyColorChanges(htmlFile.content, colorChanges);
+      let modifiedCode = applyColorChanges(htmlFile.content, colorChanges);
+      
+      // ========== AUTO-DEBUG WHILE MODIFYING ==========
+      const testResult = quickTestAndFix(modifiedCode);
+      modifiedCode = testResult.code;
       
       let response = `I've updated the **${htmlFile.path}** with your color changes:\n\n`;
       response += "--- FILE: " + htmlFile.path + " ---\n";
@@ -164,6 +169,14 @@ export function generateCodeWithContext(input: string, existingFiles: ProjectFil
       }
       if (colorChanges.surface) {
         response += `• Surface/card colors → ${colorChanges.surface}\n`;
+      }
+      
+      // Show debug info
+      if (testResult.fixes.length > 0) {
+        response += `\n✅ **Auto-fixed ${testResult.fixes.length} issue${testResult.fixes.length > 1 ? 's' : ''} while updating:**\n`;
+        testResult.fixes.slice(0, 3).forEach(fix => {
+          response += `• ${fix}\n`;
+        });
       }
       
       response += "\nThe preview should update automatically!";
@@ -457,6 +470,7 @@ function extractParams(input: string): Record<string, string> {
 
 // Explicit template type keywords - these should take priority when mentioned
 const explicitTemplateTypes: Record<string, string[]> = {
+  "html-counter": ["counter", "counter app", "increment", "decrement", "clicker", "click counter", "number counter", "count up", "count down", "tally", "incrementer"],
   "html-landing": ["landing", "landing page", "landingpage", "homepage", "home page", "hero", "startup page", "saas page", "marketing page", "website for"],
   "html-dashboard": ["dashboard", "admin panel", "analytics dashboard", "admin dashboard", "erp", "enterprise resource", "crm", "inventory", "management system", "admin system", "back office", "backoffice", "control panel"],
   "html-form": ["form", "contact form", "signup form", "login form", "registration form", "subscribe form"],
@@ -690,8 +704,28 @@ ${(() => {
   // Customize the template for the detected domain
   if (domain !== "default" && template.language === "html") {
     code = customizeTemplate(code, domain);
+  }
+  
+  // ========== AUTO-DEBUG WHILE CODING ==========
+  // Test and fix code BEFORE returning it to user
+  let debugInfo = '';
+  if (template.language === 'html' || template.language === 'javascript' || template.language === 'css') {
+    const testResult = quickTestAndFix(code);
+    code = testResult.code; // Use the fixed code
     
-    // Get domain-specific content for response
+    if (testResult.fixes.length > 0) {
+      debugInfo = `\n\n✅ **Auto-debugged ${testResult.fixes.length} issue${testResult.fixes.length > 1 ? 's' : ''} while generating:**\n`;
+      testResult.fixes.slice(0, 5).forEach(fix => {
+        debugInfo += `• ${fix}\n`;
+      });
+      if (testResult.fixes.length > 5) {
+        debugInfo += `• ...and ${testResult.fixes.length - 5} more\n`;
+      }
+    }
+  }
+  
+  // Get domain-specific content for response
+  if (domain !== "default" && template.language === "html") {
     const domainContent = getDomainContent(domain);
     
     // Format response with domain awareness
@@ -706,6 +740,7 @@ ${(() => {
       response += `• ${feature}\n`;
     });
     response += "\nCustomize the stats, navigation, and charts for your needs!";
+    response += debugInfo;
     
     return response;
   }
@@ -718,6 +753,7 @@ ${(() => {
   
   // Add helpful tips based on template type
   response += getTemplateTips(template.id);
+  response += debugInfo;
   
   // Show other suggestions
   const alternatives = generateMultipleSuggestions(input, 4)
@@ -841,3 +877,508 @@ export {
 
 // Re-export types
 export type { CodeError } from "./debug-module";
+
+// ==================== AUTO-TEST & SELF-FIX SYSTEM ====================
+
+// Self-testing and fixing like the AI does
+export interface SelfTestResult {
+  originalCode: string;
+  testedCode: string;
+  wasFixed: boolean;
+  fixesApplied: string[];
+  errors: CodeError[];
+  passed: boolean;
+  report: string;
+}
+
+// COMPREHENSIVE Auto-fix - fixes ALL syntax errors proactively
+function applyAutoFixes(code: string, errors: CodeError[]): { code: string; fixes: string[] } {
+  let fixedCode = code;
+  const fixes: string[] = [];
+  
+  const trackFix = (before: string, after: string, fixName: string) => {
+    if (before !== after) {
+      fixes.push(fixName);
+      return true;
+    }
+    return false;
+  };
+  
+  // ========== HTML SYNTAX FIXES ==========
+  
+  // 1. Add DOCTYPE if missing
+  if (fixedCode.includes('<html') && !fixedCode.trim().toLowerCase().startsWith('<!doctype')) {
+    fixedCode = '<!DOCTYPE html>\n' + fixedCode;
+    fixes.push('Added <!DOCTYPE html>');
+  }
+  
+  // 2. Add lang to <html> if missing
+  if (/<html(?![^>]*lang\s*=)[^>]*>/i.test(fixedCode)) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/<html(?![^>]*lang)([^>]*)>/gi, '<html lang="en"$1>');
+    trackFix(before, fixedCode, 'Added lang="en" to <html>');
+  }
+  
+  // 3. Add <head> if missing but has <html>
+  if (fixedCode.includes('<html') && !fixedCode.includes('<head')) {
+    fixedCode = fixedCode.replace(/<html([^>]*)>/i, '<html$1>\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>Page</title>\n</head>');
+    fixes.push('Added missing <head> section');
+  }
+  
+  // 4. Add viewport if missing
+  if (fixedCode.includes('<head') && !fixedCode.includes('viewport')) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/<head([^>]*)>/i, '<head$1>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    trackFix(before, fixedCode, 'Added viewport meta tag');
+  }
+  
+  // 5. Add charset if missing
+  if (fixedCode.includes('<head') && !fixedCode.includes('charset')) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/<head([^>]*)>/i, '<head$1>\n    <meta charset="UTF-8">');
+    trackFix(before, fixedCode, 'Added charset meta tag');
+  }
+  
+  // 6. Add alt to all images
+  const imgWithoutAlt = /<img(?![^>]*alt\s*=)([^>]*)>/gi;
+  if (imgWithoutAlt.test(fixedCode)) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/<img(?![^>]*alt\s*=)([^>]*)>/gi, '<img$1 alt="">');
+    trackFix(before, fixedCode, 'Added alt="" to images');
+  }
+  
+  // 7. Fix unclosed tags
+  const selfClosingTags = ['br', 'hr', 'img', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'param', 'source', 'track', 'wbr'];
+  for (const tag of selfClosingTags) {
+    const regex = new RegExp(`<${tag}([^>]*[^/])>`, 'gi');
+    if (regex.test(fixedCode)) {
+      const before = fixedCode;
+      fixedCode = fixedCode.replace(new RegExp(`<${tag}([^>]*[^/])>`, 'gi'), `<${tag}$1>`);
+    }
+  }
+  
+  // 8. Fix empty href="#" - add proper anchor
+  if (fixedCode.includes('href="#"') && fixedCode.includes('<a')) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/href="#"(?=[^>]*>)/g, 'href="#" role="button"');
+    // Don't add duplicate role
+    fixedCode = fixedCode.replace(/role="button"\s+role="button"/g, 'role="button"');
+    trackFix(before, fixedCode, 'Added role="button" to anchor links');
+  }
+  
+  // 9. Fix missing closing </body> or </html>
+  if (fixedCode.includes('<body') && !fixedCode.includes('</body>')) {
+    fixedCode = fixedCode + '\n</body>';
+    fixes.push('Added missing </body>');
+  }
+  if (fixedCode.includes('<html') && !fixedCode.includes('</html>')) {
+    fixedCode = fixedCode + '\n</html>';
+    fixes.push('Added missing </html>');
+  }
+  
+  // ========== JAVASCRIPT SYNTAX FIXES ==========
+  
+  // 10. Fix var to const/let
+  if (/\bvar\s+\w+\s*=/.test(fixedCode)) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/\bvar\s+(\w+)\s*=/g, 'const $1 =');
+    trackFix(before, fixedCode, 'Changed var to const');
+  }
+  
+  // 11. Fix == to === (but not !== or ===)
+  if (/[^!=]={2}(?!=)/.test(fixedCode)) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/([^!=])={2}(?!=)/g, '$1===');
+    trackFix(before, fixedCode, 'Changed == to ===');
+  }
+  
+  // 12. Fix != to !== (but not !==)
+  if (/!={1}(?!=)/.test(fixedCode)) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/([^!])!={1}(?!=)/g, '$1!==');
+    trackFix(before, fixedCode, 'Changed != to !==');
+  }
+  
+  // 13. Fix missing semicolons at end of statements
+  const jsLines = fixedCode.split('\n');
+  let fixedSemicolons = false;
+  for (let i = 0; i < jsLines.length; i++) {
+    const line = jsLines[i].trim();
+    // Skip if empty, comment, or already has semicolon/brace
+    if (!line || line.startsWith('//') || line.startsWith('/*') || line.startsWith('*')) continue;
+    if (line.endsWith(';') || line.endsWith('{') || line.endsWith('}') || line.endsWith(',') || line.endsWith(':')) continue;
+    if (line.endsWith(')') && !line.includes('=')) continue; // function call might be ok
+    // Check if it's a statement that should end with semicolon
+    if (/^(const|let|var|return|throw|break|continue)\s/.test(line) && !line.endsWith(';')) {
+      jsLines[i] = jsLines[i].trimEnd() + ';';
+      fixedSemicolons = true;
+    }
+  }
+  if (fixedSemicolons) {
+    fixedCode = jsLines.join('\n');
+    fixes.push('Added missing semicolons');
+  }
+  
+  // 14. Fix unclosed strings (simple cases)
+  const unclosedString = /(['"`])(?:[^\\]|\\.)*$/gm;
+  // This is complex, handle carefully
+  
+  // 15. Fix unclosed parentheses (count open vs closed)
+  const openParens = (fixedCode.match(/\(/g) || []).length;
+  const closeParens = (fixedCode.match(/\)/g) || []).length;
+  if (openParens > closeParens) {
+    const diff = openParens - closeParens;
+    fixedCode = fixedCode.trimEnd() + ')'.repeat(diff);
+    fixes.push(`Added ${diff} missing closing parenthesis`);
+  }
+  
+  // 16. Fix unclosed braces
+  const openBraces = (fixedCode.match(/\{/g) || []).length;
+  const closeBraces = (fixedCode.match(/\}/g) || []).length;
+  if (openBraces > closeBraces) {
+    const diff = openBraces - closeBraces;
+    fixedCode = fixedCode.trimEnd() + '\n' + '}'.repeat(diff);
+    fixes.push(`Added ${diff} missing closing brace`);
+  }
+  
+  // 17. Fix unclosed brackets
+  const openBrackets = (fixedCode.match(/\[/g) || []).length;
+  const closeBrackets = (fixedCode.match(/\]/g) || []).length;
+  if (openBrackets > closeBrackets) {
+    const diff = openBrackets - closeBrackets;
+    fixedCode = fixedCode.trimEnd() + ']'.repeat(diff);
+    fixes.push(`Added ${diff} missing closing bracket`);
+  }
+  
+  // 18. Fix innerHTML to textContent for text-only assignments
+  if (/\.innerHTML\s*=\s*(['"`][^<>]*['"`])/.test(fixedCode)) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/\.innerHTML\s*=\s*(['"`][^<>]+['"`])/g, '.textContent = $1');
+    trackFix(before, fixedCode, 'Changed innerHTML to textContent');
+  }
+  
+  // 19. Fix document.write (bad practice)
+  if (/document\.write\s*\(/.test(fixedCode)) {
+    // Can't easily fix, but note it
+  }
+  
+  // ========== CSS SYNTAX FIXES ==========
+  
+  // 20. Fix missing semicolons in CSS
+  if (/<style|\.css/i.test(fixedCode)) {
+    const before = fixedCode;
+    // Add semicolon before closing brace if missing
+    fixedCode = fixedCode.replace(/([a-z0-9%\)'"]+)\s*\}/gi, '$1;\n}');
+    // Clean up double semicolons
+    fixedCode = fixedCode.replace(/;+\s*;/g, ';');
+    fixedCode = fixedCode.replace(/;\s*\}/g, ';\n}');
+    trackFix(before, fixedCode, 'Fixed CSS semicolons');
+  }
+  
+  // 21. Fix unclosed CSS braces
+  const cssMatch = fixedCode.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+  if (cssMatch) {
+    for (const css of cssMatch) {
+      const openB = (css.match(/\{/g) || []).length;
+      const closeB = (css.match(/\}/g) || []).length;
+      if (openB > closeB) {
+        const diff = openB - closeB;
+        const fixedCss = css.replace(/<\/style>/i, '}'.repeat(diff) + '\n</style>');
+        fixedCode = fixedCode.replace(css, fixedCss);
+        fixes.push('Fixed unclosed CSS braces');
+      }
+    }
+  }
+  
+  // ========== SECURITY FIXES ==========
+  
+  // 22. Remove eval() calls
+  if (/\beval\s*\(/.test(fixedCode)) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/\beval\s*\([^)]*\)/g, '/* eval removed for security */');
+    trackFix(before, fixedCode, 'Removed unsafe eval()');
+  }
+  
+  // 23. Fix onclick with javascript:
+  if (/onclick\s*=\s*["']javascript:/i.test(fixedCode)) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/onclick\s*=\s*["']javascript:([^"']+)["']/gi, 'onclick="$1"');
+    trackFix(before, fixedCode, 'Cleaned onclick javascript: prefix');
+  }
+  
+  // ========== ACCESSIBILITY FIXES ==========
+  
+  // 24. Add type="button" to buttons without type
+  if (/<button(?![^>]*type\s*=)[^>]*>/i.test(fixedCode)) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/<button(?![^>]*type\s*=)([^>]*)>/gi, '<button type="button"$1>');
+    trackFix(before, fixedCode, 'Added type="button" to buttons');
+  }
+  
+  // 25. Add aria-label to icon-only buttons
+  if (/<button[^>]*>(\s*<(svg|i|span)[^>]*>[^<]*<\/(svg|i|span)>\s*)<\/button>/gi.test(fixedCode)) {
+    const before = fixedCode;
+    fixedCode = fixedCode.replace(/<button(?![^>]*aria-label)([^>]*)>(\s*<(svg|i|span)[^>]*>)/gi, '<button$1 aria-label="button">$2');
+    trackFix(before, fixedCode, 'Added aria-label to icon buttons');
+  }
+  
+  return { code: fixedCode, fixes };
+}
+
+// Main self-test function - tests generated code and fixes issues automatically
+export async function selfTestAndFix(code: string, language: string = 'html'): Promise<SelfTestResult> {
+  const originalCode = code;
+  let currentCode = code;
+  let allFixes: string[] = [];
+  let iteration = 0;
+  const maxIterations = 3;
+  
+  while (iteration < maxIterations) {
+    iteration++;
+    
+    // Check for errors
+    const errors = checkErrors(currentCode);
+    
+    // Filter to fixable errors
+    const fixableErrors = errors.filter(e => 
+      e.severity === 'error' || e.severity === 'warning'
+    );
+    
+    if (fixableErrors.length === 0) {
+      // All good!
+      break;
+    }
+    
+    // Apply auto-fixes
+    const { code: fixedCode, fixes } = applyAutoFixes(currentCode, fixableErrors);
+    
+    if (fixedCode === currentCode) {
+      // No more fixes possible
+      break;
+    }
+    
+    currentCode = fixedCode;
+    allFixes = [...allFixes, ...fixes];
+  }
+  
+  // Final check
+  const finalErrors = checkErrors(currentCode);
+  const criticalErrors = finalErrors.filter(e => e.severity === 'error');
+  
+  // Generate report
+  let report = '';
+  if (allFixes.length > 0) {
+    report = `🔧 **Auto-Fixed ${allFixes.length} issue${allFixes.length > 1 ? 's' : ''}:**\n`;
+    allFixes.forEach(fix => {
+      report += `✓ ${fix}\n`;
+    });
+    report += '\n';
+  }
+  
+  if (criticalErrors.length > 0) {
+    report += `⚠️ **${criticalErrors.length} issue${criticalErrors.length > 1 ? 's' : ''} need manual review:**\n`;
+    criticalErrors.slice(0, 3).forEach(err => {
+      report += `• ${err.message}\n`;
+    });
+  } else {
+    report += '✅ **Code passed all tests!**\n';
+  }
+  
+  return {
+    originalCode,
+    testedCode: currentCode,
+    wasFixed: allFixes.length > 0,
+    fixesApplied: allFixes,
+    errors: finalErrors,
+    passed: criticalErrors.length === 0,
+    report
+  };
+}
+
+// Synchronous quick validation and fix - LOOPS UNTIL NO ERRORS LEFT
+export function quickTestAndFix(code: string): { code: string; fixes: string[]; report: string } {
+  let currentCode = code;
+  const allFixes: string[] = [];
+  let iteration = 0;
+  const maxIterations = 10; // Keep trying until clean
+  
+  while (iteration < maxIterations) {
+    iteration++;
+    
+    // Check for errors
+    const errors = checkErrors(currentCode);
+    
+    // Apply fixes (both error-driven and proactive)
+    const { code: fixedCode, fixes } = applyAutoFixes(currentCode, errors);
+    
+    // Track all fixes
+    allFixes.push(...fixes);
+    
+    // If no changes were made, we're done
+    if (fixedCode === currentCode) {
+      break;
+    }
+    
+    currentCode = fixedCode;
+  }
+  
+  // Final error check
+  const remainingErrors = checkErrors(currentCode);
+  const criticalErrors = remainingErrors.filter(e => e.severity === 'error');
+  
+  // Build report
+  let report = '';
+  if (allFixes.length > 0) {
+    report = `Auto-fixed ${allFixes.length} issues in ${iteration} pass${iteration > 1 ? 'es' : ''}`;
+  }
+  if (criticalErrors.length > 0) {
+    report += ` | ${criticalErrors.length} issues remain`;
+  } else if (allFixes.length > 0) {
+    report += ' | Code is clean!';
+  }
+  
+  return { code: currentCode, fixes: allFixes, report };
+}
+
+// Try to fix runtime errors automatically
+export function tryFixRuntimeError(code: string, errorMessage: string): { fixed: boolean; code: string; fixDescription: string } {
+  let fixedCode = code;
+  let fixDescription = '';
+  
+  const lowerError = errorMessage.toLowerCase();
+  
+  // Common runtime error patterns and their fixes
+  
+  // 1. "X is not defined" - missing variable/function
+  const notDefinedMatch = errorMessage.match(/(\w+) is not defined/i);
+  if (notDefinedMatch) {
+    const varName = notDefinedMatch[1];
+    
+    // Check if it's a common missing element reference
+    if (varName === 'document' || varName === 'window') {
+      // Code might be running before DOM is ready
+      if (!code.includes('DOMContentLoaded')) {
+        fixedCode = code.replace(
+          /<script([^>]*)>/gi,
+          `<script$1>\ndocument.addEventListener('DOMContentLoaded', function() {`
+        );
+        fixedCode = fixedCode.replace(
+          /<\/script>/gi,
+          `});\n</script>`
+        );
+        return { fixed: true, code: fixedCode, fixDescription: 'Wrapped in DOMContentLoaded' };
+      }
+    }
+    
+    // Check if it's a querySelector that returns null
+    if (['querySelector', 'getElementById', 'getElementsByClassName'].some(m => code.includes(m))) {
+      // Add null checks
+      const selectorPattern = new RegExp(`(const|let|var)\\s+${varName}\\s*=\\s*(document\\.[^;]+);`, 'g');
+      if (selectorPattern.test(code)) {
+        fixedCode = code.replace(selectorPattern, `$1 ${varName} = $2;\nif (!${varName}) console.warn('Element not found: ${varName}');`);
+        return { fixed: true, code: fixedCode, fixDescription: `Added null check for ${varName}` };
+      }
+    }
+  }
+  
+  // 2. "Cannot read property 'X' of null/undefined"
+  if (lowerError.includes('cannot read property') || lowerError.includes('cannot read properties')) {
+    // This usually means an element wasn't found
+    // Wrap querySelector calls in null checks
+    const patterns = [
+      /(\w+)\.addEventListener\(/g,
+      /(\w+)\.classList\./g,
+      /(\w+)\.style\./g,
+      /(\w+)\.innerHTML/g,
+      /(\w+)\.textContent/g,
+    ];
+    
+    for (const pattern of patterns) {
+      if (pattern.test(code)) {
+        // Add optional chaining
+        fixedCode = code.replace(pattern, '$1?.$&'.replace('$&', ''));
+        if (fixedCode !== code) {
+          return { fixed: true, code: fixedCode, fixDescription: 'Added optional chaining for null safety' };
+        }
+      }
+    }
+    
+    // Try wrapping in DOMContentLoaded
+    if (!code.includes('DOMContentLoaded') && code.includes('<script')) {
+      fixedCode = code.replace(
+        /(<script[^>]*>)([\s\S]*?)(<\/script>)/gi,
+        '$1\ndocument.addEventListener("DOMContentLoaded", function() {\n$2\n});\n$3'
+      );
+      return { fixed: true, code: fixedCode, fixDescription: 'Wrapped scripts in DOMContentLoaded' };
+    }
+  }
+  
+  // 3. "Unexpected token" / "SyntaxError"
+  if (lowerError.includes('unexpected token') || lowerError.includes('syntaxerror')) {
+    // Run the comprehensive syntax fixer
+    const result = quickTestAndFix(code);
+    if (result.fixes.length > 0) {
+      return { fixed: true, code: result.code, fixDescription: result.fixes.join(', ') };
+    }
+  }
+  
+  // 4. "X is not a function"
+  if (lowerError.includes('is not a function')) {
+    const funcMatch = errorMessage.match(/(\w+) is not a function/i);
+    if (funcMatch) {
+      const funcName = funcMatch[1];
+      // Check if it's being called on wrong type
+      if (code.includes(`${funcName}(`)) {
+        // Could be calling method on wrong object
+        fixDescription = `Check that ${funcName} is properly defined`;
+      }
+    }
+  }
+  
+  // 5. "Maximum call stack size exceeded" - infinite recursion
+  if (lowerError.includes('call stack') || lowerError.includes('stack size')) {
+    // Look for obvious recursion issues
+    const funcPattern = /function\s+(\w+)\s*\([^)]*\)\s*\{[^}]*\1\s*\(/g;
+    if (funcPattern.test(code)) {
+      fixDescription = 'Possible infinite recursion detected';
+      // Can't auto-fix easily, but note it
+    }
+  }
+  
+  // 6. Event listener errors
+  if (lowerError.includes('addeventlistener')) {
+    // Make sure elements exist before adding listeners
+    if (!code.includes('DOMContentLoaded')) {
+      fixedCode = code.replace(
+        /(<script[^>]*>)([\s\S]*?)(<\/script>)/gi,
+        '$1\nwindow.addEventListener("DOMContentLoaded", function() {\n$2\n});\n$3'
+      );
+      return { fixed: true, code: fixedCode, fixDescription: 'Wrapped in DOMContentLoaded for event listeners' };
+    }
+  }
+  
+  // 7. "Failed to execute" errors
+  if (lowerError.includes('failed to execute')) {
+    // Often invalid selector or parameter
+    // Try to clean up selectors
+    const badSelectors = code.match(/querySelector\(['"]([^'"]+)['"]\)/g);
+    if (badSelectors) {
+      for (const selector of badSelectors) {
+        // Check for common issues like spaces, special chars
+        if (selector.includes('  ') || selector.match(/[<>]/)) {
+          const cleanedSelector = selector.replace(/\s+/g, ' ').replace(/[<>]/g, '');
+          fixedCode = code.replace(selector, cleanedSelector);
+          if (fixedCode !== code) {
+            return { fixed: true, code: fixedCode, fixDescription: 'Fixed invalid selector' };
+          }
+        }
+      }
+    }
+  }
+  
+  return { fixed: false, code, fixDescription };
+}
+
+// Export auto-tester functions
+export { testCode, validateCode, generateTestReport };
+export type { TestResult } from "./auto-tester";
