@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers, FolderOpen } from "lucide-react";
+import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers, PanelRightClose, PanelRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,10 +28,10 @@ import { ChatMessage } from "@/components/chat-message";
 import { ChatInput } from "@/components/chat-input";
 import { EmptyState } from "@/components/empty-state";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { FilePanel } from "@/components/file-panel";
+import { PreviewPanel } from "@/components/preview-panel";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { generateCode } from "@/lib/code-generator";
-import type { Conversation, Message } from "@shared/schema";
+import { generateCodeWithContext } from "@/lib/code-generator";
+import type { Conversation, Message, ProjectFile } from "@shared/schema";
 
 // Extract code files from AI response and save to project
 async function saveCodeToProject(conversationId: number, aiResponse: string) {
@@ -46,13 +46,38 @@ async function saveCodeToProject(conversationId: number, aiResponse: string) {
     multiFileMatches.push(match);
   }
   
-  if (multiFileMatches.length >= 2) {
+  // Handle multi-file format (even single file updates use this format now)
+  if (multiFileMatches.length >= 1) {
     for (let i = 0; i < multiFileMatches.length; i++) {
       const m = multiFileMatches[i];
       const filePath = m[1];
       const startIndex = m.index + m[0].length;
-      const endIndex = i < multiFileMatches.length - 1 ? multiFileMatches[i + 1].index : aiResponse.length;
-      const content = aiResponse.slice(startIndex, endIndex).trim();
+      // For single file, find end markers like "**Changes made:**" or next file marker
+      let endIndex: number;
+      if (i < multiFileMatches.length - 1) {
+        endIndex = multiFileMatches[i + 1].index;
+      } else {
+        // Find common end markers for single file updates
+        const endMarkers = ["**Changes made:**", "**Changes:**", "\n\n**", "\n\nThe preview"];
+        endIndex = aiResponse.length;
+        for (const marker of endMarkers) {
+          const markerIdx = aiResponse.indexOf(marker, startIndex);
+          if (markerIdx !== -1 && markerIdx < endIndex) {
+            endIndex = markerIdx;
+          }
+        }
+      }
+      
+      let content = aiResponse.slice(startIndex, endIndex).trim();
+      
+      // Remove any trailing markdown/text that's not part of the code
+      // Look for </html> or </body> as natural end points for HTML
+      if (filePath.endsWith('.html')) {
+        const htmlEndIdx = content.lastIndexOf('</html>');
+        if (htmlEndIdx !== -1) {
+          content = content.slice(0, htmlEndIdx + 7).trim();
+        }
+      }
       
       const ext = filePath.split('.').pop()?.toLowerCase() || 'text';
       const languageMap: Record<string, string> = {
@@ -60,11 +85,14 @@ async function saveCodeToProject(conversationId: number, aiResponse: string) {
         'css': 'css', 'html': 'html', 'json': 'json', 'md': 'markdown', 'py': 'python',
       };
       
-      if (content) {
+      if (content && content.length > 20) {
         files.push({ path: filePath, content, language: languageMap[ext] || ext });
       }
     }
-  } else {
+  }
+  
+  // If no files found from multi-file format, try code blocks
+  if (files.length === 0) {
     // Extract individual code blocks
     const codeBlockPattern = /```(\w+)?\n([\s\S]*?)```/g;
     let blockMatch;
@@ -213,7 +241,7 @@ export default function Chat() {
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [aiMode, setAiMode] = useState<"cloud" | "local">("cloud");
-  const [showFilePanel, setShowFilePanel] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Prevent CMD+1/CMD+2 from interfering with the app
@@ -291,6 +319,16 @@ export default function Chat() {
     sendMessageToConversation(activeConversationId, content);
   };
 
+  // Handle fix requests from the debug panel
+  const handleRequestFix = useCallback((errorMessage: string, code: string) => {
+    if (!activeConversationId) return;
+    
+    // Create a fix request message
+    const fixRequest = `Fix this error: ${errorMessage}\n\nThe code has this issue and needs to be fixed. Please update the code to resolve this error.`;
+    
+    handleSendMessage(fixRequest);
+  }, [activeConversationId]);
+
   const sendMessageToConversation = async (conversationId: number, content: string) => {
     setIsStreaming(true);
     setStreamingContent("");
@@ -345,8 +383,20 @@ export default function Chat() {
               // Check if server wants us to use local engine
               if (data.useLocalEngine) {
                 setAiMode("local");
-                // Generate response using local template engine
-                const localResponse = generateCode(data.userMessage);
+                
+                // Fetch existing project files for context
+                let existingFiles: ProjectFile[] = [];
+                try {
+                  const filesRes = await fetch(`/api/conversations/${conversationId}/files`);
+                  if (filesRes.ok) {
+                    existingFiles = await filesRes.json();
+                  }
+                } catch (e) {
+                  console.error("Failed to fetch existing files:", e);
+                }
+                
+                // Generate response using local template engine with context
+                const localResponse = generateCodeWithContext(data.userMessage, existingFiles);
                 
                 // Simulate streaming for smooth UX
                 for (let i = 0; i < localResponse.length; i += 5) {
@@ -354,26 +404,14 @@ export default function Chat() {
                   setStreamingContent(localResponse.slice(0, i + 5));
                 }
                 
-                // Add response to local cache (server stores user messages only in local mode)
-                queryClient.setQueryData<ConversationWithMessages>(
-                  ["/api/conversations", conversationId],
-                  (old) => {
-                    if (!old) return old;
-                    return {
-                      ...old,
-                      messages: [
-                        ...old.messages,
-                        {
-                          id: Date.now() + 1,
-                          conversationId,
-                          role: "assistant",
-                          content: localResponse,
-                          createdAt: new Date(),
-                        },
-                      ],
-                    };
-                  }
-                );
+                // Save assistant message to server so it persists
+                try {
+                  await apiRequest("POST", `/api/conversations/${conversationId}/assistant-message`, {
+                    content: localResponse
+                  });
+                } catch (saveError) {
+                  console.error("Failed to save assistant message:", saveError);
+                }
                 
                 // Update project context for local engine too
                 await updateProjectContextFromResponse(conversationId, data.userMessage, localResponse);
@@ -383,6 +421,10 @@ export default function Chat() {
                 
                 setIsStreaming(false);
                 setStreamingContent("");
+                
+                // Refresh messages and files from server - files query triggers preview update
+                queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
+                queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
                 return;
               }
               
@@ -397,7 +439,9 @@ export default function Chat() {
                 }
                 setIsStreaming(false);
                 setStreamingContent("");
+                // Refresh messages and files - files query triggers preview update
                 queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
+                queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
               }
             } catch {
             }
@@ -407,10 +451,36 @@ export default function Chat() {
     } catch (error) {
       console.error("Error sending message:", error);
       
-      // Fallback to local engine on any error
-      const localResponse = generateCode(content);
+      // Fetch existing project files for context
+      let existingFiles: ProjectFile[] = [];
+      try {
+        const filesRes = await fetch(`/api/conversations/${conversationId}/files`);
+        if (filesRes.ok) {
+          existingFiles = await filesRes.json();
+        }
+      } catch (e) {
+        console.error("Failed to fetch existing files:", e);
+      }
+      
+      // Fallback to local engine on any error - with context awareness
+      const localResponse = generateCodeWithContext(content, existingFiles);
       setStreamingContent(localResponse);
       setAiMode("local");
+      
+      // Simulate streaming for smooth UX
+      for (let i = 0; i < localResponse.length; i += 10) {
+        await new Promise(resolve => setTimeout(resolve, 3));
+        setStreamingContent(localResponse.slice(0, i + 10));
+      }
+      
+      // Save assistant message to server so it persists
+      try {
+        await apiRequest("POST", `/api/conversations/${conversationId}/assistant-message`, {
+          content: localResponse
+        });
+      } catch (saveError) {
+        console.error("Failed to save assistant message:", saveError);
+      }
       
       // Update project context for fallback too
       await updateProjectContextFromResponse(conversationId, content, localResponse);
@@ -418,11 +488,12 @@ export default function Chat() {
       // Save code to project files
       await saveCodeToProject(conversationId, localResponse);
       
-      setTimeout(() => {
-        setIsStreaming(false);
-        setStreamingContent("");
-        queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
-      }, 500);
+      setIsStreaming(false);
+      setStreamingContent("");
+      
+      // Refresh messages and files - files query triggers preview update
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
     }
   };
 
@@ -587,11 +658,11 @@ export default function Chat() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowFilePanel(!showFilePanel)}
-                className={showFilePanel ? 'text-primary' : ''}
-                data-testid="button-toggle-files"
+                onClick={() => setShowPreview(!showPreview)}
+                className={showPreview ? 'text-primary' : ''}
+                data-testid="button-toggle-preview"
               >
-                <FolderOpen className="h-4 w-4" />
+                {showPreview ? <PanelRightClose className="h-4 w-4" /> : <PanelRight className="h-4 w-4" />}
               </Button>
               <ThemeToggle />
             </div>
@@ -633,9 +704,9 @@ export default function Chat() {
           </div>
           </div>
           
-          {showFilePanel && (
-            <div className="w-64 border-l border-border flex-shrink-0 h-full">
-              <FilePanel conversationId={activeConversationId} />
+          {showPreview && (
+            <div className="w-[45%] min-w-[350px] max-w-[600px] border-l border-border flex-shrink-0 h-full">
+              <PreviewPanel conversationId={activeConversationId} onRequestFix={handleRequestFix} />
             </div>
           )}
         </div>

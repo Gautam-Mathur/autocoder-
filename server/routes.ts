@@ -193,6 +193,27 @@ export async function registerRoutes(
     }
   });
 
+  // Save assistant message (for local engine mode)
+  app.post("/api/conversations/:id/assistant-message", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+
+      const { content } = req.body;
+      if (!content || typeof content !== "string") {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      const message = await storage.createMessage(id, "assistant", content);
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Error saving assistant message:", error);
+      res.status(500).json({ error: "Failed to save assistant message" });
+    }
+  });
+
   // Update project context for a conversation
   app.put("/api/conversations/:id/context", async (req, res) => {
     try {

@@ -55,6 +55,30 @@ Database tables:
 2. **API Request Helper**: Centralized `apiRequest` function in `client/src/lib/queryClient.ts`
 3. **Streaming Responses**: AI responses support streaming for real-time display
 4. **Project Context Persistence**: Conversations store project metadata (name, tech stack, features built)
+5. **Permanent Preview Panel**: Replit-style preview panel that stays visible after code generation
+   - Split layout: Chat on left (~55%), Preview on right (~45%)
+   - Tabs: Preview (live HTML), Code (source view), Debug (live code analysis)
+   - Features: Fullscreen mode, device simulation (desktop/tablet/mobile), refresh, open in new tab
+   - Toggle button to show/hide the preview panel
+
+### Local Code Generation Engine (OpenAI-Independent)
+Located in `client/src/lib/code-generator/`:
+- **engine.ts**: Main generation logic with template matching, domain detection, debug integration
+- **templates.ts**: Code templates for HTML, CSS, JavaScript, React
+- **knowledge-base.ts**: Sage Knowledge for understanding user intent
+- **webapp-knowledge.ts**: Tech stacks, blueprints, and multi-language patterns
+- **learning-module.ts**: Pattern learning from user interactions
+- **creativity-module.ts**: Domain detection (VAPT, healthcare, e-commerce, finance) and customization
+- **fullstack-generator.ts**: Complete multi-file app generation with Flask, SQLAlchemy, auth, CRUD
+- **debug-module.ts**: Live code analysis, error detection, and learning from user fixes
+
+### Debug Module Features
+- **Live Code Observation**: Watches code changes in real-time
+- **Error Detection**: Syntax, runtime, logic, and style issues for Python, JavaScript, HTML, CSS
+- **Security Scanning**: SQL injection, XSS, hardcoded credentials
+- **Code Smell Detection**: Anti-patterns like bare except, == True, eval()
+- **Learning System**: Remembers user fixes and applies patterns to future suggestions
+- **Debug Tab**: Shows stats (changes observed, fixes learned, issues found) and detailed error list
 
 ## External Dependencies
 
