@@ -1874,9 +1874,15 @@ function generateAppJS(domain: string, content: DomainContent): string {
   return `// ${content.title} - Full Application
 // Complete frontend with authentication and CRUD operations
 
-const API_BASE = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5000/api' 
-  : '/api';
+// Auto-detect API base URL - works on any port (3000, 5000, 8000, etc.)
+const API_BASE = (() => {
+  // If running from file:// or different origin, try common ports
+  if (window.location.protocol === 'file:') {
+    return 'http://localhost:5000/api';
+  }
+  // Use same origin (works on any port)
+  return window.location.origin + '/api';
+})();
 
 // ============================================
 // STATE MANAGEMENT
@@ -2566,29 +2572,39 @@ ${content.features.map(f => `- ${f}`).join('\n')}
 - RESTful API with validation
 - Modern responsive dashboard
 
-## Quick Start
+## Quick Start (Works on Windows, Mac, Linux - Any Port!)
 
 ### 1. Install dependencies
 \`\`\`bash
 pip install -r requirements.txt
 \`\`\`
 
-### 2. Start the backend server
+### 2. Start the server (choose your port)
 \`\`\`bash
+# Default port 5000
 python app.py
+
+# Custom port (e.g., 3000 for VS Code)
+PORT=3000 python app.py
+
+# Windows Command Prompt
+set PORT=3000 && python app.py
+
+# Windows PowerShell
+$env:PORT=3000; python app.py
 \`\`\`
 
-### 3. Open the frontend
-Open \`index.html\` in your browser, or serve it:
-\`\`\`bash
-python -m http.server 8000
-\`\`\`
+### 3. Open in browser
+Visit: http://localhost:YOUR_PORT (e.g., http://localhost:3000)
 
-Then visit: http://localhost:8000
+**Note:** The frontend auto-detects the API port - no configuration needed!
 
 ### Default Login
 - **Username:** admin
 - **Password:** admin123
+
+### Preview Mode (No Backend)
+Open \`index.html\` directly in browser - demo mode will activate automatically!
 
 ## API Endpoints
 
