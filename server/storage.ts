@@ -91,16 +91,16 @@ export class MemStorage implements IStorage {
 
   async deleteConversation(id: number): Promise<void> {
     this.conversations.delete(id);
-    for (const [msgId, msg] of this.messages) {
+    Array.from(this.messages.entries()).forEach(([msgId, msg]) => {
       if (msg.conversationId === id) {
         this.messages.delete(msgId);
       }
-    }
-    for (const [fileId, file] of this.projectFiles) {
+    });
+    Array.from(this.projectFiles.entries()).forEach(([fileId, file]) => {
       if (file.conversationId === id) {
         this.projectFiles.delete(fileId);
       }
-    }
+    });
   }
 
   async getMessagesByConversation(conversationId: number): Promise<Message[]> {
