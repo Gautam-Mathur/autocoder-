@@ -4,6 +4,40 @@
 
 CodeAI is a full-stack web application that provides an AI-powered code generation assistant. Users can describe what they want to build in natural language, and the system generates production-ready HTML, CSS, JavaScript, and React code. The app features a chat interface with conversation history, project file management, and live code previews.
 
+## Portable Setup (VS Code, Windows, Mac, Linux - Any Port!)
+
+### Prerequisites
+- Node.js 18+ 
+- npm
+
+### Quick Start (Zero Config)
+
+```bash
+# Install dependencies
+npm install
+
+# Run on default port 5000
+npm run dev
+
+# Run on port 3000 (for VS Code)
+# Windows CMD:
+set PORT=3000 && npm run dev
+
+# Windows PowerShell:
+$env:PORT=3000; npm run dev
+
+# Mac/Linux:
+PORT=3000 npm run dev
+```
+
+Visit: http://localhost:YOUR_PORT (e.g., http://localhost:3000)
+
+### What Works Without Config
+- **No Database Required**: Uses in-memory storage automatically
+- **No OpenAI Key Required**: Local code generation engine works independently
+- **Any Port**: Frontend uses relative URLs, works on any port
+- **Cross-Platform**: Works on Windows, Mac, Linux without changes
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
