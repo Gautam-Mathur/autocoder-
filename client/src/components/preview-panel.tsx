@@ -464,9 +464,10 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
 
     const htmlFile =
       files.find((f) => f.path.toLowerCase().endsWith("index.html")) ||
-      files.find((f) => f.path.toLowerCase().endsWith(".html"));
-    const cssFiles = files.filter((f) => f.path.toLowerCase().endsWith(".css"));
-    const jsFiles = files.filter((f) => f.path.toLowerCase().endsWith(".js"));
+      files.find((f) => f.path.toLowerCase().endsWith(".html")) ||
+      files.find((f) => f.language === "html");
+    const cssFiles = files.filter((f) => f.path.toLowerCase().endsWith(".css") || f.language === "css");
+    const jsFiles = files.filter((f) => f.path.toLowerCase().endsWith(".js") || f.language === "javascript");
 
     if (!htmlFile) return "";
 
