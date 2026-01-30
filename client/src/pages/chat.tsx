@@ -28,6 +28,7 @@ import { ChatMessage } from "@/components/chat-message";
 import { ChatInput } from "@/components/chat-input";
 import { EmptyState } from "@/components/empty-state";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { DevGuide } from "@/components/dev-guide";
 import { PreviewPanel } from "@/components/preview-panel";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { generateCodeWithContext } from "@/lib/code-generator";
@@ -664,6 +665,7 @@ export default function Chat() {
               >
                 {showPreview ? <PanelRightClose className="h-4 w-4" /> : <PanelRight className="h-4 w-4" />}
               </Button>
+              <DevGuide onSelectTemplate={handleSendMessage} />
               <ThemeToggle />
             </div>
           </header>

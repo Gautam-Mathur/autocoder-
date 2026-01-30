@@ -287,7 +287,7 @@ const domainContent: Record<string, DomainContent> = {
 export function detectDomain(intent: RequestIntent, input: string): string {
   const lowerInput = input.toLowerCase();
   
-  // Check for specific domains
+  // Security domains
   if (lowerInput.includes("vapt") || lowerInput.includes("vulnerability") || lowerInput.includes("penetration test")) {
     return "vapt";
   }
@@ -297,23 +297,100 @@ export function detectDomain(intent: RequestIntent, input: string): string {
   if (lowerInput.includes("security") || lowerInput.includes("cyber") || lowerInput.includes("threat")) {
     return "security";
   }
-  if (lowerInput.includes("health") || lowerInput.includes("medical") || lowerInput.includes("patient") || lowerInput.includes("hospital")) {
-    return "healthcare";
+  
+  // Finance domains
+  if (lowerInput.includes("banking") || lowerInput.includes("bank system") || lowerInput.includes("account transfer")) {
+    return "banking";
   }
-  if (lowerInput.includes("shop") || lowerInput.includes("store") || lowerInput.includes("ecommerce") || lowerInput.includes("product")) {
-    return "ecommerce";
+  if (lowerInput.includes("invoice") || lowerInput.includes("invoicing") || lowerInput.includes("billing system")) {
+    return "invoice";
   }
-  if (lowerInput.includes("finance") || lowerInput.includes("bank") || lowerInput.includes("money") || lowerInput.includes("payment")) {
+  if (lowerInput.includes("finance") || lowerInput.includes("money") || lowerInput.includes("budget") || lowerInput.includes("expense")) {
     return "finance";
   }
-  if (lowerInput.includes("hr") || lowerInput.includes("employee") || lowerInput.includes("payroll") || lowerInput.includes("human resource")) {
+  
+  // HR domains
+  if (lowerInput.includes("hrms") || lowerInput.includes("human resource") || lowerInput.includes("hr system")) {
     return "hrms";
   }
-  if (lowerInput.includes("school") || lowerInput.includes("education") || lowerInput.includes("course") || lowerInput.includes("student") || lowerInput.includes("lms")) {
-    return "education";
+  if (lowerInput.includes("payroll") || lowerInput.includes("salary") || lowerInput.includes("payslip")) {
+    return "payroll";
+  }
+  if (lowerInput.includes("recruitment") || lowerInput.includes("hiring") || lowerInput.includes("applicant") || lowerInput.includes("job posting")) {
+    return "recruitment";
+  }
+  if (lowerInput.includes("employee") || lowerInput.includes("attendance") || lowerInput.includes("leave management")) {
+    return "hrms";
+  }
+  
+  // Healthcare domains
+  if (lowerInput.includes("pharmacy") || lowerInput.includes("medicine") || lowerInput.includes("drug")) {
+    return "pharmacy";
+  }
+  if (lowerInput.includes("health") || lowerInput.includes("medical") || lowerInput.includes("patient") || lowerInput.includes("hospital") || lowerInput.includes("clinic")) {
+    return "healthcare";
+  }
+  
+  // Retail domains
+  if (lowerInput.includes("pos") || lowerInput.includes("point of sale") || lowerInput.includes("cashier")) {
+    return "pos";
+  }
+  if (lowerInput.includes("inventory") || lowerInput.includes("stock") || lowerInput.includes("warehouse")) {
+    return "inventory";
+  }
+  if (lowerInput.includes("shop") || lowerInput.includes("store") || lowerInput.includes("ecommerce") || lowerInput.includes("e-commerce") || lowerInput.includes("product catalog")) {
+    return "ecommerce";
+  }
+  
+  // Enterprise domains
+  if (lowerInput.includes("erp") || lowerInput.includes("enterprise resource")) {
+    return "erp";
+  }
+  if (lowerInput.includes("crm") || lowerInput.includes("customer relationship") || lowerInput.includes("lead") || lowerInput.includes("deal pipeline")) {
+    return "crm";
   }
   if (lowerInput.includes("project") || lowerInput.includes("task") || lowerInput.includes("kanban") || lowerInput.includes("sprint")) {
     return "project";
+  }
+  
+  // Education domains
+  if (lowerInput.includes("lms") || lowerInput.includes("learning management") || lowerInput.includes("online course")) {
+    return "lms";
+  }
+  if (lowerInput.includes("school") || lowerInput.includes("education") || lowerInput.includes("student") || lowerInput.includes("classroom")) {
+    return "school";
+  }
+  
+  // Communication domains
+  if (lowerInput.includes("sms") || lowerInput.includes("bulk message") || lowerInput.includes("messaging platform")) {
+    return "sms";
+  }
+  if (lowerInput.includes("email campaign") || lowerInput.includes("newsletter") || lowerInput.includes("email marketing")) {
+    return "email";
+  }
+  
+  // Logistics domains
+  if (lowerInput.includes("logistics") || lowerInput.includes("shipment") || lowerInput.includes("delivery tracking")) {
+    return "logistics";
+  }
+  if (lowerInput.includes("fleet") || lowerInput.includes("vehicle management") || lowerInput.includes("driver")) {
+    return "fleet";
+  }
+  
+  // Hospitality domains
+  if (lowerInput.includes("hotel") || lowerInput.includes("room booking") || lowerInput.includes("reservation")) {
+    return "hotel";
+  }
+  if (lowerInput.includes("restaurant") || lowerInput.includes("menu") || lowerInput.includes("table booking") || lowerInput.includes("food order")) {
+    return "restaurant";
+  }
+  
+  // Support domains
+  if (lowerInput.includes("helpdesk") || lowerInput.includes("support ticket") || lowerInput.includes("ticketing")) {
+    return "helpdesk";
+  }
+  if (lowerInput.includes("feedback") || lowerInput.includes("survey") || lowerInput.includes("customer feedback")) {
+    return "feedback";
   }
   
   // Check industry from intent
