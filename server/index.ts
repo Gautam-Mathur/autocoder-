@@ -23,6 +23,14 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Enable cross-origin isolation for WebContainer (SharedArrayBuffer support)
+// Using 'credentialless' instead of 'require-corp' to allow loading external resources
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+  next();
+});
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
