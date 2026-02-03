@@ -96,6 +96,63 @@ The application includes a fully-featured logging system:
 - **LogViewer UI** (`client/src/components/LogViewer.tsx`): Real-time log viewer with live refresh, search, filtering by level/category, statistics, and export to JSON
 - **API Endpoints**: GET /api/logs (with filters), GET /api/logs/stats, DELETE /api/logs
 
+### Auto-Fix Engine (NEW)
+The `client/src/lib/code-runner/auto-fix-engine.ts` module provides real-time error detection and automatic fixing:
+- **Pattern-Based Handlers**: Detects common errors (WebContainer issues, missing modules, ES module syntax, reference errors, null pointers, port conflicts)
+- **Auto-Apply Fixes**: Automatically applies code changes when possible (e.g., adding dependencies to package.json)
+- **Fallback Mode**: Switches to iframe sandbox preview when WebContainer SharedArrayBuffer errors are detected
+- **Retry Prevention**: Tracks fix history and prevents infinite retry loops
+- **Visual Feedback**: Shows "Auto-Fix ON/OFF" toggle and fixed count badge in terminal header
+
+### Code Runner System (NEW)
+The `client/src/lib/code-runner/` folder contains browser-based execution capabilities:
+- **webcontainer.ts**: WebContainer integration for running Node.js in browser (requires cross-origin isolation headers)
+- **deployment-guide.ts**: Generates deployment guides for Vercel, Netlify, Replit, and Railway with CLI commands and config files
+- **test-generator.ts**: Auto-generates unit/integration/e2e test cases from code analysis
+- **error-fixer.ts**: AI-powered error detection and fix suggestions with pattern matching for common errors
+
+### Code Runner UI Components (NEW)
+- **Terminal** (`client/src/components/terminal.tsx`): Real-time terminal output display with run/stop/clear controls
+- **CodeRunner** (`client/src/components/code-runner.tsx`): Full execution environment with npm install, dev server, and preview
+- **DeploymentPanel** (`client/src/components/deployment-panel.tsx`): Interactive deployment guides with copy-paste commands
+- **ErrorFixerPanel** (`client/src/components/error-fixer-panel.tsx`): AI-powered error analysis with one-click fix suggestions
+
+### Preview Panel Tabs
+The preview panel now includes 7 tabs:
+- **Preview**: Live HTML/CSS/JS rendering in sandboxed iframe (or VS Code IDE for server-side projects)
+- **Code**: File tree browser and code viewer
+- **Debug**: Error detection, auto-fix status, runtime error tracking, AI fix suggestions
+- **Intel**: Intelligence panel with security, tests, dependencies, transparency, logs
+- **Test**: Automated test generation and quick code checks
+- **Deploy**: Platform-specific deployment guides (Vercel, Netlify, Replit, Railway)
+- **IDE**: Full VS Code-like development environment with file editing, terminal, and preview
+
+### VS Code-like IDE (NEW)
+The `client/src/components/vscode-ide.tsx` component provides a complete development environment:
+- **File Explorer Sidebar**: Collapsible folder tree with file type icons
+- **Multi-Tab Editor**: Open multiple files with unsaved indicators, close tabs
+- **Integrated Terminal**: Real-time terminal output with WebContainer-powered command execution
+- **Side-by-Side Preview**: Live preview panel showing running application
+- **WebContainer Integration**: Runs Node.js projects directly in browser
+- **File Sync**: Saves edited files to both database and WebContainer filesystem
+- **Toggle Panels**: Show/hide sidebar, terminal, and preview independently
+- **Full-Screen Mode**: Expand IDE to full screen for focused work
+- **Server-Side Auto-Detection**: Automatically shows IDE for Node.js/Python projects instead of static message
+- **GitHub Import**: Import files directly from GitHub repositories with file browser
+- **File Upload**: Drag-and-drop file upload with 1MB limit per file
+
+### GitHub Integration
+The `client/src/components/github-import.tsx` module provides:
+- **Repository Listing**: Browse user's GitHub repositories
+- **File Browser**: Navigate repository file tree with expandable directories
+- **Selective Import**: Check files to import, then import selected files to project
+- **Branch Selection**: Choose which branch to import from
+- **API Endpoints**: 
+  - GET `/api/github/repos` - List user's repositories
+  - GET `/api/github/repos/:owner/:repo/contents` - Get repository contents
+  - POST `/api/conversations/:id/import-github` - Import files to project
+  - POST `/api/conversations/:id/upload-files` - Upload local files to project
+
 ## External Dependencies
 
 ### AI Services
@@ -106,7 +163,7 @@ The application includes a fully-featured logging system:
 - **PostgreSQL**: Primary database via `DATABASE_URL` environment variable
 - **connect-pg-simple**: Session storage in PostgreSQL
 
-### GitHub Integration
+### GitHub Libraries
 - **@octokit/rest**: GitHub API client for repository operations
 - **Replit Connectors**: OAuth token management for GitHub access
 
