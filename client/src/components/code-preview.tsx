@@ -484,6 +484,22 @@ ${html}
           )}
           <Button
             size="sm"
+            variant="default"
+            onClick={() => {
+              setShowPreview(true);
+              const previewPanel = document.querySelector('[data-testid="preview-panel"]');
+              if (previewPanel) {
+                previewPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }}
+            className="text-xs gap-1"
+            data-testid="button-run-app"
+          >
+            <Play className="w-3 h-3" />
+            Run App
+          </Button>
+          <Button
+            size="sm"
             variant="ghost"
             onClick={downloadAsZip}
             className="text-xs gap-1"
