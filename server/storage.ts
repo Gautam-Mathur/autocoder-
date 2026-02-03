@@ -1,6 +1,15 @@
-import { type Conversation, type Message, type InsertConversation, type InsertMessage, type ProjectFile, type InsertProjectFile, conversations, messages, projectFiles } from "@shared/schema";
+import { 
+  type Conversation, type Message, type InsertConversation, type InsertMessage, 
+  type ProjectFile, type InsertProjectFile, 
+  type ProjectPlan, type InsertProjectPlan,
+  type IntelRecord, type InsertIntelRecord,
+  type TestResult, type InsertTestResult,
+  type SecurityScan, type InsertSecurityScan,
+  type GenerationLog, type InsertGenerationLog,
+  conversations, messages, projectFiles, projectPlans, intelRecords, testResults, securityScans, generationLogs 
+} from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface ProjectContext {
   projectName?: string | null;
@@ -9,6 +18,14 @@ export interface ProjectContext {
   featuresBuilt?: string[] | null;
   projectSummary?: string | null;
   lastCodeGenerated?: string | null;
+  projectType?: string | null;
+  complexity?: string | null;
+  designStyle?: string | null;
+  colorPreferences?: string[] | null;
+  planGenerated?: boolean | null;
+  securityScore?: number | null;
+  testsPassed?: number | null;
+  testsFailed?: number | null;
 }
 
 export interface IStorage {
@@ -27,6 +44,28 @@ export interface IStorage {
   updateProjectFile(id: number, content: string): Promise<ProjectFile | undefined>;
   deleteProjectFile(id: number): Promise<void>;
   upsertProjectFile(conversationId: number, path: string, content: string, language: string): Promise<ProjectFile>;
+  
+  // Project plans
+  getProjectPlan(conversationId: number): Promise<ProjectPlan | undefined>;
+  createProjectPlan(plan: InsertProjectPlan): Promise<ProjectPlan>;
+  
+  // Intel records
+  getIntelRecords(conversationId: number): Promise<IntelRecord[]>;
+  createIntelRecord(record: InsertIntelRecord): Promise<IntelRecord>;
+  upsertIntelRecord(conversationId: number, key: string, category: string, value: string, type: string): Promise<IntelRecord>;
+  
+  // Test results
+  getTestResults(conversationId: number): Promise<TestResult[]>;
+  createTestResult(result: InsertTestResult): Promise<TestResult>;
+  
+  // Security scans
+  getSecurityScans(conversationId: number): Promise<SecurityScan[]>;
+  createSecurityScan(scan: InsertSecurityScan): Promise<SecurityScan>;
+  getLatestSecurityScan(conversationId: number): Promise<SecurityScan | undefined>;
+  
+  // Generation logs
+  getGenerationLogs(conversationId: number): Promise<GenerationLog[]>;
+  createGenerationLog(log: InsertGenerationLog): Promise<GenerationLog>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -99,10 +138,7 @@ export class DatabaseStorage implements IStorage {
 
   async upsertProjectFile(conversationId: number, path: string, content: string, language: string): Promise<ProjectFile> {
     const existing = await db.select().from(projectFiles)
-      .where(eq(projectFiles.conversationId, conversationId))
-      .where(eq(projectFiles.path, path)) // Assuming path + conversationId is unique enough for now, or we filter in memory first but SQL is better.
-      // Drizzle ORM doesn't support .where(and(...)) with multiple .where calls? It does.
-      // But let's be safe.
+      .where(and(eq(projectFiles.conversationId, conversationId), eq(projectFiles.path, path)))
       .limit(1);
 
     if (existing.length > 0) {
@@ -117,6 +153,99 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  // Project plans
+  async getProjectPlan(conversationId: number): Promise<ProjectPlan | undefined> {
+    const [plan] = await db.select().from(projectPlans)
+      .where(eq(projectPlans.conversationId, conversationId))
+      .orderBy(desc(projectPlans.createdAt))
+      .limit(1);
+    return plan;
+  }
+
+  async createProjectPlan(plan: InsertProjectPlan): Promise<ProjectPlan> {
+    const [created] = await db.insert(projectPlans).values(plan).returning();
+    return created;
+  }
+
+  // Intel records
+  async getIntelRecords(conversationId: number): Promise<IntelRecord[]> {
+    return await db.select().from(intelRecords)
+      .where(eq(intelRecords.conversationId, conversationId))
+      .orderBy(desc(intelRecords.createdAt));
+  }
+
+  async createIntelRecord(record: InsertIntelRecord): Promise<IntelRecord> {
+    const [created] = await db.insert(intelRecords).values(record).returning();
+    return created;
+  }
+
+  async upsertIntelRecord(conversationId: number, key: string, category: string, value: string, type: string): Promise<IntelRecord> {
+    const existing = await db.select().from(intelRecords)
+      .where(and(
+        eq(intelRecords.conversationId, conversationId),
+        eq(intelRecords.key, key),
+        eq(intelRecords.category, category)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      const [updated] = await db.update(intelRecords)
+        .set({ value, usageCount: (existing[0].usageCount || 0) + 1 })
+        .where(eq(intelRecords.id, existing[0].id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(intelRecords)
+        .values({ conversationId, key, category, value, type })
+        .returning();
+      return created;
+    }
+  }
+
+  // Test results
+  async getTestResults(conversationId: number): Promise<TestResult[]> {
+    return await db.select().from(testResults)
+      .where(eq(testResults.conversationId, conversationId))
+      .orderBy(desc(testResults.createdAt));
+  }
+
+  async createTestResult(result: InsertTestResult): Promise<TestResult> {
+    const [created] = await db.insert(testResults).values(result).returning();
+    return created;
+  }
+
+  // Security scans
+  async getSecurityScans(conversationId: number): Promise<SecurityScan[]> {
+    return await db.select().from(securityScans)
+      .where(eq(securityScans.conversationId, conversationId))
+      .orderBy(desc(securityScans.createdAt));
+  }
+
+  async createSecurityScan(scan: InsertSecurityScan): Promise<SecurityScan> {
+    const [created] = await db.insert(securityScans).values(scan).returning();
+    return created;
+  }
+
+  async getLatestSecurityScan(conversationId: number): Promise<SecurityScan | undefined> {
+    const [scan] = await db.select().from(securityScans)
+      .where(eq(securityScans.conversationId, conversationId))
+      .orderBy(desc(securityScans.createdAt))
+      .limit(1);
+    return scan;
+  }
+
+  // Generation logs
+  async getGenerationLogs(conversationId: number): Promise<GenerationLog[]> {
+    return await db.select().from(generationLogs)
+      .where(eq(generationLogs.conversationId, conversationId))
+      .orderBy(desc(generationLogs.createdAt));
+  }
+
+  async createGenerationLog(log: InsertGenerationLog): Promise<GenerationLog> {
+    const [created] = await db.insert(generationLogs).values(log).returning();
+    return created;
   }
 }
 

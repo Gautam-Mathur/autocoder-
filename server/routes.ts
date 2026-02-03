@@ -5,6 +5,19 @@ import OpenAI from "openai";
 import { z } from "zod";
 import type { Conversation } from "@shared/schema";
 
+// Logger
+import { logger, requestLogger } from "./modules/logger";
+
+// Intelligence Modules
+import { analyzePrompt, formatClarificationQuestions } from "./modules/clarification-engine";
+import { generateProjectPlan, formatPlanAsMarkdown } from "./modules/planning-module";
+import { generateTestsForCode, runTests, formatTestResults, validateBuild } from "./modules/testing-engine";
+import { scanForVulnerabilities, formatSecurityReport, getSecurityRecommendations } from "./modules/security-module";
+import { extractAssumptions, formatTransparencyReport, summarizeChanges } from "./modules/transparency-module";
+import { extractIntelFromMessages, storeIntel, getIntel, generateIntelContext } from "./modules/intel-memory";
+import { analyzeDependencies, formatDependencyReport, generateEnvExample } from "./modules/dependency-intelligence";
+import { generateProjectExport, generateDownloadData } from "./modules/export-system";
+
 // Extract project context from conversation content
 function extractProjectContext(
   allContent: string,
@@ -128,6 +141,11 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Request logging middleware
+  app.use(requestLogger());
+  
+  logger.info("Server", "Routes registration started");
+  
   // Health check with AI status
   app.get("/api/health", (req, res) => {
     res.json({ 
@@ -135,6 +153,41 @@ export async function registerRoutes(
       aiMode: hasCloudAI ? "cloud" : "local",
       message: hasCloudAI ? "Cloud AI ready" : "Local template engine active"
     });
+  });
+  
+  // Logger API endpoints
+  app.get("/api/logs", (req, res) => {
+    try {
+      const { level, category, limit, search } = req.query;
+      const logs = logger.getLogs({
+        level: level as any,
+        category: category as string,
+        limit: limit ? parseInt(limit as string) : 200,
+        search: search as string,
+      });
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch logs" });
+    }
+  });
+  
+  app.get("/api/logs/stats", (req, res) => {
+    try {
+      const stats = logger.getStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch log stats" });
+    }
+  });
+  
+  app.delete("/api/logs", (req, res) => {
+    try {
+      logger.clear();
+      logger.info("Server", "Logs cleared by user");
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear logs" });
+    }
   });
 
   app.get("/api/conversations", async (req, res) => {
@@ -2617,6 +2670,522 @@ You're not just a code generator - you're a thinking partner who builds exactly 
     } catch (error) {
       console.error("Error bulk saving project files:", error);
       res.status(500).json({ error: "Failed to save project files" });
+    }
+  });
+
+  // ========== INTELLIGENCE MODULE ROUTES ==========
+
+  // Analyze prompt for clarification questions
+  app.post("/api/analyze-prompt", async (req, res) => {
+    try {
+      const { prompt, conversationId } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+      
+      let existingContext = null;
+      if (conversationId) {
+        const conversation = await storage.getConversation(conversationId);
+        existingContext = conversation;
+      }
+      
+      const analysis = analyzePrompt(prompt, existingContext);
+      const questions = formatClarificationQuestions(analysis.suggestedQuestions);
+      
+      res.json({
+        ...analysis,
+        formattedQuestions: questions,
+      });
+    } catch (error) {
+      console.error("Error analyzing prompt:", error);
+      res.status(500).json({ error: "Failed to analyze prompt" });
+    }
+  });
+
+  // Generate project plan
+  app.post("/api/conversations/:id/plan", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      
+      const { requirements } = req.body;
+      const projectName = conversation.projectName || "New Project";
+      const projectType = conversation.projectType || "webapp";
+      const complexity = (conversation.complexity || "moderate") as 'simple' | 'moderate' | 'complex';
+      
+      const plan = generateProjectPlan(projectName, projectType, requirements || "", complexity);
+      const markdown = formatPlanAsMarkdown(plan);
+      
+      // Save plan to database
+      await storage.createProjectPlan({
+        conversationId,
+        summary: plan.summary,
+        techStack: plan.techStack,
+        architecture: plan.architecture.overview,
+        folderStructure: markdown,
+        designDecisions: plan.designDecisions.map(d => ({ decision: d.decision, rationale: d.rationale })),
+        securityConsiderations: plan.securityConsiderations,
+      });
+      
+      // Update conversation
+      await storage.updateProjectContext(conversationId, { planGenerated: true });
+      
+      res.json({ plan, markdown });
+    } catch (error) {
+      console.error("Error generating plan:", error);
+      res.status(500).json({ error: "Failed to generate project plan" });
+    }
+  });
+
+  // Get project plan
+  app.get("/api/conversations/:id/plan", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const plan = await storage.getProjectPlan(conversationId);
+      res.json(plan || null);
+    } catch (error) {
+      console.error("Error fetching plan:", error);
+      res.status(500).json({ error: "Failed to fetch project plan" });
+    }
+  });
+
+  // Run tests on project files
+  app.post("/api/conversations/:id/test", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const files = await storage.getProjectFiles(conversationId);
+      if (files.length === 0) {
+        return res.json({ message: "No files to test", results: [] });
+      }
+      
+      const allResults = [];
+      let totalPassed = 0;
+      let totalFailed = 0;
+      
+      for (const file of files) {
+        const suite = generateTestsForCode(file.content, file.language, file.path);
+        const results = runTests(suite, file.content);
+        
+        totalPassed += results.passed;
+        totalFailed += results.failed;
+        
+        // Save test results
+        await storage.createTestResult({
+          conversationId,
+          targetFile: file.path,
+          passed: results.passed,
+          failed: results.failed,
+          skipped: results.skipped,
+          coverage: results.coverage,
+          details: results.details,
+        });
+        
+        allResults.push({
+          file: file.path,
+          ...results,
+          formatted: formatTestResults(results),
+        });
+      }
+      
+      // Update conversation test stats
+      await storage.updateProjectContext(conversationId, {
+        testsPassed: totalPassed,
+        testsFailed: totalFailed,
+      });
+      
+      // Validate build
+      const buildValidation = validateBuild(files.map(f => ({
+        path: f.path,
+        content: f.content,
+        language: f.language,
+      })));
+      
+      res.json({
+        totalPassed,
+        totalFailed,
+        buildValid: buildValidation.valid,
+        buildErrors: buildValidation.errors,
+        buildWarnings: buildValidation.warnings,
+        fileResults: allResults,
+      });
+    } catch (error) {
+      console.error("Error running tests:", error);
+      res.status(500).json({ error: "Failed to run tests" });
+    }
+  });
+
+  // Security scan
+  app.post("/api/conversations/:id/security-scan", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const files = await storage.getProjectFiles(conversationId);
+      if (files.length === 0) {
+        return res.json({ message: "No files to scan", score: 100, grade: "A" });
+      }
+      
+      const scanResult = scanForVulnerabilities(files.map(f => ({
+        path: f.path,
+        content: f.content,
+        language: f.language,
+      })));
+      
+      const report = formatSecurityReport(scanResult);
+      const conversation = await storage.getConversation(conversationId);
+      const recommendations = getSecurityRecommendations(conversation?.projectType || "webapp");
+      
+      // Save scan results
+      await storage.createSecurityScan({
+        conversationId,
+        score: scanResult.score,
+        grade: scanResult.grade,
+        issues: scanResult.issues.map(i => ({
+          severity: i.severity,
+          category: i.category,
+          title: i.title,
+          recommendation: i.recommendation,
+        })),
+        passedChecks: scanResult.passedChecks,
+      });
+      
+      // Update conversation security score
+      await storage.updateProjectContext(conversationId, {
+        securityScore: scanResult.score,
+      });
+      
+      res.json({
+        ...scanResult,
+        report,
+        recommendations,
+      });
+    } catch (error) {
+      console.error("Error running security scan:", error);
+      res.status(500).json({ error: "Failed to run security scan" });
+    }
+  });
+
+  // Get transparency report
+  app.get("/api/conversations/:id/transparency", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const files = await storage.getProjectFiles(conversationId);
+      const conversation = await storage.getConversation(conversationId);
+      const logs = await storage.getGenerationLogs(conversationId);
+      
+      const assumptions = extractAssumptions(
+        "", 
+        conversation?.projectType || "webapp",
+        files.map(f => ({ path: f.path, content: f.content }))
+      );
+      
+      const report = formatTransparencyReport(
+        files.map(f => ({ path: f.path, content: f.content, language: f.language })),
+        assumptions,
+        logs.length > 1
+      );
+      
+      res.json({
+        report,
+        assumptions,
+        logs,
+        fileCount: files.length,
+      });
+    } catch (error) {
+      console.error("Error generating transparency report:", error);
+      res.status(500).json({ error: "Failed to generate transparency report" });
+    }
+  });
+
+  // Get/update intel records
+  app.get("/api/conversations/:id/intel", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const records = await storage.getIntelRecords(conversationId);
+      const inMemoryIntel = getIntel(conversationId);
+      
+      res.json({
+        records,
+        preferences: inMemoryIntel?.preferences || {},
+        learnings: inMemoryIntel?.learnings || [],
+      });
+    } catch (error) {
+      console.error("Error fetching intel:", error);
+      res.status(500).json({ error: "Failed to fetch intel" });
+    }
+  });
+
+  // Extract and store intel from messages
+  app.post("/api/conversations/:id/intel/extract", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const messages = await storage.getMessagesByConversation(conversationId);
+      const intel = extractIntelFromMessages(conversationId, messages.map(m => ({
+        role: m.role,
+        content: m.content,
+      })));
+      
+      // Store in memory
+      storeIntel(conversationId, intel);
+      
+      // Store in database
+      for (const record of intel) {
+        await storage.upsertIntelRecord(
+          conversationId,
+          record.key,
+          record.category,
+          record.value,
+          record.type
+        );
+      }
+      
+      const context = generateIntelContext(conversationId);
+      
+      res.json({
+        extracted: intel.length,
+        records: intel,
+        contextForAI: context,
+      });
+    } catch (error) {
+      console.error("Error extracting intel:", error);
+      res.status(500).json({ error: "Failed to extract intel" });
+    }
+  });
+
+  // Analyze dependencies
+  app.get("/api/conversations/:id/dependencies", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const files = await storage.getProjectFiles(conversationId);
+      if (files.length === 0) {
+        return res.json({ message: "No files to analyze", dependencies: [] });
+      }
+      
+      const analysis = analyzeDependencies(files.map(f => ({
+        path: f.path,
+        content: f.content,
+        language: f.language,
+      })));
+      
+      const report = formatDependencyReport(analysis);
+      const envExample = generateEnvExample(analysis.envVariables);
+      
+      res.json({
+        ...analysis,
+        report,
+        envExample,
+      });
+    } catch (error) {
+      console.error("Error analyzing dependencies:", error);
+      res.status(500).json({ error: "Failed to analyze dependencies" });
+    }
+  });
+
+  // Export project
+  app.get("/api/conversations/:id/export", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      
+      const files = await storage.getProjectFiles(conversationId);
+      if (files.length === 0) {
+        return res.status(400).json({ error: "No files to export" });
+      }
+      
+      const projectName = conversation.projectName || conversation.title || "project";
+      const projectType = conversation.projectType || "webapp";
+      
+      const exportData = generateProjectExport(
+        projectName,
+        projectType,
+        files.map(f => ({
+          path: f.path,
+          content: f.content,
+          language: f.language,
+        }))
+      );
+      
+      const download = generateDownloadData(exportData);
+      
+      res.json({
+        projectName: exportData.name,
+        fileCount: exportData.files.length,
+        readme: exportData.readme,
+        download,
+      });
+    } catch (error) {
+      console.error("Error exporting project:", error);
+      res.status(500).json({ error: "Failed to export project" });
+    }
+  });
+
+  // Download project as text bundle
+  app.get("/api/conversations/:id/download", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      
+      const files = await storage.getProjectFiles(conversationId);
+      if (files.length === 0) {
+        return res.status(400).json({ error: "No files to download" });
+      }
+      
+      const projectName = conversation.projectName || conversation.title || "project";
+      const projectType = conversation.projectType || "webapp";
+      
+      const exportData = generateProjectExport(
+        projectName,
+        projectType,
+        files.map(f => ({
+          path: f.path,
+          content: f.content,
+          language: f.language,
+        }))
+      );
+      
+      const download = generateDownloadData(exportData);
+      
+      res.setHeader("Content-Type", download.mimeType);
+      res.setHeader("Content-Disposition", `attachment; filename="${download.filename}"`);
+      res.send(download.content);
+    } catch (error) {
+      console.error("Error downloading project:", error);
+      res.status(500).json({ error: "Failed to download project" });
+    }
+  });
+
+  // Generation logs
+  app.post("/api/conversations/:id/logs", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const { action, targetFile, description, linesChanged, reasoning, assumptions } = req.body;
+      
+      const log = await storage.createGenerationLog({
+        conversationId,
+        action: action || "create",
+        targetFile: targetFile || "unknown",
+        description: description || "Generated code",
+        linesChanged: linesChanged || 0,
+        reasoning,
+        assumptions,
+      });
+      
+      res.status(201).json(log);
+    } catch (error) {
+      console.error("Error creating generation log:", error);
+      res.status(500).json({ error: "Failed to create generation log" });
+    }
+  });
+
+  app.get("/api/conversations/:id/logs", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const logs = await storage.getGenerationLogs(conversationId);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching generation logs:", error);
+      res.status(500).json({ error: "Failed to fetch generation logs" });
+    }
+  });
+
+  // Project stats summary
+  app.get("/api/conversations/:id/stats", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      
+      const files = await storage.getProjectFiles(conversationId);
+      const messages = await storage.getMessagesByConversation(conversationId);
+      const securityScan = await storage.getLatestSecurityScan(conversationId);
+      const testResults = await storage.getTestResults(conversationId);
+      const plan = await storage.getProjectPlan(conversationId);
+      
+      // Calculate totals
+      const totalLines = files.reduce((sum, f) => sum + f.content.split('\n').length, 0);
+      const latestTests = testResults[0];
+      
+      res.json({
+        projectName: conversation.projectName || conversation.title,
+        projectType: conversation.projectType,
+        complexity: conversation.complexity,
+        designStyle: conversation.designStyle,
+        techStack: conversation.techStack || [],
+        featuresBuilt: conversation.featuresBuilt || [],
+        fileCount: files.length,
+        totalLines,
+        messageCount: messages.length,
+        securityScore: securityScan?.score || conversation.securityScore,
+        securityGrade: securityScan?.grade,
+        testsPassed: latestTests?.passed || conversation.testsPassed || 0,
+        testsFailed: latestTests?.failed || conversation.testsFailed || 0,
+        hasPlan: !!plan,
+        createdAt: conversation.createdAt,
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+      res.status(500).json({ error: "Failed to fetch project stats" });
     }
   });
 

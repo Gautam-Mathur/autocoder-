@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles } from "lucide-react";
+import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles, Brain } from "lucide-react";
+import { IntelligencePanel } from "@/components/IntelligencePanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -265,7 +266,7 @@ function AutoTestSection({
 }
 
 export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps) {
-  const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug">("preview");
+  const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug" | "intel">("preview");
   const [activeFile, setActiveFile] = useState<string>("index.html");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop");
@@ -459,6 +460,34 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
     }
   }, [onRequestFix, getAllCode]);
 
+  // Transform ES6 module code to browser-compatible code
+  const transformJsForBrowser = useCallback((code: string, allJsCode: string): string => {
+    let transformed = code;
+    
+    // Remove all types of import statements (single-line and multiline)
+    // Handle: import X from 'y', import { X } from 'y', import * as X from 'y', import 'y'
+    transformed = transformed.replace(/^\s*import\s+type\s+.*?;?\s*$/gm, ''); // Remove type-only imports
+    transformed = transformed.replace(/^\s*import\s*\{[\s\S]*?\}\s*from\s*['"][^'"]+['"];?\s*/gm, ''); // Named imports (multiline)
+    transformed = transformed.replace(/^\s*import\s+\*\s+as\s+\w+\s+from\s+['"][^'"]+['"];?\s*$/gm, ''); // Namespace imports
+    transformed = transformed.replace(/^\s*import\s+\w+\s*,?\s*\{[\s\S]*?\}\s*from\s+['"][^'"]+['"];?\s*/gm, ''); // Default + named
+    transformed = transformed.replace(/^\s*import\s+\w+\s+from\s+['"][^'"]+['"];?\s*$/gm, ''); // Default import
+    transformed = transformed.replace(/^\s*import\s+['"][^'"]+['"];?\s*$/gm, ''); // Side-effect import
+    
+    // Transform export default to window assignment for global access
+    // Handle: export default function X, export default class X, export default X
+    transformed = transformed.replace(/^\s*export\s+default\s+function\s+(\w+)/gm, 'function $1'); // Keep function, add to window later
+    transformed = transformed.replace(/^\s*export\s+default\s+class\s+(\w+)/gm, 'class $1');
+    transformed = transformed.replace(/^\s*export\s+default\s+(\w+)\s*;?\s*$/gm, 'window.$1 = $1;');
+    transformed = transformed.replace(/^\s*export\s+default\s+/gm, 'window.__default = ');
+    
+    // Transform named exports to keep declarations
+    transformed = transformed.replace(/^\s*export\s+(const|let|var|function|class)\s+/gm, '$1 ');
+    transformed = transformed.replace(/^\s*export\s+\{[\s\S]*?\};?\s*$/gm, ''); // Remove export lists
+    transformed = transformed.replace(/^\s*export\s+\*\s+from\s+['"][^'"]+['"];?\s*$/gm, ''); // Remove re-exports
+    
+    return transformed;
+  }, []);
+  
   const combinedPreview = useMemo(() => {
     if (files.length === 0) return "";
 
@@ -498,10 +527,56 @@ ${html}
     }
 
     if (jsFiles.length > 0) {
-      const combinedJs = jsFiles.map((f) => f.content).join("\n\n");
-      const scriptTag = `<script>\n${combinedJs}\n</script>`;
-      if (html.includes("</body>")) {
-        html = html.replace("</body>", `${scriptTag}\n</body>`);
+      const allJsCode = jsFiles.map((f) => f.content).join("\n\n");
+      const combinedJs = jsFiles.map((f) => transformJsForBrowser(f.content, allJsCode)).join("\n\n");
+      
+      // Check if this is React code that needs special handling
+      const isReactCode = allJsCode.includes('import React') || allJsCode.includes('from "react"') || allJsCode.includes("from 'react'");
+      
+      if (isReactCode) {
+        // For React code, add React and ReactDOM from CDN and use Babel for JSX
+        const reactScript = `
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+// React hooks available globally
+const { useState, useEffect, useRef, useCallback, useMemo, useContext, useReducer } = React;
+
+${combinedJs}
+
+// Auto-render React app
+(function() {
+  try {
+    // Ensure root element exists
+    let rootEl = document.getElementById('root');
+    if (!rootEl) {
+      rootEl = document.createElement('div');
+      rootEl.id = 'root';
+      document.body.appendChild(rootEl);
+    }
+    
+    // Find the App component (check window, global, or default export)
+    const AppComponent = window.App || window.__default || (typeof App !== 'undefined' ? App : null);
+    
+    if (AppComponent) {
+      ReactDOM.createRoot(rootEl).render(React.createElement(AppComponent));
+    } else {
+      console.log('No App component found to render');
+    }
+  } catch (e) {
+    console.error('React render error:', e);
+  }
+})();
+</script>`;
+        if (html.includes("</body>")) {
+          html = html.replace("</body>", `${reactScript}\n</body>`);
+        }
+      } else {
+        const scriptTag = `<script>\n${combinedJs}\n</script>`;
+        if (html.includes("</body>")) {
+          html = html.replace("</body>", `${scriptTag}\n</body>`);
+        }
       }
     }
 
@@ -567,7 +642,7 @@ ${html}
     }
 
     return html;
-  }, [files, refreshKey]);
+  }, [files, refreshKey, transformJsForBrowser]);
 
   const openInNewTab = () => {
     if (!combinedPreview) return;
@@ -660,6 +735,16 @@ ${html}
                 <Code className="w-3 h-3" />
                 Code
               </button>
+              <button
+                onClick={() => setActiveTab("intel")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "intel" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="tab-intel-fullscreen"
+              >
+                <Brain className="w-3 h-3" />
+                Intel
+              </button>
             </div>
             <Badge variant="secondary" className="text-xs">
               {files.length} files
@@ -708,6 +793,10 @@ ${html}
                   title="Live Preview"
                 />
               </div>
+            </div>
+          ) : activeTab === "intel" ? (
+            <div className="flex-1 p-4 overflow-auto">
+              {conversationId && <IntelligencePanel conversationId={conversationId} />}
             </div>
           ) : (
             <div className="flex-1 flex overflow-hidden">
@@ -778,6 +867,16 @@ ${html}
             {codeErrors.length > 0 && (
               <span className="ml-1 bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full">{codeErrors.length}</span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab("intel")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              activeTab === "intel" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+            data-testid="tab-intel"
+          >
+            <Brain className="w-3 h-3" />
+            Intel
           </button>
         </div>
         <div className="flex items-center gap-1">
@@ -1006,6 +1105,10 @@ ${html}
                 </div>
               </div>
             </ScrollArea>
+          </div>
+        ) : activeTab === "intel" ? (
+          <div className="flex-1 p-4 overflow-auto">
+            {conversationId && <IntelligencePanel conversationId={conversationId} />}
           </div>
         ) : (
           <div className="flex-1 flex overflow-hidden">

@@ -49,6 +49,53 @@ The `server/replit_integrations/` folder contains modular AI capabilities:
 - **image/**: Image generation using gpt-image-1
 - **batch/**: Rate-limited batch processing utilities
 
+### Intelligence Modules
+The `server/modules/` folder contains 8 advanced AI intelligence modules:
+- **clarification-engine.ts**: Analyzes user prompts for ambiguity and asks smart clarifying questions before code generation
+- **planning-module.ts**: Generates architecture documentation, folder structure, and tech stack justification
+- **testing-engine.ts**: Auto-generates unit tests and integration tests, validates build success
+- **security-module.ts**: Scans for vulnerabilities, validates inputs, checks auth guards, provides security warnings
+- **transparency-module.ts**: Logs what was generated, why decisions were made, and assumptions
+- **intel-memory.ts**: Stores user preferences and architectural choices, learns from past generations
+- **dependency-intelligence.ts**: Auto-detects dependencies, generates .env.example, warns about insecure configs
+- **export-system.ts**: Downloads generated projects as zip files with all files, configs, and documentation
+
+### Auto-Fix System
+The preview panel includes an intelligent auto-fix system that:
+- Transforms ES6 imports/exports to browser-compatible code
+- Strips import statements (type, named, namespace, default, side-effect)
+- Converts `export default` to `window` assignments for global access
+- Detects React code and auto-injects React 18, ReactDOM, and Babel from CDN
+- Provides React hooks globally (useState, useEffect, etc.)
+- Auto-creates `#root` element and renders App component with fallback checks
+- Catches and reports runtime errors with auto-fix suggestions
+
+### Intelligence API Endpoints
+- **POST /api/analyze-prompt**: Clarification engine analysis
+- **POST /api/plan**: Architecture planning
+- **POST /api/test**: Run automated tests
+- **POST /api/security-scan**: Security vulnerability scanning
+- **GET /api/transparency/:conversationId**: Get transparency reports
+- **GET /api/intel/:conversationId**: Get intelligence records
+- **POST /api/dependencies**: Dependency analysis
+- **POST /api/export**: Generate project export zip
+
+### Intelligence Panel UI
+The preview panel includes an "Intel" tab that displays the IntelligencePanel component with 6 sub-tabs:
+- **Overview/Stats**: Generation statistics and metrics
+- **Security**: Security scan results and vulnerability reports
+- **Tests**: Test execution results
+- **Dependencies**: Dependency analysis and recommendations
+- **Transparency**: Generation logs, assumptions, and change history
+- **Logs**: Live application logger with filtering and statistics
+
+### Logger System
+The application includes a fully-featured logging system:
+- **Backend Logger** (`server/modules/logger.ts`): Supports debug/info/success/warn/error levels with categories (API, AI, DB, Security, Chat, Perf)
+- **Request Logging**: Automatic HTTP request/response logging with timing
+- **LogViewer UI** (`client/src/components/LogViewer.tsx`): Real-time log viewer with live refresh, search, filtering by level/category, statistics, and export to JSON
+- **API Endpoints**: GET /api/logs (with filters), GET /api/logs/stats, DELETE /api/logs
+
 ## External Dependencies
 
 ### AI Services
