@@ -1,4 +1,6 @@
-import type { Conversation, Message, InsertConversation, InsertMessage, ProjectFile, InsertProjectFile } from "@shared/schema";
+import { type Conversation, type Message, type InsertConversation, type InsertMessage, type ProjectFile, type InsertProjectFile, conversations, messages, projectFiles } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface ProjectContext {
   projectName?: string | null;
@@ -27,155 +29,95 @@ export interface IStorage {
   upsertProjectFile(conversationId: number, path: string, content: string, language: string): Promise<ProjectFile>;
 }
 
-export class MemStorage implements IStorage {
-  private conversations: Map<number, Conversation>;
-  private messages: Map<number, Message>;
-  private projectFiles: Map<number, ProjectFile>;
-  private conversationIdCounter: number;
-  private messageIdCounter: number;
-  private fileIdCounter: number;
-
-  constructor() {
-    this.conversations = new Map();
-    this.messages = new Map();
-    this.projectFiles = new Map();
-    this.conversationIdCounter = 1;
-    this.messageIdCounter = 1;
-    this.fileIdCounter = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getConversation(id: number): Promise<Conversation | undefined> {
-    return this.conversations.get(id);
+    const [conversation] = await db.select().from(conversations).where(eq(conversations.id, id));
+    return conversation;
   }
 
   async getAllConversations(): Promise<Conversation[]> {
-    return Array.from(this.conversations.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return await db.select().from(conversations).orderBy(desc(conversations.createdAt));
   }
 
   async createConversation(title: string): Promise<Conversation> {
-    const id = this.conversationIdCounter++;
-    const conversation: Conversation = {
-      id,
-      title,
-      createdAt: new Date(),
-      projectName: null,
-      projectDescription: null,
-      techStack: null,
-      featuresBuilt: null,
-      projectSummary: null,
-      lastCodeGenerated: null,
-    };
-    this.conversations.set(id, conversation);
+    const [conversation] = await db.insert(conversations).values({ title }).returning();
     return conversation;
   }
 
   async updateProjectContext(id: number, context: ProjectContext): Promise<Conversation | undefined> {
-    const conversation = this.conversations.get(id);
-    if (!conversation) return undefined;
-    
-    const updated: Conversation = {
-      ...conversation,
-      projectName: context.projectName ?? conversation.projectName,
-      projectDescription: context.projectDescription ?? conversation.projectDescription,
-      techStack: context.techStack ?? conversation.techStack,
-      featuresBuilt: context.featuresBuilt ?? conversation.featuresBuilt,
-      projectSummary: context.projectSummary ?? conversation.projectSummary,
-      lastCodeGenerated: context.lastCodeGenerated ?? conversation.lastCodeGenerated,
-    };
-    
-    this.conversations.set(id, updated);
+    const [updated] = await db.update(conversations)
+      .set(context)
+      .where(eq(conversations.id, id))
+      .returning();
     return updated;
   }
 
   async deleteConversation(id: number): Promise<void> {
-    this.conversations.delete(id);
-    Array.from(this.messages.entries()).forEach(([msgId, msg]) => {
-      if (msg.conversationId === id) {
-        this.messages.delete(msgId);
-      }
-    });
-    Array.from(this.projectFiles.entries()).forEach(([fileId, file]) => {
-      if (file.conversationId === id) {
-        this.projectFiles.delete(fileId);
-      }
-    });
+    await db.delete(conversations).where(eq(conversations.id, id));
   }
 
   async getMessagesByConversation(conversationId: number): Promise<Message[]> {
-    return Array.from(this.messages.values())
-      .filter((m) => m.conversationId === conversationId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return await db.select().from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.createdAt);
   }
 
   async createMessage(conversationId: number, role: string, content: string): Promise<Message> {
-    const id = this.messageIdCounter++;
-    const message: Message = {
-      id,
-      conversationId,
-      role,
-      content,
-      createdAt: new Date(),
-    };
-    this.messages.set(id, message);
+    const [message] = await db.insert(messages)
+      .values({ conversationId, role, content })
+      .returning();
     return message;
   }
 
   async getProjectFiles(conversationId: number): Promise<ProjectFile[]> {
-    return Array.from(this.projectFiles.values())
-      .filter((f) => f.conversationId === conversationId)
-      .sort((a, b) => a.path.localeCompare(b.path));
+    return await db.select().from(projectFiles)
+      .where(eq(projectFiles.conversationId, conversationId))
+      .orderBy(projectFiles.path);
   }
 
   async getProjectFile(id: number): Promise<ProjectFile | undefined> {
-    return this.projectFiles.get(id);
+    const [file] = await db.select().from(projectFiles).where(eq(projectFiles.id, id));
+    return file;
   }
 
   async createProjectFile(file: InsertProjectFile): Promise<ProjectFile> {
-    const id = this.fileIdCounter++;
-    const now = new Date();
-    const projectFile: ProjectFile = {
-      id,
-      conversationId: file.conversationId,
-      path: file.path,
-      content: file.content,
-      language: file.language,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.projectFiles.set(id, projectFile);
+    const [projectFile] = await db.insert(projectFiles).values(file).returning();
     return projectFile;
   }
 
   async updateProjectFile(id: number, content: string): Promise<ProjectFile | undefined> {
-    const file = this.projectFiles.get(id);
-    if (!file) return undefined;
-    const updated: ProjectFile = {
-      ...file,
-      content,
-      updatedAt: new Date(),
-    };
-    this.projectFiles.set(id, updated);
+    const [updated] = await db.update(projectFiles)
+      .set({ content, updatedAt: new Date() })
+      .where(eq(projectFiles.id, id))
+      .returning();
     return updated;
   }
 
   async deleteProjectFile(id: number): Promise<void> {
-    this.projectFiles.delete(id);
+    await db.delete(projectFiles).where(eq(projectFiles.id, id));
   }
 
   async upsertProjectFile(conversationId: number, path: string, content: string, language: string): Promise<ProjectFile> {
-    // Find existing file with same path in this conversation
-    const existing = Array.from(this.projectFiles.values()).find(
-      (f) => f.conversationId === conversationId && f.path === path
-    );
-    
-    if (existing) {
-      return this.updateProjectFile(existing.id, content) as Promise<ProjectFile>;
+    const existing = await db.select().from(projectFiles)
+      .where(eq(projectFiles.conversationId, conversationId))
+      .where(eq(projectFiles.path, path)) // Assuming path + conversationId is unique enough for now, or we filter in memory first but SQL is better.
+      // Drizzle ORM doesn't support .where(and(...)) with multiple .where calls? It does.
+      // But let's be safe.
+      .limit(1);
+
+    if (existing.length > 0) {
+      const [updated] = await db.update(projectFiles)
+        .set({ content, updatedAt: new Date() })
+        .where(eq(projectFiles.id, existing[0].id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(projectFiles)
+        .values({ conversationId, path, content, language })
+        .returning();
+      return created;
     }
-    
-    return this.createProjectFile({ conversationId, path, content, language });
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

@@ -1,268 +1,196 @@
-import { Octokit } from "@octokit/rest";
-import * as fs from "fs";
-import * as path from "path";
+import { Octokit } from '@octokit/rest';
+import * as fs from 'fs';
+import * as path from 'path';
 
-// GitHub Integration via Replit Connectors
 let connectionSettings: any;
 
-async function getAccessToken(): Promise<string> {
-  if (
-    connectionSettings &&
-    connectionSettings.settings.expires_at &&
-    new Date(connectionSettings.settings.expires_at).getTime() > Date.now()
-  ) {
+async function getAccessToken() {
+  if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
     return connectionSettings.settings.access_token;
   }
-
+  
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY
-    ? "repl " + process.env.REPL_IDENTITY
-    : process.env.WEB_REPL_RENEWAL
-      ? "depl " + process.env.WEB_REPL_RENEWAL
-      : null;
+  const xReplitToken = process.env.REPL_IDENTITY 
+    ? 'repl ' + process.env.REPL_IDENTITY 
+    : process.env.WEB_REPL_RENEWAL 
+    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
+    : null;
 
   if (!xReplitToken) {
-    throw new Error("X_REPLIT_TOKEN not found for repl/depl");
+    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
   }
 
   connectionSettings = await fetch(
-    "https://" +
-      hostname +
-      "/api/v2/connection?include_secrets=true&connector_names=github",
+    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=github',
     {
       headers: {
-        Accept: "application/json",
-        X_REPLIT_TOKEN: xReplitToken,
-      },
+        'Accept': 'application/json',
+        'X_REPLIT_TOKEN': xReplitToken
+      }
     }
-  )
-    .then((res) => res.json())
-    .then((data) => data.items?.[0]);
+  ).then(res => res.json()).then(data => data.items?.[0]);
 
-  const accessToken =
-    connectionSettings?.settings?.access_token ||
-    connectionSettings.settings?.oauth?.credentials?.access_token;
+  const accessToken = connectionSettings?.settings?.access_token || connectionSettings.settings?.oauth?.credentials?.access_token;
 
   if (!connectionSettings || !accessToken) {
-    throw new Error("GitHub not connected");
+    throw new Error('GitHub not connected');
   }
   return accessToken;
 }
 
-async function getUncachableGitHubClient(): Promise<Octokit> {
+async function getUncachableGitHubClient() {
   const accessToken = await getAccessToken();
   return new Octokit({ auth: accessToken });
 }
 
-interface PushOptions {
-  owner: string;
-  repo: string;
-  branch?: string;
-  commitMessage?: string;
-  files?: string[];
-  excludePatterns?: string[];
-}
+const OWNER = 'Gautam-Mathur';
+const REPO = 'autocoder-';
+const BRANCH = 'main';
 
-const DEFAULT_EXCLUDE = [
-  "node_modules",
-  ".git",
-  ".cache",
-  "dist",
-  ".replit",
-  "replit.nix",
-  ".upm",
-  "package-lock.json",
-  ".config",
-  "attached_assets",
+const IGNORE_PATTERNS = [
+  'node_modules',
+  '.git',
+  'dist',
+  '.replit',
+  '.cache',
+  '.upm',
+  'replit.nix',
+  '.config',
+  'attached_assets',
+  'test-output.css',
 ];
 
-function shouldExclude(filePath: string, excludePatterns: string[]): boolean {
-  return excludePatterns.some(
-    (pattern) => filePath.includes(pattern) || filePath.startsWith(pattern)
-  );
+function shouldIgnore(filePath: string): boolean {
+  return IGNORE_PATTERNS.some(pattern => filePath.includes(pattern));
 }
 
-function getAllFiles(
-  dirPath: string,
-  arrayOfFiles: string[] = [],
-  basePath: string = dirPath,
-  excludePatterns: string[] = DEFAULT_EXCLUDE
-): string[] {
+function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
   const files = fs.readdirSync(dirPath);
 
-  files.forEach((file) => {
+  files.forEach(file => {
     const fullPath = path.join(dirPath, file);
-    const relativePath = path.relative(basePath, fullPath);
-
-    if (shouldExclude(relativePath, excludePatterns)) {
-      return;
-    }
-
+    if (shouldIgnore(fullPath)) return;
+    
     if (fs.statSync(fullPath).isDirectory()) {
-      getAllFiles(fullPath, arrayOfFiles, basePath, excludePatterns);
+      arrayOfFiles = getAllFiles(fullPath, arrayOfFiles);
     } else {
-      arrayOfFiles.push(relativePath);
+      arrayOfFiles.push(fullPath);
     }
   });
 
   return arrayOfFiles;
 }
 
-function readFileContent(filePath: string): string {
-  return fs.readFileSync(filePath, { encoding: "base64" });
-}
-
-async function pushToGitHub(options: PushOptions): Promise<void> {
+async function pushToGitHub() {
+  console.log('Getting GitHub client...');
   const octokit = await getUncachableGitHubClient();
+  
+  console.log('Getting current user...');
+  const { data: user } = await octokit.users.getAuthenticated();
+  console.log(`Authenticated as: ${user.login}`);
 
-  const {
-    owner,
-    repo,
-    branch = "main",
-    commitMessage = "Update from CodeAI",
-  } = options;
-
-  console.log(`Pushing to ${owner}/${repo} on branch ${branch}...`);
+  console.log(`Getting latest commit from ${OWNER}/${REPO}...`);
+  let latestCommitSha: string;
+  let baseTreeSha: string;
 
   try {
-    let baseSha: string;
-    try {
-      const { data: refData } = await octokit.git.getRef({
-        owner,
-        repo,
-        ref: `heads/${branch}`,
-      });
-      baseSha = refData.object.sha;
-      console.log(`Found existing branch: ${branch}`);
-    } catch (error: any) {
-      if (error.status === 404) {
-        const { data: defaultBranch } = await octokit.repos.get({
-          owner,
-          repo,
-        });
-        const { data: refData } = await octokit.git.getRef({
-          owner,
-          repo,
-          ref: `heads/${defaultBranch.default_branch}`,
-        });
-        baseSha = refData.object.sha;
+    const { data: ref } = await octokit.git.getRef({
+      owner: OWNER,
+      repo: REPO,
+      ref: `heads/${BRANCH}`,
+    });
+    latestCommitSha = ref.object.sha;
 
-        await octokit.git.createRef({
-          owner,
-          repo,
-          ref: `refs/heads/${branch}`,
-          sha: baseSha,
-        });
-        console.log(`Created new branch: ${branch}`);
-      } else {
-        throw error;
-      }
+    const { data: commit } = await octokit.git.getCommit({
+      owner: OWNER,
+      repo: REPO,
+      commit_sha: latestCommitSha,
+    });
+    baseTreeSha = commit.tree.sha;
+  } catch (error: any) {
+    if (error.status === 404) {
+      console.log('Branch not found, will create new branch');
+      latestCommitSha = '';
+      baseTreeSha = '';
+    } else {
+      throw error;
     }
+  }
 
-    const { data: baseCommit } = await octokit.git.getCommit({
-      owner,
-      repo,
-      commit_sha: baseSha,
-    });
+  console.log('Collecting files...');
+  const files = getAllFiles('.');
+  console.log(`Found ${files.length} files to upload`);
 
-    const projectRoot = process.cwd();
-    const filesToUpload =
-      options.files ||
-      getAllFiles(
-        projectRoot,
-        [],
-        projectRoot,
-        options.excludePatterns || DEFAULT_EXCLUDE
-      );
+  console.log('Creating blobs...');
+  const treeItems: any[] = [];
 
-    console.log(`Preparing ${filesToUpload.length} files...`);
+  for (const filePath of files) {
+    const relativePath = filePath.startsWith('./') ? filePath.slice(2) : filePath;
+    const content = fs.readFileSync(filePath);
+    const isText = !content.includes(0);
+    
+    try {
+      const { data: blob } = await octokit.git.createBlob({
+        owner: OWNER,
+        repo: REPO,
+        content: isText ? content.toString('utf-8') : content.toString('base64'),
+        encoding: isText ? 'utf-8' : 'base64',
+      });
 
-    const treeItems = await Promise.all(
-      filesToUpload.map(async (filePath) => {
-        const fullPath = path.join(projectRoot, filePath);
-        const content = readFileContent(fullPath);
+      treeItems.push({
+        path: relativePath,
+        mode: '100644',
+        type: 'blob',
+        sha: blob.sha,
+      });
+      
+      console.log(`  Uploaded: ${relativePath}`);
+    } catch (error: any) {
+      console.error(`  Failed: ${relativePath} - ${error.message}`);
+    }
+  }
 
-        const { data: blob } = await octokit.git.createBlob({
-          owner,
-          repo,
-          content,
-          encoding: "base64",
-        });
+  console.log('Creating tree...');
+  const { data: tree } = await octokit.git.createTree({
+    owner: OWNER,
+    repo: REPO,
+    tree: treeItems,
+    base_tree: baseTreeSha || undefined,
+  });
 
-        return {
-          path: filePath,
-          mode: "100644" as const,
-          type: "blob" as const,
-          sha: blob.sha,
-        };
-      })
-    );
+  console.log('Creating commit...');
+  const commitMessage = 'Add Windows-compatible Tailwind CSS setup with zero-config deployment';
+  const { data: newCommit } = await octokit.git.createCommit({
+    owner: OWNER,
+    repo: REPO,
+    message: commitMessage,
+    tree: tree.sha,
+    parents: latestCommitSha ? [latestCommitSha] : [],
+  });
 
-    const { data: newTree } = await octokit.git.createTree({
-      owner,
-      repo,
-      base_tree: baseCommit.tree.sha,
-      tree: treeItems,
-    });
-
-    const { data: newCommit } = await octokit.git.createCommit({
-      owner,
-      repo,
-      message: commitMessage,
-      tree: newTree.sha,
-      parents: [baseSha],
-    });
-
+  console.log('Updating branch reference...');
+  try {
     await octokit.git.updateRef({
-      owner,
-      repo,
-      ref: `heads/${branch}`,
+      owner: OWNER,
+      repo: REPO,
+      ref: `heads/${BRANCH}`,
       sha: newCommit.sha,
     });
-
-    console.log(`Successfully pushed ${filesToUpload.length} files!`);
-    console.log(`Commit SHA: ${newCommit.sha}`);
-    console.log(`View at: https://github.com/${owner}/${repo}/tree/${branch}`);
   } catch (error: any) {
-    console.error("Error pushing to GitHub:", error.message);
-    throw error;
-  }
-}
-
-async function main() {
-  const args = process.argv.slice(2);
-
-  if (args.length < 2) {
-    console.log(
-      "Usage: npx tsx scripts/push-to-github.ts <owner> <repo> [branch] [message]"
-    );
-    console.log("");
-    console.log("Examples:");
-    console.log("  npx tsx scripts/push-to-github.ts myuser myrepo");
-    console.log("  npx tsx scripts/push-to-github.ts myuser myrepo feature-branch");
-    console.log(
-      '  npx tsx scripts/push-to-github.ts myuser myrepo main "Add new feature"'
-    );
-    console.log("");
-    console.log("The script uses the connected GitHub account for authentication.");
-    process.exit(1);
+    if (error.status === 422) {
+      await octokit.git.createRef({
+        owner: OWNER,
+        repo: REPO,
+        ref: `refs/heads/${BRANCH}`,
+        sha: newCommit.sha,
+      });
+    } else {
+      throw error;
+    }
   }
 
-  const [owner, repo, branch, ...messageParts] = args;
-  const commitMessage =
-    messageParts.length > 0 ? messageParts.join(" ") : undefined;
-
-  await pushToGitHub({
-    owner,
-    repo,
-    branch: branch || "main",
-    commitMessage,
-  });
+  console.log(`\nSuccessfully pushed to https://github.com/${OWNER}/${REPO}`);
+  console.log(`Commit: ${newCommit.sha}`);
 }
 
-main().catch((error) => {
-  console.error("Failed:", error.message);
-  process.exit(1);
-});
-
-export { pushToGitHub, PushOptions };
+pushToGitHub().catch(console.error);

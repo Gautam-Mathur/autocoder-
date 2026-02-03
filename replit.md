@@ -1,42 +1,8 @@
-# CodeAI - AI-Powered Code Generation Assistant
+# AutoCoder - AI-Powered Code Generation Assistant
 
 ## Overview
 
-CodeAI is a full-stack web application that provides an AI-powered code generation assistant. Users can describe what they want to build in natural language, and the system generates production-ready HTML, CSS, JavaScript, and React code. The app features a chat interface with conversation history, project file management, and live code previews.
-
-## Portable Setup (VS Code, Windows, Mac, Linux - Any Port!)
-
-### Prerequisites
-- Node.js 18+ 
-- npm
-
-### Quick Start (Zero Config)
-
-```bash
-# Install dependencies
-npm install
-
-# Run on default port 5000
-npm run dev
-
-# Run on port 3000 (for VS Code)
-# Windows CMD:
-set PORT=3000 && npm run dev
-
-# Windows PowerShell:
-$env:PORT=3000; npm run dev
-
-# Mac/Linux:
-PORT=3000 npm run dev
-```
-
-Visit: http://localhost:YOUR_PORT (e.g., http://localhost:3000)
-
-### What Works Without Config
-- **No Database Required**: Uses in-memory storage automatically
-- **No OpenAI Key Required**: Local code generation engine works independently
-- **Any Port**: Frontend uses relative URLs, works on any port
-- **Cross-Platform**: Works on Windows, Mac, Linux without changes
+AutoCoder is a full-stack web application that provides an AI-powered code generation assistant. Users describe what they want to build in natural language, and the system generates production-ready HTML, CSS, JavaScript, and React code with live preview capabilities. The application operates in two modes: Cloud AI (GPT-4o via OpenAI) for intelligent context-aware generation, or a built-in local template engine that works offline without API keys.
 
 ## User Preferences
 
@@ -49,89 +15,63 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: Wouter (lightweight React router)
 - **State Management**: TanStack Query (React Query) for server state
 - **Styling**: Tailwind CSS with CSS variables for theming
-- **UI Components**: shadcn/ui component library (Radix UI primitives)
-- **Build Tool**: Vite with HMR support
+- **UI Components**: shadcn/ui built on Radix UI primitives
+- **Build Tool**: Vite with hot module replacement
 
-The frontend follows a component-based architecture with:
-- Pages in `client/src/pages/` (landing, chat, not-found)
-- Reusable components in `client/src/components/`
-- UI primitives in `client/src/components/ui/`
-- Custom hooks in `client/src/hooks/`
-- Theme support with dark/light mode toggle
+The frontend follows a component-based architecture with pages in `client/src/pages/` and reusable components in `client/src/components/`. The chat interface supports real-time streaming responses and includes a live code preview panel that renders generated HTML/CSS in a sandboxed iframe.
 
 ### Backend Architecture
-- **Runtime**: Node.js with Express 5
-- **Language**: TypeScript (ESM modules)
+- **Framework**: Express.js with TypeScript
+- **Runtime**: Node.js with tsx for development
 - **API Pattern**: RESTful endpoints under `/api/`
-- **Build**: esbuild for production bundling
+- **Database ORM**: Drizzle ORM with PostgreSQL dialect
 
-The backend handles:
-- Conversation CRUD operations
-- Message storage and retrieval
-- Project file management (create, update, delete)
-- AI-powered code generation via OpenAI integration
-- Project context extraction from conversations
+The server handles conversation management, message storage, and AI integration. Routes are registered in `server/routes.ts`. The application extracts project context from conversations to maintain continuity across messages.
 
 ### Data Storage
-- **ORM**: Drizzle ORM with PostgreSQL dialect
+- **Database**: PostgreSQL with Drizzle ORM
 - **Schema Location**: `shared/schema.ts`
-- **Migrations**: Generated via `drizzle-kit push`
-- **Fallback**: In-memory storage (`MemStorage`) when database unavailable
+- **Key Tables**:
+  - `conversations`: Stores chat sessions with project context (name, tech stack, features built)
+  - `messages`: Stores individual messages with role (user/assistant) and content
+  - `projectFiles`: Stores generated code files per conversation
+  - `users`: Basic user authentication support
 
-Database tables:
-- `users` - User authentication
-- `conversations` - Chat sessions with project context
-- `messages` - Individual chat messages
-- `projectFiles` - Generated code files per conversation
+### Code Generation Engine
+- **Primary**: OpenAI GPT-4o for intelligent, context-aware generation
+- **Fallback**: Local template engine in `client/src/lib/code-generator/` with 20+ professional templates
+- **Features**: Synonym expansion, fuzzy matching, typo tolerance via Levenshtein distance
 
-### Key Design Patterns
-1. **Shared Schema**: Types and schemas in `shared/` directory used by both frontend and backend
-2. **API Request Helper**: Centralized `apiRequest` function in `client/src/lib/queryClient.ts`
-3. **Streaming Responses**: AI responses support streaming for real-time display
-4. **Project Context Persistence**: Conversations store project metadata (name, tech stack, features built)
-5. **Permanent Preview Panel**: Replit-style preview panel that stays visible after code generation
-   - Split layout: Chat on left (~55%), Preview on right (~45%)
-   - Tabs: Preview (live HTML), Code (source view), Debug (live code analysis)
-   - Features: Fullscreen mode, device simulation (desktop/tablet/mobile), refresh, open in new tab
-   - Toggle button to show/hide the preview panel
-
-### Local Code Generation Engine (OpenAI-Independent)
-Located in `client/src/lib/code-generator/`:
-- **engine.ts**: Main generation logic with template matching, domain detection, debug integration
-- **templates.ts**: Code templates for HTML, CSS, JavaScript, React
-- **knowledge-base.ts**: Sage Knowledge for understanding user intent
-- **webapp-knowledge.ts**: Tech stacks, blueprints, and multi-language patterns
-- **learning-module.ts**: Pattern learning from user interactions
-- **creativity-module.ts**: Domain detection (VAPT, healthcare, e-commerce, finance) and customization
-- **fullstack-generator.ts**: Complete multi-file app generation with Flask, SQLAlchemy, auth, CRUD
-- **debug-module.ts**: Live code analysis, error detection, and learning from user fixes
-
-### Debug Module Features
-- **Live Code Observation**: Watches code changes in real-time
-- **Error Detection**: Syntax, runtime, logic, and style issues for Python, JavaScript, HTML, CSS
-- **Security Scanning**: SQL injection, XSS, hardcoded credentials
-- **Code Smell Detection**: Anti-patterns like bare except, == True, eval()
-- **Learning System**: Remembers user fixes and applies patterns to future suggestions
-- **Debug Tab**: Shows stats (changes observed, fixes learned, issues found) and detailed error list
+### AI Integrations
+The `server/replit_integrations/` folder contains modular AI capabilities:
+- **audio/**: Voice chat with speech-to-text and text-to-speech streaming
+- **chat/**: Standard text chat with OpenAI
+- **image/**: Image generation using gpt-image-1
+- **batch/**: Rate-limited batch processing utilities
 
 ## External Dependencies
 
-### AI Integration
-- **OpenAI API**: Used for code generation via GPT models
-- Requires `OPENAI_API_KEY` environment variable
+### AI Services
+- **OpenAI API**: Primary AI provider for code generation and chat (GPT-4o model)
+- **Environment Variables**: `AI_INTEGRATIONS_OPENAI_API_KEY`, `AI_INTEGRATIONS_OPENAI_BASE_URL`
 
 ### Database
-- **PostgreSQL**: Primary database
-- Requires `DATABASE_URL` environment variable
-- Uses `connect-pg-simple` for session storage
+- **PostgreSQL**: Primary database via `DATABASE_URL` environment variable
+- **connect-pg-simple**: Session storage in PostgreSQL
 
-### Third-Party Services
-- **Google Fonts**: DM Sans, Fira Code, Geist Mono fonts loaded in HTML
+### GitHub Integration
+- **@octokit/rest**: GitHub API client for repository operations
+- **Replit Connectors**: OAuth token management for GitHub access
 
-### Key NPM Packages
-- `drizzle-orm` / `drizzle-zod`: Database ORM and Zod schema generation
-- `@tanstack/react-query`: Async state management
-- `@radix-ui/*`: Accessible UI primitives
-- `class-variance-authority`: Component variant styling
-- `wouter`: Client-side routing
-- `zod`: Runtime type validation
+### Key Frontend Libraries
+- **@tanstack/react-query**: Server state management and caching
+- **framer-motion**: Animations (implied by design docs)
+- **lucide-react**: Icon library
+- **react-icons**: Additional icons (Si* brand icons)
+- **cmdk**: Command palette component
+
+### Key Backend Libraries
+- **drizzle-orm / drizzle-kit**: Database ORM and migrations
+- **zod / drizzle-zod**: Schema validation
+- **express-session**: Session management
+- **nanoid**: Unique ID generation
