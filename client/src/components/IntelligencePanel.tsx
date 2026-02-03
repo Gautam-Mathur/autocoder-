@@ -170,26 +170,28 @@ export function IntelligencePanel({ conversationId }: IntelligencePanelProps) {
       
       <CardContent className="flex-1 overflow-hidden p-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-6 px-2 relative z-10 shrink-0">
-            <TabsTrigger value="stats" className="text-xs" data-testid="tab-stats">
-              <Info className="h-3 w-3" />
-            </TabsTrigger>
-            <TabsTrigger value="security" className="text-xs" data-testid="tab-security">
-              <Shield className="h-3 w-3" />
-            </TabsTrigger>
-            <TabsTrigger value="tests" className="text-xs" data-testid="tab-tests">
-              <TestTube className="h-3 w-3" />
-            </TabsTrigger>
-            <TabsTrigger value="dependencies" className="text-xs" data-testid="tab-dependencies">
-              <Package className="h-3 w-3" />
-            </TabsTrigger>
-            <TabsTrigger value="transparency" className="text-xs" data-testid="tab-transparency">
-              <FileText className="h-3 w-3" />
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="text-xs" data-testid="tab-logs">
-              <Activity className="h-3 w-3" />
-            </TabsTrigger>
-          </TabsList>
+          <div className="px-2 pt-2 shrink-0">
+            <TabsList className="w-full flex justify-between">
+              <TabsTrigger value="stats" className="flex-1 text-xs" data-testid="tab-stats">
+                <Info className="h-3 w-3" />
+              </TabsTrigger>
+              <TabsTrigger value="security" className="flex-1 text-xs" data-testid="tab-security">
+                <Shield className="h-3 w-3" />
+              </TabsTrigger>
+              <TabsTrigger value="tests" className="flex-1 text-xs" data-testid="tab-tests">
+                <TestTube className="h-3 w-3" />
+              </TabsTrigger>
+              <TabsTrigger value="dependencies" className="flex-1 text-xs" data-testid="tab-dependencies">
+                <Package className="h-3 w-3" />
+              </TabsTrigger>
+              <TabsTrigger value="transparency" className="flex-1 text-xs" data-testid="tab-transparency">
+                <FileText className="h-3 w-3" />
+              </TabsTrigger>
+              <TabsTrigger value="logs" className="flex-1 text-xs" data-testid="tab-logs">
+                <Activity className="h-3 w-3" />
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <ScrollArea className="flex-1 px-2 py-2">
             <TabsContent value="stats" className="mt-0 space-y-3">
