@@ -3189,5 +3189,345 @@ You're not just a code generator - you're a thinking partner who builds exactly 
     }
   });
 
+  // ==========================================
+  // GitHub Integration Routes
+  // ==========================================
+
+  // Helper function to get GitHub client
+  async function getGitHubClient() {
+    const { Octokit } = await import("@octokit/rest");
+    
+    const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+    const xReplitToken = process.env.REPL_IDENTITY 
+      ? 'repl ' + process.env.REPL_IDENTITY 
+      : process.env.WEB_REPL_RENEWAL 
+      ? 'depl ' + process.env.WEB_REPL_RENEWAL 
+      : null;
+
+    if (!xReplitToken || !hostname) {
+      throw new Error('GitHub integration not available');
+    }
+
+    const response = await fetch(
+      'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=github',
+      {
+        headers: {
+          'Accept': 'application/json',
+          'X_REPLIT_TOKEN': xReplitToken
+        }
+      }
+    );
+    
+    const data = await response.json();
+    const connectionSettings = data.items?.[0];
+    const accessToken = connectionSettings?.settings?.access_token || 
+                        connectionSettings?.settings?.oauth?.credentials?.access_token;
+
+    if (!connectionSettings || !accessToken) {
+      throw new Error('GitHub not connected');
+    }
+    
+    return new Octokit({ auth: accessToken });
+  }
+
+  // List user's GitHub repositories
+  app.get("/api/github/repos", async (req, res) => {
+    try {
+      const octokit = await getGitHubClient();
+      const { data: repos } = await octokit.repos.listForAuthenticatedUser({
+        sort: 'updated',
+        per_page: 50
+      });
+      
+      res.json(repos.map(repo => ({
+        id: repo.id,
+        name: repo.name,
+        full_name: repo.full_name,
+        description: repo.description,
+        html_url: repo.html_url,
+        language: repo.language,
+        default_branch: repo.default_branch,
+        updated_at: repo.updated_at,
+        private: repo.private
+      })));
+    } catch (error) {
+      console.error("Error fetching GitHub repos:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Get repository contents (files)
+  // Supports X-GitHub-Token header for private repos
+  app.get("/api/github/repos/:owner/:repo/contents", async (req, res) => {
+    try {
+      const { owner, repo } = req.params;
+      const path = (req.query.path as string) || '';
+      const ref = (req.query.ref as string) || undefined;
+      
+      // Check for custom token in header (for private repos)
+      const customToken = req.headers['x-github-token'] as string | undefined;
+      
+      let octokit;
+      if (customToken) {
+        const { Octokit } = await import("@octokit/rest");
+        octokit = new Octokit({ auth: customToken });
+      } else {
+        octokit = await getGitHubClient();
+      }
+      
+      const { data } = await octokit.repos.getContent({
+        owner,
+        repo,
+        path,
+        ref
+      });
+      
+      res.json(data);
+    } catch (error: any) {
+      console.error("Error fetching repo contents:", error);
+      const status = error.status || 500;
+      const message = error.message || "Unknown error";
+      res.status(status).json({ error: message });
+    }
+  });
+
+  // Import files from GitHub repository to conversation
+  const importGithubSchema = z.object({
+    owner: z.string().min(1),
+    repo: z.string().min(1),
+    branch: z.string().optional(),
+    files: z.array(z.string()).min(1)
+  });
+
+  app.post("/api/conversations/:id/import-github", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id, 10);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const validation = importGithubSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid request", details: validation.error.errors });
+      }
+      
+      const { owner, repo, branch, files: filePaths } = validation.data;
+      
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      
+      const octokit = await getGitHubClient();
+      const importedFiles = [];
+      
+      for (const filePath of filePaths) {
+        try {
+          const { data } = await octokit.repos.getContent({
+            owner,
+            repo,
+            path: filePath,
+            ref: branch
+          });
+          
+          if (!Array.isArray(data) && data.type === 'file' && data.content) {
+            const content = Buffer.from(data.content, 'base64').toString('utf-8');
+            const ext = filePath.split('.').pop()?.toLowerCase() || 'text';
+            const languageMap: Record<string, string> = {
+              'js': 'javascript',
+              'mjs': 'javascript',
+              'jsx': 'javascript',
+              'ts': 'typescript',
+              'tsx': 'typescript',
+              'css': 'css',
+              'html': 'html',
+              'json': 'json',
+              'md': 'markdown',
+              'py': 'python',
+            };
+            const language = languageMap[ext] || ext;
+            
+            const file = await storage.createProjectFile({
+              conversationId,
+              path: filePath,
+              content,
+              language
+            });
+            
+            importedFiles.push(file);
+          }
+        } catch (err) {
+          console.error(`Failed to import ${filePath}:`, err);
+        }
+      }
+      
+      res.json({
+        success: true,
+        importedCount: importedFiles.length,
+        files: importedFiles
+      });
+    } catch (error) {
+      console.error("Error importing from GitHub:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Upload files to conversation
+  const uploadFilesSchema = z.object({
+    files: z.array(z.object({
+      path: z.string().min(1),
+      content: z.string()
+    })).min(1)
+  });
+
+  app.post("/api/conversations/:id/upload-files", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id, 10);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      
+      const validation = uploadFilesSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid request", details: validation.error.errors });
+      }
+      
+      const { files } = validation.data;
+      
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      
+      const uploadedFiles = [];
+      
+      for (const fileData of files) {
+        if (!fileData.path || !fileData.content) continue;
+        
+        const ext = fileData.path.split('.').pop()?.toLowerCase() || 'text';
+        const languageMap: Record<string, string> = {
+          'js': 'javascript',
+          'mjs': 'javascript',
+          'jsx': 'javascript',
+          'ts': 'typescript',
+          'tsx': 'typescript',
+          'css': 'css',
+          'html': 'html',
+          'json': 'json',
+          'md': 'markdown',
+          'py': 'python',
+        };
+        const language = languageMap[ext] || ext;
+        
+        // Check if file already exists
+        const existingFiles = await storage.getProjectFiles(conversationId);
+        const existing = existingFiles.find(f => f.path === fileData.path);
+        
+        if (existing) {
+          // Update existing file
+          const updated = await storage.updateProjectFile(existing.id, fileData.content);
+          if (updated) uploadedFiles.push(updated);
+        } else {
+          // Create new file
+          const file = await storage.createProjectFile({
+            conversationId,
+            path: fileData.path,
+            content: fileData.content,
+            language
+          });
+          uploadedFiles.push(file);
+        }
+      }
+      
+      res.json({
+        success: true,
+        uploadedCount: uploadedFiles.length,
+        files: uploadedFiles
+      });
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Push project files to GitHub repository
+  app.post("/api/github/push", async (req, res) => {
+    try {
+      const { owner, repo, branch = "main", message = "Update from AutoCoder", files, token } = req.body;
+      
+      if (!owner || !repo || !files || !Array.isArray(files)) {
+        return res.status(400).json({ error: "Missing owner, repo, or files" });
+      }
+      
+      const { Octokit } = await import("@octokit/rest");
+      
+      // Use provided token or try to get from connector
+      let octokit: InstanceType<typeof Octokit>;
+      if (token) {
+        octokit = new Octokit({ auth: token });
+      } else {
+        try {
+          octokit = await getGitHubClient();
+        } catch (e) {
+          return res.status(401).json({ error: "No GitHub token. Provide a token in the request." });
+        }
+      }
+      
+      const results = [];
+      
+      for (const file of files) {
+        if (!file.path || !file.content) continue;
+        
+        try {
+          // Get current file SHA if it exists (needed for updates)
+          let sha: string | undefined;
+          try {
+            const { data: existingFile } = await octokit.repos.getContent({
+              owner,
+              repo,
+              path: file.path,
+              ref: branch
+            });
+            if ('sha' in existingFile) {
+              sha = existingFile.sha;
+            }
+          } catch (e) {
+            // File doesn't exist, that's fine
+          }
+          
+          // Create or update file
+          await octokit.repos.createOrUpdateFileContents({
+            owner,
+            repo,
+            path: file.path,
+            message: `${message}: ${file.path}`,
+            content: Buffer.from(file.content).toString('base64'),
+            branch,
+            sha
+          });
+          
+          results.push({ path: file.path, status: 'success' });
+        } catch (fileError: any) {
+          results.push({ path: file.path, status: 'error', error: fileError.message });
+        }
+      }
+      
+      const successCount = results.filter(r => r.status === 'success').length;
+      res.json({ 
+        success: true, 
+        pushed: successCount, 
+        total: files.length,
+        results 
+      });
+    } catch (error) {
+      console.error("GitHub push error:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
+    }
+  });
+
   return httpServer;
 }
