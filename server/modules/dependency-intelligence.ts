@@ -108,8 +108,9 @@ export function analyzeDependencies(
     // Detect CDN dependencies in HTML
     if (file.language === 'html') {
       const cdnPattern = /<script[^>]+src=["']([^"']+)["'][^>]*>/gi;
-      while ((match = cdnPattern.exec(file.content)) !== null) {
-        const url = match[1];
+      let cdnMatch;
+      while ((cdnMatch = cdnPattern.exec(file.content)) !== null) {
+        const url = cdnMatch[1];
         if (url.includes('cdn') || url.includes('unpkg') || url.includes('jsdelivr')) {
           const depName = extractCdnPackageName(url);
           if (depName && !seenDeps.has(depName)) {

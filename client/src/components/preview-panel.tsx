@@ -488,6 +488,27 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
     return transformed;
   }, []);
   
+  // Detect if code is server-side only (can't run in browser)
+  const isServerSideOnly = useMemo(() => {
+    const allCode = files.map(f => f.content).join('\n');
+    const serverPatterns = [
+      'require("express")', "require('express')",
+      'require("sqlite3")', "require('sqlite3')",
+      'require("pg")', "require('pg')",
+      'require("mongodb")', "require('mongodb')",
+      'require("http")', "require('http')",
+      'require("fs")', "require('fs')",
+      'require("path")', "require('path')",
+      'app.listen(',
+      'createServer(',
+      'process.env.',
+      'from flask import',
+      'import express',
+      'import sqlite3',
+    ];
+    return serverPatterns.some(pattern => allCode.includes(pattern));
+  }, [files]);
+
   const combinedPreview = useMemo(() => {
     if (files.length === 0) return "";
 
@@ -498,7 +519,43 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
     const cssFiles = files.filter((f) => f.path.toLowerCase().endsWith(".css") || f.language === "css");
     const jsFiles = files.filter((f) => f.path.toLowerCase().endsWith(".js") || f.language === "javascript");
 
-    if (!htmlFile) return "";
+    if (!htmlFile) {
+      // No HTML file - might be backend-only code
+      if (isServerSideOnly) {
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server-Side Code</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 40px; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { max-width: 500px; text-align: center; }
+    h2 { color: #00ff88; margin-bottom: 16px; }
+    p { line-height: 1.6; color: #94a3b8; margin-bottom: 12px; }
+    .icon { font-size: 48px; margin-bottom: 24px; }
+    .tip { background: #0a0a1a; border: 1px solid #333; padding: 16px; border-radius: 8px; margin-top: 24px; text-align: left; }
+    .tip h4 { color: #00ff88; margin: 0 0 8px 0; font-size: 14px; }
+    .tip code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🖥️</div>
+    <h2>Server-Side Application</h2>
+    <p>This code needs to run on a server (Node.js, Python, etc.) - it can't be previewed in the browser.</p>
+    <div class="tip">
+      <h4>To run this code:</h4>
+      <p>1. Download the project files using Export</p>
+      <p>2. Install dependencies: <code>npm install</code></p>
+      <p>3. Start the server: <code>node server.js</code></p>
+    </div>
+  </div>
+</body>
+</html>`;
+      }
+      return "";
+    }
 
     let html = htmlFile.content;
 
@@ -526,9 +583,29 @@ ${html}
       }
     }
 
-    if (jsFiles.length > 0) {
-      const allJsCode = jsFiles.map((f) => f.content).join("\n\n");
-      const combinedJs = jsFiles.map((f) => transformJsForBrowser(f.content, allJsCode)).join("\n\n");
+    // Filter out server-side JS files (they can't run in browser)
+    const serverJsPatterns = [
+      'require("express")', "require('express')",
+      'require("sqlite3")', "require('sqlite3')",
+      'require("pg")', "require('pg')",
+      'require("mongodb")', "require('mongodb')",
+      'require("http")', "require('http')",
+      'require("fs")', "require('fs')",
+      'require("path")', "require('path')",
+      'app.listen(',
+      'createServer(',
+      'module.exports',
+    ];
+    const browserJsFiles = jsFiles.filter(f => {
+      const content = f.content;
+      const isServerFile = serverJsPatterns.some(pattern => content.includes(pattern));
+      const isNamedServer = f.path.toLowerCase().includes('server') || f.path.toLowerCase() === 'app.js';
+      return !isServerFile && !isNamedServer;
+    });
+
+    if (browserJsFiles.length > 0) {
+      const allJsCode = browserJsFiles.map((f) => f.content).join("\n\n");
+      const combinedJs = browserJsFiles.map((f) => transformJsForBrowser(f.content, allJsCode)).join("\n\n");
       
       // Check if this is React code that needs special handling
       const isReactCode = allJsCode.includes('import React') || allJsCode.includes('from "react"') || allJsCode.includes("from 'react'");
@@ -642,7 +719,7 @@ ${combinedJs}
     }
 
     return html;
-  }, [files, refreshKey, transformJsForBrowser]);
+  }, [files, refreshKey, transformJsForBrowser, isServerSideOnly]);
 
   const openInNewTab = () => {
     if (!combinedPreview) return;
