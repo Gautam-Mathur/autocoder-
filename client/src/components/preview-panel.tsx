@@ -1,7 +1,10 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles, Brain } from "lucide-react";
+import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles, Brain, Rocket, TestTube, Play, Terminal } from "lucide-react";
 import { IntelligencePanel } from "@/components/IntelligencePanel";
+import { DeploymentPanel } from "@/components/deployment-panel";
+import { ErrorFixerPanel } from "@/components/error-fixer-panel";
+import { VSCodeIDE } from "@/components/vscode-ide";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,6 +12,7 @@ import { SiHtml5, SiCss3, SiJavascript, SiTypescript, SiReact, SiPython } from "
 import type { ProjectFile } from "@shared/schema";
 import { checkErrors, recordCodeChange, getDebugStats, CodeError, quickTestAndFix, tryFixRuntimeError } from "@/lib/code-generator/engine";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { generateTests, runInlineTests, GeneratedTest, TestResult } from "@/lib/code-runner/test-generator";
 
 interface AutoFixLog {
   timestamp: number;
@@ -266,7 +270,9 @@ function AutoTestSection({
 }
 
 export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps) {
-  const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug" | "intel">("preview");
+  const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug" | "intel" | "deploy" | "test" | "ide">("preview");
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const [generatedTests, setGeneratedTests] = useState<GeneratedTest[]>([]);
   const [activeFile, setActiveFile] = useState<string>("index.html");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop");
@@ -288,7 +294,7 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
 
   const updateFileMutation = useMutation({
     mutationFn: async ({ fileId, content }: { fileId: number; content: string }) => {
-      await apiRequest("PATCH", `/api/files/${fileId}`, { content });
+      await apiRequest("PUT", `/api/files/${fileId}`, { content });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
@@ -364,24 +370,40 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
   useEffect(() => {
     if (files.length === 0) return;
     
-    // Analyze all files for errors
+    // Skip detailed error analysis for complex projects (TypeScript, many files)
+    const hasTypeScript = files.some(f => f.path.endsWith('.ts') || f.path.endsWith('.tsx'));
+    const hasPackageJson = files.some(f => f.path.endsWith('package.json'));
+    const isComplexProject = hasPackageJson && (hasTypeScript || files.length > 10);
+    
+    if (isComplexProject) {
+      setCodeErrors([]);
+      setDebugStats(getDebugStats());
+      return;
+    }
+    
+    // Analyze simple files for errors (HTML, CSS, basic JS)
     const allErrors: CodeError[] = [];
-    files.forEach(file => {
+    const simpleFiles = files.filter(f => 
+      f.path.endsWith('.html') || 
+      f.path.endsWith('.css') || 
+      (f.path.endsWith('.js') && !f.path.includes('config'))
+    );
+    
+    simpleFiles.forEach(file => {
       const errors = checkErrors(file.content);
-      errors.forEach(e => {
+      errors.slice(0, 5).forEach(e => {
         allErrors.push({ ...e, code: `${file.path}: ${e.code.substring(0, 50)}` });
       });
       
       // Check for code changes (learning)
       const prevContent = previousCode.get(file.path);
       if (prevContent && prevContent !== file.content) {
-        // Code changed - record it for learning
         const hadErrors = checkErrors(prevContent).length > 0;
         recordCodeChange(prevContent, file.content, hadErrors);
       }
     });
     
-    setCodeErrors(allErrors);
+    setCodeErrors(allErrors.slice(0, 20));
     setDebugStats(getDebugStats());
     
     // Update previous code state
@@ -955,6 +977,36 @@ ${combinedJs}
             <Brain className="w-3 h-3" />
             Intel
           </button>
+          <button
+            onClick={() => setActiveTab("test")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              activeTab === "test" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+            data-testid="tab-test"
+          >
+            <TestTube className="w-3 h-3" />
+            Test
+          </button>
+          <button
+            onClick={() => setActiveTab("deploy")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              activeTab === "deploy" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+            data-testid="tab-deploy"
+          >
+            <Rocket className="w-3 h-3" />
+            Deploy
+          </button>
+          <button
+            onClick={() => setActiveTab("ide")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              activeTab === "ide" ? "bg-background shadow-sm bg-primary/10" : "text-muted-foreground hover:text-foreground"
+            }`}
+            data-testid="tab-ide"
+          >
+            <Terminal className="w-3 h-3" />
+            IDE
+          </button>
         </div>
         <div className="flex items-center gap-1">
           {activeTab === "preview" && (
@@ -974,7 +1026,31 @@ ${combinedJs}
       <div className="flex-1 flex overflow-hidden">
         {activeTab === "preview" ? (
           <div className="flex-1 flex flex-col overflow-hidden">
-            {combinedPreview ? (
+            {isServerSideOnly ? (
+              <VSCodeIDE 
+                files={files.map(f => ({ 
+                  path: f.path, 
+                  content: f.content,
+                  language: f.language 
+                }))}
+                conversationId={conversationId || undefined}
+                onFilesChange={(updatedFiles) => {
+                  updatedFiles.forEach(async (file) => {
+                    const existingFile = files.find(f => f.path === file.path);
+                    if (existingFile && existingFile.content !== file.content) {
+                      try {
+                        await apiRequest("PUT", `/api/files/${existingFile.id}`, {
+                          content: file.content
+                        });
+                        queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
+                      } catch (error) {
+                        console.error("Failed to save file:", error);
+                      }
+                    }
+                  });
+                }}
+              />
+            ) : combinedPreview ? (
               <iframe
                 key={refreshKey}
                 ref={iframeRef}
@@ -1171,6 +1247,38 @@ ${combinedJs}
                     </div>
                   )}
                 </div>
+                
+                {/* Enhanced AI Error Fixer */}
+                {(runtimeErrors.length > 0 || codeErrors.length > 0) && files.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      AI-Powered Fix Suggestions
+                    </h3>
+                    <ErrorFixerPanel
+                      errors={[
+                        ...runtimeErrors.map(e => e.message),
+                        ...codeErrors.map(e => `${e.type}: ${e.message}`)
+                      ]}
+                      code={files.find(f => f.path === activeFile)?.content || files.map(f => f.content).join("\n\n")}
+                      onApplyFix={(fixedCode) => {
+                        const targetFile = files.find(f => f.path === activeFile) || files[0];
+                        if (targetFile) {
+                          updateFileMutation.mutate(
+                            { fileId: targetFile.id, content: fixedCode },
+                            {
+                              onSuccess: () => {
+                                setRuntimeErrors([]);
+                                setCodeErrors([]);
+                                setRefreshKey(k => k + 1);
+                              }
+                            }
+                          );
+                        }
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* Learning Status */}
                 <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
@@ -1186,6 +1294,113 @@ ${combinedJs}
         ) : activeTab === "intel" ? (
           <div className="flex-1 p-4 overflow-auto">
             {conversationId && <IntelligencePanel conversationId={conversationId} />}
+          </div>
+        ) : activeTab === "test" ? (
+          <div className="flex-1 p-4 overflow-auto">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium flex items-center gap-2">
+                  <TestTube className="h-4 w-4" />
+                  Automated Tests
+                </h3>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const allCode = files.map(f => f.content).join("\n");
+                    const results = runInlineTests(allCode);
+                    setTestResults(results);
+                    
+                    const mainFile = files.find(f => f.path.endsWith(".js") || f.path.endsWith(".ts") || f.path.endsWith(".tsx"));
+                    if (mainFile) {
+                      const tests = generateTests(mainFile.content, mainFile.path);
+                      setGeneratedTests(tests);
+                    }
+                  }}
+                  className="gap-1"
+                  data-testid="button-run-tests"
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  Run Tests
+                </Button>
+              </div>
+              
+              {testResults.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Quick Checks</h4>
+                  {testResults.map((result, i) => (
+                    <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                      {result.passed ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                      )}
+                      <span className="text-sm font-medium">{result.name}</span>
+                      {!result.passed && result.error && (
+                        <span className="text-xs text-muted-foreground">- {result.error}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {generatedTests.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Generated Test Cases</h4>
+                  {generatedTests.map((test, i) => (
+                    <div key={i} className="p-3 rounded-md border bg-muted/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className="text-xs">{test.type}</Badge>
+                        <span className="text-sm font-medium">{test.name}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">{test.description}</p>
+                      <pre className="text-xs font-mono bg-background p-2 rounded overflow-x-auto">
+                        {test.code.trim()}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {testResults.length === 0 && generatedTests.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <TestTube className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Click "Run Tests" to analyze your code</p>
+                  <p className="text-xs">Generates test cases and checks for common issues</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : activeTab === "deploy" ? (
+          <div className="flex-1 overflow-auto">
+            <DeploymentPanel 
+              files={files.map(f => ({ path: f.path, content: f.content }))} 
+            />
+          </div>
+        ) : activeTab === "ide" ? (
+          <div className="flex-1 overflow-hidden">
+            <VSCodeIDE 
+              files={files.map(f => ({ 
+                path: f.path, 
+                content: f.content,
+                language: f.language 
+              }))}
+              conversationId={conversationId || undefined}
+              onFilesChange={(updatedFiles) => {
+                updatedFiles.forEach(async (file) => {
+                  const existingFile = files.find(f => f.path === file.path);
+                  if (existingFile && existingFile.content !== file.content) {
+                    try {
+                      await apiRequest("PUT", `/api/files/${existingFile.id}`, {
+                        content: file.content
+                      });
+                      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
+                    } catch (error) {
+                      console.error("Failed to save file:", error);
+                    }
+                  }
+                });
+              }}
+            />
           </div>
         ) : (
           <div className="flex-1 flex overflow-hidden">
