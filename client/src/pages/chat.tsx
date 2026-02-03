@@ -695,6 +695,10 @@ export default function Chat() {
                   onSend={handleSendMessage}
                   isLoading={isStreaming}
                   placeholder={activeConversationId ? "Continue the conversation..." : "Describe what you want to build..."}
+                  conversationId={activeConversationId}
+                  onFilesUploaded={() => {
+                    queryClient.invalidateQueries({ queryKey: ["/api/conversations", activeConversationId, "files"] });
+                  }}
                 />
                 <p className="text-xs text-center text-muted-foreground" data-testid="text-disclaimer">
                   {aiMode === "cloud" 
