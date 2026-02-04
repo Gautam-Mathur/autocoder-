@@ -1,35 +1,25 @@
 import { Bot, User } from "lucide-react";
 import { parseCodeBlocks } from "@/components/code-block";
-import { ProjectSummary, parseProjectSummary } from "@/components/project-summary";
+import { ProjectSummary, parseProjectSummary, ProjectFileWithContent } from "@/components/project-summary";
 import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
   isStreaming?: boolean;
+  generatedFiles?: ProjectFileWithContent[];
 }
 
-export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
+export function ChatMessage({ role, content, isStreaming, generatedFiles }: ChatMessageProps) {
   const isUser = role === "user";
 
   const renderAssistantContent = () => {
     const { hasProject, projectInfo, remainingContent } = parseProjectSummary(content);
     
     if (hasProject && projectInfo && !isStreaming) {
-      const sampleFiles = [
-        { path: 'client/src/components/layout/Layout.tsx' },
-        { path: 'client/src/components/layout/Header.tsx' },
-        { path: 'client/src/components/layout/Sidebar.tsx' },
-        { path: 'client/src/components/layout/Footer.tsx' },
-        { path: 'client/src/components/ui/Button.tsx' },
-        { path: 'client/src/components/ui/Card.tsx' },
-        { path: 'client/src/components/ui/Input.tsx' },
-        { path: 'client/src/components/ui/Label.tsx' },
-        { path: 'client/src/pages/Dashboard.tsx' },
-        { path: 'client/src/pages/Settings.tsx' },
-        { path: 'server/routes/api.ts' },
-        { path: 'server/controllers/auth.ts' },
-      ];
+      const filesToUse = generatedFiles && generatedFiles.length > 0 
+        ? generatedFiles 
+        : createDemoFiles();
 
       return (
         <div className="space-y-4">
@@ -37,8 +27,7 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
             projectName={projectInfo.name}
             blueprintType={projectInfo.type}
             totalFiles={projectInfo.totalFiles}
-            files={sampleFiles}
-            features={[]}
+            files={filesToUse}
           />
           {remainingContent && parseCodeBlocks(remainingContent)}
         </div>
@@ -54,6 +43,37 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
       </div>
     );
   };
+
+function createDemoFiles(): ProjectFileWithContent[] {
+  return [
+    {
+      path: '/App.tsx',
+      content: `import { useState } from 'react';
+
+export default function App() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl text-white text-center">
+        <h1 className="text-4xl font-bold mb-4">Your App is Running!</h1>
+        <p className="text-lg mb-6 opacity-80">This is a live preview of your generated project.</p>
+        <div className="space-y-4">
+          <div className="text-6xl font-bold">{count}</div>
+          <button 
+            onClick={() => setCount(c => c + 1)}
+            className="px-6 py-3 bg-white text-purple-600 font-semibold rounded-xl hover:bg-opacity-90 transition-all transform hover:scale-105"
+          >
+            Click to increment
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}`
+    }
+  ];
+}
 
   return (
     <div
