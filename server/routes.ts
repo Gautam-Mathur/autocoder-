@@ -4631,7 +4631,10 @@ Output ONLY the fixed code. No explanations.`;
         return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
       }
 
-      const project = generateProject(parsed.data);
+      const project = generateProject({
+        ...parsed.data,
+        projectType: parsed.data.projectType || 'fullstack',
+      });
       const tree = formatProjectAsTree(project);
       const markdown = formatProjectAsMarkdown(project);
 
@@ -5131,7 +5134,7 @@ Output ONLY the fixed code. No explanations.`;
   app.post("/api/vapt/vulnerabilities", async (req, res) => {
     try {
       const validated = vaptVulnSchema.parse(req.body);
-      const vuln = await storage.createVaptVulnerability(validated);
+      const vuln = await storage.createVaptVulnerability(validated as any);
       res.status(201).json(vuln);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -5147,7 +5150,7 @@ Output ONLY the fixed code. No explanations.`;
     try {
       const id = parseInt(req.params.id);
       const validated = vaptVulnSchema.partial().parse(req.body);
-      const vuln = await storage.updateVaptVulnerability(id, validated);
+      const vuln = await storage.updateVaptVulnerability(id, validated as any);
       res.json(vuln);
     } catch (error) {
       if (error instanceof z.ZodError) {
