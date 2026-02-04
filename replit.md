@@ -73,6 +73,45 @@ Preferred communication style: Simple, everyday language.
     - `POST /api/ai/clarification` - Smart clarification generation
     - `POST /api/ai/response-hints` - Context-aware response hints
     - `GET /api/ai/conversation/:id/summary` - Conversation summary
+- **ENHANCED Claude-Level Capabilities** (NEW - 7 modules, 100% offline):
+    - **Enhanced Intent Recognition** (`server/modules/enhanced-intent-recognition.ts`):
+        - 100+ patterns with fuzzy matching (Levenshtein distance)
+        - Semantic clustering for related intents
+        - Multi-intent detection with confidence scoring
+        - Question type classification (who/what/why/how/when)
+        - API: `POST /api/ai/enhanced/intent`
+    - **Advanced Code Generation** (`server/modules/advanced-code-generation.ts`):
+        - Multi-file project scaffolding for 20+ stacks
+        - Supports: React, Next.js, Vue, Svelte, Python, Go, Rust, Java, etc.
+        - Features: auth, database, API, styling, testing configuration
+        - API: `POST /api/ai/enhanced/generate-project`
+    - **Universal Code Explanation** (`server/modules/universal-code-explanation.ts`):
+        - 20+ languages with 50+ AST-like patterns
+        - Line-by-line analysis with concept identification
+        - Data flow tracking and pattern detection
+        - API: `POST /api/ai/enhanced/explain-code`
+    - **Deep Debugging Engine** (`server/modules/deep-debugging-engine.ts`):
+        - 20+ error patterns (TypeError, SyntaxError, network, etc.)
+        - Stack trace parsing and variable tracking
+        - Automated fix chains with confidence scoring
+        - API: `POST /api/ai/enhanced/analyze-error`
+    - **Context Window Manager** (`server/modules/context-window-manager.ts`):
+        - Smart chunking with token estimation
+        - 3-10x compression for conversation history
+        - Simulates 100K+ token context for Claude-like memory
+        - Relevance scoring for context retrieval
+        - API: `POST /api/ai/enhanced/context/*`
+    - **Multi-Language Templates** (`server/modules/multi-language-templates.ts`):
+        - 36+ programming languages with syntax definitions
+        - Code snippets, framework templates, best practices
+        - Language-specific patterns and idioms
+        - API: `GET /api/ai/enhanced/languages`, `POST /api/ai/enhanced/snippet`
+    - **True Conversational AI** (`server/modules/true-conversational-ai.ts`):
+        - Semantic memory with short-term and long-term storage
+        - Topic tracking and coreference resolution
+        - Personality adaptation based on user preferences
+        - Response hints and clarification generation
+        - API: `POST /api/ai/enhanced/conversation/*`
 - **Code Cleaner**: Removes markdown artifacts and fixes common syntax issues from generated code
 - **Intelligence Modules**:
     - **Clarification Engine**: Analyzes prompts for ambiguity.
