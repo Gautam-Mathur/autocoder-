@@ -3529,5 +3529,80 @@ You're not just a code generator - you're a thinking partner who builds exactly 
     }
   });
 
+  // ============================================
+  // AI FULL-STACK GENERATOR ENDPOINTS
+  // ============================================
+  
+  // Import the AI generator module
+  const { generateFullStackAppStream, generateFullStackApp, modifyCode } = await import("./modules/ai-fullstack-generator");
+  
+  // Streaming generation endpoint
+  app.post("/api/generate-fullstack", async (req, res) => {
+    try {
+      const { prompt, conversationId } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+      
+      logger.info(`AI Full-Stack Generation: "${prompt.substring(0, 100)}..."`, "AI");
+      
+      await generateFullStackAppStream(prompt, res);
+      
+    } catch (error) {
+      console.error("AI Generation Error:", error);
+      const message = error instanceof Error ? error.message : "Generation failed";
+      res.status(500).json({ error: message });
+    }
+  });
+  
+  // Synchronous generation endpoint (simpler, no streaming)
+  app.post("/api/generate-fullstack-sync", async (req, res) => {
+    try {
+      const { prompt, conversationId } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+      
+      logger.info(`AI Full-Stack Sync Generation: "${prompt.substring(0, 100)}..."`, "AI");
+      
+      const project = await generateFullStackApp(prompt);
+      
+      // If conversationId provided, save files to database
+      if (conversationId) {
+        for (const file of project.files) {
+          await storage.upsertProjectFile(conversationId, file.path, file.content, file.language);
+        }
+      }
+      
+      res.json(project);
+      
+    } catch (error) {
+      console.error("AI Generation Error:", error);
+      const message = error instanceof Error ? error.message : "Generation failed";
+      res.status(500).json({ error: message });
+    }
+  });
+  
+  // Code modification endpoint
+  app.post("/api/modify-code", async (req, res) => {
+    try {
+      const { code, instructions, language } = req.body;
+      
+      if (!code || !instructions) {
+        return res.status(400).json({ error: "Code and instructions are required" });
+      }
+      
+      const modifiedCode = await modifyCode(code, instructions, language);
+      res.json({ code: modifiedCode });
+      
+    } catch (error) {
+      console.error("Code Modification Error:", error);
+      const message = error instanceof Error ? error.message : "Modification failed";
+      res.status(500).json({ error: message });
+    }
+  });
+
   return httpServer;
 }
