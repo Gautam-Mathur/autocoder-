@@ -3,3 +3,5 @@
 
 export { generateCode, generateCodeWithContext, getAvailableTemplates, isCodingRequest } from "./engine";
 export type { CodeTemplate } from "./templates";
+export { matchRunnableTemplate, runnableTemplates } from "./runnable-templates";
+export type { RunnableProject } from "./runnable-templates";
