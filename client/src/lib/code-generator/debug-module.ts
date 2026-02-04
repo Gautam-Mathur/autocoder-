@@ -245,6 +245,79 @@ const analysisPatterns: AnalysisPattern[] = [
   { pattern: /for\s*\(\s*;\s*;\s*\)\s*\{(?![\s\S]*(break|return))/, languages: ['javascript'], type: 'logic', severity: 'error',
     message: 'Infinite for loop', suggestion: 'Add exit condition', category: 'Infinite Loop' },
   
+  // ==================== ADDITIONAL LOGIC ERRORS ====================
+  // Missing await on async operations
+  { pattern: /(?<!await\s+)fetch\s*\([^)]+\)(?!\s*\.then)/, languages: ['javascript'], type: 'logic', severity: 'error',
+    message: 'fetch() without await or .then()', suggestion: 'Add await before fetch() or handle with .then()', category: 'Async Error' },
+  { pattern: /const\s+\w+\s*=\s*(?<!await\s*)async\s+/, languages: ['javascript'], type: 'logic', severity: 'warning',
+    message: 'Async function assigned without await', suggestion: 'Call the async function with await', category: 'Async Error' },
+  
+  // Array mutation issues
+  { pattern: /\.sort\s*\(\s*\)(?!\s*;?\s*\/\/)/, languages: ['javascript'], type: 'logic', severity: 'warning',
+    message: '.sort() mutates the original array', suggestion: 'Use [...arr].sort() to avoid mutation', category: 'Array Mutation' },
+  { pattern: /\.reverse\s*\(\s*\)/, languages: ['javascript'], type: 'logic', severity: 'warning',
+    message: '.reverse() mutates the original array', suggestion: 'Use [...arr].reverse() to avoid mutation', category: 'Array Mutation' },
+  { pattern: /\.splice\s*\(/, languages: ['javascript'], type: 'logic', severity: 'info',
+    message: '.splice() mutates the original array', suggestion: 'Consider .slice() or .filter() for immutable operations', category: 'Array Mutation' },
+  
+  // Empty blocks and missing handlers
+  { pattern: /catch\s*\([^)]*\)\s*\{\s*\}/, languages: ['javascript'], type: 'logic', severity: 'error',
+    message: 'Empty catch block silently swallows errors', suggestion: 'Log the error or rethrow it', category: 'Error Handling' },
+  { pattern: /\.catch\s*\(\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)/, languages: ['javascript'], type: 'logic', severity: 'error',
+    message: 'Empty .catch() handler', suggestion: 'Handle the error properly', category: 'Error Handling' },
+  { pattern: /if\s*\([^)]+\)\s*\{\s*\}\s*else/, languages: ['javascript'], type: 'logic', severity: 'warning',
+    message: 'Empty if block with else', suggestion: 'Invert the condition or add code to if block', category: 'Logic Error' },
+  
+  // Off-by-one and boundary errors
+  { pattern: /for\s*\([^;]+;\s*\w+\s*<=\s*\w+\.length\s*;/, languages: ['javascript'], type: 'logic', severity: 'error',
+    message: 'Off-by-one error: <= length causes out of bounds', suggestion: 'Use < length instead of <= length', category: 'Logic Error' },
+  { pattern: /\[\s*\w+\.length\s*\]/, languages: ['javascript'], type: 'logic', severity: 'error',
+    message: 'Accessing arr[arr.length] is always undefined', suggestion: 'Use arr[arr.length - 1] for last element', category: 'Logic Error' },
+  
+  // Incorrect boolean logic
+  { pattern: /!\s*\w+\s*&&\s*!\s*\w+/, languages: ['javascript'], type: 'logic', severity: 'info',
+    message: 'Double negative AND - consider De Morgan\'s law', suggestion: 'Simplify: !a && !b can be !(a || b)', category: 'Logic Error' },
+  { pattern: /\|\|\s*\w+\s*&&/, languages: ['javascript'], type: 'logic', severity: 'warning',
+    message: '|| and && without parentheses - precedence issue', suggestion: 'Add parentheses to clarify precedence', category: 'Logic Error' },
+  
+  // State update issues (React)
+  { pattern: /set\w+\s*\(\s*\w+\s*\+\s*1\s*\)/, languages: ['javascript'], type: 'logic', severity: 'warning',
+    message: 'State update based on stale value', suggestion: 'Use functional update: setCount(prev => prev + 1)', category: 'React Bug' },
+  { pattern: /set\w+\s*\(\s*\[\s*\.\.\.\w+\s*,/, languages: ['javascript'], type: 'logic', severity: 'info',
+    message: 'Spreading state in setter', suggestion: 'Consider functional update: setState(prev => [...prev, item])', category: 'React Bug' },
+  
+  // Comparison issues
+  { pattern: /===?\s*\[\s*\]/, languages: ['javascript'], type: 'logic', severity: 'error',
+    message: 'Comparing to [] always fails (different reference)', suggestion: 'Use arr.length === 0 to check empty array', category: 'Logic Error' },
+  { pattern: /===?\s*\{\s*\}/, languages: ['javascript'], type: 'logic', severity: 'error',
+    message: 'Comparing to {} always fails (different reference)', suggestion: 'Use Object.keys(obj).length === 0 for empty object', category: 'Logic Error' },
+  
+  // String issues
+  { pattern: /\.includes\s*\(\s*\)/, languages: ['javascript'], type: 'logic', severity: 'error',
+    message: '.includes() called without argument', suggestion: 'Pass a value to search for', category: 'Logic Error' },
+  { pattern: /\.indexOf\s*\([^)]+\)\s*>\s*0/, languages: ['javascript'], type: 'logic', severity: 'error',
+    message: '.indexOf() > 0 misses first element', suggestion: 'Use >= 0 or !== -1 to check existence', category: 'Logic Error' },
+  
+  // Division and math
+  { pattern: /\/\s*0(?!\.)/, languages: ['javascript'], type: 'logic', severity: 'error',
+    message: 'Division by zero', suggestion: 'Add check: divisor !== 0', category: 'Math Error' },
+  { pattern: /Math\.random\s*\(\s*\)\s*\*\s*(\d+)/, languages: ['javascript'], type: 'logic', severity: 'info',
+    message: 'Math.random() returns 0 to 0.999...', suggestion: 'Use Math.floor(Math.random() * n) for integers', category: 'Math Error' },
+  
+  // Date issues
+  { pattern: /new\s+Date\s*\(\s*\d{4}\s*,\s*\d+/, languages: ['javascript'], type: 'logic', severity: 'warning',
+    message: 'Date months are 0-indexed', suggestion: 'Month 1 = February, use month-1 for correct month', category: 'Date Bug' },
+  
+  // Object/Array confusion
+  { pattern: /Object\.keys\s*\([^)]+\)\.length\s*===?\s*0\s*\|\|\s*\w+\.length/, languages: ['javascript'], type: 'logic', severity: 'warning',
+    message: 'Mixing object and array length checks', suggestion: 'Ensure consistent data type handling', category: 'Type Confusion' },
+  
+  // Return value ignored
+  { pattern: /\w+\.filter\s*\([^)]+\)\s*;(?!\s*(?:const|let|var|return|\w+\s*=))/, languages: ['javascript'], type: 'logic', severity: 'warning',
+    message: '.filter() return value not used', suggestion: 'filter() returns new array - assign or return it', category: 'Logic Error' },
+  { pattern: /\w+\.map\s*\([^)]+\)\s*;(?!\s*(?:const|let|var|return|\w+\s*=))/, languages: ['javascript'], type: 'logic', severity: 'warning',
+    message: '.map() return value not used', suggestion: 'map() returns new array - use forEach() for side effects', category: 'Logic Error' },
+  
   // ==================== HIDDEN BUGS ====================
   // Closure Issues
   { pattern: /for\s*\(\s*var\s+\w+.*\)\s*\{[\s\S]*setTimeout|for\s*\(\s*var\s+\w+.*\)\s*\{[\s\S]*addEventListener/, languages: ['javascript'], type: 'hidden', severity: 'error',
