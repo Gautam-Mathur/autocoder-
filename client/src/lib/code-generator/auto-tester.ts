@@ -160,6 +160,136 @@ const autoFixes: Record<string, (code: string, error: CodeError) => string> = {
   'debugger': (code, error) => {
     // Remove debugger statements
     return code.replace(/\s*debugger\s*;?\s*/g, '\n');
+  },
+
+  // ==================== LOGIC ERROR AUTO-FIXES ====================
+  
+  'Assignment in condition': (code, error) => {
+    // Fix if (x = y) to if (x === y)
+    return code.replace(/if\s*\(\s*(\w+)\s*=\s*([^=][^)]+)\)/g, 'if ($1 === $2)');
+  },
+  
+  'NaN comparison': (code, error) => {
+    // Fix == NaN to Number.isNaN()
+    return code.replace(/(\w+)\s*===?\s*NaN/g, 'Number.isNaN($1)');
+  },
+  
+  'Infinite loop': (code, error) => {
+    // Add break condition hint for while(true) without break
+    return code.replace(/(while\s*\(\s*true\s*\)\s*\{)(?![\s\S]*break)/g, 
+      '$1\n    // WARNING: Add break condition to prevent infinite loop\n    if (/* condition */) break;');
+  },
+  
+  'forEach with async': (code, error) => {
+    // Convert forEach async to for...of
+    return code.replace(/(\w+)\.forEach\s*\(\s*async\s*\(([^)]*)\)\s*=>\s*\{/g, 
+      'for (const $2 of $1) {\n    // Converted from forEach async');
+  },
+  
+  'Closure bug': (code, error) => {
+    // Replace var with let in for loops
+    return code.replace(/for\s*\(\s*var\s+(\w+)/g, 'for (let $1');
+  },
+  
+  'Null reference': (code, error) => {
+    // Add optional chaining for common null reference patterns
+    return code.replace(/(\w+)\.(\w+)\.(\w+)/g, (match, obj, prop1, prop2) => {
+      // Only add optional chaining if it looks like a chain that could be null
+      if (['undefined', 'null', 'length'].includes(prop2)) return match;
+      return `${obj}?.${prop1}?.${prop2}`;
+    });
+  },
+  
+  'Missing await': (code, error) => {
+    // Add await to fetch calls that are missing it
+    return code.replace(/(?<!await\s+)fetch\s*\(/g, 'await fetch(');
+  },
+  
+  'useEffect async': (code, error) => {
+    // Fix useEffect(async ...) pattern
+    return code.replace(
+      /useEffect\s*\(\s*async\s*\(\s*\)\s*=>\s*\{([\s\S]*?)\}\s*,/g,
+      'useEffect(() => {\n    const fetchData = async () => {$1};\n    fetchData();\n  },'
+    );
+  },
+  
+  'Array map async': (code, error) => {
+    // Wrap async map in Promise.all
+    return code.replace(
+      /const\s+(\w+)\s*=\s*(\w+)\.map\s*\(\s*async/g,
+      'const $1 = await Promise.all($2.map(async'
+    );
+  },
+  
+  'localStorage null': (code, error) => {
+    // Add fallback for localStorage.getItem
+    return code.replace(
+      /JSON\.parse\s*\(\s*localStorage\.getItem\s*\(\s*(['"`][^'"`]+['"`])\s*\)\s*\)/g,
+      'JSON.parse(localStorage.getItem($1) || "{}")'
+    );
+  },
+  
+  'Divide by zero': (code, error) => {
+    // Add zero check for division
+    return code.replace(
+      /(\w+)\s*\/\s*(\w+)(?!\s*\|\|)/g,
+      '($2 !== 0 ? $1 / $2 : 0)'
+    );
+  },
+  
+  'Missing return': (code, error) => {
+    // Add return statement to arrow functions without explicit return
+    return code.replace(
+      /=>\s*\{\s*([^{}]+[^;{}])\s*\}/g,
+      (match, body) => {
+        if (body.includes('return') || body.includes(';')) return match;
+        return `=> { return ${body.trim()}; }`;
+      }
+    );
+  },
+  
+  'Empty catch': (code, error) => {
+    // Add error logging to empty catch blocks
+    return code.replace(
+      /catch\s*\(\s*(\w+)\s*\)\s*\{\s*\}/g,
+      'catch ($1) { console.error("Error:", $1.message); }'
+    );
+  },
+  
+  'Unused variable': (code, error) => {
+    // Prefix unused variables with underscore
+    if (error.code) {
+      const varMatch = error.code.match(/(\w+)/);
+      if (varMatch) {
+        const varName = varMatch[1];
+        // Only add underscore if not already prefixed
+        if (!varName.startsWith('_')) {
+          return code.replace(new RegExp(`\\b${varName}\\b`, 'g'), `_${varName}`);
+        }
+      }
+    }
+    return code;
+  },
+  
+  'String concatenation': (code, error) => {
+    // Convert string concatenation to template literals
+    return code.replace(
+      /(['"])([^'"]*)\1\s*\+\s*(\w+)\s*\+\s*(['"])([^'"]*)\4/g,
+      '`$2${$3}$5`'
+    );
+  },
+  
+  'Double negative': (code, error) => {
+    // Simplify double negatives
+    return code.replace(/!\s*!\s*/g, '');
+  },
+  
+  'Missing type check': (code, error) => {
+    // Add type check before array operations
+    return code.replace(
+      /(\w+)\.forEach\s*\(/g,
+      '(Array.isArray($1) ? $1 : []).forEach('
+    );
   }
 };
 
