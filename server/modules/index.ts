@@ -14,3 +14,9 @@ export * from './advanced-reasoning';
 export * from './context-memory';
 export * from './live-code-analysis';
 export * from './framework-patterns';
+
+// Claude-level capabilities
+export * from './natural-language-understanding';
+export * from './code-explanation-engine';
+export * from './knowledge-base';
+export * from './conversational-flexibility';

@@ -24,6 +24,12 @@ import { learnFromInteraction, getContextPreferences, applyContextPreferences, g
 import { analyzeCode, diagnoseError, formatAnalysisAsMarkdown, autoFixCode } from "./modules/live-code-analysis";
 import { findPatterns, getPattern, getAllPatterns } from "./modules/framework-patterns";
 
+// Claude-level capabilities
+import { analyzeNLU, classifyIntent, extractEntities, parseSemantics, analyzeSentiment, formatNLUAsMarkdown } from "./modules/natural-language-understanding";
+import { explainCode, detectPatterns, summarizeCode, formatExplanationAsMarkdown } from "./modules/code-explanation-engine";
+import { getConcept, searchConcepts, getBestPractices, getBestPractice, getLearningPath, formatConceptAsMarkdown, formatBestPracticeAsMarkdown } from "./modules/knowledge-base";
+import { detectFollowUp, resolvePronouns, updateContext, generateClarification, getResponseHints, summarizeConversation, getConversationContext, formatConversationContextAsMarkdown } from "./modules/conversational-flexibility";
+
 // Extract project context from conversation content
 function extractProjectContext(
   allContent: string,
@@ -4012,6 +4018,302 @@ Output ONLY the fixed code. No explanations.`;
       res.json({ success: true, pattern });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get pattern';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // ============================================
+  // Claude-Level Capabilities
+  // ============================================
+
+  // Natural Language Understanding
+  const nluSchema = z.object({
+    text: z.string().min(1, 'Text is required'),
+  });
+
+  app.post("/api/ai/nlu", async (req, res) => {
+    try {
+      const parsed = nluSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { text } = parsed.data;
+      const analysis = analyzeNLU(text);
+      const markdown = formatNLUAsMarkdown(analysis);
+
+      res.json({
+        success: true,
+        analysis,
+        markdown,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'NLU analysis failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Intent classification only
+  app.post("/api/ai/intent", async (req, res) => {
+    try {
+      const parsed = nluSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { text } = parsed.data;
+      const intent = classifyIntent(text);
+
+      res.json({ success: true, intent });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Intent classification failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Entity extraction only
+  app.post("/api/ai/entities", async (req, res) => {
+    try {
+      const parsed = nluSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { text } = parsed.data;
+      const entities = extractEntities(text);
+
+      res.json({ success: true, entities });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Entity extraction failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Code explanation
+  const explainCodeSchema = z.object({
+    code: z.string().min(1, 'Code is required'),
+    language: z.string().optional().default('javascript'),
+  });
+
+  app.post("/api/ai/explain", async (req, res) => {
+    try {
+      const parsed = explainCodeSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { code, language } = parsed.data;
+      const explanation = explainCode(code, language);
+      const markdown = formatExplanationAsMarkdown(explanation);
+
+      res.json({
+        success: true,
+        explanation,
+        markdown,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Code explanation failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Detect code patterns
+  app.post("/api/ai/detect-patterns", async (req, res) => {
+    try {
+      const parsed = explainCodeSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { code } = parsed.data;
+      const patterns = detectPatterns(code);
+
+      res.json({ success: true, patterns });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Pattern detection failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Knowledge base - concepts
+  app.get("/api/ai/concepts/:id", async (req, res) => {
+    try {
+      const concept = getConcept(req.params.id);
+      if (!concept) {
+        return res.status(404).json({ error: 'Concept not found' });
+      }
+
+      const markdown = formatConceptAsMarkdown(concept);
+      res.json({ success: true, concept, markdown });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get concept';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Search concepts
+  app.get("/api/ai/concepts", async (req, res) => {
+    try {
+      const query = req.query.q as string || '';
+      const concepts = query ? searchConcepts(query) : [];
+
+      res.json({ success: true, count: concepts.length, concepts });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Search failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Best practices
+  app.get("/api/ai/best-practices", async (req, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const practices = getBestPractices(category);
+
+      res.json({ success: true, count: practices.length, practices });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get best practices';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/ai/best-practices/:id", async (req, res) => {
+    try {
+      const practice = getBestPractice(req.params.id);
+      if (!practice) {
+        return res.status(404).json({ error: 'Best practice not found' });
+      }
+
+      const markdown = formatBestPracticeAsMarkdown(practice);
+      res.json({ success: true, practice, markdown });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get best practice';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Learning paths
+  app.get("/api/ai/learning-path/:topic", async (req, res) => {
+    try {
+      const path = getLearningPath(req.params.topic);
+      if (!path) {
+        return res.status(404).json({ error: 'Learning path not found' });
+      }
+
+      res.json({ success: true, path });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get learning path';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Conversational flexibility - follow-up detection
+  const followUpSchema = z.object({
+    conversationId: z.string().min(1, 'Conversation ID is required'),
+    prompt: z.string().min(1, 'Prompt is required'),
+  });
+
+  app.post("/api/ai/follow-up", async (req, res) => {
+    try {
+      const parsed = followUpSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { conversationId, prompt } = parsed.data;
+      const context = getConversationContext(conversationId);
+      const analysis = detectFollowUp(prompt, context);
+
+      res.json({ success: true, analysis });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Follow-up detection failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Conversation context update
+  const contextUpdateSchema = z.object({
+    conversationId: z.string().min(1, 'Conversation ID is required'),
+    role: z.enum(['user', 'assistant']),
+    content: z.string().min(1, 'Content is required'),
+    entities: z.array(z.string()).optional().default([]),
+  });
+
+  app.post("/api/ai/context-update", async (req, res) => {
+    try {
+      const parsed = contextUpdateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { conversationId, role, content, entities } = parsed.data;
+      updateContext(conversationId, role, content, entities);
+
+      res.json({ success: true, message: 'Context updated' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Context update failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Clarification generation
+  app.post("/api/ai/clarification", async (req, res) => {
+    try {
+      const parsed = followUpSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { conversationId, prompt } = parsed.data;
+      const context = getConversationContext(conversationId);
+      const clarification = generateClarification(prompt, context);
+
+      res.json({ success: true, clarification });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Clarification generation failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Response hints
+  app.post("/api/ai/response-hints", async (req, res) => {
+    try {
+      const parsed = followUpSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { conversationId, prompt } = parsed.data;
+      const context = getConversationContext(conversationId);
+      const hints = getResponseHints(prompt, context);
+
+      res.json({ success: true, hints });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Response hints failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Conversation summary
+  app.get("/api/ai/conversation/:id/summary", async (req, res) => {
+    try {
+      const summary = summarizeConversation(req.params.id);
+      const context = getConversationContext(req.params.id);
+      const markdown = formatConversationContextAsMarkdown(req.params.id);
+
+      res.json({
+        success: true,
+        summary,
+        context: {
+          turnCount: context.turnCount,
+          lastTopic: context.lastTopic,
+          lastAction: context.lastAction,
+          lastTarget: context.lastTarget,
+        },
+        markdown,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Summary failed';
       res.status(500).json({ error: message });
     }
   });

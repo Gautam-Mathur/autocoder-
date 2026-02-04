@@ -57,6 +57,22 @@ Preferred communication style: Simple, everyday language.
     - `POST /api/ai/relevant-context` - Get relevant past context for new prompts
     - `GET /api/ai/patterns` - Framework patterns library (React, Python, Go, utilities)
     - `GET /api/ai/patterns/:id` - Get specific pattern with code template
+- **Claude-Level Capabilities** (works offline):
+    - `POST /api/ai/nlu` - Full NLU analysis: intent, entities, semantics, sentiment
+    - `POST /api/ai/intent` - Intent classification only
+    - `POST /api/ai/entities` - Entity extraction only
+    - `POST /api/ai/explain` - Nuanced code explanation with pattern detection
+    - `POST /api/ai/detect-patterns` - Detect design patterns and idioms in code
+    - `GET /api/ai/concepts/:id` - Programming concept encyclopedia
+    - `GET /api/ai/concepts?q=query` - Search programming concepts
+    - `GET /api/ai/best-practices` - Best practices database
+    - `GET /api/ai/best-practices/:id` - Specific best practice
+    - `GET /api/ai/learning-path/:topic` - Learning paths for topics
+    - `POST /api/ai/follow-up` - Follow-up detection with pronoun resolution
+    - `POST /api/ai/context-update` - Update conversation context
+    - `POST /api/ai/clarification` - Smart clarification generation
+    - `POST /api/ai/response-hints` - Context-aware response hints
+    - `GET /api/ai/conversation/:id/summary` - Conversation summary
 - **Code Cleaner**: Removes markdown artifacts and fixes common syntax issues from generated code
 - **Intelligence Modules**:
     - **Clarification Engine**: Analyzes prompts for ambiguity.
