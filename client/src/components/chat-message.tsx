@@ -1,5 +1,6 @@
 import { Bot, User } from "lucide-react";
 import { parseCodeBlocks } from "@/components/code-block";
+import { ProjectSummary, parseProjectSummary } from "@/components/project-summary";
 import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
@@ -10,6 +11,49 @@ interface ChatMessageProps {
 
 export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
   const isUser = role === "user";
+
+  const renderAssistantContent = () => {
+    const { hasProject, projectInfo, remainingContent } = parseProjectSummary(content);
+    
+    if (hasProject && projectInfo && !isStreaming) {
+      const sampleFiles = [
+        { path: 'client/src/components/layout/Layout.tsx' },
+        { path: 'client/src/components/layout/Header.tsx' },
+        { path: 'client/src/components/layout/Sidebar.tsx' },
+        { path: 'client/src/components/layout/Footer.tsx' },
+        { path: 'client/src/components/ui/Button.tsx' },
+        { path: 'client/src/components/ui/Card.tsx' },
+        { path: 'client/src/components/ui/Input.tsx' },
+        { path: 'client/src/components/ui/Label.tsx' },
+        { path: 'client/src/pages/Dashboard.tsx' },
+        { path: 'client/src/pages/Settings.tsx' },
+        { path: 'server/routes/api.ts' },
+        { path: 'server/controllers/auth.ts' },
+      ];
+
+      return (
+        <div className="space-y-4">
+          <ProjectSummary
+            projectName={projectInfo.name}
+            blueprintType={projectInfo.type}
+            totalFiles={projectInfo.totalFiles}
+            files={sampleFiles}
+            features={[]}
+          />
+          {remainingContent && parseCodeBlocks(remainingContent)}
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-4">
+        {parseCodeBlocks(content)}
+        {isStreaming && (
+          <span className="inline-block w-2 h-5 bg-primary animate-pulse rounded-sm" data-testid="streaming-indicator" />
+        )}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -49,12 +93,7 @@ export function ChatMessage({ role, content, isStreaming }: ChatMessageProps) {
               {content}
             </div>
           ) : (
-            <div className="space-y-4">
-              {parseCodeBlocks(content)}
-              {isStreaming && (
-                <span className="inline-block w-2 h-5 bg-primary animate-pulse rounded-sm" data-testid="streaming-indicator" />
-              )}
-            </div>
+            renderAssistantContent()
           )}
         </div>
       </div>
