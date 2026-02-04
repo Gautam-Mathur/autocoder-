@@ -19,4 +19,25 @@ export * from './framework-patterns';
 export * from './natural-language-understanding';
 export * from './code-explanation-engine';
 export * from './knowledge-base';
-export * from './conversational-flexibility';
+export {
+  detectFollowUp,
+  updateContext,
+  generateClarification,
+  getResponseHints,
+  summarizeConversation,
+  getConversationContext,
+  formatConversationContextAsMarkdown,
+} from './conversational-flexibility';
+
+// Continuous debugging (renamed exports to avoid conflicts)
+export {
+  analyzeCode as continuousAnalyzeCode,
+  autoFixCode as continuousAutoFixCode,
+  continuousDebug,
+  parseError,
+  startDebugSession,
+  getDebugSession,
+  addIssueToSession,
+  getDebugStatus,
+  formatDebugReport,
+} from './continuous-debugger';

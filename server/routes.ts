@@ -29,6 +29,7 @@ import { analyzeNLU, classifyIntent, extractEntities, parseSemantics, analyzeSen
 import { explainCode, detectPatterns, summarizeCode, formatExplanationAsMarkdown } from "./modules/code-explanation-engine";
 import { getConcept, searchConcepts, getBestPractices, getBestPractice, getLearningPath, formatConceptAsMarkdown, formatBestPracticeAsMarkdown } from "./modules/knowledge-base";
 import { detectFollowUp, resolvePronouns, updateContext, generateClarification, getResponseHints, summarizeConversation, getConversationContext, formatConversationContextAsMarkdown } from "./modules/conversational-flexibility";
+import { continuousDebug, parseError, getDebugStatus, getDebugSession, formatDebugReport } from "./modules/continuous-debugger";
 
 // Extract project context from conversation content
 function extractProjectContext(
@@ -4314,6 +4315,81 @@ Output ONLY the fixed code. No explanations.`;
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Summary failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // ============================================
+  // Continuous Debugging API
+  // ============================================
+
+  const debugCodeSchema = z.object({
+    code: z.string().min(1, 'Code is required'),
+    language: z.string().optional().default('javascript'),
+    sessionId: z.string().optional(),
+  });
+
+  // Continuous debug - analyze and auto-fix
+  app.post("/api/debug/continuous", async (req, res) => {
+    try {
+      const parsed = debugCodeSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { code, sessionId } = parsed.data;
+      const result = continuousDebug(code, sessionId);
+      const markdown = formatDebugReport(result);
+
+      res.json({
+        success: true,
+        ...result,
+        markdown,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Debug failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Parse error message
+  app.post("/api/debug/parse-error", async (req, res) => {
+    try {
+      const schema = z.object({ error: z.string().min(1) });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const issue = parseError(parsed.data.error);
+      res.json({ success: true, issue });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Parse failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Get debug status
+  app.get("/api/debug/status", async (_req, res) => {
+    try {
+      const status = getDebugStatus();
+      res.json({ success: true, ...status });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Status failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Get debug session
+  app.get("/api/debug/session/:id", async (req, res) => {
+    try {
+      const session = getDebugSession(req.params.id);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+      res.json({ success: true, session });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Session lookup failed';
       res.status(500).json({ error: message });
     }
   });
