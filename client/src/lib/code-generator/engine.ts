@@ -11,6 +11,21 @@ import { detectDomain, customizeTemplate, getDomainContent } from "./creativity-
 import { isFullyFunctionalRequest, generateFullStackApp, formatFullStackResponse } from "./fullstack-generator";
 import { debugCode, checkErrors, recordCodeChange, getDebugStats, CodeError } from "./debug-module";
 import { testCode, validateCode, generateTestReport, TestResult } from "./auto-tester";
+import { matchRunnableTemplate, RunnableProject } from "./runnable-templates";
+
+// Format runnable project as response with file blocks
+function formatRunnableProjectResponse(project: RunnableProject): string {
+  let response = `# ${project.name}\n\n${project.description}\n\n`;
+  response += `**This is a runnable project!** Open the IDE tab to see it run automatically.\n\n`;
+  
+  for (const file of project.files) {
+    response += `### ${file.path}\n\`\`\`${file.language}\n${file.content}\n\`\`\`\n\n`;
+  }
+  
+  response += `---\n\n**To run locally:**\n1. Copy the files above to a folder\n2. Run \`npm install\`\n3. Run \`npm run dev\`\n`;
+  
+  return response;
+}
 
 interface GenerationResult {
   code: string;
@@ -636,6 +651,12 @@ function isDebugRequest(input: string): boolean {
 
 // Main generation function
 export function generateCode(input: string): string {
+  // RUNNABLE TEMPLATES: Check for projects that can run in WebContainer
+  const runnableProject = matchRunnableTemplate(input);
+  if (runnableProject) {
+    return formatRunnableProjectResponse(runnableProject);
+  }
+  
   // DEBUG: Analyze code for errors
   if (isDebugRequest(input)) {
     // Extract code from the input if present
