@@ -508,6 +508,8 @@ export function VSCodeIDE({ files, onFilesChange, conversationId }: VSCodeIDEPro
   const [useFallbackPreview, setUseFallbackPreview] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const hasAutoRun = useRef(false);
+  const autoRunTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setIsSupported(isWebContainerSupported());
@@ -822,6 +824,57 @@ export function VSCodeIDE({ files, onFilesChange, conversationId }: VSCodeIDEPro
     setServerUrl(null);
     addLine("system", "⏹ Server stopped");
   }, [addLine]);
+
+  // Auto-run when files are loaded
+  useEffect(() => {
+    // Only auto-run once when files are first loaded
+    if (hasAutoRun.current || files.length === 0 || status !== "idle") {
+      return;
+    }
+    
+    // Check if there are runnable files
+    const hasRunnableFiles = files.some(f => 
+      f.path === "package.json" || 
+      f.path.endsWith("/package.json") ||
+      f.path.endsWith(".js") ||
+      f.path.endsWith(".mjs") ||
+      f.path.endsWith(".html")
+    );
+    
+    if (!hasRunnableFiles) {
+      return;
+    }
+    
+    // Clear any existing timeout
+    if (autoRunTimeoutRef.current) {
+      clearTimeout(autoRunTimeoutRef.current);
+    }
+    
+    // Delay auto-run slightly to allow UI to render
+    autoRunTimeoutRef.current = setTimeout(() => {
+      hasAutoRun.current = true;
+      
+      // If WebContainer is not supported, use fallback preview immediately
+      if (!isWebContainerSupported()) {
+        setUseFallbackPreview(true);
+        setTerminalLines([{ 
+          type: "system", 
+          content: "✓ Preview ready (browser-based rendering)", 
+          timestamp: new Date() 
+        }]);
+        setStatus("ready");
+      } else {
+        // Start WebContainer automatically
+        runProject();
+      }
+    }, 500);
+    
+    return () => {
+      if (autoRunTimeoutRef.current) {
+        clearTimeout(autoRunTimeoutRef.current);
+      }
+    };
+  }, [files, status, runProject]);
 
   const clearTerminal = useCallback(() => {
     setTerminalLines([]);
