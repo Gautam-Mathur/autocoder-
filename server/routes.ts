@@ -538,18 +538,22 @@ Check the **FILES** panel on the left to browse all ${project.totalFiles} genera
 
         await storage.createMessage(conversationId, "assistant", responseContent);
         
-        return res.json({
-          message: {
-            role: "assistant",
-            content: responseContent,
-          },
-          deepProject: {
-            name: projectName,
-            blueprint: blueprint,
-            totalFiles: project.totalFiles,
-            files: project.files.map(f => ({ path: f.path, content: f.content })),
-          },
-        });
+        // Stream the response like OpenAI does so frontend can handle it
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        
+        // Simulate streaming for smooth UX
+        const chunks = responseContent.split(/(?<=\s)/);
+        for (const chunk of chunks) {
+          res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+        
+        // Send done signal and refresh files
+        res.write(`data: ${JSON.stringify({ done: true, deepProject: { name: projectName, totalFiles: project.totalFiles } })}\n\n`);
+        res.end();
+        return;
       }
 
       // Use Replit AI if available, otherwise signal client to use local engine
