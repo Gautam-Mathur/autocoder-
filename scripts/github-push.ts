@@ -145,8 +145,8 @@ async function pushToGitHub() {
       const content = fs.readFileSync(fullPath);
       const isText = !content.includes(0x00); // Simple binary check
       
-      // Add delay to avoid rate limiting
-      await delay(100);
+      // Add delay to avoid rate limiting (200ms between requests)
+      await delay(200);
       
       const { data: blob } = await octokit.git.createBlob({
         owner,

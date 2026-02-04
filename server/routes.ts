@@ -3604,5 +3604,414 @@ You're not just a code generator - you're a thinking partner who builds exactly 
     }
   });
 
+  // ============================================
+  // LOCAL LLM CODE INTELLIGENCE ENDPOINTS
+  // For understanding, editing, and fixing code
+  // ============================================
+  
+  const { 
+    generateWithLocalLLM, 
+    isLocalLLMAvailable,
+    EDIT_CODE_PROMPT,
+    FIX_CODE_PROMPT,
+    UNDERSTAND_CODE_PROMPT
+  } = await import("./modules/local-llm-client");
+  const { cleanCodeArtifacts } = await import("./modules/code-cleaner");
+
+  // Understand code - analyze what code does
+  app.post("/api/ai/understand", async (req, res) => {
+    try {
+      const { code, question } = req.body;
+      
+      if (!code) {
+        return res.status(400).json({ error: "Code is required" });
+      }
+      
+      const isLocal = await isLocalLLMAvailable();
+      if (!isLocal) {
+        return res.status(503).json({ 
+          error: "Local LLM not available", 
+          message: "Start Ollama on your machine (ollama serve) to use AI code analysis",
+          localOnly: true
+        });
+      }
+      
+      const prompt = question 
+        ? `Analyze this code and answer: ${question}\n\nCode:\n${code}`
+        : `Analyze this code and explain what it does:\n\n${code}`;
+      
+      const response = await generateWithLocalLLM(prompt, UNDERSTAND_CODE_PROMPT);
+      
+      // Try to parse as JSON if structured output expected
+      const { extractJSON } = await import("./modules/local-llm-client");
+      const jsonContent = extractJSON(response);
+      
+      if (jsonContent) {
+        try {
+          const parsed = JSON.parse(jsonContent);
+          res.json({ analysis: parsed, raw: response, structured: true });
+        } catch {
+          res.json({ analysis: response, structured: false });
+        }
+      } else {
+        res.json({ analysis: response, structured: false });
+      }
+      
+    } catch (error) {
+      console.error("Code Understanding Error:", error);
+      const message = error instanceof Error ? error.message : "Analysis failed";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Edit code - modify code based on instructions
+  app.post("/api/ai/edit", async (req, res) => {
+    try {
+      const { code, instructions, language } = req.body;
+      
+      if (!code || !instructions) {
+        return res.status(400).json({ error: "Code and instructions are required" });
+      }
+      
+      const isLocal = await isLocalLLMAvailable();
+      if (!isLocal) {
+        return res.status(503).json({ 
+          error: "Local LLM not available",
+          message: "Start Ollama on your machine (ollama serve) to use AI code editing",
+          localOnly: true
+        });
+      }
+      
+      const prompt = `Language: ${language || 'javascript'}
+      
+CURRENT CODE:
+${code}
+
+INSTRUCTIONS:
+${instructions}
+
+Output ONLY the modified code. No explanations.`;
+
+      const response = await generateWithLocalLLM(prompt, EDIT_CODE_PROMPT);
+      const cleanedCode = cleanCodeArtifacts(response);
+      res.json({ code: cleanedCode });
+      
+    } catch (error) {
+      console.error("Code Edit Error:", error);
+      const message = error instanceof Error ? error.message : "Edit failed";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Fix code - fix bugs and errors
+  app.post("/api/ai/fix", async (req, res) => {
+    try {
+      const { code, error: errorMessage, language } = req.body;
+      
+      if (!code) {
+        return res.status(400).json({ error: "Code is required" });
+      }
+      
+      const isLocal = await isLocalLLMAvailable();
+      if (!isLocal) {
+        return res.status(503).json({ 
+          error: "Local LLM not available",
+          message: "Start Ollama on your machine (ollama serve) to use AI bug fixing",
+          localOnly: true
+        });
+      }
+      
+      const prompt = `Language: ${language || 'javascript'}
+
+BROKEN CODE:
+${code}
+
+${errorMessage ? `ERROR MESSAGE: ${errorMessage}` : 'This code has bugs. Find and fix them.'}
+
+Output ONLY the fixed code. No explanations.`;
+
+      const response = await generateWithLocalLLM(prompt, FIX_CODE_PROMPT);
+      const cleanedCode = cleanCodeArtifacts(response);
+      res.json({ code: cleanedCode, fixed: true });
+      
+    } catch (error) {
+      console.error("Code Fix Error:", error);
+      const message = error instanceof Error ? error.message : "Fix failed";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Check if local LLM is available
+  app.get("/api/ai/status", async (req, res) => {
+    try {
+      const available = await isLocalLLMAvailable();
+      res.json({ 
+        localLLM: available,
+        status: available ? 'ready' : 'offline',
+        message: available ? 'Local AI ready' : 'Start Ollama to use local AI'
+      });
+    } catch (error) {
+      res.json({ localLLM: false, status: 'error', message: 'Failed to check status' });
+    }
+  });
+
+  // ============================================
+  // VAPT Dashboard API Routes
+  // ============================================
+
+  const vaptAssetSchema = z.object({
+    name: z.string().min(1),
+    type: z.enum(['ip', 'domain', 'url', 'network_range']),
+    value: z.string().min(1),
+    criticality: z.enum(['low', 'medium', 'high', 'critical']),
+    tags: z.array(z.string()).optional(),
+    status: z.string().optional(),
+  });
+
+  const vaptVulnSchema = z.object({
+    assetId: z.number().optional(),
+    cveId: z.string().optional(),
+    title: z.string().min(1),
+    description: z.string().min(1),
+    severity: z.enum(['critical', 'high', 'medium', 'low', 'info']),
+    cvssScore: z.string().optional(),
+    component: z.string().optional(),
+    owaspCategory: z.string().optional(),
+    status: z.enum(['open', 'in_progress', 'resolved', 'verified', 'false_positive']).optional(),
+    assignedTo: z.string().optional(),
+    deadline: z.string().optional(),
+    remediation: z.string().optional(),
+    evidence: z.string().optional(),
+    scanId: z.number().optional(),
+  });
+
+  const vaptScanSchema = z.object({
+    assetId: z.number().optional(),
+    scanType: z.enum(['quick', 'standard', 'deep', 'custom']),
+  });
+
+  // Get all VAPT assets
+  app.get("/api/vapt/assets", async (req, res) => {
+    try {
+      const assets = await storage.getVaptAssets();
+      res.json(assets);
+    } catch (error) {
+      console.error("Error fetching VAPT assets:", error);
+      res.status(500).json({ error: "Failed to fetch assets" });
+    }
+  });
+
+  // Create VAPT asset
+  app.post("/api/vapt/assets", async (req, res) => {
+    try {
+      const validated = vaptAssetSchema.parse(req.body);
+      const asset = await storage.createVaptAsset(validated);
+      res.status(201).json(asset);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Error creating VAPT asset:", error);
+      res.status(500).json({ error: "Failed to create asset" });
+    }
+  });
+
+  // Update VAPT asset
+  app.put("/api/vapt/assets/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validated = vaptAssetSchema.partial().parse(req.body);
+      const asset = await storage.updateVaptAsset(id, validated);
+      res.json(asset);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Error updating VAPT asset:", error);
+      res.status(500).json({ error: "Failed to update asset" });
+    }
+  });
+
+  // Delete VAPT asset
+  app.delete("/api/vapt/assets/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteVaptAsset(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting VAPT asset:", error);
+      res.status(500).json({ error: "Failed to delete asset" });
+    }
+  });
+
+  // Get all vulnerabilities
+  app.get("/api/vapt/vulnerabilities", async (req, res) => {
+    try {
+      const vulns = await storage.getVaptVulnerabilities();
+      res.json(vulns);
+    } catch (error) {
+      console.error("Error fetching vulnerabilities:", error);
+      res.status(500).json({ error: "Failed to fetch vulnerabilities" });
+    }
+  });
+
+  // Create vulnerability
+  app.post("/api/vapt/vulnerabilities", async (req, res) => {
+    try {
+      const validated = vaptVulnSchema.parse(req.body);
+      const vuln = await storage.createVaptVulnerability(validated);
+      res.status(201).json(vuln);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Error creating vulnerability:", error);
+      res.status(500).json({ error: "Failed to create vulnerability" });
+    }
+  });
+
+  // Update vulnerability
+  app.put("/api/vapt/vulnerabilities/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validated = vaptVulnSchema.partial().parse(req.body);
+      const vuln = await storage.updateVaptVulnerability(id, validated);
+      res.json(vuln);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Error updating vulnerability:", error);
+      res.status(500).json({ error: "Failed to update vulnerability" });
+    }
+  });
+
+  // Delete vulnerability
+  app.delete("/api/vapt/vulnerabilities/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteVaptVulnerability(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting vulnerability:", error);
+      res.status(500).json({ error: "Failed to delete vulnerability" });
+    }
+  });
+
+  // Get all scans
+  app.get("/api/vapt/scans", async (req, res) => {
+    try {
+      const scans = await storage.getVaptScans();
+      res.json(scans);
+    } catch (error) {
+      console.error("Error fetching scans:", error);
+      res.status(500).json({ error: "Failed to fetch scans" });
+    }
+  });
+
+  // Create scan
+  app.post("/api/vapt/scans", async (req, res) => {
+    try {
+      const validated = vaptScanSchema.parse(req.body);
+      const scan = await storage.createVaptScan(validated);
+      res.status(201).json(scan);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Error creating scan:", error);
+      res.status(500).json({ error: "Failed to create scan" });
+    }
+  });
+
+  // Run scan (simulated)
+  app.post("/api/vapt/scans/:id/run", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.runVaptScan(id);
+      res.json(result);
+    } catch (error) {
+      console.error("Error running scan:", error);
+      res.status(500).json({ error: "Failed to run scan" });
+    }
+  });
+
+  // Get schedules
+  app.get("/api/vapt/schedules", async (req, res) => {
+    try {
+      const schedules = await storage.getVaptSchedules();
+      res.json(schedules);
+    } catch (error) {
+      console.error("Error fetching schedules:", error);
+      res.status(500).json({ error: "Failed to fetch schedules" });
+    }
+  });
+
+  // Create schedule
+  app.post("/api/vapt/schedules", async (req, res) => {
+    try {
+      const schedule = await storage.createVaptSchedule(req.body);
+      res.status(201).json(schedule);
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      res.status(500).json({ error: "Failed to create schedule" });
+    }
+  });
+
+  // Get team members
+  app.get("/api/vapt/team", async (req, res) => {
+    try {
+      const team = await storage.getVaptTeamMembers();
+      res.json(team);
+    } catch (error) {
+      console.error("Error fetching team:", error);
+      res.status(500).json({ error: "Failed to fetch team" });
+    }
+  });
+
+  // Create team member
+  app.post("/api/vapt/team", async (req, res) => {
+    try {
+      const member = await storage.createVaptTeamMember(req.body);
+      res.status(201).json(member);
+    } catch (error) {
+      console.error("Error creating team member:", error);
+      res.status(500).json({ error: "Failed to create team member" });
+    }
+  });
+
+  // Get audit logs
+  app.get("/api/vapt/audit-logs", async (req, res) => {
+    try {
+      const logs = await storage.getVaptAuditLogs();
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ error: "Failed to fetch audit logs" });
+    }
+  });
+
+  // Get VAPT dashboard stats
+  app.get("/api/vapt/dashboard", async (req, res) => {
+    try {
+      const stats = await storage.getVaptDashboardStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      res.status(500).json({ error: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // Seed demo data
+  app.post("/api/vapt/seed-demo", async (req, res) => {
+    try {
+      await storage.seedVaptDemoData();
+      res.json({ success: true, message: "Demo data seeded successfully" });
+    } catch (error) {
+      console.error("Error seeding demo data:", error);
+      res.status(500).json({ error: "Failed to seed demo data" });
+    }
+  });
+
   return httpServer;
 }
