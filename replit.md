@@ -112,6 +112,19 @@ Preferred communication style: Simple, everyday language.
         - Personality adaptation based on user preferences
         - Response hints and clarification generation
         - API: `POST /api/ai/enhanced/conversation/*`
+- **DEEP PROJECT GENERATOR** (NEW - Enterprise-level code generation):
+    - **Deep Project Generator** (`server/modules/deep-project-generator.ts`):
+        - Generates **standalone new projects** (not modifications to this repo)
+        - 10 project blueprints (fullstack, SaaS, API, e-commerce, CMS, etc.)
+        - Generates 50-130+ files per project (vs. previous 6-10)
+        - 5 feature modules (auth, dashboard, CRUD, settings, notifications)
+        - Recursive component generation with proper import chains
+        - Full backend: routes, controllers, services, validators
+        - Database layer: Drizzle schema with types
+        - State management: hooks, stores, context providers
+        - 20+ UI components auto-generated
+        - Test file generation
+        - API: `GET /api/ai/deep/blueprints`, `GET /api/ai/deep/features`, `POST /api/ai/deep/generate`
 - **Code Cleaner**: Removes markdown artifacts and fixes common syntax issues from generated code
 - **Intelligence Modules**:
     - **Clarification Engine**: Analyzes prompts for ambiguity.

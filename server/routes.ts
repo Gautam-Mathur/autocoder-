@@ -40,6 +40,9 @@ import { createContextWindow, addChunk, getContextWindow, compressConversation, 
 import { LANGUAGES, getLanguageById, getSnippet, listAllLanguages, formatLanguageSummary } from "./modules/multi-language-templates";
 import { createConversation as createConvState, processTurn, getConversation as getConvState, getResponseHints as getConvHints, getConversationSummary, learnPreferences, getRelevantMemory } from "./modules/true-conversational-ai";
 
+// Deep Project Generator
+import { generateDeepProject, listBlueprints, listFeatures, getBlueprint, getFeature } from "./modules/deep-project-generator";
+
 // Extract project context from conversation content
 function extractProjectContext(
   allContent: string,
@@ -376,6 +379,119 @@ ${conversation.projectSummary ? `**Project Summary**: ${conversation.projectSumm
 ${existingFilesContext}
 IMPORTANT: Use this context! Build on previous work. Maintain consistent styling and branding. Reference what was built before.
 `;
+      }
+
+      // Deep project detection - check if user wants a complex multi-file project
+      const deepProjectPatterns = [
+        /\b(saas|saas platform|software as a service)\b/i,
+        /\b(e-commerce|ecommerce|online store|shopping platform)\b/i,
+        /\b(social media|social network|social platform)\b/i,
+        /\b(dashboard|admin dashboard|analytics dashboard)\b/i,
+        /\b(cms|content management|blog platform)\b/i,
+        /\b(ai assistant|chatbot|ai chat)\b/i,
+        /\b(full[ -]?stack|fullstack) (app|application|project)\b/i,
+        /\b(enterprise|production-ready|complex) (app|application|project|platform)\b/i,
+        /\b(complete|comprehensive) (project|platform|system)\b/i,
+        /\b(monorepo|multi-package)\b/i,
+        /\b(100\+? files|many files|extensive|multi-file project)\b/i,
+      ];
+      
+      const isDeepProjectRequest = deepProjectPatterns.some(p => p.test(content));
+      
+      if (isDeepProjectRequest) {
+        // Detect which blueprint to use
+        const blueprintMap: Record<string, string> = {
+          'saas': 'saas-platform',
+          'e-commerce': 'ecommerce',
+          'ecommerce': 'ecommerce',
+          'store': 'ecommerce',
+          'shop': 'ecommerce',
+          'social': 'social-platform',
+          'dashboard': 'dashboard-app',
+          'analytics': 'dashboard-app',
+          'cms': 'cms',
+          'blog': 'cms',
+          'ai': 'ai-assistant',
+          'chat': 'ai-assistant',
+          'assistant': 'ai-assistant',
+          'monorepo': 'monorepo',
+          'api': 'api-server',
+        };
+        
+        let blueprint = 'fullstack-react-express';
+        const lower = content.toLowerCase();
+        for (const [keyword, bp] of Object.entries(blueprintMap)) {
+          if (lower.includes(keyword)) {
+            blueprint = bp;
+            break;
+          }
+        }
+        
+        // Extract project name from request
+        const nameMatch = content.match(/(?:called?|named?|build|create|make)\s+["']?([A-Za-z][A-Za-z0-9_-]+)["']?/i);
+        const projectName = nameMatch ? nameMatch[1] : 'GeneratedProject';
+        
+        // Generate the deep project
+        const project = generateDeepProject({
+          blueprint,
+          name: projectName,
+          features: ['auth', 'dashboard', 'crud', 'settings', 'notifications'],
+          includeTests: true,
+          includeDocs: true,
+        });
+        
+        // Save all files to storage
+        for (const file of project.files) {
+          const ext = file.path.split('.').pop() || 'txt';
+          const langMap: Record<string, string> = {
+            ts: 'typescript', tsx: 'tsx', js: 'javascript', jsx: 'jsx',
+            css: 'css', html: 'html', json: 'json', md: 'markdown',
+            py: 'python', go: 'go', rs: 'rust', sql: 'sql'
+          };
+          const language = langMap[ext] || ext;
+          await storage.upsertProjectFile(conversationId, file.path, file.content, language);
+        }
+        
+        // Create assistant response
+        const responseContent = `🚀 **Deep Project Generated: ${projectName}**
+
+I've created a complete **${project.blueprint.name}** with **${project.totalFiles} files**!
+
+## Project Structure
+\`\`\`
+${project.structure}
+\`\`\`
+
+## Features Included
+${project.features.map(f => `- ✅ ${f}`).join('\n')}
+
+## Tech Stack
+- **Frontend**: React with TypeScript
+- **Backend**: Express.js with TypeScript  
+- **Database**: PostgreSQL with Drizzle ORM
+- **Styling**: Tailwind CSS
+- **Testing**: Vitest
+
+## Files Generated
+${project.files.slice(0, 30).map(f => `- \`${f.path}\``).join('\n')}
+${project.files.length > 30 ? `\n... and ${project.files.length - 30} more files!` : ''}
+
+Check the **FILES** panel on the left to browse all ${project.totalFiles} generated files!`;
+
+        await storage.createMessage(conversationId, "assistant", responseContent);
+        
+        return res.json({
+          message: {
+            role: "assistant",
+            content: responseContent,
+          },
+          deepProject: {
+            name: projectName,
+            blueprint: blueprint,
+            totalFiles: project.totalFiles,
+            files: project.files.map(f => ({ path: f.path, content: f.content })),
+          },
+        });
       }
 
       // Use Replit AI if available, otherwise signal client to use local engine
@@ -4734,6 +4850,117 @@ Output ONLY the fixed code. No explanations.`;
       res.json({ success: true, memory });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Memory retrieval failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // ============================================
+  // DEEP PROJECT GENERATOR APIs
+  // ============================================
+
+  // List available project blueprints
+  app.get("/api/ai/deep/blueprints", async (req, res) => {
+    try {
+      const blueprints = listBlueprints();
+      res.json({ success: true, count: blueprints.length, blueprints });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to list blueprints';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Get specific blueprint details
+  app.get("/api/ai/deep/blueprints/:id", async (req, res) => {
+    try {
+      const blueprint = getBlueprint(req.params.id);
+      if (!blueprint) {
+        return res.status(404).json({ error: 'Blueprint not found' });
+      }
+      res.json({ success: true, blueprint });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get blueprint';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // List available feature modules
+  app.get("/api/ai/deep/features", async (req, res) => {
+    try {
+      const features = listFeatures();
+      res.json({ success: true, count: features.length, features });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to list features';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Get specific feature details
+  app.get("/api/ai/deep/features/:id", async (req, res) => {
+    try {
+      const feature = getFeature(req.params.id);
+      if (!feature) {
+        return res.status(404).json({ error: 'Feature not found' });
+      }
+      res.json({ success: true, feature });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get feature';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Generate a deep project
+  app.post("/api/ai/deep/generate", async (req, res) => {
+    try {
+      const schema = z.object({
+        blueprint: z.string().min(1),
+        name: z.string().min(1),
+        features: z.array(z.string()).default([]),
+        includeTests: z.boolean().optional().default(false),
+        includeDocker: z.boolean().optional().default(false),
+        includeDocs: z.boolean().optional().default(true),
+        conversationId: z.number().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const project = generateDeepProject(parsed.data);
+      
+      // If conversationId provided, save all files to storage for UI display
+      if (parsed.data.conversationId) {
+        const convId = parsed.data.conversationId;
+        for (const file of project.files) {
+          const ext = file.path.split('.').pop() || 'txt';
+          const langMap: Record<string, string> = {
+            ts: 'typescript', tsx: 'tsx', js: 'javascript', jsx: 'jsx',
+            css: 'css', html: 'html', json: 'json', md: 'markdown',
+            py: 'python', go: 'go', rs: 'rust', sql: 'sql'
+          };
+          const language = langMap[ext] || ext;
+          await storage.upsertProjectFile(convId, file.path, file.content, language);
+        }
+      }
+      
+      res.json({
+        success: true,
+        project: {
+          name: project.name,
+          blueprint: project.blueprint.id,
+          totalFiles: project.totalFiles,
+          features: project.features,
+          structure: project.structure,
+        },
+        files: project.files.map(f => ({
+          path: f.path,
+          type: f.type,
+          size: f.content.length,
+          content: f.content,
+        })),
+        fullProject: project,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Project generation failed';
       res.status(500).json({ error: message });
     }
   });
