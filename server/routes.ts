@@ -31,6 +31,15 @@ import { getConcept, searchConcepts, getBestPractices, getBestPractice, getLearn
 import { detectFollowUp, resolvePronouns, updateContext, generateClarification, getResponseHints, summarizeConversation, getConversationContext, formatConversationContextAsMarkdown } from "./modules/conversational-flexibility";
 import { continuousDebug, parseError, getDebugStatus, getDebugSession, formatDebugReport } from "./modules/continuous-debugger";
 
+// Enhanced Claude-level capabilities
+import { recognizeIntent, isQuestion, extractEntitiesEnhanced, formatIntentAsMarkdown } from "./modules/enhanced-intent-recognition";
+import { generateProject, formatProjectAsTree, formatProjectAsMarkdown } from "./modules/advanced-code-generation";
+import { explainCodeUniversal, formatExplanationAsMarkdownUniversal } from "./modules/universal-code-explanation";
+import { analyzeError, parseStackTrace, generateFixChain, formatDebugAnalysisAsMarkdown } from "./modules/deep-debugging-engine";
+import { createContextWindow, addChunk, getContextWindow, compressConversation, getRelevantContext as getRelevantContextChunks, formatContextWindowAsMarkdown } from "./modules/context-window-manager";
+import { LANGUAGES, getLanguageById, getSnippet, listAllLanguages, formatLanguageSummary } from "./modules/multi-language-templates";
+import { createConversation as createConvState, processTurn, getConversation as getConvState, getResponseHints as getConvHints, getConversationSummary, learnPreferences, getRelevantMemory } from "./modules/true-conversational-ai";
+
 // Extract project context from conversation content
 function extractProjectContext(
   allContent: string,
@@ -4390,6 +4399,341 @@ Output ONLY the fixed code. No explanations.`;
       res.json({ success: true, session });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Session lookup failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // ============================================
+  // ENHANCED Claude-Level AI APIs
+  // ============================================
+
+  // Enhanced Intent Recognition
+  app.post("/api/ai/enhanced/intent", async (req, res) => {
+    try {
+      const schema = z.object({ text: z.string().min(1) });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const result = recognizeIntent(parsed.data.text);
+      const questionInfo = isQuestion(parsed.data.text);
+      const entities = extractEntitiesEnhanced(parsed.data.text);
+      const markdown = formatIntentAsMarkdown(result);
+
+      res.json({
+        success: true,
+        intent: result,
+        isQuestion: questionInfo,
+        entities,
+        markdown,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Intent recognition failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Advanced Project Generation
+  app.post("/api/ai/enhanced/generate-project", async (req, res) => {
+    try {
+      const schema = z.object({
+        projectType: z.string().optional(),
+        language: z.string().default('typescript'),
+        framework: z.string().optional(),
+        features: z.array(z.string()).default([]),
+        database: z.string().optional(),
+        auth: z.boolean().optional(),
+        api: z.boolean().optional(),
+        styling: z.string().optional(),
+        testing: z.boolean().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const project = generateProject(parsed.data);
+      const tree = formatProjectAsTree(project);
+      const markdown = formatProjectAsMarkdown(project);
+
+      res.json({
+        success: true,
+        project,
+        tree,
+        markdown,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Project generation failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Universal Code Explanation
+  app.post("/api/ai/enhanced/explain-code", async (req, res) => {
+    try {
+      const schema = z.object({
+        code: z.string().min(1),
+        language: z.string().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const explanation = explainCodeUniversal(parsed.data.code, parsed.data.language);
+      const markdown = formatExplanationAsMarkdownUniversal(explanation);
+
+      res.json({
+        success: true,
+        explanation,
+        markdown,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Code explanation failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Deep Error Analysis
+  app.post("/api/ai/enhanced/analyze-error", async (req, res) => {
+    try {
+      const schema = z.object({
+        error: z.string().min(1),
+        code: z.string().optional(),
+        context: z.object({
+          framework: z.string().optional(),
+          environment: z.string().optional(),
+          dependencies: z.array(z.string()).optional(),
+        }).optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const analysis = analyzeError(parsed.data.error, parsed.data.code, parsed.data.context);
+      const markdown = formatDebugAnalysisAsMarkdown(analysis);
+
+      res.json({
+        success: true,
+        analysis,
+        markdown,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error analysis failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Context Window Management
+  app.post("/api/ai/enhanced/context/create", async (req, res) => {
+    try {
+      const schema = z.object({
+        id: z.string().min(1),
+        maxTokens: z.number().optional().default(100000),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const window = createContextWindow(parsed.data.id, parsed.data.maxTokens);
+      res.json({ success: true, window });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Context creation failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.post("/api/ai/enhanced/context/add", async (req, res) => {
+    try {
+      const schema = z.object({
+        windowId: z.string().min(1),
+        type: z.enum(['code', 'conversation', 'documentation', 'error', 'system']),
+        content: z.string().min(1),
+        importance: z.number().min(0).max(1).optional().default(0.5),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const window = addChunk(parsed.data.windowId, {
+        type: parsed.data.type,
+        content: parsed.data.content,
+        importance: parsed.data.importance,
+        timestamp: Date.now(),
+      });
+
+      if (!window) {
+        return res.status(404).json({ error: 'Context window not found' });
+      }
+
+      res.json({ success: true, window });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Context add failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/ai/enhanced/context/:id", async (req, res) => {
+    try {
+      const window = getContextWindow(req.params.id);
+      if (!window) {
+        return res.status(404).json({ error: 'Context window not found' });
+      }
+
+      const markdown = formatContextWindowAsMarkdown(window);
+      res.json({ success: true, window, markdown });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Context lookup failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.post("/api/ai/enhanced/context/relevant", async (req, res) => {
+    try {
+      const schema = z.object({
+        windowId: z.string().min(1),
+        query: z.string().min(1),
+        maxTokens: z.number().optional().default(4000),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const chunks = getRelevantContextChunks(parsed.data.windowId, parsed.data.query, parsed.data.maxTokens);
+      res.json({ success: true, chunks });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Context retrieval failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Multi-language Templates
+  app.get("/api/ai/enhanced/languages", async (req, res) => {
+    try {
+      const languages = listAllLanguages();
+      res.json({ success: true, count: languages.length, languages });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Language list failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/ai/enhanced/languages/:id", async (req, res) => {
+    try {
+      const lang = getLanguageById(req.params.id);
+      if (!lang) {
+        return res.status(404).json({ error: 'Language not found' });
+      }
+
+      const markdown = formatLanguageSummary(lang);
+      res.json({ success: true, language: lang, markdown });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Language lookup failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.post("/api/ai/enhanced/snippet", async (req, res) => {
+    try {
+      const schema = z.object({
+        language: z.string().min(1),
+        snippet: z.string().min(1),
+        variables: z.record(z.string()).optional().default({}),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const code = getSnippet(parsed.data.language, parsed.data.snippet, parsed.data.variables);
+      if (!code) {
+        return res.status(404).json({ error: 'Snippet not found' });
+      }
+
+      res.json({ success: true, code });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Snippet generation failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // True Conversational AI
+  app.post("/api/ai/enhanced/conversation/create", async (req, res) => {
+    try {
+      const schema = z.object({
+        id: z.string().min(1),
+        userId: z.string().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const state = createConvState(parsed.data.id, parsed.data.userId);
+      res.json({ success: true, conversation: state });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Conversation creation failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.post("/api/ai/enhanced/conversation/turn", async (req, res) => {
+    try {
+      const schema = z.object({
+        conversationId: z.string().min(1),
+        role: z.enum(['user', 'assistant']),
+        content: z.string().min(1),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const turn = processTurn(parsed.data.conversationId, parsed.data.role, parsed.data.content);
+      const hints = getConvHints(parsed.data.conversationId, parsed.data.content);
+
+      res.json({ success: true, turn, hints });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Turn processing failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/ai/enhanced/conversation/:id", async (req, res) => {
+    try {
+      const state = getConvState(req.params.id);
+      if (!state) {
+        return res.status(404).json({ error: 'Conversation not found' });
+      }
+
+      const summary = getConversationSummary(req.params.id);
+      res.json({ success: true, conversation: state, summary });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Conversation lookup failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.post("/api/ai/enhanced/conversation/memory", async (req, res) => {
+    try {
+      const schema = z.object({
+        conversationId: z.string().min(1),
+        query: z.string().min(1),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const memory = getRelevantMemory(parsed.data.conversationId, parsed.data.query);
+      res.json({ success: true, memory });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Memory retrieval failed';
       res.status(500).json({ error: message });
     }
   });
