@@ -72,7 +72,15 @@ export function LiveCodeRunner({
       code = code.replace(/interface\s+\w+(\s+extends\s+\w+)?\s*\{[^}]*\}/gs, '');
       code = code.replace(/type\s+\w+\s*=\s*[^;]+;/g, '');
       code = code.replace(/as\s+\w+(\[\])?/g, '');
-      code = code.replace(/<[A-Z]\w*>/g, ''); // Generic types like <T>
+      // Remove generic type parameters - only single letter generics to avoid matching JSX tags
+      code = code.replace(/<[A-Z]>/g, ''); // Single letter generics like <T>, <K>
+      code = code.replace(/<[A-Z],\s*[A-Z]>/g, ''); // Double generics like <K, V>
+      // Remove custom type annotations on function parameters (e.g. props: MyProps)
+      code = code.replace(/(\w+)\s*:\s*[A-Z]\w*Props/g, '$1');
+      code = code.replace(/(\w+)\s*:\s*[A-Z]\w*Type/g, '$1');
+      // Remove any remaining type annotations after variable/parameter names
+      code = code.replace(/(\([\w\s,]*\w)\s*:\s*[A-Z]\w*\s*(\))/g, '$1$2');
+      code = code.replace(/(\w+)\s*:\s*[A-Z]\w+(?=[,\)])/g, '$1');
       
       // Convert exports
       code = code.replace(/export\s+default\s+function\s+(\w+)/g, 'function $1');
@@ -86,15 +94,44 @@ export function LiveCodeRunner({
     // Find the App component
     const appCode = componentMap['App'] || '';
     
+    // Components provided by our mock library - don't include user versions
+    const builtInMocks = new Set([
+      'Switch', 'Router', 'Route', 'Link', 'Button', 'Card', 'CardHeader', 'CardTitle', 
+      'CardDescription', 'CardContent', 'CardFooter', 'Input', 'Label', 'Badge', 
+      'Separator', 'Avatar', 'AvatarImage', 'AvatarFallback', 'ScrollArea', 'Tabs', 
+      'TabsList', 'TabsTrigger', 'TabsContent', 'Select', 'SelectTrigger', 'SelectValue', 
+      'SelectContent', 'SelectItem', 'Checkbox', 'Textarea', 'Progress', 'Slider', 
+      'Dialog', 'DialogTrigger', 'DialogContent', 'DialogHeader', 'DialogTitle', 
+      'DialogDescription', 'DialogFooter', 'Table', 'TableHeader', 'TableBody', 
+      'TableRow', 'TableHead', 'TableCell', 'DropdownMenu', 'DropdownMenuTrigger', 
+      'DropdownMenuContent', 'DropdownMenuItem', 'DropdownMenuSeparator', 'Tooltip', 
+      'TooltipTrigger', 'TooltipContent', 'TooltipProvider', 'Form', 'FormField', 
+      'FormItem', 'FormLabel', 'FormControl', 'FormDescription', 'FormMessage',
+      'Layout', 'Navbar', 'Sidebar', 'Header', 'Footer', 'QueryClient', 'QueryClientProvider'
+    ]);
+    
     // Find page components
     const pageComponents = Object.entries(componentMap)
       .filter(([name]) => name.includes('Page') || name === 'Home' || name === 'Dashboard' || name === 'Login' || name === 'Register' || name === 'Settings' || name === 'NotFound')
       .map(([_, code]) => code)
       .join('\n\n');
     
-    // Find other components
+    // Page names to exclude from otherComponents (these are in pageComponents)
+    const pageNames = new Set(['Home', 'Dashboard', 'Login', 'Register', 'Settings', 'NotFound']);
+    
+    // Find other components (excluding built-in mocks, test files, pages, and problematic files)
     const otherComponents = Object.entries(componentMap)
-      .filter(([name]) => !name.includes('Page') && name !== 'App' && name !== 'main' && name !== 'index')
+      .filter(([name]) => 
+        !name.includes('Page') && 
+        name !== 'App' && 
+        name !== 'main' && 
+        name !== 'index' &&
+        !builtInMocks.has(name) &&
+        !pageNames.has(name) && // Exclude page names that don't have 'Page' suffix
+        !name.includes('.test') &&
+        !name.includes('.spec') &&
+        !name.includes('test') // exclude test files
+      )
       .map(([_, code]) => code)
       .join('\n\n');
 
@@ -106,10 +143,10 @@ export function LiveCodeRunner({
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${projectName}</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
   <style>
     ${cssContent}
     * { box-sizing: border-box; }
@@ -118,7 +155,18 @@ export function LiveCodeRunner({
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root"><div style="padding:20px;text-align:center;color:#666;">Loading preview...</div></div>
+  <script>
+    // Global error handler
+    window.onerror = function(msg, url, line, col, error) {
+      var errorMsg = error && error.stack ? error.stack : (msg || 'Unknown error');
+      document.getElementById('root').innerHTML = '<div style="padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;margin:20px;font-family:system-ui;"><strong>Preview Error:</strong><br/><pre style="white-space:pre-wrap;margin-top:8px;font-size:11px;max-height:300px;overflow:auto;">' + errorMsg + '</pre></div>';
+      return true;
+    };
+    window.addEventListener('unhandledrejection', function(e) {
+      document.getElementById('root').innerHTML = '<div style="padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;margin:20px;font-family:system-ui;"><strong>Preview Error:</strong><br/><pre style="white-space:pre-wrap;margin-top:8px;font-size:11px;">' + (e.reason || 'Unhandled promise rejection') + '</pre></div>';
+    });
+  </script>
   <script type="text/babel" data-presets="react,typescript">
     // React hooks and utilities
     const { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, Fragment } = React;
@@ -136,7 +184,7 @@ export function LiveCodeRunner({
       }
       return null;
     }
-    function Switch({ children }) {
+    function RouteSwitch({ children }) {
       const { path: currentPath } = useContext(RouteContext);
       const routes = React.Children.toArray(children);
       for (const route of routes) {
@@ -532,7 +580,7 @@ export function LiveCodeRunner({
     const Bluetooth = (props) => React.createElement(IconBase, props, React.createElement('polyline', { points: '6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5' }));
     const Power = (props) => React.createElement(IconBase, props, React.createElement('path', { d: 'M18.36 6.64a9 9 0 1 1-12.73 0' }), React.createElement('line', { x1: 12, y1: 2, x2: 12, y2: 12 }));
     const ExternalLink = (props) => React.createElement(IconBase, props, React.createElement('path', { d: 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' }), React.createElement('polyline', { points: '15 3 21 3 21 9' }), React.createElement('line', { x1: 10, y1: 14, x2: 21, y2: 3 }));
-    const Link = (props) => React.createElement(IconBase, props, React.createElement('path', { d: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71' }), React.createElement('path', { d: 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' }));
+    const LinkIcon = (props) => React.createElement(IconBase, props, React.createElement('path', { d: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71' }), React.createElement('path', { d: 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' }));
     const Paperclip = (props) => React.createElement(IconBase, props, React.createElement('path', { d: 'M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48' }));
     const Play = (props) => React.createElement(IconBase, props, React.createElement('polygon', { points: '5 3 19 12 5 21 5 3' }));
     const Pause = (props) => React.createElement(IconBase, props, React.createElement('rect', { x: 6, y: 4, width: 4, height: 16 }), React.createElement('rect', { x: 14, y: 4, width: 4, height: 16 }));
@@ -562,8 +610,8 @@ export function LiveCodeRunner({
       return classes.filter(Boolean).join(' ');
     }
     
-    // Other components
-    ${otherComponents}
+    // Other components (disabled for now - rely on mocks to reduce Babel errors)
+    // ${otherComponents}
     
     // Page components
     ${pageComponents}
