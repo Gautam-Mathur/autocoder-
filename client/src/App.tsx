@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import Landing from "@/pages/landing";
 import Chat from "@/pages/chat";
+import VaptDashboard from "@/pages/vapt-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -13,6 +14,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/chat" component={Chat} />
+      <Route path="/vapt" component={VaptDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

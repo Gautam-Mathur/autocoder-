@@ -1,13 +1,31 @@
 // AI-Powered Unlimited Full-Stack Application Generator
-// Uses GPT-5 to dynamically generate complete runnable applications
+// Uses Local LLM (Ollama) as primary, falls back to OpenAI when unavailable
+// Local LLM = FREE, no API costs
 
 import OpenAI from "openai";
 import { Response } from "express";
+import { isLocalLLMAvailable, generateWithLocalLLM, LOCAL_CODE_SYSTEM_PROMPT, extractJSON } from "./local-llm-client";
+import { cleanCodeArtifacts, cleanProjectFiles } from "./code-cleaner";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+// OpenAI is optional - only used as fallback
+let openai: OpenAI | null = null;
+try {
+  if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+} catch (e) {
+  console.log('[AI Generator] OpenAI not configured - using local LLM only');
+}
+
+// Check if we can use any AI
+export async function isAIAvailable(): Promise<{ local: boolean; cloud: boolean }> {
+  const localAvailable = await isLocalLLMAvailable();
+  const cloudAvailable = openai !== null && !!process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  return { local: localAvailable, cloud: cloudAvailable };
+}
 
 export interface GeneratedFile {
   path: string;
@@ -146,17 +164,71 @@ export async function generateFullStackAppStream(
   };
 
   try {
-    sendProgress('analyzing', 'Understanding your requirements...', 10);
+    // Check AI availability - prefer local LLM (free) over cloud
+    const aiStatus = await isAIAvailable();
+    const useLocalLLM = aiStatus.local;
+    const useCloud = !useLocalLLM && aiStatus.cloud && openai !== null;
+    
+    if (!useLocalLLM && !useCloud) {
+      sendError('No AI available. Start Ollama locally (ollama serve) or configure OpenAI API key.');
+      return;
+    }
 
-    // First pass: Analyze and plan
-    const planningResponse = await openai.chat.completions.create({
-      model: "gpt-5.2",
-      max_completion_tokens: 2000,
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert software architect. Analyze the user's request and create a detailed technical plan.
-          
+    sendProgress('analyzing', `Understanding requirements... (using ${useLocalLLM ? 'Local LLM - FREE' : 'Cloud AI'})`, 10);
+
+    let plan: any = {};
+    let fullContent = '';
+
+    if (useLocalLLM) {
+      // Use local LLM for generation
+      sendProgress('generating', 'Generating with Local LLM (free)...', 30);
+      
+      const localPrompt = `Create a full-stack application for: ${prompt}
+
+Output as JSON with structure:
+{
+  "name": "project-name",
+  "description": "what it does",
+  "files": [
+    {"path": "package.json", "content": "...", "language": "json"},
+    {"path": "server.js", "content": "...", "language": "javascript"},
+    {"path": "public/index.html", "content": "...", "language": "html"}
+  ],
+  "dependencies": ["express"],
+  "instructions": "npm install && node server.js"
+}
+
+Generate COMPLETE working code. No placeholders. No markdown. Pure JSON only.`;
+
+      try {
+        const rawContent = await generateWithLocalLLM(localPrompt, LOCAL_CODE_SYSTEM_PROMPT);
+        const extractedJSON = extractJSON(rawContent);
+        if (extractedJSON) {
+          fullContent = extractedJSON;
+          sendProgress('complete', 'Local LLM generation complete!', 100);
+        } else {
+          throw new Error('Local LLM did not return valid JSON');
+        }
+      } catch (localError: any) {
+        console.error('Local LLM failed:', localError);
+        if (useCloud && openai) {
+          sendProgress('fallback', 'Local LLM unavailable, using Cloud AI...', 40);
+        } else {
+          throw localError;
+        }
+      }
+    }
+    
+    // Fallback to OpenAI or if local failed
+    if (!fullContent && useCloud && openai) {
+      const planningResponse = await openai.chat.completions.create({
+        model: "gpt-5.2",
+        max_completion_tokens: 2000,
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert software architect. Analyze the user's request and create a detailed technical plan.
+            
 Return JSON:
 {
   "appName": "suggested-name",
@@ -167,19 +239,18 @@ Return JSON:
   "uiComponents": ["Header", "ItemList", "ItemForm"],
   "complexity": "simple|medium|complex"
 }`
-        },
-        { role: "user", content: prompt }
-      ],
-      response_format: { type: "json_object" }
-    });
+          },
+          { role: "user", content: prompt }
+        ],
+        response_format: { type: "json_object" }
+      });
 
-    const plan = JSON.parse(planningResponse.choices[0]?.message?.content || "{}");
-    sendProgress('planning', `Planning ${plan.appName || 'your app'}: ${plan.features?.length || 0} features, ${plan.apiEndpoints?.length || 0} endpoints`, 30);
+      plan = JSON.parse(planningResponse.choices[0]?.message?.content || "{}");
+      sendProgress('planning', `Planning ${plan.appName || 'your app'}: ${plan.features?.length || 0} features, ${plan.apiEndpoints?.length || 0} endpoints`, 30);
 
-    // Second pass: Generate the complete application
-    sendProgress('generating', 'Generating full-stack code...', 50);
+      sendProgress('generating', 'Generating full-stack code with Cloud AI...', 50);
 
-    const generationPrompt = `Build this application based on the user's request:
+      const generationPrompt = `Build this application based on the user's request:
 "${prompt}"
 
 Technical plan:
@@ -187,33 +258,32 @@ ${JSON.stringify(plan, null, 2)}
 
 Generate the COMPLETE application with ALL files. Every feature must be fully implemented with working code.`;
 
-    const stream = await openai.chat.completions.create({
-      model: "gpt-5.2",
-      max_completion_tokens: 16000,
-      stream: true,
-      messages: [
-        { role: "system", content: FULLSTACK_SYSTEM_PROMPT },
-        { role: "user", content: generationPrompt }
-      ],
-      response_format: { type: "json_object" }
-    });
+      const stream = await openai.chat.completions.create({
+        model: "gpt-5.2",
+        max_completion_tokens: 16000,
+        stream: true,
+        messages: [
+          { role: "system", content: FULLSTACK_SYSTEM_PROMPT },
+          { role: "user", content: generationPrompt }
+        ],
+        response_format: { type: "json_object" }
+      });
 
-    let fullContent = '';
-    let tokenCount = 0;
-    
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content || '';
-      fullContent += content;
-      tokenCount++;
+      let tokenCount = 0;
       
-      // Send progress updates periodically
-      if (tokenCount % 50 === 0) {
-        const progress = Math.min(50 + (tokenCount / 200) * 40, 90);
-        sendProgress('generating', `Generating code... (${Math.round(progress)}%)`, progress);
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        fullContent += content;
+        tokenCount++;
+        
+        if (tokenCount % 50 === 0) {
+          const progress = Math.min(50 + (tokenCount / 200) * 40, 90);
+          sendProgress('generating', `Generating code... (${Math.round(progress)}%)`, progress);
+        }
       }
-    }
 
-    sendProgress('complete', 'Generation complete!', 100);
+      sendProgress('complete', 'Cloud AI generation complete!', 100);
+    }
 
     // Parse and validate the generated project
     let project: GeneratedProject;
@@ -232,6 +302,13 @@ Generate the COMPLETE application with ALL files. Every feature must be fully im
         language: f.language || detectLanguage(f.path)
       }));
       
+      // Clean markdown artifacts and fix common issues
+      const { files: cleanedFiles, totalFixes: cleanFixes } = cleanProjectFiles(project.files);
+      if (cleanFixes > 0) {
+        console.log(`[AI Generator] Cleaned ${cleanFixes} markdown artifacts from code`);
+      }
+      project.files = cleanedFiles;
+
       // Auto-fix logic errors in generated code
       const { project: fixedProject, totalFixes } = fixProjectLogicErrors(project);
       if (totalFixes > 0) {
@@ -240,10 +317,10 @@ Generate the COMPLETE application with ALL files. Every feature must be fully im
       project = fixedProject;
       
     } catch (parseError) {
-      // Try to extract JSON from the response
-      const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        project = JSON.parse(jsonMatch[0]);
+      // Use extractJSON for consistent JSON extraction
+      const extractedJSON = extractJSON(fullContent);
+      if (extractedJSON) {
+        project = JSON.parse(extractedJSON);
       } else {
         throw new Error('Failed to parse generated project');
       }
@@ -261,7 +338,58 @@ Generate the COMPLETE application with ALL files. Every feature must be fully im
 // Synchronous generation (non-streaming)
 export async function generateFullStackApp(prompt: string): Promise<GeneratedProject> {
   
-  // Single comprehensive generation
+  // Try local LLM first (FREE)
+  const localAvailable = await isLocalLLMAvailable();
+  
+  if (localAvailable) {
+    const localPrompt = `Build this application: ${prompt}
+
+Generate a COMPLETE, RUNNABLE full-stack application with:
+- package.json with all dependencies
+- server.js with Express backend and REST API
+- public/index.html with full frontend UI
+- All features fully implemented with working code
+- Sample data pre-populated
+- Modern dark theme styling
+
+Output as JSON only, no markdown.`;
+
+    try {
+      const localContent = await generateWithLocalLLM(localPrompt, LOCAL_CODE_SYSTEM_PROMPT);
+      const jsonContent = extractJSON(localContent);
+      if (!jsonContent) {
+        throw new Error('Local LLM did not return valid JSON');
+      }
+      const project = JSON.parse(jsonContent);
+      if (project.name && project.files) {
+        project.files = project.files.map((f: any) => ({
+          path: f.path,
+          content: f.content,
+          language: f.language || detectLanguage(f.path)
+        }));
+        // Clean markdown artifacts
+        const { files: cleanedFiles, totalFixes: cleanFixes } = cleanProjectFiles(project.files);
+        if (cleanFixes > 0) {
+          console.log(`[Local LLM] Cleaned ${cleanFixes} markdown artifacts`);
+        }
+        project.files = cleanedFiles;
+        // Fix logic errors
+        const { project: fixedProject, totalFixes } = fixProjectLogicErrors(project);
+        if (totalFixes > 0) {
+          console.log(`[Local LLM] Auto-fixed ${totalFixes} logic errors`);
+        }
+        return fixedProject;
+      }
+    } catch (e) {
+      console.log('[Local LLM] Failed, falling back to cloud...');
+    }
+  }
+  
+  // Fallback to OpenAI if local LLM unavailable or failed
+  if (!openai) {
+    throw new Error('No AI available. Start Ollama locally or configure OpenAI API key.');
+  }
+
   const response = await openai.chat.completions.create({
     model: "gpt-5.2",
     max_completion_tokens: 16000,
@@ -301,6 +429,13 @@ Generate a COMPLETE, RUNNABLE full-stack application with:
     language: f.language || detectLanguage(f.path)
   }));
   
+  // Clean markdown artifacts from code
+  const { files: cleanedFiles, totalFixes: cleanFixes } = cleanProjectFiles(project.files);
+  if (cleanFixes > 0) {
+    console.log(`[AI Generator] Cleaned ${cleanFixes} markdown artifacts`);
+  }
+  project.files = cleanedFiles;
+
   // Auto-fix logic errors in generated code
   const { project: fixedProject, totalFixes } = fixProjectLogicErrors(project);
   if (totalFixes > 0) {
@@ -374,7 +509,23 @@ export async function generateFile(
     style: `Generate modern CSS for: ${description}. Use CSS variables, dark theme, responsive design.`,
     test: `Generate comprehensive tests for: ${description}. Include unit tests and integration tests.`
   };
+
+  // Try local LLM first
+  const localAvailable = await isLocalLLMAvailable();
+  if (localAvailable) {
+    try {
+      const content = await generateWithLocalLLM(prompts[fileType], 'Generate production-quality code. Return ONLY the code, no markdown, no explanations.');
+      const codeMatch = content.match(/```[\w]*\n([\s\S]*?)```/);
+      const code = codeMatch ? codeMatch[1] : content;
+      const extensions: Record<string, string> = { api: 'js', component: 'jsx', model: 'ts', style: 'css', test: 'test.js' };
+      return { path: `generated-${fileType}.${extensions[fileType]}`, content: code, language: fileType === 'style' ? 'css' : 'javascript' };
+    } catch (e) { /* fallback to cloud */ }
+  }
   
+  if (!openai) {
+    throw new Error('No AI available. Start Ollama locally or configure OpenAI API key.');
+  }
+
   const response = await openai.chat.completions.create({
     model: "gpt-5.2",
     max_completion_tokens: 4000,
@@ -415,6 +566,21 @@ export async function modifyCode(
   language: string = 'javascript'
 ): Promise<string> {
   
+  // Try local LLM first
+  const localAvailable = await isLocalLLMAvailable();
+  if (localAvailable) {
+    try {
+      const prompt = `Modify this ${language} code:\n\`\`\`${language}\n${existingCode}\n\`\`\`\n\nInstructions: ${instructions}\n\nReturn ONLY the modified code:`;
+      const content = await generateWithLocalLLM(prompt, 'You are a code modification assistant. Return ONLY the modified code, no explanations.');
+      const codeMatch = content.match(/```[\w]*\n([\s\S]*?)```/);
+      return codeMatch ? codeMatch[1] : content;
+    } catch (e) { /* fallback to cloud */ }
+  }
+  
+  if (!openai) {
+    throw new Error('No AI available. Start Ollama locally or configure OpenAI API key.');
+  }
+
   const response = await openai.chat.completions.create({
     model: "gpt-5.2",
     max_completion_tokens: 8000,

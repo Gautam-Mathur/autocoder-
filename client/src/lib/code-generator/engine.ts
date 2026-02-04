@@ -12,6 +12,7 @@ import { isFullyFunctionalRequest, generateFullStackApp, formatFullStackResponse
 import { debugCode, checkErrors, recordCodeChange, getDebugStats, CodeError } from "./debug-module";
 import { testCode, validateCode, generateTestReport, TestResult } from "./auto-tester";
 import { matchRunnableTemplate, RunnableProject } from "./runnable-templates";
+import { enhanceTemplate, polishCode, detectFeatures } from "./smart-enhancer";
 
 // Format runnable project as response with file blocks
 function formatRunnableProjectResponse(project: RunnableProject): string {
@@ -727,6 +728,24 @@ ${(() => {
     code = customizeTemplate(code, domain);
   }
   
+  // SMART ENHANCEMENT: Detect features and enhance template to AI-quality output
+  const features = detectFeatures(input);
+  const hasEnhancements = Object.values(features).some(v => v);
+  
+  if (template.language === "html") {
+    // Always polish for better quality
+    code = polishCode(code);
+    
+    // Apply smart enhancements if user requested specific features
+    if (hasEnhancements) {
+      code = enhanceTemplate({
+        baseCode: code,
+        userPrompt: input,
+        templateType: template.id
+      });
+    }
+  }
+  
   // ========== AUTO-DEBUG WHILE CODING ==========
   // Test and fix code BEFORE returning it to user
   let debugInfo = '';
@@ -771,6 +790,26 @@ ${(() => {
   response += "```" + template.language + "\n";
   response += code;
   response += "\n```\n\n";
+  
+  // Show detected enhancements
+  if (hasEnhancements && template.language === "html") {
+    const enhancedFeatures: string[] = [];
+    if (features.animations) enhancedFeatures.push('Smooth animations');
+    if (features.darkMode) enhancedFeatures.push('Dark/light mode toggle');
+    if (features.glassmorphism) enhancedFeatures.push('Glassmorphism effects');
+    if (features.gradients) enhancedFeatures.push('Gradient styling');
+    if (features.pricing) enhancedFeatures.push('Pricing section');
+    if (features.testimonials || features.socialProof) enhancedFeatures.push('Testimonials section');
+    if (features.faq) enhancedFeatures.push('FAQ section');
+    if (features.footer) enhancedFeatures.push('Full footer');
+    if (features.notifications) enhancedFeatures.push('Toast notifications');
+    if (features.modals) enhancedFeatures.push('Modal system');
+    if (features.search) enhancedFeatures.push('Search functionality');
+    
+    if (enhancedFeatures.length > 0) {
+      response += `✨ **Enhanced with:** ${enhancedFeatures.join(', ')}\n\n`;
+    }
+  }
   
   // Add helpful tips based on template type
   response += getTemplateTips(template.id);
