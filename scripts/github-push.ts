@@ -136,12 +136,17 @@ async function pushToGitHub() {
   console.log('⬆️  Uploading files...');
   const treeItems: { path: string; mode: '100644'; type: 'blob'; sha: string }[] = [];
   
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  
   let uploaded = 0;
   for (const filePath of files) {
     try {
       const fullPath = path.join(process.cwd(), filePath);
       const content = fs.readFileSync(fullPath);
       const isText = !content.includes(0x00); // Simple binary check
+      
+      // Add delay to avoid rate limiting
+      await delay(100);
       
       const { data: blob } = await octokit.git.createBlob({
         owner,
