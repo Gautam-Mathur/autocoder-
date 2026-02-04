@@ -813,35 +813,32 @@ function getTemplateTips(templateId: string): string {
 function generateFallbackResponse(input: string): string {
   const keywords = extractKeywords(input);
   
-  let response = "I'd love to help! Here's what I can build for you:\n\n";
+  let response = "🚀 **I can build ANY full-stack application for you!**\n\n";
   
-  response += "**Web Pages & UI**\n";
-  response += "• Landing pages with hero sections\n";
-  response += "• Contact forms with validation\n";
-  response += "• Card grids & product layouts\n";
-  response += "• Navigation bars & dashboards\n\n";
+  response += "**Instant Templates (Built-in):**\n";
+  response += "• Counter, Todo, Calculator, Weather, Chat\n";
+  response += "• E-commerce Store with cart & checkout\n";
+  response += "• Blog Platform with posts & comments\n";
+  response += "• Analytics Dashboard with charts\n";
+  response += "• Notes App with authentication\n";
+  response += "• Kanban Board with drag-and-drop\n\n";
   
-  response += "**JavaScript Utilities**\n";
-  response += "• API fetch wrappers\n";
-  response += "• LocalStorage managers\n";
-  response += "• Debounce & throttle functions\n";
-  response += "• Complete todo apps\n\n";
-  
-  response += "**React Components**\n";
-  response += "• Forms with validation\n";
-  response += "• Modal dialogs\n";
-  response += "• Custom hooks (useFetch)\n\n";
-  
-  response += "**CSS Patterns**\n";
-  response += "• Flexbox layouts\n";
-  response += "• CSS Grid systems\n";
-  response += "• Smooth animations\n\n";
+  response += "**🤖 AI-Powered Generation (Unlimited):**\n";
+  response += "For complex or custom requests, I use GPT-5 to generate:\n";
+  response += "• Complete Express.js backends with REST APIs\n";
+  response += "• Full React/Vite frontends with styling\n";
+  response += "• Database schemas and CRUD operations\n";
+  response += "• Authentication and user management\n";
+  response += "• Payment integration, real-time features\n";
+  response += "• ANY custom application you describe!\n\n";
   
   response += "**Try saying:**\n";
-  response += "• \"Create a landing page for my startup\"\n";
-  response += "• \"Build a contact form\"\n";
-  response += "• \"Make a React modal component\"\n";
-  response += "• \"CSS grid layout for products\"\n";
+  response += "• \"Build an e-commerce store\"\n";
+  response += "• \"Create a blog with posts and comments\"\n";
+  response += "• \"Make a project management dashboard\"\n";
+  response += "• \"Build a booking system with calendar\"\n";
+  response += "• \"Create a social media app with feed\"\n";
+  response += "• \"Build a CRM with customer tracking\"\n";
   
   if (keywords.length > 0) {
     response += `\n\n*I understood: ${keywords.slice(0, 5).join(", ")}*`;
