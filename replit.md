@@ -164,6 +164,14 @@ Preferred communication style: Simple, everyday language.
 - **lucide-react, react-icons**: Icon libraries.
 - **cmdk**: Command palette.
 
+### Live Preview System (Updated 2026-02-04)
+- **Architecture**: Uses blob URLs with sandboxed iframes to render generated React/TypeScript code in real-time.
+- **CDN Scripts**: React 18, ReactDOM 18, and Babel from jsdelivr.net with `crossorigin="anonymous"` for CORS compatibility.
+- **Security**: Sandboxed iframe with `allow-scripts allow-same-origin` to execute generated code safely.
+- **Error Handling**: Global error handlers, timeout fallbacks, and visible error messages for transpilation failures.
+- **COEP Compatibility**: Blob URLs bypass the parent page's Cross-Origin-Embedder-Policy restrictions.
+- **JSX Cleanup**: Regex patterns fix common malformed syntax patterns (e.g., `return (;`) before Babel transpilation.
+
 ### Key Backend Libraries
 - **drizzle-orm / drizzle-kit**: ORM and migrations.
 - **zod / drizzle-zod**: Schema validation.

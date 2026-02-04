@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { Play, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ export function LiveCodeRunner({
   height = "500px"
 }: LiveCodeRunnerProps) {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const previewHtml = useMemo(() => {
@@ -51,16 +52,22 @@ export function LiveCodeRunner({
       let code = file.content;
       
       // Fix common syntax errors in generated code
-      // Handle "return (;" pattern (semicolon after opening paren)
-      code = code.replace(/return\s*\(\s*;/g, 'return (');
-      // Handle "return (\n;" pattern (newline then semicolon)  
-      code = code.replace(/return\s*\(\s*\n\s*;/g, 'return (\n');
-      // Handle "return;(\n<" pattern
-      code = code.replace(/return\s*;(\s*<)/g, 'return ($1');
-      // Handle stray semicolons before JSX
+      // Handle all variations of "return (" with stray semicolons
+      code = code.replace(/return\s*\(\s*;+\s*/g, 'return (\n');
+      code = code.replace(/return\s*\(\s*\n\s*;+\s*/g, 'return (\n');
+      code = code.replace(/return\s*;+\s*\(/g, 'return (');
+      code = code.replace(/return\s*;+(\s*<)/g, 'return ($1');
+      // Remove stray semicolons between opening paren and JSX
+      code = code.replace(/\(\s*;+\s*(\n\s*<)/g, '($1');
+      code = code.replace(/\(\s*;+\s*</g, '(\n<');
+      // Handle stray semicolons before JSX tags
       code = code.replace(/;\s*(\n\s*<[A-Z])/g, '$1');
-      // Clean up any remaining "(\n;" patterns
-      code = code.replace(/\(\s*\n?\s*;(\s*\n?\s*<)/g, '($1');
+      // Clean up double/triple semicolons
+      code = code.replace(/;{2,}/g, ';');
+      // Fix "{ ;" patterns inside JSX
+      code = code.replace(/\{\s*;+\s*}/g, '{}');
+      // Remove empty statements that could cause issues
+      code = code.replace(/^\s*;\s*$/gm, '');
       
       // Remove all imports
       code = code.replace(/^import\s+.*$/gm, '');
@@ -143,19 +150,67 @@ export function LiveCodeRunner({
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${projectName}</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
   <style>
-    ${cssContent}
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    /* Inline Tailwind-like CSS utilities */
+    *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }
+    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; }
+    .container { width: 100%; margin-left: auto; margin-right: auto; padding-left: 1rem; padding-right: 1rem; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .flex-row { flex-direction: row; }
+    .items-center { align-items: center; }
+    .justify-center { justify-content: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-1 { gap: 0.25rem; } .gap-2 { gap: 0.5rem; } .gap-4 { gap: 1rem; } .gap-6 { gap: 1.5rem; }
+    .p-2 { padding: 0.5rem; } .p-4 { padding: 1rem; } .p-6 { padding: 1.5rem; } .p-8 { padding: 2rem; }
+    .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; } .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; } .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+    .m-2 { margin: 0.5rem; } .m-4 { margin: 1rem; } .mb-2 { margin-bottom: 0.5rem; } .mb-4 { margin-bottom: 1rem; } .mb-6 { margin-bottom: 1.5rem; }
+    .mt-2 { margin-top: 0.5rem; } .mt-4 { margin-top: 1rem; }
+    .w-full { width: 100%; } .h-full { height: 100%; }
+    .min-h-screen { min-height: 100vh; }
+    .text-sm { font-size: 0.875rem; } .text-base { font-size: 1rem; } .text-lg { font-size: 1.125rem; } .text-xl { font-size: 1.25rem; } .text-2xl { font-size: 1.5rem; } .text-3xl { font-size: 1.875rem; } .text-4xl { font-size: 2.25rem; }
+    .font-medium { font-weight: 500; } .font-semibold { font-weight: 600; } .font-bold { font-weight: 700; }
+    .text-center { text-align: center; }
+    .text-white { color: white; } .text-gray-500 { color: #6b7280; } .text-gray-600 { color: #4b5563; } .text-gray-700 { color: #374151; } .text-gray-800 { color: #1f2937; } .text-gray-900 { color: #111827; }
+    .text-indigo-600 { color: #4f46e5; } .text-blue-600 { color: #2563eb; }
+    .bg-white { background-color: white; } .bg-gray-50 { background-color: #f9fafb; } .bg-gray-100 { background-color: #f3f4f6; } .bg-gray-200 { background-color: #e5e7eb; }
+    .bg-indigo-500 { background-color: #6366f1; } .bg-indigo-600 { background-color: #4f46e5; } .bg-blue-500 { background-color: #3b82f6; } .bg-blue-600 { background-color: #2563eb; }
+    .rounded { border-radius: 0.25rem; } .rounded-md { border-radius: 0.375rem; } .rounded-lg { border-radius: 0.5rem; } .rounded-xl { border-radius: 0.75rem; } .rounded-2xl { border-radius: 1rem; } .rounded-full { border-radius: 9999px; }
+    .border { border-width: 1px; } .border-gray-200 { border-color: #e5e7eb; } .border-gray-300 { border-color: #d1d5db; }
+    .shadow { box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); } .shadow-md { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); } .shadow-lg { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); } .shadow-xl { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+    .overflow-hidden { overflow: hidden; } .overflow-auto { overflow: auto; }
+    .cursor-pointer { cursor: pointer; }
+    .transition { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+    .hover\\:bg-gray-100:hover { background-color: #f3f4f6; }
+    .hover\\:bg-indigo-700:hover { background-color: #4338ca; }
+    .space-y-2 > * + * { margin-top: 0.5rem; } .space-y-4 > * + * { margin-top: 1rem; } .space-y-6 > * + * { margin-top: 1.5rem; }
+    .space-x-2 > * + * { margin-left: 0.5rem; } .space-x-4 > * + * { margin-left: 1rem; }
+    .grid { display: grid; } .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); } .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .hidden { display: none; } .block { display: block; } .inline-block { display: inline-block; } .inline-flex { display: inline-flex; }
+    .relative { position: relative; } .absolute { position: absolute; } .fixed { position: fixed; }
+    .top-0 { top: 0; } .right-0 { right: 0; } .bottom-0 { bottom: 0; } .left-0 { left: 0; }
+    .z-10 { z-index: 10; } .z-50 { z-index: 50; }
+    .opacity-50 { opacity: 0.5; } .opacity-80 { opacity: 0.8; }
     .lucide { width: 1em; height: 1em; }
+    ${cssContent}
   </style>
 </head>
 <body>
-  <div id="root"><div style="padding:20px;text-align:center;color:#666;">Loading preview...</div></div>
+  <div id="root"><div style="padding:20px;text-align:center;color:#666;font-family:system-ui;">
+    <div id="load-status">Loading preview...</div>
+  </div></div>
+  <script>
+    // Update status as scripts load
+    document.getElementById('load-status').textContent = 'Loading scripts...';
+  </script>
+  <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"
+    onerror="document.getElementById('root').innerHTML='<div style=\\'padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;\\'>Error: Could not load React from CDN</div>'"></script>
+  <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"
+    onerror="document.getElementById('root').innerHTML='<div style=\\'padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;\\'>Error: Could not load ReactDOM from CDN</div>'"></script>
+  <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"
+    onerror="document.getElementById('root').innerHTML='<div style=\\'padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;\\'>Error: Could not load Babel from CDN</div>'"></script>
   <script>
     // Global error handler
     window.onerror = function(msg, url, line, col, error) {
@@ -619,8 +674,10 @@ export function LiveCodeRunner({
     // App component
     ${appCode}
     
-    // Render App
+    // Render App with timeout fallback
+    var renderAttempted = false;
     try {
+      renderAttempted = true;
       const root = ReactDOM.createRoot(document.getElementById('root'));
       if (typeof App !== 'undefined') {
         root.render(React.createElement(Router, null, React.createElement(App)));
@@ -637,19 +694,63 @@ export function LiveCodeRunner({
         ));
       }
     } catch (e) {
-      console.error('Preview error:', e);
-      document.getElementById('root').innerHTML = '<div style="padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;margin:20px;font-family:system-ui;"><strong>Preview Error:</strong><br/><pre style="white-space:pre-wrap;margin-top:8px;">' + e.message + '</pre></div>';
+      console.error('Preview render error:', e);
+      document.getElementById('root').innerHTML = '<div style="padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;margin:20px;font-family:system-ui;"><strong>Preview Error:</strong><br/><pre style="white-space:pre-wrap;margin-top:8px;font-size:12px;max-height:300px;overflow:auto;">' + (e.message || e) + '</pre></div>';
     }
+    
+    // Fallback: If root is still showing "Loading preview..." after 2s, show diagnostic
+    setTimeout(function() {
+      var rootEl = document.getElementById('root');
+      if (rootEl && rootEl.innerHTML.indexOf('Loading preview') !== -1) {
+        rootEl.innerHTML = '<div style="padding:20px;background:#fffbeb;color:#92400e;border-radius:8px;margin:20px;font-family:system-ui;"><strong>Preview Warning:</strong><p style="margin-top:8px;">Could not render the application. This may happen if:</p><ul style="margin-top:8px;padding-left:20px;"><li>The generated code has syntax errors</li><li>Required components are not defined</li><li>Transpilation failed silently</li></ul></div>';
+      }
+    }, 2000);
   </script>
 </body>
 </html>`;
   }, [files, projectName]);
 
+  // Create blob URL from previewHtml to bypass COEP restrictions
+  // Use a ref to track the previous URL and revoke it only after new one is set
+  const prevBlobUrl = useRef<string | null>(null);
+  
+  useEffect(() => {
+    if (!previewHtml) {
+      if (prevBlobUrl.current) {
+        URL.revokeObjectURL(prevBlobUrl.current);
+        prevBlobUrl.current = null;
+      }
+      setBlobUrl(null);
+      return;
+    }
+    
+    const blob = new Blob([previewHtml], { type: 'text/html' });
+    const newUrl = URL.createObjectURL(blob);
+    
+    // Revoke previous URL after setting new one
+    const oldUrl = prevBlobUrl.current;
+    prevBlobUrl.current = newUrl;
+    setBlobUrl(newUrl);
+    
+    // Delay revocation to ensure iframe has loaded new URL
+    if (oldUrl) {
+      setTimeout(() => URL.revokeObjectURL(oldUrl), 1000);
+    }
+    
+    return () => {
+      // Only revoke on unmount if we still have the current URL
+      if (prevBlobUrl.current) {
+        URL.revokeObjectURL(prevBlobUrl.current);
+        prevBlobUrl.current = null;
+      }
+    };
+  }, [previewHtml, refreshKey]);
+
   const handleRefresh = () => {
     setRefreshKey(k => k + 1);
   };
 
-  if (!previewHtml) {
+  if (!previewHtml || !blobUrl) {
     return (
       <div className="rounded-xl overflow-hidden border border-border bg-slate-900 p-8 text-center" style={{ height }} data-testid="live-code-runner">
         <AlertCircle className="w-8 h-8 text-slate-400 mx-auto mb-4" />
@@ -686,11 +787,11 @@ export function LiveCodeRunner({
       <iframe
         key={refreshKey}
         ref={iframeRef}
-        srcDoc={previewHtml}
+        src={blobUrl}
         className="flex-1 w-full bg-white border-0"
-        sandbox="allow-scripts allow-forms allow-modals allow-popups"
+        sandbox="allow-scripts allow-same-origin"
         title="Live Preview"
-        data-testid="live-preview-iframe"
+        data-testid={`live-preview-iframe-${projectName.replace(/\s+/g, '-').toLowerCase()}`}
       />
     </div>
   );

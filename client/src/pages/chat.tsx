@@ -275,6 +275,11 @@ export default function Chat() {
     enabled: !!activeConversationId,
   });
 
+  const { data: conversationFiles = [] } = useQuery<ProjectFile[]>({
+    queryKey: ["/api/conversations", activeConversationId, "files"],
+    enabled: !!activeConversationId,
+  });
+
   const createConversationMutation = useMutation({
     mutationFn: async (title: string) => {
       const res = await apiRequest("POST", "/api/conversations", { title });
@@ -683,6 +688,7 @@ export default function Chat() {
                         role={message.role as "user" | "assistant"}
                         content={message.content}
                         isStreaming={isStreaming && index === displayMessages.length - 1 && message.role === "assistant"}
+                        generatedFiles={conversationFiles.map(f => ({ path: f.path, content: f.content }))}
                       />
                     ))}
                     <div ref={messagesEndRef} />
