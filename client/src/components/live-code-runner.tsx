@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect, useRef } from "react";
-import { Play, RefreshCw, AlertCircle } from "lucide-react";
+import { useMemo, useState, useRef } from "react";
+import { Play, RefreshCw, AlertCircle, FileCode, Layers, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -22,7 +22,7 @@ export function LiveCodeRunner({
   height = "500px"
 }: LiveCodeRunnerProps) {
   const [refreshKey, setRefreshKey] = useState(0);
-  const [hasError, setHasError] = useState(false);
+  const [activeView, setActiveView] = useState<'preview' | 'structure'>('preview');
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const hasReactFiles = useMemo(() => {
@@ -39,11 +39,35 @@ export function LiveCodeRunner({
     return files.some(f => f.path.endsWith('.html'));
   }, [files]);
 
-  const previewHtml = useMemo(() => {
+  // Analyze project complexity
+  const projectAnalysis = useMemo(() => {
+    const tsxFiles = files.filter(f => f.path.endsWith('.tsx') || f.path.endsWith('.jsx'));
+    const cssFiles = files.filter(f => f.path.endsWith('.css'));
+    const hasRouting = files.some(f => 
+      f.content.includes('from "wouter"') || 
+      f.content.includes("from 'wouter'") ||
+      f.content.includes('react-router')
+    );
+    const pages = files.filter(f => f.path.includes('/pages/'));
+    const components = files.filter(f => f.path.includes('/components/'));
+    
+    return {
+      tsxFiles,
+      cssFiles,
+      hasRouting,
+      pages,
+      components,
+      isComplex: hasRouting || pages.length > 2 || components.length > 5
+    };
+  }, [files]);
+
+  // Extract meaningful content to render
+  const previewContent = useMemo(() => {
+    // For simple HTML projects
     if (!hasReactFiles && hasHtmlFiles) {
       const htmlFile = files.find(f => f.path.endsWith('.html'));
       const cssFiles = files.filter(f => f.path.endsWith('.css'));
-      const jsFiles = files.filter(f => f.path.endsWith('.js'));
+      const jsFiles = files.filter(f => f.path.endsWith('.js') && !f.path.endsWith('.tsx'));
       
       let html = htmlFile?.content || '';
       html = html.replace(
@@ -54,178 +78,271 @@ export function LiveCodeRunner({
         `<script>${jsFiles.map(f => f.content).join('\n')}</script></body>`
       );
       
-      return html;
+      return { type: 'html' as const, content: html };
     }
 
+    // For React projects, try to build a meaningful preview
     if (hasReactFiles) {
-      const tsxFiles = files.filter(f => 
-        f.path.endsWith('.tsx') || 
-        f.path.endsWith('.jsx')
-      );
-      const cssFiles = files.filter(f => f.path.endsWith('.css'));
-
-      const appFile = tsxFiles.find(f => 
-        f.path.toLowerCase().includes('app.tsx') || 
-        f.path.toLowerCase().includes('app.jsx')
-      ) || tsxFiles[0];
-
-      if (!appFile) return '';
-
-      let componentCode = appFile.content;
+      const { pages, components, hasRouting, tsxFiles, cssFiles } = projectAnalysis;
       
-      componentCode = componentCode
-        .replace(/^import\s+.*?['"][^'"]+['"];?\s*$/gm, '')
-        .replace(/^import\s+\{[^}]*\}\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
-        .replace(/^import\s+type\s+.*?;?\s*$/gm, '')
-        .replace(/:\s*React\.\w+(<[^>]+>)?/g, '')
-        .replace(/:\s*(string|number|boolean|any|void|null|undefined|FC|FunctionComponent)(\[\])?/g, '')
-        .replace(/:\s*\{[^}]+\}/g, '')
-        .replace(/interface\s+\w+\s*\{[^}]*\}/g, '')
-        .replace(/type\s+\w+\s*=\s*[^;]+;/g, '')
-        .replace(/as\s+\w+(\[\])?/g, '')
-        .replace(/<\w+>/g, '')
-        .replace(/export\s+default\s+/g, 'const __App__ = ')
-        .replace(/export\s+function\s+(\w+)/g, 'function $1')
-        .replace(/export\s+const\s+/g, 'const ');
+      // Collect all component code
+      const allComponents: Record<string, string> = {};
       
-      const componentMatch = componentCode.match(/(?:function|const)\s+(__App__|App|Main|Home|Page)\b/);
-      const componentName = componentMatch ? componentMatch[1] : '__App__';
+      for (const file of tsxFiles) {
+        const name = file.path.split('/').pop()?.replace(/\.(tsx|jsx)$/, '') || '';
+        let code = file.content;
+        
+        // Clean up the code for browser execution
+        // Fix syntax errors like "return (;"
+        code = code.replace(/return\s*\(\s*;/g, 'return (');
+        
+        // Remove import statements
+        code = code.replace(/^import\s+.*?['"][^'"]+['"];?\s*$/gm, '');
+        code = code.replace(/^import\s+\{[^}]*\}\s+from\s+['"][^'"]+['"];?\s*$/gm, '');
+        code = code.replace(/^import\s+type\s+.*?;?\s*$/gm, '');
+        
+        // Remove TypeScript type annotations
+        code = code.replace(/:\s*React\.\w+(<[^>]+>)?/g, '');
+        code = code.replace(/:\s*(string|number|boolean|any|void|null|undefined|FC|FunctionComponent)(\[\])?/g, '');
+        code = code.replace(/:\s*\{[^}]+\}/g, '');
+        code = code.replace(/interface\s+\w+\s*\{[^}]*\}/g, '');
+        code = code.replace(/type\s+\w+\s*=\s*[^;]+;/g, '');
+        code = code.replace(/as\s+\w+(\[\])?/g, '');
+        code = code.replace(/<\w+>/g, '');
+        
+        // Convert exports to const declarations
+        code = code.replace(/export\s+default\s+function\s+(\w+)/g, 'const $1 = function');
+        code = code.replace(/export\s+function\s+(\w+)/g, 'const $1 = function');
+        code = code.replace(/export\s+const\s+/g, 'const ');
+        code = code.replace(/export\s+default\s+/g, 'const __default__ = ');
+        
+        allComponents[name] = code;
+      }
       
+      // CSS content
       const cssContent = cssFiles.map(f => f.content).join('\n');
+      
+      // Build the page structure display
+      const pageNames = pages.map(p => {
+        const name = p.path.split('/').pop()?.replace(/\.(tsx|jsx)$/, '') || '';
+        return name;
+      });
+      
+      const componentNames = components.map(c => {
+        const name = c.path.split('/').pop()?.replace(/\.(tsx|jsx)$/, '') || '';
+        return name;
+      });
 
+      // Create a showcase of the project
+      return {
+        type: 'react' as const,
+        pages: pageNames,
+        components: componentNames,
+        hasRouting,
+        cssContent,
+        allComponents,
+        totalFiles: files.length
+      };
+    }
+
+    return null;
+  }, [files, hasReactFiles, hasHtmlFiles, projectAnalysis]);
+
+  const previewHtml = useMemo(() => {
+    if (!previewContent) return '';
+    
+    if (previewContent.type === 'html') {
+      return previewContent.content;
+    }
+
+    if (previewContent.type === 'react') {
+      const { pages, components, hasRouting, cssContent, totalFiles } = previewContent;
+      
+      // Create a visual showcase of the generated project
       return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${projectName}</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     ${cssContent}
-    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: system-ui, -apple-system, sans-serif; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .preview-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      overflow: hidden;
+      max-width: 100%;
+    }
+    .preview-header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 20px 24px;
+      color: white;
+    }
+    .preview-body {
+      padding: 24px;
+    }
+    .route-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+    .route-item:hover {
+      background: #eef2ff;
+      border-color: #6366f1;
+    }
+    .route-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .component-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      margin: 4px;
+    }
+    .stat-box {
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: #6366f1;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel" data-presets="react,typescript">
-    const { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, Fragment } = React;
+  <div class="preview-card">
+    <div class="preview-header">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+        <h1 style="font-size: 18px; font-weight: 600;">${projectName}</h1>
+      </div>
+      <p style="font-size: 14px; opacity: 0.8;">Full-stack React + TypeScript application</p>
+    </div>
     
-    // Mock common imports for standalone preview
-    const Link = ({to, href, children, className, ...props}) => React.createElement('a', {href: to || href || '#', className, ...props}, children);
-    const Route = ({path, component: C}) => React.createElement(C || 'div');
-    const Switch = ({children}) => React.createElement('div', null, children);
-    const useLocation = () => [window.location.pathname, (p) => {}];
-    const useQuery = (opts) => ({ data: opts?.initialData || [], isLoading: false, error: null, refetch: () => {} });
-    const useMutation = (opts) => ({ mutate: opts?.onMutate || (() => {}), mutateAsync: async () => {}, isPending: false, isSuccess: false });
-    const QueryClient = function() { return {}; };
-    const QueryClientProvider = ({children}) => children;
-    
-    // Mock UI components
-    const Button = ({children, variant, size, className, disabled, onClick, type, ...props}) => 
-      React.createElement('button', {
-        className: \`inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors px-4 py-2 \${variant === 'outline' ? 'border border-gray-300 bg-transparent hover:bg-gray-100' : variant === 'ghost' ? 'hover:bg-gray-100' : variant === 'destructive' ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-blue-500 text-white hover:bg-blue-600'} \${size === 'sm' ? 'h-8 px-3' : size === 'lg' ? 'h-11 px-8' : 'h-10'} \${disabled ? 'opacity-50 cursor-not-allowed' : ''} \${className || ''}\`,
-        disabled,
-        onClick,
-        type: type || 'button',
-        ...props
-      }, children);
-    
-    const Card = ({children, className, ...props}) => 
-      React.createElement('div', {className: \`bg-white dark:bg-gray-800 rounded-lg border shadow-sm \${className || ''}\`, ...props}, children);
-    const CardHeader = ({children, className, ...props}) => 
-      React.createElement('div', {className: \`flex flex-col space-y-1.5 p-6 \${className || ''}\`, ...props}, children);
-    const CardTitle = ({children, className, ...props}) => 
-      React.createElement('h3', {className: \`text-2xl font-semibold leading-none tracking-tight \${className || ''}\`, ...props}, children);
-    const CardDescription = ({children, className, ...props}) => 
-      React.createElement('p', {className: \`text-sm text-gray-500 \${className || ''}\`, ...props}, children);
-    const CardContent = ({children, className, ...props}) => 
-      React.createElement('div', {className: \`p-6 pt-0 \${className || ''}\`, ...props}, children);
-    const CardFooter = ({children, className, ...props}) => 
-      React.createElement('div', {className: \`flex items-center p-6 pt-0 \${className || ''}\`, ...props}, children);
-    
-    const Input = ({className, type, ...props}) => 
-      React.createElement('input', {type: type || 'text', className: \`flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 \${className || ''}\`, ...props});
-    
-    const Label = ({children, className, htmlFor, ...props}) => 
-      React.createElement('label', {className: \`text-sm font-medium leading-none \${className || ''}\`, htmlFor, ...props}, children);
-    
-    const Badge = ({children, variant, className}) => 
-      React.createElement('span', {className: \`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold \${variant === 'destructive' ? 'bg-red-100 text-red-800' : variant === 'outline' ? 'border' : variant === 'secondary' ? 'bg-gray-100 text-gray-800' : 'bg-blue-100 text-blue-800'} \${className || ''}\`}, children);
-    
-    const Separator = ({className, orientation, ...props}) => 
-      React.createElement('div', {className: \`shrink-0 bg-gray-200 \${orientation === 'vertical' ? 'h-full w-[1px]' : 'h-[1px] w-full'} \${className || ''}\`, ...props});
-    
-    const Avatar = ({children, className, ...props}) => 
-      React.createElement('div', {className: \`relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full \${className || ''}\`, ...props}, children);
-    const AvatarImage = ({src, alt, className, ...props}) => 
-      React.createElement('img', {src, alt, className: \`aspect-square h-full w-full \${className || ''}\`, ...props});
-    const AvatarFallback = ({children, className, ...props}) => 
-      React.createElement('div', {className: \`flex h-full w-full items-center justify-center rounded-full bg-gray-100 \${className || ''}\`, ...props}, children);
-    
-    const Layout = ({children}) => React.createElement('div', {className: 'min-h-screen bg-gray-50 dark:bg-gray-900'}, children);
-    const Navbar = ({children}) => React.createElement('nav', {className: 'bg-white dark:bg-gray-800 border-b px-4 py-3'}, children);
-    const Sidebar = ({children}) => React.createElement('aside', {className: 'w-64 bg-white dark:bg-gray-800 border-r p-4'}, children);
-    
-    // Mock page components
-    const HomePage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, 'Home Page'));
-    const DashboardPage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, 'Dashboard'));
-    const LoginPage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, 'Login'));
-    const RegisterPage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, 'Register'));
-    const SettingsPage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, 'Settings'));
-    const NotFoundPage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, '404 Not Found'));
-    
-    // Mock icons (simple SVG placeholders)
-    const IconPlaceholder = ({className}) => React.createElement('svg', {className: className || 'w-4 h-4', fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor'}, 
-      React.createElement('circle', {cx: '12', cy: '12', r: '10', strokeWidth: '2'}));
-    const Home = IconPlaceholder;
-    const Settings = IconPlaceholder;
-    const User = IconPlaceholder;
-    const Menu = IconPlaceholder;
-    const X = IconPlaceholder;
-    const Plus = IconPlaceholder;
-    const Search = IconPlaceholder;
-    const Bell = IconPlaceholder;
-    const Mail = IconPlaceholder;
-    const Calendar = IconPlaceholder;
-    const Check = IconPlaceholder;
-    const ChevronRight = IconPlaceholder;
-    const ChevronDown = IconPlaceholder;
-    const ArrowRight = IconPlaceholder;
-    const Star = IconPlaceholder;
-    const Heart = IconPlaceholder;
-    const Share = IconPlaceholder;
-    const Edit = IconPlaceholder;
-    const Trash = IconPlaceholder;
-    const LogOut = IconPlaceholder;
-    const Eye = IconPlaceholder;
-    const EyeOff = IconPlaceholder;
-    
-    // User component code
-    ${componentCode}
-    
-    // Render
-    try {
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(React.createElement(${componentName === '__App__' ? '__App__' : componentName}));
-    } catch (e) {
-      console.error(e);
-      document.getElementById('root').innerHTML = '<div style="padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;margin:20px;"><strong>Preview Error:</strong><br/>' + e.message + '</div>';
-    }
-  </script>
+    <div class="preview-body">
+      <!-- Stats Row -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+        <div class="stat-box">
+          <div class="stat-number">${totalFiles}</div>
+          <div class="stat-label">Files</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">${pages.length}</div>
+          <div class="stat-label">Pages</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">${components.length}</div>
+          <div class="stat-label">Components</div>
+        </div>
+      </div>
+      
+      ${pages.length > 0 ? `
+      <!-- Routes Section -->
+      <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12h18M3 6h18M3 18h18"></path>
+          </svg>
+          Application Pages
+        </h3>
+        ${pages.map((page, i) => `
+          <div class="route-item">
+            <div class="route-icon">${page.charAt(0).toUpperCase()}</div>
+            <div>
+              <div style="font-weight: 500; color: #1f2937;">${page}</div>
+              <div style="font-size: 12px; color: #6b7280;">/${page.toLowerCase() === 'home' ? '' : page.toLowerCase()}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      ` : ''}
+      
+      ${components.length > 0 ? `
+      <!-- Components Section -->
+      <div>
+        <h3 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Components
+        </h3>
+        <div style="display: flex; flex-wrap: wrap;">
+          ${components.slice(0, 12).map(comp => `
+            <span class="component-tag">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
+              ${comp}
+            </span>
+          `).join('')}
+          ${components.length > 12 ? `<span class="component-tag">+${components.length - 12} more</span>` : ''}
+        </div>
+      </div>
+      ` : ''}
+      
+      <!-- Tech Stack -->
+      <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <span style="background: #61dafb20; color: #61dafb; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 500;">React</span>
+          <span style="background: #3178c620; color: #3178c6; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 500;">TypeScript</span>
+          ${hasRouting ? '<span style="background: #f4364820; color: #f43648; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 500;">Router</span>' : ''}
+          <span style="background: #38bdf820; color: #0ea5e9; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 500;">Tailwind</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>`;
     }
 
     return '';
-  }, [files, hasReactFiles, hasHtmlFiles, projectName]);
-
-  useEffect(() => {
-    setHasError(false);
-  }, [previewHtml, refreshKey]);
+  }, [previewContent, projectName]);
 
   const handleRefresh = () => {
     setRefreshKey(k => k + 1);
