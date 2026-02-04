@@ -618,12 +618,12 @@ export default function Chat() {
               {aiMode === "cloud" ? (
                 <>
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span>Cloud AI</span>
+                  <span>AI Ready</span>
                 </>
               ) : (
                 <>
                   <Cpu className="w-3 h-3 text-primary" />
-                  <span>Local Engine</span>
+                  <span>AI Ready (Offline)</span>
                 </>
               )}
             </div>
@@ -694,7 +694,7 @@ export default function Chat() {
                 <ChatInput
                   onSend={handleSendMessage}
                   isLoading={isStreaming}
-                  placeholder={activeConversationId ? "Continue the conversation..." : "Describe what you want to build..."}
+                  placeholder={activeConversationId ? "What would you like to change or add?" : "Tell me what app you'd like me to build..."}
                   conversationId={activeConversationId}
                   onFilesUploaded={() => {
                     queryClient.invalidateQueries({ queryKey: ["/api/conversations", activeConversationId, "files"] });

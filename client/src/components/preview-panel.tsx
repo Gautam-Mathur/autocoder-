@@ -1,6 +1,8 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles, Brain, Rocket, TestTube, Play, Terminal } from "lucide-react";
+import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles, Brain, Rocket, TestTube, Play, Terminal, Download, HelpCircle } from "lucide-react";
+import { downloadProjectAsZip } from "@/lib/code-runner/zip-export";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { IntelligencePanel } from "@/components/IntelligencePanel";
 import { DeploymentPanel } from "@/components/deployment-panel";
 import { ErrorFixerPanel } from "@/components/error-fixer-panel";
@@ -542,6 +544,160 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
     const jsFiles = files.filter((f) => f.path.toLowerCase().endsWith(".js") || f.language === "javascript");
 
     if (!htmlFile) {
+      // Check for TSX/JSX React files
+      const tsxFiles = files.filter((f) => 
+        f.path.toLowerCase().endsWith(".tsx") || 
+        f.path.toLowerCase().endsWith(".jsx") ||
+        f.language === "tsx" || 
+        f.language === "jsx"
+      );
+      
+      // Find main App component
+      const appFile = tsxFiles.find((f) => 
+        f.path.toLowerCase().includes("app.tsx") || 
+        f.path.toLowerCase().includes("app.jsx") ||
+        f.path.toLowerCase().includes("main.tsx") ||
+        f.path.toLowerCase().includes("index.tsx")
+      ) || tsxFiles[0];
+      
+      if (appFile && !isServerSideOnly) {
+        // Extract component code and create a React preview
+        let componentCode = appFile.content;
+        
+        // Remove all import statements entirely
+        componentCode = componentCode
+          .replace(/^import\s+.*?['"][^'"]+['"];?\s*$/gm, '')
+          .replace(/^import\s+\{[^}]*\}\s+from\s+['"][^'"]+['"];?\s*$/gm, '')
+          .replace(/^import\s+type\s+.*?;?\s*$/gm, '')
+          // Remove TypeScript types
+          .replace(/:\s*React\.\w+(<[^>]+>)?/g, '')
+          .replace(/:\s*(string|number|boolean|any|void|null|undefined|FC|FunctionComponent)(\[\])?/g, '')
+          .replace(/:\s*\{[^}]+\}/g, '')
+          .replace(/interface\s+\w+\s*\{[^}]*\}/g, '')
+          .replace(/type\s+\w+\s*=\s*[^;]+;/g, '')
+          .replace(/as\s+\w+(\[\])?/g, '')
+          .replace(/<\w+>/g, '') // Remove generic type parameters
+          // Handle exports
+          .replace(/export\s+default\s+/g, 'const __App__ = ')
+          .replace(/export\s+function\s+(\w+)/g, 'function $1')
+          .replace(/export\s+const\s+/g, 'const ');
+        
+        // Find the main component name
+        const componentMatch = componentCode.match(/(?:function|const)\s+(__App__|App|Main|Home|Page)\b/);
+        const componentName = componentMatch ? componentMatch[1] : '__App__';
+        
+        // Get CSS files for styling
+        const cssContent = cssFiles.map((f) => f.content).join("\n");
+        
+        // Check if code has too many undefined component references (complex app)
+        const componentRefs = componentCode.match(/<[A-Z][A-Za-z]+/g) || [];
+        const isComplexApp = componentRefs.length > 5;
+        
+        if (isComplexApp) {
+          // Show info card for complex multi-file apps
+          return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Project</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #e0e0e0; padding: 40px; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { max-width: 600px; text-align: center; }
+    h2 { color: #61dafb; margin-bottom: 16px; }
+    p { line-height: 1.6; color: #94a3b8; margin-bottom: 12px; }
+    .icon { font-size: 64px; margin-bottom: 24px; }
+    .files { background: #0a0a1a; border: 1px solid #333; padding: 16px; border-radius: 8px; margin-top: 24px; text-align: left; }
+    .files h4 { color: #61dafb; margin: 0 0 12px 0; font-size: 14px; }
+    .file-list { font-family: monospace; font-size: 12px; color: #4ade80; }
+    .file-list div { padding: 2px 0; }
+    .count { color: #f59e0b; font-weight: bold; }
+    .tip { background: #1e293b; border-left: 3px solid #61dafb; padding: 12px; margin-top: 16px; text-align: left; }
+    .tip code { background: #334155; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">⚛️</div>
+    <h2>React + TypeScript Project Generated!</h2>
+    <p>Created <span class="count">${files.length} files</span> for a complete full-stack application.</p>
+    <div class="files">
+      <h4>Generated Components (${tsxFiles.length} files):</h4>
+      <div class="file-list">
+        ${tsxFiles.slice(0, 8).map(f => `<div>📄 ${f.path}</div>`).join('')}
+        ${tsxFiles.length > 8 ? `<div style="color:#94a3b8">...and ${tsxFiles.length - 8} more components</div>` : ''}
+      </div>
+    </div>
+    <div class="tip">
+      <strong>To run this project:</strong><br/>
+      1. Export/download the files<br/>
+      2. Run <code>npm install</code><br/>
+      3. Run <code>npm run dev</code>
+    </div>
+  </div>
+</body>
+</html>`;
+        }
+        
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Preview</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    ${cssContent}
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react,typescript">
+    const { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } = React;
+    
+    // Mock common imports  
+    const Link = ({to, href, children, ...props}) => React.createElement('a', {href: to || href || '#', ...props}, children);
+    const Route = ({path, component: C}) => React.createElement(C || 'div');
+    const Switch = ({children}) => React.createElement('div', null, children);
+    const useLocation = () => [window.location.pathname, (p) => {}];
+    const useQuery = () => ({ data: [], isLoading: false, error: null });
+    const useMutation = () => ({ mutate: () => {}, isPending: false });
+    const QueryClient = function() { return {}; };
+    const QueryClientProvider = ({children}) => children;
+    const Button = ({children, variant, size, className, ...props}) => React.createElement('button', {className: \`px-4 py-2 rounded \${variant === 'outline' ? 'border border-gray-300' : 'bg-blue-500 text-white hover:bg-blue-600'} \${className || ''}\`, ...props}, children);
+    const Card = ({children, className, ...props}) => React.createElement('div', {className: \`bg-white rounded-lg shadow p-4 \${className || ''}\`, ...props}, children);
+    const Input = (props) => React.createElement('input', {className: 'border rounded px-3 py-2 w-full', ...props});
+    const Badge = ({children, variant, className}) => React.createElement('span', {className: \`inline-block px-2 py-1 rounded text-sm bg-gray-100 \${className || ''}\`}, children);
+    const Layout = ({children}) => React.createElement('div', {className: 'min-h-screen bg-gray-50'}, children);
+    
+    // Mock page components
+    const HomePage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, 'Home Page'));
+    const DashboardPage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, 'Dashboard'));
+    const LoginPage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, 'Login'));
+    const RegisterPage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, 'Register'));
+    const SettingsPage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, 'Settings'));
+    const NotFoundPage = () => React.createElement('div', {className: 'p-8'}, React.createElement('h1', {className: 'text-2xl font-bold'}, '404 Not Found'));
+    
+    // User component code
+    ${componentCode}
+    
+    // Render
+    try {
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(React.createElement(${componentName === '__App__' ? '__App__' : componentName}));
+    } catch (e) {
+      console.error(e);
+      document.getElementById('root').innerHTML = '<div style="padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;margin:20px;"><strong>Preview Error:</strong><br/>' + e.message + '<br/><br/><em>This is a complex app - use the Code tab to view files or export to run locally.</em></div>';
+    }
+  </script>
+</body>
+</html>`;
+      }
+      
       // No HTML file - might be backend-only code
       if (isServerSideOnly) {
         return `<!DOCTYPE html>
@@ -576,6 +732,46 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
 </body>
 </html>`;
       }
+      
+      // Show info for React/TypeScript projects
+      if (tsxFiles.length > 0) {
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Project</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #e0e0e0; padding: 40px; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { max-width: 600px; text-align: center; }
+    h2 { color: #61dafb; margin-bottom: 16px; }
+    p { line-height: 1.6; color: #94a3b8; margin-bottom: 12px; }
+    .icon { font-size: 64px; margin-bottom: 24px; }
+    .files { background: #0a0a1a; border: 1px solid #333; padding: 16px; border-radius: 8px; margin-top: 24px; text-align: left; }
+    .files h4 { color: #61dafb; margin: 0 0 12px 0; font-size: 14px; }
+    .file-list { font-family: monospace; font-size: 12px; color: #4ade80; }
+    .file-list div { padding: 2px 0; }
+    .count { color: #f59e0b; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">⚛️</div>
+    <h2>React + TypeScript Project</h2>
+    <p>Generated <span class="count">${files.length} files</span> for a complete React application!</p>
+    <p>This project uses React with TypeScript and needs to be built to run.</p>
+    <div class="files">
+      <h4>Project Files (${tsxFiles.length} components):</h4>
+      <div class="file-list">
+        ${tsxFiles.slice(0, 10).map(f => `<div>📄 ${f.path}</div>`).join('')}
+        ${tsxFiles.length > 10 ? `<div style="color:#94a3b8">...and ${tsxFiles.length - 10} more</div>` : ''}
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+      }
+      
       return "";
     }
 
@@ -773,9 +969,10 @@ ${combinedJs}
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-          <div className="text-center p-4">
-            <Monitor className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>Start a conversation to see the preview</p>
+          <div className="text-center p-6">
+            <Monitor className="w-16 h-16 mx-auto mb-4 opacity-30" />
+            <p className="text-lg font-medium text-foreground mb-2">Your app will appear here!</p>
+            <p className="max-w-xs mx-auto">Tell me what you want to build in the chat, and I'll create it for you. You'll see a live preview right here.</p>
           </div>
         </div>
       </div>
@@ -798,10 +995,10 @@ ${combinedJs}
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-          <div className="text-center p-4">
-            <Code className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>No code generated yet</p>
-            <p className="text-xs mt-1">Ask the AI to create something!</p>
+          <div className="text-center p-6">
+            <Code className="w-16 h-16 mx-auto mb-4 opacity-30" />
+            <p className="text-lg font-medium text-foreground mb-2">Ready to create something amazing!</p>
+            <p className="max-w-xs mx-auto">Just describe what you want in the chat box on the left. For example: "Build me a todo list app" or "Create a landing page for my business"</p>
           </div>
         </div>
       </div>
@@ -934,81 +1131,158 @@ ${combinedJs}
     <div className="flex flex-col h-full bg-muted/30">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-background">
         <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
-          <button
-            onClick={() => setActiveTab("preview")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              activeTab === "preview" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-            data-testid="tab-preview"
-          >
-            <Eye className="w-3 h-3" />
-            Preview
-          </button>
-          <button
-            onClick={() => setActiveTab("code")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              activeTab === "code" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-            data-testid="tab-code"
-          >
-            <Code className="w-3 h-3" />
-            Code
-          </button>
-          <button
-            onClick={() => setActiveTab("debug")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              activeTab === "debug" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-            data-testid="tab-debug"
-          >
-            <Bug className="w-3 h-3" />
-            Debug
-            {codeErrors.length > 0 && (
-              <span className="ml-1 bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full">{codeErrors.length}</span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("intel")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              activeTab === "intel" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-            data-testid="tab-intel"
-          >
-            <Brain className="w-3 h-3" />
-            Intel
-          </button>
-          <button
-            onClick={() => setActiveTab("test")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              activeTab === "test" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-            data-testid="tab-test"
-          >
-            <TestTube className="w-3 h-3" />
-            Test
-          </button>
-          <button
-            onClick={() => setActiveTab("deploy")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              activeTab === "deploy" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-            data-testid="tab-deploy"
-          >
-            <Rocket className="w-3 h-3" />
-            Deploy
-          </button>
-          <button
-            onClick={() => setActiveTab("ide")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              activeTab === "ide" ? "bg-background shadow-sm bg-primary/10" : "text-muted-foreground hover:text-foreground"
-            }`}
-            data-testid="tab-ide"
-          >
-            <Terminal className="w-3 h-3" />
-            IDE
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setActiveTab("preview")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "preview" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="tab-preview"
+              >
+                <Eye className="w-3 h-3" />
+                See It Live
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[200px]">
+              <p className="text-xs">See what your app looks like in real time</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setActiveTab("code")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "code" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="tab-code"
+              >
+                <Code className="w-3 h-3" />
+                View Files
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[200px]">
+              <p className="text-xs">Browse all the files that make up your app</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setActiveTab("debug")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "debug" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="tab-debug"
+              >
+                <Bug className="w-3 h-3" />
+                Fix Issues
+                {codeErrors.length > 0 && (
+                  <span className="ml-1 bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full">{codeErrors.length}</span>
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[200px]">
+              <p className="text-xs">Find and fix any problems in your app</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setActiveTab("intel")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "intel" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="tab-intel"
+              >
+                <Brain className="w-3 h-3" />
+                Insights
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[200px]">
+              <p className="text-xs">Get smart suggestions and security checks</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setActiveTab("test")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "test" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="tab-test"
+              >
+                <TestTube className="w-3 h-3" />
+                Test
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[200px]">
+              <p className="text-xs">Run tests to make sure everything works</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setActiveTab("deploy")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "deploy" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="tab-deploy"
+              >
+                <Rocket className="w-3 h-3" />
+                Publish
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[200px]">
+              <p className="text-xs">Put your app online so anyone can use it</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setActiveTab("ide")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "ide" ? "bg-background shadow-sm bg-primary/10" : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="tab-ide"
+              >
+                <Terminal className="w-3 h-3" />
+                Editor
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[200px]">
+              <p className="text-xs">Edit code directly like a pro (advanced)</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <div className="flex items-center gap-1">
+          {files.length > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={async () => {
+                    try {
+                      await downloadProjectAsZip(
+                        files.map(f => ({ path: f.path, content: f.content, language: f.language })),
+                        `project-${conversationId || 'export'}`
+                      );
+                    } catch (error) {
+                      console.error('Download failed:', error);
+                    }
+                  }}
+                  data-testid="button-download-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Get My App ({files.length} files)
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[220px]">
+                <p className="text-xs">Download all your app files as a ZIP to use anywhere</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
           {activeTab === "preview" && (
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleRefresh} data-testid="button-refresh">
               <RefreshCw className="w-3.5 h-3.5" />
