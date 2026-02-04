@@ -15,8 +15,8 @@ interface EmptyStateProps {
 
 export function EmptyState({ onSuggestionClick }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center h-full p-6">
-      <div className="max-w-2xl w-full text-center space-y-8">
+    <div className="flex flex-col items-center justify-center min-h-full p-6 py-8">
+      <div className="max-w-2xl w-full text-center space-y-6">
         <div className="space-y-4">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mx-auto shadow-lg">
             <Wand2 className="h-8 w-8 text-primary" />

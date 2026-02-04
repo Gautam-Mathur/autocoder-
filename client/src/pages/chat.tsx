@@ -671,25 +671,27 @@ export default function Chat() {
           </header>
 
           <div className="flex-1 overflow-hidden flex flex-col">
-            {!activeConversationId && messages.length === 0 ? (
-              <EmptyState onSuggestionClick={handleSendMessage} />
-            ) : (
-              <ScrollArea className="flex-1">
-                <div className="max-w-3xl mx-auto p-4 space-y-4">
-                  {displayMessages.map((message, index) => (
-                    <ChatMessage
-                      key={message.id}
-                      role={message.role as "user" | "assistant"}
-                      content={message.content}
-                      isStreaming={isStreaming && index === displayMessages.length - 1 && message.role === "assistant"}
-                    />
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
-              </ScrollArea>
-            )}
+            <div className="flex-1 overflow-auto min-h-0">
+              {!activeConversationId && messages.length === 0 ? (
+                <EmptyState onSuggestionClick={handleSendMessage} />
+              ) : (
+                <ScrollArea className="h-full">
+                  <div className="max-w-3xl mx-auto p-4 space-y-4">
+                    {displayMessages.map((message, index) => (
+                      <ChatMessage
+                        key={message.id}
+                        role={message.role as "user" | "assistant"}
+                        content={message.content}
+                        isStreaming={isStreaming && index === displayMessages.length - 1 && message.role === "assistant"}
+                      />
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
 
-            <div className="p-4 pb-6 bg-gradient-to-t from-background via-background to-transparent flex-shrink-0">
+            <div className="p-4 pb-6 bg-gradient-to-t from-background via-background to-transparent flex-shrink-0 border-t border-border/50">
               <div className="max-w-3xl mx-auto space-y-3">
                 <ChatInput
                   onSend={handleSendMessage}
