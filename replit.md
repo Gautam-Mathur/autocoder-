@@ -46,6 +46,17 @@ Preferred communication style: Simple, everyday language.
     - `POST /api/ai/edit` - Modify code based on instructions
     - `POST /api/ai/fix` - Fix bugs and errors in code
     - `GET /api/ai/status` - Check if local LLM is available
+- **Advanced AI Capabilities** (works offline):
+    - `POST /api/ai/plan` - Multi-step reasoning: analyzes prompts, breaks into steps, generates architecture decisions, risk assessment, timeline estimates
+    - `POST /api/ai/quick-analyze` - Fast intent/complexity analysis
+    - `POST /api/ai/analyze-code` - Live code analysis: errors, warnings, complexity metrics, suggestions
+    - `POST /api/ai/diagnose` - Error diagnosis with possible causes and fixes
+    - `POST /api/ai/auto-fix` - Automatic code fixes for common issues
+    - `POST /api/ai/learn` - Context memory: learns user preferences from interactions
+    - `GET /api/ai/context/:userId` - Retrieve user preferences and history
+    - `POST /api/ai/relevant-context` - Get relevant past context for new prompts
+    - `GET /api/ai/patterns` - Framework patterns library (React, Python, Go, utilities)
+    - `GET /api/ai/patterns/:id` - Get specific pattern with code template
 - **Code Cleaner**: Removes markdown artifacts and fixes common syntax issues from generated code
 - **Intelligence Modules**:
     - **Clarification Engine**: Analyzes prompts for ambiguity.

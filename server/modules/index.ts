@@ -8,3 +8,9 @@ export * from './transparency-module';
 export * from './intel-memory';
 export * from './dependency-intelligence';
 export * from './export-system';
+
+// Advanced capabilities
+export * from './advanced-reasoning';
+export * from './context-memory';
+export * from './live-code-analysis';
+export * from './framework-patterns';

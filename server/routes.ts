@@ -18,6 +18,12 @@ import { extractIntelFromMessages, storeIntel, getIntel, generateIntelContext } 
 import { analyzeDependencies, formatDependencyReport, generateEnvExample } from "./modules/dependency-intelligence";
 import { generateProjectExport, generateDownloadData } from "./modules/export-system";
 
+// Advanced AI Modules
+import { analyzeAndPlan, formatReasoningAsMarkdown, quickAnalysis } from "./modules/advanced-reasoning";
+import { learnFromInteraction, getContextPreferences, applyContextPreferences, getRelevantContext, formatMemorySummary } from "./modules/context-memory";
+import { analyzeCode, diagnoseError, formatAnalysisAsMarkdown, autoFixCode } from "./modules/live-code-analysis";
+import { findPatterns, getPattern, getAllPatterns } from "./modules/framework-patterns";
+
 // Extract project context from conversation content
 function extractProjectContext(
   allContent: string,
@@ -3752,6 +3758,261 @@ Output ONLY the fixed code. No explanations.`;
       });
     } catch (error) {
       res.json({ localLLM: false, status: 'error', message: 'Failed to check status' });
+    }
+  });
+
+  // ============================================
+  // Advanced AI Capabilities
+  // ============================================
+
+  // Zod schemas for advanced AI endpoints
+  const planSchema = z.object({
+    prompt: z.string().min(1, 'Prompt is required'),
+  });
+
+  const codeAnalysisSchema = z.object({
+    code: z.string().min(1, 'Code is required'),
+    language: z.string().optional().default('javascript'),
+  });
+
+  const diagnoseSchema = z.object({
+    errorMessage: z.string().min(1, 'Error message is required'),
+  });
+
+  const learnSchema = z.object({
+    userId: z.string().min(1, 'User ID is required'),
+    prompt: z.string().min(1, 'Prompt is required'),
+    response: z.string().optional().default(''),
+    feedback: z.enum(['positive', 'negative']).optional(),
+  });
+
+  const contextSchema = z.object({
+    userId: z.string().min(1, 'User ID is required'),
+    prompt: z.string().min(1, 'Prompt is required'),
+  });
+
+  const patternQuerySchema = z.object({
+    language: z.string().optional(),
+    framework: z.string().optional(),
+    category: z.string().optional(),
+    search: z.string().optional(),
+  });
+
+  // Multi-step reasoning and planning
+  app.post("/api/ai/plan", async (req, res) => {
+    try {
+      const parsed = planSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { prompt } = parsed.data;
+      const chain = analyzeAndPlan(prompt);
+      const markdown = formatReasoningAsMarkdown(chain);
+      
+      res.json({
+        success: true,
+        plan: chain,
+        markdown,
+        summary: {
+          intent: chain.understanding.coreIntent,
+          steps: chain.steps.length,
+          complexity: chain.timeline.complexity,
+          estimatedMinutes: chain.timeline.estimatedMinutes,
+        }
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Planning failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Quick analysis endpoint
+  app.post("/api/ai/quick-analyze", async (req, res) => {
+    try {
+      const parsed = planSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { prompt } = parsed.data;
+      const analysis = quickAnalysis(prompt);
+      res.json({ success: true, analysis });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Analysis failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Live code analysis
+  app.post("/api/ai/analyze-code", async (req, res) => {
+    try {
+      const parsed = codeAnalysisSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { code, language } = parsed.data;
+      const analysis = analyzeCode(code, language);
+      const markdown = formatAnalysisAsMarkdown(analysis);
+      
+      res.json({
+        success: true,
+        analysis,
+        markdown,
+        summary: {
+          errors: analysis.errors.length,
+          warnings: analysis.warnings.length,
+          suggestions: analysis.suggestions.length,
+          complexity: analysis.complexity.rating,
+        }
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Analysis failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Error diagnosis
+  app.post("/api/ai/diagnose", async (req, res) => {
+    try {
+      const parsed = diagnoseSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { errorMessage } = parsed.data;
+      const diagnosis = diagnoseError(errorMessage);
+      res.json({ success: true, diagnosis });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Diagnosis failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Auto-fix code
+  app.post("/api/ai/auto-fix", async (req, res) => {
+    try {
+      const parsed = codeAnalysisSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { code, language } = parsed.data;
+      const analysis = analyzeCode(code, language);
+      const { code: fixedCode, fixes } = autoFixCode(code, analysis.errors);
+      
+      res.json({
+        success: true,
+        originalErrors: analysis.errors.length,
+        fixesApplied: fixes.length,
+        fixes,
+        code: fixedCode,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Auto-fix failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Context memory - learn from interaction
+  app.post("/api/ai/learn", async (req, res) => {
+    try {
+      const parsed = learnSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { userId, prompt, response, feedback } = parsed.data;
+      learnFromInteraction(userId, prompt, response, feedback);
+      res.json({ success: true, message: 'Preferences updated' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Learning failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Get user context and preferences
+  app.get("/api/ai/context/:userId", async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const prefs = getContextPreferences(userId);
+      const summary = formatMemorySummary(userId);
+      
+      res.json({
+        success: true,
+        preferences: prefs,
+        summary,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get context';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Get relevant context for a prompt
+  app.post("/api/ai/relevant-context", async (req, res) => {
+    try {
+      const parsed = contextSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      const { userId, prompt } = parsed.data;
+      const context = getRelevantContext(userId, prompt);
+      const enhancedPrompt = applyContextPreferences(userId, prompt);
+      
+      res.json({
+        success: true,
+        context,
+        enhancedPrompt,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get context';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Framework patterns library
+  app.get("/api/ai/patterns", async (req, res) => {
+    try {
+      const parsed = patternQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid query parameters', details: parsed.error.issues });
+      }
+      
+      const patterns = findPatterns(parsed.data);
+      
+      res.json({
+        success: true,
+        count: patterns.length,
+        patterns: patterns.map(p => ({
+          id: p.id,
+          name: p.name,
+          language: p.language,
+          framework: p.framework,
+          category: p.category,
+          description: p.description,
+        })),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get patterns';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Get specific pattern with code
+  app.get("/api/ai/patterns/:id", async (req, res) => {
+    try {
+      const pattern = getPattern(req.params.id);
+      if (!pattern) {
+        return res.status(404).json({ error: 'Pattern not found' });
+      }
+      
+      res.json({ success: true, pattern });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get pattern';
+      res.status(500).json({ error: message });
     }
   });
 
