@@ -31,6 +31,7 @@ CRITICAL REQUIREMENTS:
 2. All code must be production-quality and immediately runnable
 3. Include ALL necessary files for a complete application
 4. Use modern best practices and clean architecture
+5. ZERO LOGIC ERRORS - Code must work correctly on first run
 
 OUTPUT FORMAT:
 Return a valid JSON object with this exact structure:
@@ -86,7 +87,45 @@ FEATURES TO INCLUDE:
 - Modal dialogs for forms
 - Toast notifications for feedback
 
-Remember: Generate COMPLETE, WORKING code. Every feature mentioned must be fully implemented.`;
+CRITICAL LOGIC ERROR PREVENTION - AVOID THESE BUGS:
+1. ASYNC/AWAIT:
+   - ALWAYS use "await" before fetch() calls
+   - NEVER use async directly in useEffect - define inner async function
+   - Use Promise.all() for parallel async operations, not sequential awaits in loops
+   - ALWAYS handle .catch() or use try/catch with async/await
+
+2. ARRAY/OBJECT OPERATIONS:
+   - Use [...arr].sort() instead of arr.sort() to avoid mutation
+   - Use arr.length === 0 to check empty array, NOT arr === []
+   - Use Object.keys(obj).length === 0 for empty object, NOT obj === {}
+   - Use indexOf() !== -1 or includes(), NOT indexOf() > 0
+   - Use arr[arr.length - 1] for last element, NOT arr[arr.length]
+
+3. LOOPS AND CONDITIONS:
+   - Use < length, NOT <= length in for loops
+   - Use === for comparison, NOT = (assignment)
+   - Use Number.isNaN(x), NOT x === NaN
+   - Use "let" not "var" in for loops with callbacks
+   - ALWAYS add break/return in while(true) loops
+
+4. ERROR HANDLING:
+   - NEVER leave catch blocks empty - always log or handle
+   - Check for null/undefined before accessing properties: obj?.property
+   - Validate user input before using it
+   - Parse JSON in try/catch blocks
+
+5. STATE MANAGEMENT (React):
+   - Use functional updates: setCount(prev => prev + 1)
+   - NEVER read state right after setting it
+   - Add dependencies to useEffect properly
+   - Clean up intervals/timeouts in useEffect return
+
+6. API CALLS:
+   - Check response.ok before response.json()
+   - Handle loading and error states
+   - Include proper Content-Type headers for POST/PUT
+
+Remember: Generate COMPLETE, WORKING code with ZERO logic errors. Test your logic mentally before outputting.`;
 
 // Generate a full-stack application with streaming progress
 export async function generateFullStackAppStream(
@@ -193,6 +232,13 @@ Generate the COMPLETE application with ALL files. Every feature must be fully im
         language: f.language || detectLanguage(f.path)
       }));
       
+      // Auto-fix logic errors in generated code
+      const { project: fixedProject, totalFixes } = fixProjectLogicErrors(project);
+      if (totalFixes > 0) {
+        console.log(`[AI Generator] Auto-fixed ${totalFixes} logic errors in generated code`);
+      }
+      project = fixedProject;
+      
     } catch (parseError) {
       // Try to extract JSON from the response
       const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
@@ -255,7 +301,13 @@ Generate a COMPLETE, RUNNABLE full-stack application with:
     language: f.language || detectLanguage(f.path)
   }));
   
-  return project;
+  // Auto-fix logic errors in generated code
+  const { project: fixedProject, totalFixes } = fixProjectLogicErrors(project);
+  if (totalFixes > 0) {
+    console.log(`[AI Generator] Auto-fixed ${totalFixes} logic errors in generated code`);
+  }
+  
+  return fixedProject;
 }
 
 // Enhanced generation with context from conversation
@@ -381,4 +433,172 @@ export async function modifyCode(
   const content = response.choices[0]?.message?.content || existingCode;
   const codeMatch = content.match(/```[\w]*\n([\s\S]*?)```/);
   return codeMatch ? codeMatch[1] : content;
+}
+
+// ==================== LOGIC ERROR AUTO-FIXER ====================
+// Scans generated code and fixes common logic errors
+
+interface LogicFix {
+  pattern: RegExp;
+  fix: string | ((match: string, ...groups: string[]) => string);
+  description: string;
+}
+
+const LOGIC_FIXES: LogicFix[] = [
+  // Async/Await fixes
+  {
+    pattern: /(?<!await\s+)fetch\s*\(/g,
+    fix: 'await fetch(',
+    description: 'Added await to fetch()'
+  },
+  {
+    pattern: /useEffect\s*\(\s*async\s*\(\s*\)\s*=>\s*\{([\s\S]*?)\}\s*,\s*\[/g,
+    fix: (_, body) => `useEffect(() => {\n    const fetchData = async () => {${body}};\n    fetchData();\n  }, [`,
+    description: 'Fixed async useEffect pattern'
+  },
+  {
+    pattern: /\.forEach\s*\(\s*async\s*\(/g,
+    fix: '.map(async (',
+    description: 'Changed forEach async to map async (use Promise.all)'
+  },
+  
+  // Comparison fixes
+  {
+    pattern: /([^!=])={2}(?!=)\s*(null|undefined|NaN)/g,
+    fix: '$1===$2',
+    description: 'Changed == to === for strict comparison'
+  },
+  {
+    pattern: /(\w+)\s*===?\s*NaN/g,
+    fix: 'Number.isNaN($1)',
+    description: 'Fixed NaN comparison'
+  },
+  {
+    pattern: /(\w+)\s*===?\s*\[\s*\]/g,
+    fix: '$1.length === 0',
+    description: 'Fixed empty array comparison'
+  },
+  {
+    pattern: /(\w+)\s*===?\s*\{\s*\}/g,
+    fix: 'Object.keys($1).length === 0',
+    description: 'Fixed empty object comparison'
+  },
+  
+  // Loop fixes
+  {
+    pattern: /for\s*\(\s*var\s+(\w+)/g,
+    fix: 'for (let $1',
+    description: 'Changed var to let in for loop'
+  },
+  {
+    pattern: /for\s*\([^;]+;\s*(\w+)\s*<=\s*(\w+)\.length\s*;/g,
+    fix: (match, i, arr) => match.replace(`${i} <= ${arr}.length`, `${i} < ${arr}.length`),
+    description: 'Fixed off-by-one error in loop'
+  },
+  
+  // Array access fixes
+  {
+    pattern: /\[(\w+)\.length\]/g,
+    fix: '[$1.length - 1]',
+    description: 'Fixed last element access'
+  },
+  {
+    pattern: /\.indexOf\s*\([^)]+\)\s*>\s*0/g,
+    fix: (match) => match.replace('> 0', '>= 0'),
+    description: 'Fixed indexOf check (> 0 misses first element)'
+  },
+  
+  // Error handling
+  {
+    pattern: /catch\s*\(\s*(\w+)\s*\)\s*\{\s*\}/g,
+    fix: 'catch ($1) { console.error("Error:", $1.message); }',
+    description: 'Added error logging to empty catch'
+  },
+  {
+    pattern: /\.catch\s*\(\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)/g,
+    fix: '.catch(err => { console.error("Error:", err.message); })',
+    description: 'Added error handling to empty .catch()'
+  },
+  
+  // JSON parsing
+  {
+    pattern: /JSON\.parse\s*\(\s*localStorage\.getItem\s*\(\s*(['"`][^'"`]+['"`])\s*\)\s*\)/g,
+    fix: 'JSON.parse(localStorage.getItem($1) || "{}")',
+    description: 'Added null fallback for localStorage'
+  },
+  
+  // Fetch response handling
+  {
+    pattern: /const\s+(\w+)\s*=\s*await\s+response\.json\s*\(\s*\)/g,
+    fix: (_, varName) => `if (!response.ok) throw new Error("Request failed");\n    const ${varName} = await response.json()`,
+    description: 'Added response.ok check before json()'
+  },
+  
+  // React state updates
+  {
+    pattern: /set(\w+)\s*\(\s*(\w+)\s*\+\s*1\s*\)/g,
+    fix: 'set$1(prev => prev + 1)',
+    description: 'Used functional state update'
+  },
+  {
+    pattern: /set(\w+)\s*\(\s*(\w+)\s*-\s*1\s*\)/g,
+    fix: 'set$1(prev => prev - 1)',
+    description: 'Used functional state update'
+  },
+  
+  // Mutation prevention
+  {
+    pattern: /(\w+)\.sort\s*\(\s*\)/g,
+    fix: '[...$1].sort()',
+    description: 'Prevented array mutation with spread'
+  },
+  {
+    pattern: /(\w+)\.reverse\s*\(\s*\)/g,
+    fix: '[...$1].reverse()',
+    description: 'Prevented array mutation with spread'
+  }
+];
+
+// Apply logic fixes to generated code
+export function fixLogicErrors(code: string): { code: string; fixes: string[] } {
+  let fixedCode = code;
+  const appliedFixes: string[] = [];
+  
+  for (const { pattern, fix, description } of LOGIC_FIXES) {
+    const matches = fixedCode.match(pattern);
+    if (matches && matches.length > 0) {
+      if (typeof fix === 'string') {
+        fixedCode = fixedCode.replace(pattern, fix);
+      } else {
+        fixedCode = fixedCode.replace(pattern, fix);
+      }
+      appliedFixes.push(description);
+    }
+  }
+  
+  return { code: fixedCode, fixes: appliedFixes };
+}
+
+// Apply fixes to all files in a project
+export function fixProjectLogicErrors(project: GeneratedProject): { project: GeneratedProject; totalFixes: number; fixesByFile: Record<string, string[]> } {
+  const fixesByFile: Record<string, string[]> = {};
+  let totalFixes = 0;
+  
+  const fixedFiles = project.files.map(file => {
+    if (['javascript', 'typescript', 'html'].includes(file.language)) {
+      const { code, fixes } = fixLogicErrors(file.content);
+      if (fixes.length > 0) {
+        fixesByFile[file.path] = fixes;
+        totalFixes += fixes.length;
+      }
+      return { ...file, content: code };
+    }
+    return file;
+  });
+  
+  return {
+    project: { ...project, files: fixedFiles },
+    totalFixes,
+    fixesByFile
+  };
 }
