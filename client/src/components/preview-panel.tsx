@@ -584,7 +584,15 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
       files.find((f) => f.path.toLowerCase().endsWith(".html")) ||
       files.find((f) => f.language === "html");
     const cssFiles = files.filter((f) => f.path.toLowerCase().endsWith(".css") || f.language === "css");
-    const jsFiles = files.filter((f) => f.path.toLowerCase().endsWith(".js") || f.language === "javascript");
+    // Include .js, .jsx, .tsx files for JavaScript/React code
+    const jsFiles = files.filter((f) => 
+      f.path.toLowerCase().endsWith(".js") || 
+      f.path.toLowerCase().endsWith(".jsx") || 
+      f.path.toLowerCase().endsWith(".tsx") || 
+      f.language === "javascript" ||
+      f.language === "jsx" ||
+      f.language === "tsx"
+    );
 
     if (!htmlFile) {
       // Check for TSX/JSX React files
@@ -688,17 +696,60 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>React Preview</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     ${cssContent}
     body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    #load-status { padding: 40px; text-align: center; color: #666; font-family: system-ui; }
+    .btn { padding: 8px 16px; margin: 4px; border-radius: 6px; cursor: pointer; border: none; }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: #e5e7eb; color: #374151; }
+    .btn-secondary:hover { background: #d1d5db; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root"><div id="load-status">Loading preview...</div></div>
+  <script>
+    var loadStatus = document.getElementById('load-status');
+    var scriptsLoaded = { react: false, 'react-dom': false, babel: false };
+    var loadAttempts = { react: 0, 'react-dom': 0, babel: 0 };
+    var SCRIPT_SOURCES = {
+      react: ['/api/preview-scripts/react', 'https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js', 'https://unpkg.com/react@18/umd/react.production.min.js'],
+      'react-dom': ['/api/preview-scripts/react-dom', 'https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js', 'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js'],
+      babel: ['/api/preview-scripts/babel', 'https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js', 'https://unpkg.com/@babel/standalone@7/babel.min.js']
+    };
+    function updateStatus(msg) { if (loadStatus) loadStatus.textContent = msg; }
+    function showFallback(error) {
+      document.getElementById('root').innerHTML = '<div style="padding:24px;font-family:system-ui;"><div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:16px;"><strong style="color:#92400e;">Preview Fallback</strong><p style="color:#78350f;margin:8px 0 0 0;font-size:14px;">' + error + '</p></div></div>';
+    }
+    function loadScript(name, callback) {
+      var sources = SCRIPT_SOURCES[name];
+      var attempt = loadAttempts[name];
+      if (attempt >= sources.length) { showFallback('Failed to load ' + name); return; }
+      var src = sources[attempt];
+      updateStatus('Loading ' + name + ' (' + (attempt + 1) + '/' + sources.length + ')...');
+      var script = document.createElement('script');
+      script.src = src;
+      script.crossOrigin = 'anonymous';
+      script.onload = function() { scriptsLoaded[name] = true; callback && callback(); };
+      script.onerror = function() { loadAttempts[name]++; loadScript(name, callback); };
+      document.head.appendChild(script);
+    }
+    updateStatus('Loading React...');
+    loadScript('react', function() {
+      updateStatus('Loading ReactDOM...');
+      loadScript('react-dom', function() {
+        updateStatus('Loading Babel...');
+        loadScript('babel', function() {
+          updateStatus('Transpiling...');
+          setTimeout(function() {
+            try { if (window.Babel && window.Babel.transformScriptTags) { window.Babel.transformScriptTags(); } }
+            catch (e) { showFallback('Babel error: ' + e.message); }
+          }, 50);
+        });
+      });
+    });
+  </script>
   <script type="text/babel" data-presets="react,typescript">
     const { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } = React;
     
@@ -819,6 +870,18 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
     }
 
     let html = htmlFile.content;
+    
+    // Strip ALL external script and link references to prevent CORS errors
+    // These cannot be loaded in sandboxed iframes with COEP restrictions
+    html = html
+      // Remove script tags with src attribute (external scripts) - handles any inner content
+      .replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*\/>/gi, '')
+      // Remove script tags with type="module" (ES module imports fail in sandboxed iframes)
+      .replace(/<script[^>]+type\s*=\s*["']module["'][^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<script[^>]+type\s*=\s*["']module["'][^>]*\/>/gi, '')
+      // Remove link tags with href (external CSS)
+      .replace(/<link[^>]+href\s*=\s*["'][^"']*["'][^>]*\/?>/gi, '');
 
     if (!html.includes("<!DOCTYPE") && !html.includes("<html")) {
       html = `<!DOCTYPE html>
@@ -872,11 +935,13 @@ ${html}
       const isReactCode = allJsCode.includes('import React') || allJsCode.includes('from "react"') || allJsCode.includes("from 'react'");
       
       if (isReactCode) {
-        // For React code, add React and ReactDOM from CDN and use Babel for JSX
+        // For React code, add React and ReactDOM via proxy endpoints to avoid CORS/COEP issues
+        // Use absolute URLs because srcDoc iframes have about:srcdoc origin
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
         const reactScript = `
-<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="${baseUrl}/api/preview-scripts/react"></script>
+<script src="${baseUrl}/api/preview-scripts/react-dom"></script>
+<script src="${baseUrl}/api/preview-scripts/babel"></script>
 <script type="text/babel">
 // React hooks available globally
 const { useState, useEffect, useRef, useCallback, useMemo, useContext, useReducer } = React;
@@ -1148,7 +1213,7 @@ ${combinedJs}
                     ref={iframeRef}
                     srcDoc={combinedPreview}
                     className="w-full h-full border-0"
-                    sandbox="allow-scripts allow-forms allow-modals allow-popups"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
                     title="Live Preview"
                   />
                 </div>
@@ -1405,7 +1470,7 @@ ${combinedJs}
                 ref={iframeRef}
                 srcDoc={combinedPreview}
                 className="flex-1 w-full bg-white border-0"
-                sandbox="allow-scripts allow-forms allow-modals allow-popups"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
                 title="Live Preview"
               />
             ) : (

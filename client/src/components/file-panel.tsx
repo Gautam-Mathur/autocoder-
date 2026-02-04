@@ -195,6 +195,15 @@ export function FilePanel({ conversationId, onFileSelect }: FilePanelProps) {
     
     let html = htmlFile.content;
     
+    // Remove ALL external script and link references that won't work in sandbox
+    html = html.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/script>/gi, '');
+    html = html.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*\/>/gi, '');
+    // Remove script tags with type="module"
+    html = html.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*>[\s\S]*?<\/script>/gi, '');
+    html = html.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*\/>/gi, '');
+    // Remove link tags with external hrefs
+    html = html.replace(/<link[^>]+href\s*=\s*["'][^"']*["'][^>]*\/?>/gi, '');
+    
     if (!html.includes('<!DOCTYPE') && !html.includes('<html')) {
       html = `<!DOCTYPE html>
 <html lang="en">

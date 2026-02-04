@@ -32,13 +32,34 @@ export function LiveCodeRunner({
     );
     const cssFiles = files.filter(f => f.path.endsWith('.css'));
     
-    // For HTML-only projects
+    // For HTML-only projects (no TSX files)
     const htmlFile = files.find(f => f.path.endsWith('.html'));
     if (htmlFile && !tsxFiles.length) {
       let html = htmlFile.content;
-      html = html.replace('</head>', `<style>${cssFiles.map(f => f.content).join('\n')}</style></head>`);
+      
+      // Remove ALL external script and link references that won't work in sandbox
+      // Remove script tags with src attribute (external scripts) - handles any inner content
+      html = html.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/script>/gi, '');
+      html = html.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*\/>/gi, '');
+      // Remove script tags with type="module" (ES module imports fail in sandboxed iframes)
+      html = html.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*>[\s\S]*?<\/script>/gi, '');
+      html = html.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*\/>/gi, '');
+      // Also remove link tags with external hrefs
+      html = html.replace(/<link[^>]+href\s*=\s*["'][^"']*["'][^>]*\/?>/gi, '');
+      
+      // Inline CSS
+      const cssContent = cssFiles.map(f => f.content).join('\n');
+      if (cssContent) {
+        html = html.replace('</head>', `<style>${cssContent}</style></head>`);
+      }
+      
+      // Inline JS
       const jsFiles = files.filter(f => f.path.endsWith('.js') && !f.path.includes('.tsx'));
-      html = html.replace('</body>', `<script>${jsFiles.map(f => f.content).join('\n')}</script></body>`);
+      const jsContent = jsFiles.map(f => f.content).join('\n');
+      if (jsContent) {
+        html = html.replace('</body>', `<script>${jsContent}</script></body>`);
+      }
+      
       return html;
     }
 
@@ -208,20 +229,21 @@ export function LiveCodeRunner({
     var loadAttempts = { react: 0, 'react-dom': 0, babel: 0 };
     var MAX_ATTEMPTS = 3;
     
-    // Script sources in order of preference
+    // Script sources in order of preference (use absolute URLs for srcDoc iframes)
+    var BASE_URL = '${typeof window !== 'undefined' ? window.location.origin : ''}';
     var SCRIPT_SOURCES = {
       react: [
-        '/api/preview-scripts/react',
+        BASE_URL + '/api/preview-scripts/react',
         'https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js',
         'https://unpkg.com/react@18/umd/react.production.min.js'
       ],
       'react-dom': [
-        '/api/preview-scripts/react-dom',
+        BASE_URL + '/api/preview-scripts/react-dom',
         'https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js',
         'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js'
       ],
       babel: [
-        '/api/preview-scripts/babel',
+        BASE_URL + '/api/preview-scripts/babel',
         'https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js',
         'https://unpkg.com/@babel/standalone@7/babel.min.js'
       ]
@@ -283,6 +305,17 @@ export function LiveCodeRunner({
         updateStatus('Loading Babel...');
         loadScript('babel', function() {
           updateStatus('All scripts loaded, transpiling...');
+          // Trigger Babel to process script tags - delay slightly to ensure DOM is ready
+          setTimeout(function() {
+            try {
+              if (window.Babel && window.Babel.transformScriptTags) {
+                window.Babel.transformScriptTags();
+              }
+            } catch (e) {
+              console.error('Babel transform failed:', e);
+              showFallback('Babel transformation error: ' + e.message);
+            }
+          }, 100);
         });
       });
     });

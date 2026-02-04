@@ -291,6 +291,14 @@ function FallbackPreview({ files }: { files: ProjectFile[] }) {
     if (htmlFile) {
       let html = htmlFile.content;
       
+      // Remove ALL external script and link references that won't work in sandbox
+      html = html.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/script>/gi, '');
+      html = html.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*\/>/gi, '');
+      // Remove script tags with type="module"
+      html = html.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*>[\s\S]*?<\/script>/gi, '');
+      html = html.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*\/>/gi, '');
+      html = html.replace(/<link[^>]+href\s*=\s*["'][^"']*["'][^>]*\/?>/gi, '');
+      
       const cssContent = cssFiles.map(f => f.content).join('\n');
       if (cssContent && !html.includes('<style>')) {
         html = html.replace('</head>', `<style>${cssContent}</style></head>`);

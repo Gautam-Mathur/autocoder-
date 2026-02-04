@@ -340,6 +340,14 @@ export function ProjectFilesPreview({ files }: ProjectFilesPreviewProps) {
     
     let html = htmlFile.content;
     
+    // Remove ALL external script and link references that won't work in sandbox
+    html = html.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*><\/script>/gi, '');
+    html = html.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*\/>/gi, '');
+    // Remove script tags with type="module"
+    html = html.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*><\/script>/gi, '');
+    html = html.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*\/>/gi, '');
+    html = html.replace(/<link[^>]+href\s*=\s*["'][^"']*["'][^>]*\/?>/gi, '');
+    
     // Ensure we have a proper HTML structure
     if (!html.includes('<!DOCTYPE') && !html.includes('<html')) {
       html = `<!DOCTYPE html>
@@ -609,7 +617,14 @@ export function CodePreview({ code, language }: CodePreviewProps) {
   
   const srcdoc = useMemo(() => {
     if (!canPreview) return "";
-    return code;
+    let html = code;
+    // Strip external script and module references
+    html = html.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*><\/script>/gi, '');
+    html = html.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*\/>/gi, '');
+    html = html.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*><\/script>/gi, '');
+    html = html.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*\/>/gi, '');
+    html = html.replace(/<link[^>]+href\s*=\s*["'][^"']*["'][^>]*\/?>/gi, '');
+    return html;
   }, [code, canPreview]);
 
   const openInNewTab = () => {
@@ -724,6 +739,15 @@ export function CombinedAppPreview({ html, css, javascript }: CombinedPreviewPro
   const combinedCode = useMemo(() => {
     if (hasFileMarkers) return "";
     let baseHtml = html.trim();
+    
+    // Remove ALL external script and link references that won't work in sandbox
+    baseHtml = baseHtml.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*><\/script>/gi, '');
+    baseHtml = baseHtml.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*\/>/gi, '');
+    // Remove script tags with type="module"
+    baseHtml = baseHtml.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*><\/script>/gi, '');
+    baseHtml = baseHtml.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*\/>/gi, '');
+    // Also remove link tags with external hrefs
+    baseHtml = baseHtml.replace(/<link[^>]+href\s*=\s*["'][^"']*["'][^>]*\/?>/gi, '');
     
     if (!baseHtml.includes('<!DOCTYPE') && !baseHtml.includes('<html')) {
       baseHtml = `<!DOCTYPE html>
@@ -884,8 +908,15 @@ export function MultiFilePreview({ files }: MultiFilePreviewProps) {
     const file = files.find(f => f.name === currentFile);
     if (!file) return files[0]?.content || '';
     
-    // Inject navigation handler script
+    // Strip external script and module references
     let content = file.content;
+    content = content.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*>[\s\S]*?<\/script>/gi, '');
+    content = content.replace(/<script[^>]+src\s*=\s*["'][^"']*["'][^>]*\/>/gi, '');
+    content = content.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*>[\s\S]*?<\/script>/gi, '');
+    content = content.replace(/<script[^>]+type\s*=\s*["']module["'][^>]*\/>/gi, '');
+    content = content.replace(/<link[^>]+href\s*=\s*["'][^"']*["'][^>]*\/?>/gi, '');
+    
+    // Inject navigation handler script
     const navScript = `
 <script>
   document.addEventListener('click', function(e) {
