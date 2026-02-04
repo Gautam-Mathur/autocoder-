@@ -7,6 +7,7 @@ import { IntelligencePanel } from "@/components/IntelligencePanel";
 import { DeploymentPanel } from "@/components/deployment-panel";
 import { ErrorFixerPanel } from "@/components/error-fixer-panel";
 import { VSCodeIDE } from "@/components/vscode-ide";
+import { LiveCodeRunner } from "@/components/live-code-runner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -532,6 +533,48 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
     ];
     return serverPatterns.some(pattern => allCode.includes(pattern));
   }, [files]);
+
+  // Detect if this is a complex React/TypeScript app that should use Sandpack
+  const isComplexReactApp = useMemo(() => {
+    if (isServerSideOnly) return false;
+    
+    // Check for TSX/JSX files
+    const tsxFiles = files.filter((f) => 
+      f.path.toLowerCase().endsWith(".tsx") || 
+      f.path.toLowerCase().endsWith(".jsx") ||
+      f.language === "tsx" || 
+      f.language === "jsx"
+    );
+    
+    if (tsxFiles.length === 0) return false;
+    
+    // Check if there's no HTML file (React projects don't need one)
+    const hasHtmlFile = files.some((f) => 
+      f.path.toLowerCase().endsWith(".html") || f.language === "html"
+    );
+    
+    // Find entry point file - App, main, or index
+    const entryFile = tsxFiles.find((f) => 
+      f.path.toLowerCase().includes("app.tsx") || 
+      f.path.toLowerCase().includes("app.jsx") ||
+      f.path.toLowerCase().includes("main.tsx") ||
+      f.path.toLowerCase().includes("main.jsx") ||
+      f.path.toLowerCase().includes("index.tsx") ||
+      f.path.toLowerCase().includes("index.jsx")
+    );
+    
+    // If we have TSX files but no HTML, it's a React project that needs Sandpack
+    if (tsxFiles.length > 0 && !hasHtmlFile) return true;
+    
+    // If we have an entry file, check complexity
+    if (entryFile) {
+      const componentRefs = entryFile.content.match(/<[A-Z][A-Za-z]+/g) || [];
+      // Complex if: more than 5 component references OR more than 3 tsx files
+      if (componentRefs.length > 5 || tsxFiles.length > 3) return true;
+    }
+    
+    return false;
+  }, [files, isServerSideOnly]);
 
   const combinedPreview = useMemo(() => {
     if (files.length === 0) return "";
@@ -1071,24 +1114,45 @@ ${combinedJs}
         <div className="flex-1 flex overflow-hidden">
           {activeTab === "preview" ? (
             <div className="flex-1 flex items-center justify-center bg-muted/30 p-4 overflow-auto">
-              <div
-                className="bg-white shadow-2xl rounded-lg overflow-hidden transition-all duration-300"
-                style={{
-                  width: deviceSizes[deviceMode].width,
-                  height: deviceSizes[deviceMode].height,
-                  maxWidth: "100%",
-                  maxHeight: "100%",
-                }}
-              >
-                <iframe
-                  key={refreshKey}
-                  ref={iframeRef}
-                  srcDoc={combinedPreview}
-                  className="w-full h-full border-0"
-                  sandbox="allow-scripts allow-forms allow-modals allow-popups"
-                  title="Live Preview"
-                />
-              </div>
+              {isComplexReactApp ? (
+                <div
+                  className="bg-white shadow-2xl rounded-lg overflow-hidden transition-all duration-300 w-full h-full"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                  }}
+                >
+                  <LiveCodeRunner 
+                    files={files.map(f => ({ 
+                      path: f.path, 
+                      content: f.content,
+                      language: f.language 
+                    }))}
+                    projectName="React Application"
+                    height="100%"
+                    showEditor={false}
+                  />
+                </div>
+              ) : (
+                <div
+                  className="bg-white shadow-2xl rounded-lg overflow-hidden transition-all duration-300"
+                  style={{
+                    width: deviceSizes[deviceMode].width,
+                    height: deviceSizes[deviceMode].height,
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                  }}
+                >
+                  <iframe
+                    key={refreshKey}
+                    ref={iframeRef}
+                    srcDoc={combinedPreview}
+                    className="w-full h-full border-0"
+                    sandbox="allow-scripts allow-forms allow-modals allow-popups"
+                    title="Live Preview"
+                  />
+                </div>
+              )}
             </div>
           ) : activeTab === "intel" ? (
             <div className="flex-1 p-4 overflow-auto">
@@ -1323,6 +1387,17 @@ ${combinedJs}
                     }
                   });
                 }}
+              />
+            ) : isComplexReactApp ? (
+              <LiveCodeRunner 
+                files={files.map(f => ({ 
+                  path: f.path, 
+                  content: f.content,
+                  language: f.language 
+                }))}
+                projectName="React Application"
+                height="100%"
+                showEditor={false}
               />
             ) : combinedPreview ? (
               <iframe
