@@ -381,41 +381,99 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
 `;
       }
 
-      // Deep project detection - check if user wants a complex multi-file project
-      const deepProjectPatterns = [
-        /\b(saas|saas platform|software as a service)\b/i,
-        /\b(e-commerce|ecommerce|online store|shopping platform)\b/i,
-        /\b(social media|social network|social platform)\b/i,
-        /\b(dashboard|admin dashboard|analytics dashboard)\b/i,
-        /\b(cms|content management|blog platform)\b/i,
-        /\b(ai assistant|chatbot|ai chat)\b/i,
-        /\b(full[ -]?stack|fullstack) (app|application|project)\b/i,
-        /\b(enterprise|production-ready|complex) (app|application|project|platform)\b/i,
-        /\b(complete|comprehensive) (project|platform|system)\b/i,
-        /\b(monorepo|multi-package)\b/i,
-        /\b(100\+? files|many files|extensive|multi-file project)\b/i,
+      // Deep project detection - DEFAULT for any project/app/website generation request
+      // This ensures users always get fully functional 100+ file projects
+      const projectCreationPatterns = [
+        /\b(build|create|make|generate|develop|design)\b.*\b(app|application|website|site|platform|project|system|tool|portal|page)\b/i,
+        /\b(app|application|website|site|platform|project|system|tool|portal)\b.*\b(for|that|with|to)\b/i,
+        /\b(saas|e-commerce|ecommerce|dashboard|cms|blog|social|chat|api|store|shop)\b/i,
+        /\b(landing page|web app|webapp|frontend|backend|fullstack|full-stack)\b/i,
+        /\b(todo|task|note|calendar|booking|reservation|inventory|crm|erp)\b.*\b(app|system|manager)\b/i,
       ];
       
-      const isDeepProjectRequest = deepProjectPatterns.some(p => p.test(content));
+      // Exclusion patterns - simple requests that don't need full projects
+      const simpleRequestPatterns = [
+        /^(explain|what is|how does|why|tell me|describe|help me understand)/i,
+        /\b(fix|debug|error|bug|issue|problem)\b/i,
+        /\b(modify|change|update|edit|add|remove)\b.*\b(the|this|my)\b/i,
+        /^(hi|hello|hey|thanks|thank you|ok|okay)/i,
+      ];
+      
+      const isProjectRequest = projectCreationPatterns.some(p => p.test(content));
+      const isSimpleRequest = simpleRequestPatterns.some(p => p.test(content));
+      const isDeepProjectRequest = isProjectRequest && !isSimpleRequest;
       
       if (isDeepProjectRequest) {
-        // Detect which blueprint to use
+        // Detect which blueprint to use - comprehensive mapping
         const blueprintMap: Record<string, string> = {
+          // SaaS patterns
           'saas': 'saas-platform',
+          'subscription': 'saas-platform',
+          'billing': 'saas-platform',
+          'membership': 'saas-platform',
+          // E-commerce patterns
           'e-commerce': 'ecommerce',
           'ecommerce': 'ecommerce',
           'store': 'ecommerce',
           'shop': 'ecommerce',
+          'marketplace': 'ecommerce',
+          'cart': 'ecommerce',
+          'checkout': 'ecommerce',
+          'product': 'ecommerce',
+          // Social patterns
           'social': 'social-platform',
+          'community': 'social-platform',
+          'forum': 'social-platform',
+          'network': 'social-platform',
+          'feed': 'social-platform',
+          // Dashboard patterns
           'dashboard': 'dashboard-app',
           'analytics': 'dashboard-app',
+          'metrics': 'dashboard-app',
+          'reporting': 'dashboard-app',
+          'admin': 'dashboard-app',
+          'panel': 'dashboard-app',
+          // CMS patterns
           'cms': 'cms',
           'blog': 'cms',
+          'content': 'cms',
+          'articles': 'cms',
+          'publishing': 'cms',
+          'news': 'cms',
+          // AI patterns
           'ai': 'ai-assistant',
           'chat': 'ai-assistant',
           'assistant': 'ai-assistant',
-          'monorepo': 'monorepo',
+          'bot': 'ai-assistant',
+          'gpt': 'ai-assistant',
+          'llm': 'ai-assistant',
+          // API patterns
           'api': 'api-server',
+          'backend': 'api-server',
+          'rest': 'api-server',
+          'graphql': 'api-server',
+          // Other
+          'monorepo': 'monorepo',
+          'cli': 'cli-tool',
+          'command': 'cli-tool',
+          // Common app types -> fullstack
+          'todo': 'fullstack-react-express',
+          'task': 'fullstack-react-express',
+          'note': 'fullstack-react-express',
+          'calendar': 'fullstack-react-express',
+          'booking': 'fullstack-react-express',
+          'reservation': 'fullstack-react-express',
+          'inventory': 'fullstack-react-express',
+          'crm': 'fullstack-react-express',
+          'erp': 'fullstack-react-express',
+          'tracker': 'fullstack-react-express',
+          'manager': 'fullstack-react-express',
+          'planner': 'fullstack-react-express',
+          'portfolio': 'fullstack-react-express',
+          'landing': 'fullstack-react-express',
+          'website': 'fullstack-react-express',
+          'webapp': 'fullstack-react-express',
+          'app': 'fullstack-react-express',
         };
         
         let blueprint = 'fullstack-react-express';
