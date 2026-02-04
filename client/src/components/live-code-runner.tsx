@@ -202,15 +202,91 @@ export function LiveCodeRunner({
     <div id="load-status">Loading preview...</div>
   </div></div>
   <script>
-    // Update status as scripts load
-    document.getElementById('load-status').textContent = 'Loading scripts...';
+    // Fallback chain loader with multiple strategies
+    var loadStatus = document.getElementById('load-status');
+    var scriptsLoaded = { react: false, 'react-dom': false, babel: false };
+    var loadAttempts = { react: 0, 'react-dom': 0, babel: 0 };
+    var MAX_ATTEMPTS = 3;
+    
+    // Script sources in order of preference
+    var SCRIPT_SOURCES = {
+      react: [
+        '/api/preview-scripts/react',
+        'https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js',
+        'https://unpkg.com/react@18/umd/react.production.min.js'
+      ],
+      'react-dom': [
+        '/api/preview-scripts/react-dom',
+        'https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js',
+        'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js'
+      ],
+      babel: [
+        '/api/preview-scripts/babel',
+        'https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js',
+        'https://unpkg.com/@babel/standalone@7/babel.min.js'
+      ]
+    };
+    
+    function updateStatus(msg) {
+      if (loadStatus) loadStatus.textContent = msg;
+    }
+    
+    function loadScript(name, callback) {
+      var sources = SCRIPT_SOURCES[name];
+      var attempt = loadAttempts[name];
+      
+      if (attempt >= sources.length) {
+        console.error('All sources exhausted for ' + name);
+        showFallback('Failed to load ' + name + ' from all sources');
+        return;
+      }
+      
+      var src = sources[attempt];
+      updateStatus('Loading ' + name + ' (' + (attempt + 1) + '/' + sources.length + ')...');
+      
+      var script = document.createElement('script');
+      script.src = src;
+      script.crossOrigin = 'anonymous';
+      
+      script.onload = function() {
+        scriptsLoaded[name] = true;
+        callback && callback();
+      };
+      
+      script.onerror = function() {
+        loadAttempts[name]++;
+        console.warn('Failed to load ' + name + ' from ' + src + ', trying next source...');
+        loadScript(name, callback);
+      };
+      
+      document.head.appendChild(script);
+    }
+    
+    function showFallback(error) {
+      document.getElementById('root').innerHTML = 
+        '<div style="padding:24px;font-family:system-ui;max-width:600px;margin:0 auto;">' +
+        '<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:16px;margin-bottom:16px;">' +
+        '<strong style="color:#92400e;">Preview Fallback Mode</strong>' +
+        '<p style="color:#78350f;margin:8px 0 0 0;font-size:14px;">Could not load preview dependencies: ' + error + '</p>' +
+        '</div>' +
+        '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;">' +
+        '<h3 style="margin:0 0 12px 0;color:#334155;">Project: ${projectName}</h3>' +
+        '<p style="color:#64748b;margin:0;font-size:14px;">Files generated and ready for download. Use "View Code" tab to see generated files.</p>' +
+        '</div></div>';
+    }
+    
+    // Start loading chain
+    updateStatus('Loading React...');
+    loadScript('react', function() {
+      updateStatus('Loading ReactDOM...');
+      loadScript('react-dom', function() {
+        updateStatus('Loading Babel...');
+        loadScript('babel', function() {
+          updateStatus('All scripts loaded, transpiling...');
+        });
+      });
+    });
   </script>
-  <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"
-    onerror="document.getElementById('root').innerHTML='<div style=\\'padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;\\'>Error: Could not load React from CDN</div>'"></script>
-  <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"
-    onerror="document.getElementById('root').innerHTML='<div style=\\'padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;\\'>Error: Could not load ReactDOM from CDN</div>'"></script>
-  <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"
-    onerror="document.getElementById('root').innerHTML='<div style=\\'padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;\\'>Error: Could not load Babel from CDN</div>'"></script>
   <script>
     // Global error handler
     window.onerror = function(msg, url, line, col, error) {

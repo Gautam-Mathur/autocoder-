@@ -180,6 +180,80 @@ export async function registerRoutes(
     });
   });
   
+  // Preview scripts proxy - fetches CDN scripts and serves with proper CORS/COEP headers
+  const scriptCache = new Map<string, { content: string; timestamp: number }>();
+  const SCRIPT_URLS: Record<string, string> = {
+    'react': 'https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js',
+    'react-dom': 'https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js',
+    'babel': 'https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js'
+  };
+  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+  
+  app.get("/api/preview-scripts/:lib", async (req, res) => {
+    const lib = req.params.lib;
+    const url = SCRIPT_URLS[lib];
+    
+    if (!url) {
+      return res.status(404).json({ error: `Unknown library: ${lib}` });
+    }
+    
+    try {
+      // Check cache first
+      const cached = scriptCache.get(lib);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        res.setHeader('Content-Type', 'application/javascript');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(cached.content);
+      }
+      
+      // Fetch from CDN
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`CDN returned ${response.status}`);
+      }
+      
+      const content = await response.text();
+      
+      // Cache the script
+      scriptCache.set(lib, { content, timestamp: Date.now() });
+      
+      // Send with proper headers for COEP compatibility
+      res.setHeader('Content-Type', 'application/javascript');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.send(content);
+    } catch (error) {
+      console.error(`Failed to fetch ${lib}:`, error);
+      res.status(502).json({ error: `Failed to fetch ${lib} from CDN` });
+    }
+  });
+  
+  // Server-side TSX transpilation endpoint for fallback
+  app.post("/api/preview-transpile", async (req, res) => {
+    try {
+      const { code } = req.body;
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ error: 'Code is required' });
+      }
+      
+      // Use a simple transformation since we don't have Babel on server
+      // This is a basic JSX to createElement transformation
+      let transpiled = code;
+      
+      // Remove TypeScript type annotations (basic patterns)
+      transpiled = transpiled.replace(/:\s*\w+(\[\])?(\s*[,\)\}=])/g, '$2');
+      transpiled = transpiled.replace(/<\w+>/g, ''); // Generic types
+      transpiled = transpiled.replace(/interface\s+\w+\s*\{[^}]*\}/g, '');
+      transpiled = transpiled.replace(/type\s+\w+\s*=\s*[^;]+;/g, '');
+      
+      res.json({ transpiled, success: true });
+    } catch (error) {
+      console.error('Transpilation error:', error);
+      res.status(500).json({ error: 'Transpilation failed', success: false });
+    }
+  });
+  
   // Logger API endpoints
   app.get("/api/logs", (req, res) => {
     try {
