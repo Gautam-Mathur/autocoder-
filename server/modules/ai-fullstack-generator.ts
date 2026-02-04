@@ -1,0 +1,384 @@
+// AI-Powered Unlimited Full-Stack Application Generator
+// Uses GPT-5 to dynamically generate complete runnable applications
+
+import OpenAI from "openai";
+import { Response } from "express";
+
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
+
+export interface GeneratedFile {
+  path: string;
+  content: string;
+  language: string;
+}
+
+export interface GeneratedProject {
+  name: string;
+  description: string;
+  files: GeneratedFile[];
+  dependencies: string[];
+  instructions: string;
+}
+
+// System prompt for generating full-stack applications
+const FULLSTACK_SYSTEM_PROMPT = `You are an expert full-stack developer AI. Generate COMPLETE, RUNNABLE full-stack applications.
+
+CRITICAL REQUIREMENTS:
+1. Generate ACTUAL working code - no placeholders, no TODOs, no "implement here" comments
+2. All code must be production-quality and immediately runnable
+3. Include ALL necessary files for a complete application
+4. Use modern best practices and clean architecture
+
+OUTPUT FORMAT:
+Return a valid JSON object with this exact structure:
+{
+  "name": "project-name",
+  "description": "Brief description of the app",
+  "files": [
+    {"path": "package.json", "content": "...", "language": "json"},
+    {"path": "server.js", "content": "...", "language": "javascript"},
+    {"path": "public/index.html", "content": "...", "language": "html"}
+  ],
+  "dependencies": ["express", "cors"],
+  "instructions": "How to run: npm install && node server.js"
+}
+
+TECH STACK RULES:
+- Backend: Express.js (ES modules with "type": "module")
+- Database: In-memory storage (arrays/Maps) for zero-config. Include sample data.
+- Frontend: Vanilla HTML/CSS/JS for simplicity, or React if requested
+- Styling: Modern CSS with dark theme (background: #0f0f23, text: #e2e8f0)
+- Server must bind to 0.0.0.0:3000
+
+PACKAGE.JSON TEMPLATE:
+{
+  "name": "project-name",
+  "type": "module",
+  "scripts": { "start": "node server.js", "dev": "node server.js" },
+  "dependencies": { "express": "^4.18.2", "cors": "^2.8.5" }
+}
+
+SERVER.JS STRUCTURE:
+- Import express, cors
+- Use express.json() and express.static('public')
+- Define in-memory data stores
+- Implement full CRUD REST API endpoints
+- Serve index.html for all non-API routes
+- Listen on 0.0.0.0:3000
+
+UI REQUIREMENTS:
+- Responsive design that works on mobile
+- Clean, modern dark theme
+- Interactive elements with hover states
+- Loading states for async operations
+- Error handling with user-friendly messages
+- All functionality implemented in script tags (no build step)
+
+FEATURES TO INCLUDE:
+- Complete CRUD operations for all entities
+- Input validation
+- Error handling
+- Sample/demo data pre-populated
+- Real-time UI updates
+- Modal dialogs for forms
+- Toast notifications for feedback
+
+Remember: Generate COMPLETE, WORKING code. Every feature mentioned must be fully implemented.`;
+
+// Generate a full-stack application with streaming progress
+export async function generateFullStackAppStream(
+  prompt: string,
+  res: Response
+): Promise<void> {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const sendProgress = (stage: string, message: string, progress: number) => {
+    res.write(`data: ${JSON.stringify({ type: 'progress', progress: { stage, message, progress } })}\n\n`);
+  };
+
+  const sendError = (message: string) => {
+    res.write(`data: ${JSON.stringify({ type: 'error', message })}\n\n`);
+    res.end();
+  };
+
+  try {
+    sendProgress('analyzing', 'Understanding your requirements...', 10);
+
+    // First pass: Analyze and plan
+    const planningResponse = await openai.chat.completions.create({
+      model: "gpt-5.2",
+      max_completion_tokens: 2000,
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert software architect. Analyze the user's request and create a detailed technical plan.
+          
+Return JSON:
+{
+  "appName": "suggested-name",
+  "description": "what the app does",
+  "entities": ["User", "Post", etc],
+  "features": ["feature1", "feature2"],
+  "apiEndpoints": ["GET /api/items", "POST /api/items"],
+  "uiComponents": ["Header", "ItemList", "ItemForm"],
+  "complexity": "simple|medium|complex"
+}`
+        },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const plan = JSON.parse(planningResponse.choices[0]?.message?.content || "{}");
+    sendProgress('planning', `Planning ${plan.appName || 'your app'}: ${plan.features?.length || 0} features, ${plan.apiEndpoints?.length || 0} endpoints`, 30);
+
+    // Second pass: Generate the complete application
+    sendProgress('generating', 'Generating full-stack code...', 50);
+
+    const generationPrompt = `Build this application based on the user's request:
+"${prompt}"
+
+Technical plan:
+${JSON.stringify(plan, null, 2)}
+
+Generate the COMPLETE application with ALL files. Every feature must be fully implemented with working code.`;
+
+    const stream = await openai.chat.completions.create({
+      model: "gpt-5.2",
+      max_completion_tokens: 16000,
+      stream: true,
+      messages: [
+        { role: "system", content: FULLSTACK_SYSTEM_PROMPT },
+        { role: "user", content: generationPrompt }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    let fullContent = '';
+    let tokenCount = 0;
+    
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      fullContent += content;
+      tokenCount++;
+      
+      // Send progress updates periodically
+      if (tokenCount % 50 === 0) {
+        const progress = Math.min(50 + (tokenCount / 200) * 40, 90);
+        sendProgress('generating', `Generating code... (${Math.round(progress)}%)`, progress);
+      }
+    }
+
+    sendProgress('complete', 'Generation complete!', 100);
+
+    // Parse and validate the generated project
+    let project: GeneratedProject;
+    try {
+      project = JSON.parse(fullContent);
+      
+      // Validate required fields
+      if (!project.name || !project.files || project.files.length === 0) {
+        throw new Error('Invalid project structure');
+      }
+      
+      // Ensure all files have required properties
+      project.files = project.files.map(f => ({
+        path: f.path,
+        content: f.content,
+        language: f.language || detectLanguage(f.path)
+      }));
+      
+    } catch (parseError) {
+      // Try to extract JSON from the response
+      const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        project = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('Failed to parse generated project');
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'complete', project })}\n\n`);
+    res.end();
+
+  } catch (error: any) {
+    console.error('AI Generation Error:', error);
+    sendError(error.message || 'Generation failed');
+  }
+}
+
+// Synchronous generation (non-streaming)
+export async function generateFullStackApp(prompt: string): Promise<GeneratedProject> {
+  
+  // Single comprehensive generation
+  const response = await openai.chat.completions.create({
+    model: "gpt-5.2",
+    max_completion_tokens: 16000,
+    messages: [
+      { role: "system", content: FULLSTACK_SYSTEM_PROMPT },
+      { 
+        role: "user", 
+        content: `Build this application: ${prompt}
+
+Generate a COMPLETE, RUNNABLE full-stack application with:
+- package.json with all dependencies
+- server.js with Express backend and REST API
+- public/index.html with full frontend UI
+- All features fully implemented with working code
+- Sample data pre-populated
+- Modern dark theme styling` 
+      }
+    ],
+    response_format: { type: "json_object" }
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error('No response from AI');
+  }
+
+  const project = JSON.parse(content);
+  
+  // Validate and normalize
+  if (!project.name || !project.files) {
+    throw new Error('Invalid project structure');
+  }
+  
+  project.files = project.files.map((f: any) => ({
+    path: f.path,
+    content: f.content,
+    language: f.language || detectLanguage(f.path)
+  }));
+  
+  return project;
+}
+
+// Enhanced generation with context from conversation
+export async function generateWithContext(
+  prompt: string,
+  context: { previousFiles?: GeneratedFile[]; techStack?: string; preferences?: string }
+): Promise<GeneratedProject> {
+  
+  let contextPrompt = `Build this application: ${prompt}\n\n`;
+  
+  if (context.techStack) {
+    contextPrompt += `Tech stack preference: ${context.techStack}\n`;
+  }
+  
+  if (context.preferences) {
+    contextPrompt += `User preferences: ${context.preferences}\n`;
+  }
+  
+  if (context.previousFiles && context.previousFiles.length > 0) {
+    contextPrompt += `\nExisting project context (files already created):\n`;
+    for (const file of context.previousFiles.slice(0, 3)) {
+      contextPrompt += `- ${file.path}\n`;
+    }
+    contextPrompt += `\nBuild upon or integrate with this existing structure.\n`;
+  }
+  
+  return generateFullStackApp(contextPrompt);
+}
+
+// Detect language from file extension
+function detectLanguage(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase();
+  const langMap: Record<string, string> = {
+    'js': 'javascript',
+    'jsx': 'javascript',
+    'ts': 'typescript',
+    'tsx': 'typescript',
+    'json': 'json',
+    'html': 'html',
+    'css': 'css',
+    'md': 'markdown',
+    'py': 'python',
+    'rb': 'ruby',
+    'go': 'go',
+    'rs': 'rust',
+    'sql': 'sql',
+    'sh': 'bash',
+    'yaml': 'yaml',
+    'yml': 'yaml'
+  };
+  return langMap[ext || ''] || 'text';
+}
+
+// Generate specific file types
+export async function generateFile(
+  description: string,
+  fileType: 'api' | 'component' | 'model' | 'style' | 'test'
+): Promise<GeneratedFile> {
+  
+  const prompts: Record<string, string> = {
+    api: `Generate an Express.js API router with full CRUD operations for: ${description}. Include validation, error handling, and in-memory storage.`,
+    component: `Generate a React component for: ${description}. Use hooks, include styling, handle loading/error states.`,
+    model: `Generate a data model/schema for: ${description}. Include validation rules and TypeScript types.`,
+    style: `Generate modern CSS for: ${description}. Use CSS variables, dark theme, responsive design.`,
+    test: `Generate comprehensive tests for: ${description}. Include unit tests and integration tests.`
+  };
+  
+  const response = await openai.chat.completions.create({
+    model: "gpt-5.2",
+    max_completion_tokens: 4000,
+    messages: [
+      {
+        role: "system",
+        content: "Generate production-quality code. Return ONLY the code, no explanations."
+      },
+      { role: "user", content: prompts[fileType] }
+    ]
+  });
+  
+  const content = response.choices[0]?.message?.content || '';
+  
+  // Extract code from markdown if present
+  const codeMatch = content.match(/```[\w]*\n([\s\S]*?)```/);
+  const code = codeMatch ? codeMatch[1] : content;
+  
+  const extensions: Record<string, string> = {
+    api: 'js',
+    component: 'jsx',
+    model: 'ts',
+    style: 'css',
+    test: 'test.js'
+  };
+  
+  return {
+    path: `generated-${fileType}.${extensions[fileType]}`,
+    content: code,
+    language: fileType === 'style' ? 'css' : 'javascript'
+  };
+}
+
+// Modify existing code based on instructions
+export async function modifyCode(
+  existingCode: string,
+  instructions: string,
+  language: string = 'javascript'
+): Promise<string> {
+  
+  const response = await openai.chat.completions.create({
+    model: "gpt-5.2",
+    max_completion_tokens: 8000,
+    messages: [
+      {
+        role: "system",
+        content: `You are a code modification assistant. Modify the provided ${language} code according to instructions. Return ONLY the modified code, no explanations.`
+      },
+      {
+        role: "user",
+        content: `Existing code:\n\`\`\`${language}\n${existingCode}\n\`\`\`\n\nInstructions: ${instructions}\n\nReturn the complete modified code:`
+      }
+    ]
+  });
+  
+  const content = response.choices[0]?.message?.content || existingCode;
+  const codeMatch = content.match(/```[\w]*\n([\s\S]*?)```/);
+  return codeMatch ? codeMatch[1] : content;
+}
