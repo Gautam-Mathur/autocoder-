@@ -119,7 +119,55 @@ npx tsc -p electron/tsconfig.json
 
 ---
 
-### 1.2 Electron Won't Start
+### 1.2 ES Module Error: "exports is not defined"
+
+**Description:** Electron throws error on startup about ES modules.
+
+**Symptoms:**
+```
+ReferenceError: exports is not defined in ES module scope
+This file is being treated as an ES module because it has a '.js' file extension 
+and package.json contains "type": "module".
+```
+
+**Root Cause:** 
+The project uses `"type": "module"` in package.json, but Electron TypeScript was configured to output CommonJS format which uses `exports`.
+
+**Solution:**
+This has been fixed in the latest code. Pull the latest version:
+```bash
+git pull origin main
+npx tsc -p electron/tsconfig.json
+npx electron dist-electron/main.js
+```
+
+**Manual Fix (if needed):**
+Update `electron/tsconfig.json`:
+```json
+{
+  "compilerOptions": {
+    "module": "ESNext",           // Changed from "commonjs"
+    "moduleResolution": "bundler" // Changed from "node"
+  }
+}
+```
+
+And update imports in `electron/main.ts` to use `.js` extensions:
+```typescript
+import { LocalRunner } from './services/local-runner.js';
+import { ProjectManager } from './services/project-manager.js';
+```
+
+Also add `__dirname` replacement for ES modules:
+```typescript
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+```
+
+---
+
+### 1.3 Electron Won't Start
 
 **Description:** Running Electron produces no window.
 

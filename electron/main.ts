@@ -1,7 +1,11 @@
 import { app, BrowserWindow, ipcMain, shell, IpcMainInvokeEvent } from 'electron';
 import * as path from 'path';
-import { LocalRunner } from './services/local-runner';
-import { ProjectManager } from './services/project-manager';
+import { fileURLToPath } from 'url';
+import { LocalRunner } from './services/local-runner.js';
+import { ProjectManager } from './services/project-manager.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
