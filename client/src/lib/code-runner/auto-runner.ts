@@ -446,41 +446,76 @@ export default {
     log(`✅ Mounted ${filesWithoutPkg.length} files`);
     
     // Write package.json directly using writeFile (bypasses mount chunking issues)
+    let finalPkgContent = pkgContent;
     if (pkgContent) {
       log('📝 Writing package.json...');
-      try {
-        await writeFile('package.json', pkgContent);
-        
-        // Verify the file was written correctly by reading it back
-        const readBack = await readFile('package.json');
-        if (readBack.length !== pkgContent.length) {
-          log(`⚠️ package.json verification failed (wrote ${pkgContent.length} bytes, read ${readBack.length} bytes)`);
-          log('   Regenerating package.json...');
-          const freshPkg = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
-          await writeFile('package.json', freshPkg);
-          
-          // Verify regenerated file
-          const verifyRead = await readFile('package.json');
-          if (verifyRead.length !== freshPkg.length) {
-            throw new Error(`Failed to write package.json correctly after retry`);
+      
+      // Helper to verify write was successful
+      const verifyWrite = async (content: string): Promise<boolean> => {
+        try {
+          const readBack = await readFile('package.json');
+          if (readBack !== content) {
+            log(`⚠️ package.json verification failed (content mismatch: wrote ${content.length} bytes, read ${readBack.length} bytes)`);
+            return false;
           }
-          log('✅ Regenerated package.json successfully');
-        } else {
-          // Also validate JSON structure
-          try {
-            JSON.parse(readBack);
-            log('✅ package.json verified');
-          } catch {
-            log('⚠️ package.json has invalid JSON, regenerating...');
-            const freshPkg = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
-            await writeFile('package.json', freshPkg);
-          }
+          JSON.parse(readBack); // Validate JSON structure
+          return true;
+        } catch {
+          return false;
         }
-      } catch (writeErr) {
-        log(`⚠️ Error writing package.json: ${writeErr}`);
-        // Try to regenerate a simpler package.json
-        const freshPkg = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
-        await writeFile('package.json', freshPkg);
+      };
+      
+      // Try writing original content up to 3 times
+      let writeSuccess = false;
+      for (let attempt = 1; attempt <= 3 && !writeSuccess; attempt++) {
+        try {
+          await writeFile('package.json', pkgContent);
+          writeSuccess = await verifyWrite(pkgContent);
+          if (!writeSuccess && attempt < 3) {
+            log(`   Retry ${attempt}/3...`);
+            await new Promise(r => setTimeout(r, 100 * attempt));
+          }
+        } catch (err) {
+          log(`   Write attempt ${attempt} failed: ${err}`);
+        }
+      }
+      
+      if (!writeSuccess) {
+        // Last resort: regenerate while preserving original metadata
+        log('⚠️ Could not write original package.json, merging with generated dependencies...');
+        try {
+          const originalPkg = JSON.parse(pkgContent);
+          const freshDeps = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
+          const freshPkg = JSON.parse(freshDeps);
+          
+          // Merge: keep original scripts, metadata; add detected deps
+          const mergedPkg = {
+            ...freshPkg,
+            name: originalPkg.name || freshPkg.name,
+            scripts: { ...freshPkg.scripts, ...originalPkg.scripts },
+            dependencies: { ...freshPkg.dependencies, ...originalPkg.dependencies },
+            devDependencies: { ...freshPkg.devDependencies, ...originalPkg.devDependencies }
+          };
+          
+          finalPkgContent = JSON.stringify(mergedPkg, null, 2);
+          await writeFile('package.json', finalPkgContent);
+          log('✅ Wrote merged package.json');
+        } catch {
+          // Complete fallback: just use generated
+          finalPkgContent = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
+          await writeFile('package.json', finalPkgContent);
+          log('✅ Wrote generated package.json');
+        }
+      } else {
+        log('✅ package.json verified');
+      }
+      
+      // Update projectFiles to match what was actually written (keeps cache in sync)
+      if (finalPkgContent && finalPkgContent !== pkgContent) {
+        const idx = projectFiles.findIndex(f => f.path === 'package.json');
+        if (idx >= 0) {
+          projectFiles[idx] = { path: 'package.json', content: finalPkgContent };
+        }
       }
     }
     
