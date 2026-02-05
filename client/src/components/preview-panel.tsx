@@ -1261,12 +1261,12 @@ ${combinedJs}
   return (
     <div className="flex flex-col h-full bg-muted/30">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-background">
-        <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5 overflow-x-auto max-w-full scrollbar-hide">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={() => setActiveTab("preview")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                   activeTab === "preview" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid="tab-preview"
@@ -1283,7 +1283,7 @@ ${combinedJs}
             <TooltipTrigger asChild>
               <button
                 onClick={() => setActiveTab("code")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                   activeTab === "code" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid="tab-code"
@@ -1300,7 +1300,7 @@ ${combinedJs}
             <TooltipTrigger asChild>
               <button
                 onClick={() => setActiveTab("debug")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                   activeTab === "debug" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid="tab-debug"
@@ -1320,7 +1320,7 @@ ${combinedJs}
             <TooltipTrigger asChild>
               <button
                 onClick={() => setActiveTab("intel")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                   activeTab === "intel" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid="tab-intel"
@@ -1337,7 +1337,7 @@ ${combinedJs}
             <TooltipTrigger asChild>
               <button
                 onClick={() => setActiveTab("test")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                   activeTab === "test" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid="tab-test"
@@ -1354,7 +1354,7 @@ ${combinedJs}
             <TooltipTrigger asChild>
               <button
                 onClick={() => setActiveTab("deploy")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                   activeTab === "deploy" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid="tab-deploy"
@@ -1371,7 +1371,7 @@ ${combinedJs}
             <TooltipTrigger asChild>
               <button
                 onClick={() => setActiveTab("ide")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                   activeTab === "ide" ? "bg-background shadow-sm bg-primary/10" : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid="tab-ide"
@@ -1388,7 +1388,7 @@ ${combinedJs}
             <TooltipTrigger asChild>
               <button
                 onClick={() => setActiveTab("execution")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                   activeTab === "execution" ? "bg-background shadow-sm bg-green-500/10" : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid="tab-execution"
@@ -1405,7 +1405,7 @@ ${combinedJs}
             <TooltipTrigger asChild>
               <button
                 onClick={() => setActiveTab("devserver")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                   activeTab === "devserver" ? "bg-background shadow-sm bg-purple-500/10" : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid="tab-devserver"
