@@ -28,7 +28,7 @@ async function getAccessToken() {
         'X_REPLIT_TOKEN': xReplitToken
       }
     }
-  ).then(res => res.json()).then((data: { items?: Array<any> }) => data.items?.[0]);
+  ).then(res => res.json() as Promise<{ items?: Array<any> }>).then(data => data.items?.[0]);
 
   const accessToken = connectionSettings?.settings?.access_token || connectionSettings.settings?.oauth?.credentials?.access_token;
 
