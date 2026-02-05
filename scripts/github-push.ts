@@ -63,7 +63,11 @@ function getAllFiles(dir: string, baseDir: string = dir): string[] {
         entry.name === '.config' ||
         entry.name === '.upm' ||
         entry.name === 'dist' ||
-        entry.name.startsWith('.local')) {
+        entry.name === 'temp_repo' ||
+        entry.name === 'attached_assets' ||
+        entry.name === 'scripts' ||
+        entry.name.startsWith('.local') ||
+        entry.name.endsWith('.log')) {
       continue;
     }
     
@@ -138,40 +142,59 @@ async function pushToGitHub() {
   
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
   
+  async function uploadWithRetry(filePath: string, maxRetries = 3): Promise<string | null> {
+    const fullPath = path.join(process.cwd(), filePath);
+    const content = fs.readFileSync(fullPath);
+    const isText = !content.includes(0x00);
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const { data: blob } = await octokit.git.createBlob({
+          owner,
+          repo,
+          content: isText ? content.toString('utf-8') : content.toString('base64'),
+          encoding: isText ? 'utf-8' : 'base64'
+        });
+        return blob.sha;
+      } catch (err: any) {
+        if (err.status === 403 && attempt < maxRetries) {
+          const waitTime = attempt * 2000; // 2s, 4s, 6s
+          console.log(`   ⏳ Rate limited on ${filePath}, waiting ${waitTime/1000}s...`);
+          await delay(waitTime);
+        } else if (attempt === maxRetries) {
+          console.warn(`   ⚠️  Failed ${filePath} after ${maxRetries} attempts`);
+          return null;
+        }
+      }
+    }
+    return null;
+  }
+  
   let uploaded = 0;
+  let failed = 0;
   for (const filePath of files) {
-    try {
-      const fullPath = path.join(process.cwd(), filePath);
-      const content = fs.readFileSync(fullPath);
-      const isText = !content.includes(0x00); // Simple binary check
-      
-      // Add delay to avoid rate limiting (200ms between requests)
-      await delay(200);
-      
-      const { data: blob } = await octokit.git.createBlob({
-        owner,
-        repo,
-        content: isText ? content.toString('utf-8') : content.toString('base64'),
-        encoding: isText ? 'utf-8' : 'base64'
-      });
-      
+    // Add delay between requests to avoid rate limiting
+    await delay(100);
+    
+    const sha = await uploadWithRetry(filePath);
+    if (sha) {
       treeItems.push({
         path: filePath,
         mode: '100644',
         type: 'blob',
-        sha: blob.sha
+        sha
       });
-      
       uploaded++;
-      if (uploaded % 50 === 0) {
-        console.log(`   Uploaded ${uploaded}/${files.length} files...`);
-      }
-    } catch (err: any) {
-      console.warn(`   ⚠️  Skipped ${filePath}: ${err.message}`);
+    } else {
+      failed++;
+    }
+    
+    if ((uploaded + failed) % 50 === 0) {
+      console.log(`   Progress: ${uploaded} uploaded, ${failed} failed of ${files.length}...`);
     }
   }
   
-  console.log(`   Uploaded ${uploaded} files`);
+  console.log(`   ✓ Uploaded ${uploaded} files, ${failed} failed`);
   
   // Create tree
   console.log('🌳 Creating tree...');
@@ -184,13 +207,9 @@ async function pushToGitHub() {
   
   // Create commit
   console.log('📝 Creating commit...');
-  const commitMessage = `Update from AutoCoder - ${new Date().toISOString().split('T')[0]}
+  const commitMessage = `Full sync from AutoCoder - ${new Date().toISOString().split('T')[0]}
 
-Changes include:
-- Enhanced terminal-style logger with ASCII art
-- Smart template enhancer for AI-quality output
-- Local LLM training context and code intelligence
-- Code cleaner and auto-fix improvements`;
+Complete codebase push including all files`;
 
   const { data: commit } = await octokit.git.createCommit({
     owner,
