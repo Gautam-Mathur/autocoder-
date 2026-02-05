@@ -1,7 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
-import type { IpcRendererEvent } from 'electron';
 
-export interface LogEntry {
+interface LogEntry {
   timestamp: string;
   level: 'debug' | 'info' | 'warn' | 'error';
   category: string;
@@ -9,8 +8,7 @@ export interface LogEntry {
   data?: any;
 }
 
-export interface ElectronAPI {
-  // File & Project operations
+interface ElectronAPI {
   writeFiles: (projectName: string, files: Array<{ path: string; content: string }>) => Promise<{ success: boolean; projectPath?: string; error?: string }>;
   npmInstall: (projectName: string) => Promise<{ success: boolean; error?: string }>;
   startServer: (projectName: string) => Promise<{ success: boolean; url?: string; error?: string }>;
@@ -20,27 +18,23 @@ export interface ElectronAPI {
   deleteProject: (projectName: string) => Promise<{ success: boolean; error?: string }>;
   openProject: (projectName: string) => Promise<{ success: boolean; error?: string }>;
   isElectron: () => Promise<boolean>;
-  
-  // Event listeners
   onLog: (callback: (log: string) => void) => () => void;
   onProgress: (callback: (data: { percent: number; message: string }) => void) => () => void;
   onServerReady: (callback: (url: string) => void) => () => void;
   onLogEntry: (callback: (entry: LogEntry) => void) => () => void;
-  
-  // Logger API
   getLogs: (count?: number) => Promise<LogEntry[]>;
   getLogFile: () => Promise<string>;
   setLogLevel: (level: 'debug' | 'info' | 'warn' | 'error') => Promise<{ success: boolean }>;
 }
 
 const electronAPI: ElectronAPI = {
-  writeFiles: (projectName, files) => 
+  writeFiles: (projectName: string, files: Array<{ path: string; content: string }>) => 
     ipcRenderer.invoke('runner:writeFiles', projectName, files),
   
-  npmInstall: (projectName) => 
+  npmInstall: (projectName: string) => 
     ipcRenderer.invoke('runner:npmInstall', projectName),
   
-  startServer: (projectName) => 
+  startServer: (projectName: string) => 
     ipcRenderer.invoke('runner:startServer', projectName),
   
   stopServer: () => 
@@ -52,54 +46,49 @@ const electronAPI: ElectronAPI = {
   listProjects: () => 
     ipcRenderer.invoke('project:list'),
   
-  deleteProject: (projectName) => 
+  deleteProject: (projectName: string) => 
     ipcRenderer.invoke('project:delete', projectName),
   
-  openProject: (projectName) => 
+  openProject: (projectName: string) => 
     ipcRenderer.invoke('project:open', projectName),
   
   isElectron: () => 
     ipcRenderer.invoke('isElectron'),
   
-  onLog: (callback) => {
-    const handler = (_event: IpcRendererEvent, log: string) => callback(log);
+  onLog: (callback: (log: string) => void) => {
+    const handler = (_event: any, log: string) => callback(log);
     ipcRenderer.on('runner:log', handler);
     return () => ipcRenderer.removeListener('runner:log', handler);
   },
 
-  onProgress: (callback) => {
-    const handler = (_event: IpcRendererEvent, data: { percent: number; message: string }) => callback(data);
+  onProgress: (callback: (data: { percent: number; message: string }) => void) => {
+    const handler = (_event: any, data: { percent: number; message: string }) => callback(data);
     ipcRenderer.on('runner:progress', handler);
     return () => ipcRenderer.removeListener('runner:progress', handler);
   },
   
-  onServerReady: (callback) => {
-    const handler = (_event: IpcRendererEvent, url: string) => callback(url);
+  onServerReady: (callback: (url: string) => void) => {
+    const handler = (_event: any, url: string) => callback(url);
     ipcRenderer.on('runner:serverReady', handler);
     return () => ipcRenderer.removeListener('runner:serverReady', handler);
   },
 
-  onLogEntry: (callback) => {
-    const handler = (_event: IpcRendererEvent, entry: LogEntry) => callback(entry);
+  onLogEntry: (callback: (entry: LogEntry) => void) => {
+    const handler = (_event: any, entry: LogEntry) => callback(entry);
     ipcRenderer.on('logger:entry', handler);
     return () => ipcRenderer.removeListener('logger:entry', handler);
   },
 
-  // Logger API
-  getLogs: (count) => 
+  getLogs: (count?: number) => 
     ipcRenderer.invoke('logger:getLogs', count),
   
   getLogFile: () => 
     ipcRenderer.invoke('logger:getLogFile'),
   
-  setLogLevel: (level) => 
+  setLogLevel: (level: 'debug' | 'info' | 'warn' | 'error') => 
     ipcRenderer.invoke('logger:setLevel', level),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
 
-declare global {
-  interface Window {
-    electronAPI: ElectronAPI;
-  }
-}
+export {};
