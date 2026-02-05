@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, IpcMainInvokeEvent } from 'electron';
 import * as path from 'path';
 import { LocalRunner } from './services/local-runner';
 import { ProjectManager } from './services/project-manager';
@@ -30,9 +30,9 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+  mainWindow.webContents.setWindowOpenHandler(({ url }: { url: string }) => {
     shell.openExternal(url);
-    return { action: 'deny' };
+    return { action: 'deny' as const };
   });
 
   mainWindow.on('closed', () => {
@@ -61,7 +61,7 @@ app.on('before-quit', () => {
   runner.cleanup();
 });
 
-ipcMain.handle('runner:writeFiles', async (_event, projectName: string, files: Array<{ path: string; content: string }>) => {
+ipcMain.handle('runner:writeFiles', async (_event: IpcMainInvokeEvent, projectName: string, files: Array<{ path: string; content: string }>) => {
   try {
     const projectPath = await projectManager.ensureProject(projectName);
     await runner.writeFiles(projectPath, files);
@@ -71,7 +71,7 @@ ipcMain.handle('runner:writeFiles', async (_event, projectName: string, files: A
   }
 });
 
-ipcMain.handle('runner:npmInstall', async (_event, projectName: string) => {
+ipcMain.handle('runner:npmInstall', async (_event: IpcMainInvokeEvent, projectName: string) => {
   try {
     const projectPath = projectManager.getProjectPath(projectName);
     const result = await runner.npmInstall(projectPath, (log) => {
@@ -83,7 +83,7 @@ ipcMain.handle('runner:npmInstall', async (_event, projectName: string) => {
   }
 });
 
-ipcMain.handle('runner:startServer', async (_event, projectName: string) => {
+ipcMain.handle('runner:startServer', async (_event: IpcMainInvokeEvent, projectName: string) => {
   try {
     const projectPath = projectManager.getProjectPath(projectName);
     const result = await runner.startDevServer(projectPath, (log) => {
@@ -120,7 +120,7 @@ ipcMain.handle('project:list', async () => {
   return projectManager.listProjects();
 });
 
-ipcMain.handle('project:delete', async (_event, projectName: string) => {
+ipcMain.handle('project:delete', async (_event: IpcMainInvokeEvent, projectName: string) => {
   try {
     await projectManager.deleteProject(projectName);
     return { success: true };
@@ -129,7 +129,7 @@ ipcMain.handle('project:delete', async (_event, projectName: string) => {
   }
 });
 
-ipcMain.handle('project:open', async (_event, projectName: string) => {
+ipcMain.handle('project:open', async (_event: IpcMainInvokeEvent, projectName: string) => {
   try {
     const projectPath = projectManager.getProjectPath(projectName);
     shell.openPath(projectPath);

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
 export interface ElectronAPI {
   writeFiles: (projectName: string, files: Array<{ path: string; content: string }>) => Promise<{ success: boolean; projectPath?: string; error?: string }>;
@@ -43,13 +43,13 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.invoke('isElectron'),
   
   onLog: (callback) => {
-    const handler = (_event: Electron.IpcRendererEvent, log: string) => callback(log);
+    const handler = (_event: IpcRendererEvent, log: string) => callback(log);
     ipcRenderer.on('runner:log', handler);
     return () => ipcRenderer.removeListener('runner:log', handler);
   },
   
   onServerReady: (callback) => {
-    const handler = (_event: Electron.IpcRendererEvent, url: string) => callback(url);
+    const handler = (_event: IpcRendererEvent, url: string) => callback(url);
     ipcRenderer.on('runner:serverReady', handler);
     return () => ipcRenderer.removeListener('runner:serverReady', handler);
   },
