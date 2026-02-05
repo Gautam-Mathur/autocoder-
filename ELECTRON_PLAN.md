@@ -358,3 +358,115 @@ npm run test:ipc
 3. ✅ Dev server starts and preview works
 4. ✅ Development mode works without building
 5. ✅ Packaged app runs on Windows/Mac/Linux
+
+---
+
+## Run Guide (Windows/macOS/Linux)
+
+### Prerequisites
+
+- **Node.js 20 LTS** (NOT v24+) - [Download](https://nodejs.org/)
+- **Git** - [Download](https://git-scm.com/)
+
+### Initial Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/Gautam-Mathur/autocoder-.git
+cd autocoder-
+
+# Install dependencies
+npm install
+```
+
+### Windows: EBUSY Error Fix
+
+If you get this error during `npm install`:
+```
+npm error code EBUSY
+npm error syscall rename
+npm error path ...\node_modules\electron\...
+```
+
+**Solution:**
+1. **Close VS Code completely** (it locks Electron files)
+2. **Close all terminals** in the project folder
+3. **Close any running Electron instances**
+4. Open a fresh Command Prompt and run:
+
+```cmd
+cd C:\path\to\autocoder-
+rmdir /s /q node_modules
+del package-lock.json
+npm install
+```
+
+> **Important:** VS Code must be closed before running npm install when Electron packages are involved.
+
+### Build & Run Electron
+
+After `npm install` succeeds:
+
+```bash
+# Step 1: Compile TypeScript
+npx tsc -p electron/tsconfig.json
+npx tsc -p electron/tsconfig.preload.json
+
+# Step 2: Run Electron in dev mode
+npm run electron:dev
+```
+
+**Or use the all-in-one script (macOS/Linux):**
+```bash
+chmod +x scripts/electron-dev.sh
+./scripts/electron-dev.sh
+```
+
+**Windows equivalent:**
+```cmd
+rmdir /s /q dist-electron 2>nul
+npx tsc -p electron/tsconfig.json
+npx tsc -p electron/tsconfig.preload.json
+npx electron dist-electron/main.js
+```
+
+### Dev Server Port
+
+The dev server runs on **port 5100** (not 5000).
+
+### Logging
+
+Logs are saved to:
+- **Windows:** `%APPDATA%\autocoder\logs\autocoder-YYYY-MM-DD.log`
+- **macOS:** `~/Library/Application Support/autocoder/logs/`
+- **Linux:** `~/.config/autocoder/logs/`
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `Cannot find module 'electron'` | Run `npm install` first |
+| EBUSY error | Close VS Code, then run `npm install` |
+| TypeScript errors | Run `npm install` to get @types/electron |
+| Preload script fails | Ensure preload uses CommonJS (require), not ES modules |
+| Port 5100 in use | Kill the process: `npx kill-port 5100` |
+
+### Project Structure
+
+```
+electron/
+├── main.ts              # Main process (ESNext modules)
+├── preload.ts           # Preload script (CommonJS!)
+├── tsconfig.json        # Config for main.ts
+├── tsconfig.preload.json # Config for preload.ts (CommonJS)
+└── services/
+    ├── logger.ts        # File logging with rotation
+    ├── local-runner.ts  # npm/file operations
+    └── project-manager.ts
+```
+
+### Important Notes
+
+1. **Preload scripts MUST use CommonJS** - They run in a special Electron context that doesn't support ES modules
+2. **Separate TypeScript configs** - main.ts uses ESNext, preload.ts uses CommonJS
+3. **Delete dist-electron before recompiling** - Avoids stale output issues
