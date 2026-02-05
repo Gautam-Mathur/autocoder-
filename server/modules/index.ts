@@ -41,3 +41,32 @@ export {
   getDebugStatus,
   formatDebugReport,
 } from './continuous-debugger';
+
+// Complete Code Intelligence - Comprehensive patterns for full-stack development
+export {
+  PROJECT_BLUEPRINTS,
+  FRAMEWORK_PATTERNS,
+  BACKEND_PATTERNS,
+  UI_COMPONENTS,
+  AUTH_PATTERNS,
+  DATABASE_PATTERNS,
+  ERROR_SOLUTIONS,
+  REAL_TIME_PATTERNS,
+  PAYMENT_PATTERNS,
+  TESTING_PATTERNS,
+  SECURITY_PATTERNS,
+  getPatternByType,
+  getBlueprintFiles,
+  getAllBlueprints,
+} from './complete-code-intelligence';
+
+// AI Code Refiner - Continuous code improvement with AI
+export {
+  refineCode,
+  quickRefine,
+  reviewProject,
+  isAIRefinementAvailable,
+  type FileToRefine,
+  type RefinementResult,
+  type RefinementOptions,
+} from './ai-code-refiner';

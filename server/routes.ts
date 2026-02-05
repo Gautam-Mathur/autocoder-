@@ -5273,6 +5273,169 @@ Output ONLY the fixed code. No explanations.`;
     }
   });
 
+  // Generate a deep project with AI refinement
+  app.post("/api/ai/deep/generate-refined", async (req, res) => {
+    try {
+      const schema = z.object({
+        blueprint: z.string().min(1),
+        name: z.string().min(1),
+        features: z.array(z.string()).default([]),
+        includeTests: z.boolean().optional().default(false),
+        includeDocker: z.boolean().optional().default(false),
+        includeDocs: z.boolean().optional().default(true),
+        enableAIRefinement: z.boolean().optional().default(true),
+        aiRefinementOptions: z.object({
+          enableSecurityReview: z.boolean().optional().default(true),
+          enableCodeQuality: z.boolean().optional().default(true),
+          enablePerformance: z.boolean().optional().default(false),
+          enableConsistency: z.boolean().optional().default(false),
+          maxFilesToRefine: z.number().optional().default(15),
+        }).optional(),
+        conversationId: z.number().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+
+      // Import the async generator
+      const { generateDeepProjectWithAI } = await import('./modules/deep-project-generator');
+      
+      const project = await generateDeepProjectWithAI({
+        ...parsed.data,
+        enableAIRefinement: parsed.data.enableAIRefinement ?? true,
+        aiRefinementOptions: parsed.data.aiRefinementOptions,
+      });
+      
+      res.json({
+        success: true,
+        project: {
+          name: project.name,
+          blueprint: project.blueprint.id,
+          totalFiles: project.totalFiles,
+          features: project.features,
+          structure: project.structure,
+          refinement: project.refinement,
+        },
+        files: project.files.map(f => ({
+          path: f.path,
+          type: f.type,
+          size: f.content.length,
+          content: f.content,
+        })),
+        fullProject: project,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Project generation with AI refinement failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Review existing code with AI
+  app.post("/api/ai/review", async (req, res) => {
+    try {
+      const { isAIRefinementAvailable, reviewProject } = await import('./modules/ai-code-refiner');
+      
+      if (!isAIRefinementAvailable()) {
+        return res.status(503).json({ 
+          error: 'AI refinement not available', 
+          message: 'OpenAI API key not configured. Set OPENAI_API_KEY to enable AI code review.',
+          available: false,
+        });
+      }
+
+      const schema = z.object({
+        files: z.array(z.object({
+          path: z.string(),
+          content: z.string(),
+          type: z.string().optional().default('source'),
+        })),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+      
+      const review = await reviewProject(parsed.data.files);
+      
+      res.json({
+        success: true,
+        review,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Code review failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Quick refine code
+  app.post("/api/ai/refine", async (req, res) => {
+    try {
+      const { isAIRefinementAvailable, quickRefine } = await import('./modules/ai-code-refiner');
+      
+      if (!isAIRefinementAvailable()) {
+        return res.status(503).json({ 
+          error: 'AI refinement not available', 
+          message: 'OpenAI API key not configured. Set OPENAI_API_KEY to enable AI code refinement.',
+          available: false,
+        });
+      }
+
+      const schema = z.object({
+        files: z.array(z.object({
+          path: z.string(),
+          content: z.string(),
+          type: z.string().optional().default('source'),
+        })),
+        maxFiles: z.number().optional().default(10),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      }
+      
+      const results = await quickRefine(parsed.data.files, parsed.data.maxFiles);
+      
+      res.json({
+        success: true,
+        results: results.map(r => ({
+          path: r.path,
+          wasImproved: r.wasImproved,
+          improvements: r.improvements,
+          refinedContent: r.refinedContent,
+        })),
+        summary: {
+          filesReviewed: results.length,
+          filesImproved: results.filter(r => r.wasImproved).length,
+          totalImprovements: results.reduce((sum, r) => sum + r.improvements.length, 0),
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Code refinement failed';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Check AI refinement availability
+  app.get("/api/ai/refinement-status", async (_req, res) => {
+    try {
+      const { isAIRefinementAvailable } = await import('./modules/ai-code-refiner');
+      const available = isAIRefinementAvailable();
+      
+      res.json({
+        available,
+        message: available 
+          ? 'AI refinement is available and ready to use'
+          : 'AI refinement requires OPENAI_API_KEY to be configured',
+      });
+    } catch (error) {
+      res.status(500).json({ available: false, error: 'Failed to check status' });
+    }
+  });
+
   // ============================================
   // VAPT Dashboard API Routes
   // ============================================
