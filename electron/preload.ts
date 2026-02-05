@@ -1,3 +1,4 @@
+/// <reference types="node" />
 const { contextBridge, ipcRenderer } = require('electron');
 
 interface LogEntry {
