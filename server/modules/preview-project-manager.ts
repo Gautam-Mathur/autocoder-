@@ -214,6 +214,15 @@ const tsConfigNode = `{
 function cleanupCode(content: string): string {
   let code = content;
   
+  // Fix import statements with semicolons inside braces: import { foo; } -> import { foo }
+  code = code.replace(/import\s*\{\s*([^};]+)\s*;+\s*\}/g, 'import { $1 }');
+  code = code.replace(/import\s*\{([^}]*);+([^}]*)\}/g, (_: string, before: string, after: string) => {
+    const items = (before + after).split(/[,\s]+/).filter((s: string) => s && s !== ';');
+    return `import { ${items.join(', ')} }`;
+  });
+  code = code.replace(/import\s*\{\s*\n+\s*([^}]*)\}/g, 'import { $1 }');
+  
+  // Fix return statements with semicolons
   code = code.replace(/return\s*\(\s*;+\s*/g, 'return (\n');
   code = code.replace(/return\s*\(\s*\n\s*;+\s*/g, 'return (\n');
   code = code.replace(/return\s*;+\s*\(/g, 'return (');
@@ -221,11 +230,11 @@ function cleanupCode(content: string): string {
   code = code.replace(/\(\s*;+\s*(\n\s*<)/g, '($1');
   code = code.replace(/\(\s*;+\s*</g, '(\n<');
   code = code.replace(/;\s*(\n\s*<[A-Z])/g, '$1');
+  
+  // Clean up multiple semicolons and empty lines
   code = code.replace(/;{2,}/g, ';');
   code = code.replace(/\{\s*;+\s*}/g, '{}');
   code = code.replace(/^\s*;\s*$/gm, '');
-  code = code.replace(/import\s*\{([^}]*);+\s*\n?\s*\}/g, 'import {$1}');
-  code = code.replace(/import\s*\{\s*\n+\s*([^}]*)\}/g, 'import { $1 }');
   
   return code;
 }
