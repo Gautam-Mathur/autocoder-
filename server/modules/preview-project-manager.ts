@@ -334,6 +334,30 @@ function cleanupCode(content: string): string {
   
   // Also convert standalone <a> with to= attribute (React Router style) to <Link>
   code = code.replace(/<a\s+(to=)/g, '<Link $1');
+  
+  // CRITICAL FIX: Handle case where <a> is opened but NEVER closed before </Link>
+  // Pattern: <Link...><a...>content</Link> → <Link...>content</Link>
+  // This is when AI forgets to close the <a> tag entirely
+  code = code.replace(/<a\s+className=([^>]+)>\s*\n?(\s*<[^/][^>]*\/>\s*\n?\s*<[^/][^>]*>[^<]*<\/[^>]+>\s*\n?)\s*<\/Link>/g, 
+    (match, className, content) => {
+      // Remove the <a> wrapper entirely, keep the Link
+      return content.trim() + '\n            </Link>';
+    });
+  
+  // Another pattern: <a className=...>..anything..</Link> (no </a> at all)
+  // Convert <a to Link and remove the orphan <a>
+  code = code.replace(/<a\s+(className=[^>]+)>([^]*?)<\/Link>/g, (match, attrs, content) => {
+    // Check if there's no </a> in the content - if so, the <a> was never closed
+    if (!content.includes('</a>')) {
+      // This <a> was never closed, so just remove it and keep the Link closing
+      return content + '</Link>';
+    }
+    return match;
+  });
+  
+  // Remove orphan opening <a> tags that appear right before content that ends with </Link>
+  code = code.replace(/<a\s+className=[^>]+>\s*\n(\s*)(<item\.[^>]+\/>\s*\n\s*<span>[^<]*<\/span>\s*\n\s*<\/Link>)/g, '$1$2');
+  
   code = code.replace(/<\/a>/g, (match, offset, str) => {
     // Check if this </a> is near a </Link> - if so, it's likely orphan
     const after = str.substring(offset, offset + 50);
