@@ -1,0 +1,559 @@
+// Auto-Runner Pipeline - Generate → Install → Run → Preview
+// Seamlessly runs generated projects without manual intervention
+
+import { 
+  getWebContainer, 
+  mountFiles, 
+  installDependencies, 
+  startDevServer,
+  isWebContainerSupported,
+  hasNodeModules,
+  setPackageJsonHash,
+  type FileSystemTree,
+  type RunResult
+} from './webcontainer';
+
+export type RunnerStatus = 
+  | 'idle'
+  | 'generating'
+  | 'mounting'
+  | 'installing'
+  | 'starting'
+  | 'running'
+  | 'error';
+
+export interface RunnerState {
+  status: RunnerStatus;
+  progress: number; // 0-100
+  message: string;
+  logs: string[];
+  previewUrl: string | null;
+  error: string | null;
+}
+
+export interface AutoRunCallbacks {
+  onStatusChange: (state: RunnerState) => void;
+  onLog: (log: string) => void;
+  onPreviewReady: (url: string) => void;
+  onError: (error: string) => void;
+}
+
+// Convert file array to WebContainer FileSystemTree
+export function filesToFileSystemTree(
+  files: { path: string; content: string }[]
+): FileSystemTree {
+  const tree: FileSystemTree = {};
+  
+  for (const file of files) {
+    const parts = file.path.split('/');
+    let current: FileSystemTree = tree;
+    
+    for (let i = 0; i < parts.length - 1; i++) {
+      const dir = parts[i];
+      if (!current[dir]) {
+        current[dir] = { directory: {} };
+      }
+      current = (current[dir] as { directory: FileSystemTree }).directory;
+    }
+    
+    const fileName = parts[parts.length - 1];
+    current[fileName] = { file: { contents: file.content } };
+  }
+  
+  return tree;
+}
+
+// Detect project type from files
+export function detectProjectType(files: { path: string; content: string }[]): {
+  type: 'vite' | 'express' | 'next' | 'node' | 'static';
+  devCommand: string;
+  installCommand: string;
+  useTypeScript: boolean;
+  entryFile: string | null;
+} {
+  const hasPackageJson = files.some(f => f.path === 'package.json');
+  const hasViteConfig = files.some(f => f.path.includes('vite.config'));
+  const hasNextConfig = files.some(f => f.path.includes('next.config'));
+  const hasServerTs = files.some(f => f.path === 'server.ts');
+  const hasServerJs = files.some(f => f.path === 'server.js');
+  const hasIndexTs = files.some(f => f.path === 'index.ts');
+  const hasIndexJs = files.some(f => f.path === 'index.js');
+  const hasAppTs = files.some(f => f.path === 'app.ts');
+  const hasAppJs = files.some(f => f.path === 'app.js');
+  
+  // Check if project uses TypeScript
+  const useTypeScript = files.some(f => f.path.endsWith('.ts') || f.path.endsWith('.tsx'));
+  
+  if (!hasPackageJson) {
+    return { type: 'static', devCommand: '', installCommand: '', useTypeScript: false, entryFile: null };
+  }
+  
+  if (hasNextConfig) {
+    return { type: 'next', devCommand: 'npm run dev', installCommand: 'npm install', useTypeScript, entryFile: null };
+  }
+  
+  if (hasViteConfig) {
+    return { type: 'vite', devCommand: 'npm run dev', installCommand: 'npm install', useTypeScript, entryFile: null };
+  }
+  
+  // Detect server entry file with TypeScript priority
+  if (hasServerTs) {
+    return { type: 'express', devCommand: 'npm run dev', installCommand: 'npm install', useTypeScript: true, entryFile: 'server.ts' };
+  }
+  if (hasServerJs) {
+    return { type: 'express', devCommand: 'npm run dev', installCommand: 'npm install', useTypeScript: false, entryFile: 'server.js' };
+  }
+  if (hasIndexTs) {
+    return { type: 'node', devCommand: 'npm run dev', installCommand: 'npm install', useTypeScript: true, entryFile: 'index.ts' };
+  }
+  if (hasIndexJs) {
+    return { type: 'node', devCommand: 'npm start', installCommand: 'npm install', useTypeScript: false, entryFile: 'index.js' };
+  }
+  if (hasAppTs) {
+    return { type: 'node', devCommand: 'npm run dev', installCommand: 'npm install', useTypeScript: true, entryFile: 'app.ts' };
+  }
+  if (hasAppJs) {
+    return { type: 'node', devCommand: 'npm start', installCommand: 'npm install', useTypeScript: false, entryFile: 'app.js' };
+  }
+  
+  return { type: 'node', devCommand: 'npm start', installCommand: 'npm install', useTypeScript, entryFile: null };
+}
+
+// Analyze code to detect required dependencies
+export function detectDependencies(code: string, useTypeScript: boolean = false): { dependencies: Record<string, string>; devDependencies: Record<string, string> } {
+  const deps: Record<string, string> = {};
+  const devDeps: Record<string, string> = {};
+  
+  // TypeScript tooling
+  if (useTypeScript) {
+    devDeps['typescript'] = '^5.3.0';
+    devDeps['tsx'] = '^4.7.0';
+    devDeps['@types/node'] = '^20.10.0';
+  }
+  
+  // React ecosystem
+  if (code.includes('from "react"') || code.includes("from 'react'") || code.includes('useState') || code.includes('useEffect')) {
+    deps['react'] = '^18.2.0';
+    deps['react-dom'] = '^18.2.0';
+  }
+  
+  // React Router
+  if (code.includes('react-router') || code.includes('BrowserRouter') || code.includes('useNavigate')) {
+    deps['react-router-dom'] = '^6.20.0';
+  }
+  
+  // State management
+  if (code.includes('zustand')) deps['zustand'] = '^4.4.0';
+  if (code.includes('redux') || code.includes('@reduxjs/toolkit')) {
+    deps['@reduxjs/toolkit'] = '^2.0.0';
+    deps['react-redux'] = '^9.0.0';
+  }
+  if (code.includes('jotai')) deps['jotai'] = '^2.6.0';
+  if (code.includes('recoil')) deps['recoil'] = '^0.7.7';
+  
+  // UI Libraries
+  if (code.includes('framer-motion') || code.includes('motion.')) deps['framer-motion'] = '^10.16.0';
+  if (code.includes('lucide-react') || code.includes('from "lucide-react"')) deps['lucide-react'] = '^0.294.0';
+  if (code.includes('@radix-ui')) deps['@radix-ui/react-icons'] = '^1.3.0';
+  if (code.includes('tailwind-merge') || code.includes('twMerge')) deps['tailwind-merge'] = '^2.1.0';
+  if (code.includes('clsx')) deps['clsx'] = '^2.0.0';
+  if (code.includes('class-variance-authority') || code.includes('cva(')) deps['class-variance-authority'] = '^0.7.0';
+  
+  // Forms
+  if (code.includes('react-hook-form') || code.includes('useForm')) deps['react-hook-form'] = '^7.48.0';
+  if (code.includes('@hookform/resolvers')) deps['@hookform/resolvers'] = '^3.3.0';
+  if (code.includes('zod') || code.includes('z.object') || code.includes('z.string')) deps['zod'] = '^3.22.0';
+  
+  // Data fetching
+  if (code.includes('@tanstack/react-query') || code.includes('useQuery')) deps['@tanstack/react-query'] = '^5.0.0';
+  if (code.includes('axios')) deps['axios'] = '^1.6.0';
+  if (code.includes('swr')) deps['swr'] = '^2.2.0';
+  
+  // Date handling
+  if (code.includes('date-fns')) deps['date-fns'] = '^2.30.0';
+  if (code.includes('dayjs')) deps['dayjs'] = '^1.11.0';
+  if (code.includes('moment')) deps['moment'] = '^2.29.0';
+  
+  // Charts
+  if (code.includes('recharts')) deps['recharts'] = '^2.10.0';
+  if (code.includes('chart.js') || code.includes('react-chartjs')) {
+    deps['chart.js'] = '^4.4.0';
+    deps['react-chartjs-2'] = '^5.2.0';
+  }
+  
+  // Backend
+  if (code.includes('express')) deps['express'] = '^4.18.2';
+  if (code.includes('cors')) deps['cors'] = '^2.8.5';
+  if (code.includes('body-parser')) deps['body-parser'] = '^1.20.0';
+  if (code.includes('jsonwebtoken') || code.includes('jwt.')) deps['jsonwebtoken'] = '^9.0.0';
+  if (code.includes('bcrypt')) deps['bcryptjs'] = '^2.4.3';
+  if (code.includes('uuid')) deps['uuid'] = '^9.0.0';
+  if (code.includes('nanoid')) deps['nanoid'] = '^5.0.0';
+  
+  // Utilities
+  if (code.includes('lodash') || code.includes('_.')) deps['lodash'] = '^4.17.21';
+  
+  return { dependencies: deps, devDependencies: devDeps };
+}
+
+// Merge all dependencies - no dropping, keep everything the project needs
+// Returns deps with a warning if there are many packages (install may be slow)
+function mergeDependencies(
+  deps: Record<string, string>,
+  devDeps: Record<string, string>
+): { dependencies: Record<string, string>; devDependencies: Record<string, string>; warning: string | null } {
+  const totalCount = Object.keys(deps).length + Object.keys(devDeps).length;
+  
+  // Warn if many dependencies (install might be slow), but don't drop any
+  const warning = totalCount > 20 
+    ? `Installing ${totalCount} packages - this may take longer than usual`
+    : null;
+  
+  return { dependencies: deps, devDependencies: devDeps, warning };
+}
+
+// Generate complete package.json from files
+export function generatePackageJson(
+  projectName: string,
+  files: { path: string; content: string }[],
+  projectType: 'vite' | 'express' | 'next' | 'node' | 'static',
+  useTypeScript: boolean = false,
+  entryFile: string | null = null
+): string {
+  // Combine all file contents to detect dependencies
+  const allCode = files.map(f => f.content).join('\n');
+  const { dependencies: detectedDeps, devDependencies: detectedDevDeps } = detectDependencies(allCode, useTypeScript);
+  
+  const basePackage: Record<string, any> = {
+    name: projectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+    version: '1.0.0',
+    type: 'module',
+    scripts: {},
+    dependencies: {},
+    devDependencies: {}
+  };
+  
+  // Determine the correct entry command for TypeScript
+  const nodeCommand = useTypeScript ? 'tsx' : 'node';
+  const defaultEntry = entryFile || (useTypeScript ? 'index.ts' : 'index.js');
+  const serverEntry = entryFile || (useTypeScript ? 'server.ts' : 'server.js');
+  
+  switch (projectType) {
+    case 'vite':
+      basePackage.scripts = {
+        dev: 'vite',
+        build: 'vite build',
+        preview: 'vite preview'
+      };
+      basePackage.devDependencies = {
+        '@vitejs/plugin-react': '^4.2.1',
+        'vite': '^5.0.0'
+      };
+      break;
+      
+    case 'express':
+      basePackage.scripts = {
+        dev: `${nodeCommand} ${serverEntry}`,
+        start: `${nodeCommand} ${serverEntry}`
+      };
+      break;
+      
+    case 'next':
+      basePackage.scripts = {
+        dev: 'next dev',
+        build: 'next build',
+        start: 'next start'
+      };
+      basePackage.dependencies['next'] = '^14.0.0';
+      break;
+      
+    case 'node':
+      basePackage.scripts = {
+        start: `${nodeCommand} ${defaultEntry}`,
+        dev: `${nodeCommand} ${defaultEntry}`
+      };
+      break;
+  }
+  
+  // Merge all detected dependencies (no dropping)
+  const { dependencies: mergedDeps, devDependencies: mergedDevDeps } = mergeDependencies(
+    { ...basePackage.dependencies, ...detectedDeps },
+    { ...basePackage.devDependencies, ...detectedDevDeps }
+  );
+  
+  basePackage.dependencies = mergedDeps;
+  basePackage.devDependencies = mergedDevDeps;
+  
+  return JSON.stringify(basePackage, null, 2);
+}
+
+export interface AutoRunOptions {
+  skipInstallOnFailure?: boolean; // If true, try to start server even if install fails
+  forceInstall?: boolean;         // If true, always run npm install even if cached
+}
+
+// Main auto-run pipeline
+export async function autoRunProject(
+  files: { path: string; content: string }[],
+  projectName: string,
+  callbacks: Partial<AutoRunCallbacks> = {},
+  options: AutoRunOptions = {}
+): Promise<{ success: boolean; previewUrl: string | null; error: string | null }> {
+  const state: RunnerState = {
+    status: 'idle',
+    progress: 0,
+    message: '',
+    logs: [],
+    previewUrl: null,
+    error: null
+  };
+  
+  const updateState = (updates: Partial<RunnerState>) => {
+    Object.assign(state, updates);
+    callbacks.onStatusChange?.(state);
+  };
+  
+  const log = (message: string) => {
+    state.logs.push(message);
+    callbacks.onLog?.(message);
+  };
+  
+  try {
+    // Check WebContainer support
+    if (!isWebContainerSupported()) {
+      throw new Error('WebContainer not supported in this browser. Please use Chrome or Edge.');
+    }
+    
+    // Step 1: Detect project type
+    updateState({ status: 'generating', progress: 10, message: 'Analyzing project...' });
+    log('🔍 Analyzing project structure...');
+    
+    const projectType = detectProjectType(files);
+    log(`📦 Detected project type: ${projectType.type}`);
+    
+    // Step 2: Ensure package.json exists with all dependencies
+    let projectFiles = [...files];
+    const hasPackageJson = files.some(f => f.path === 'package.json');
+    
+    if (!hasPackageJson && projectType.type !== 'static') {
+      log('📝 Generating package.json with dependencies...');
+      log(`   TypeScript: ${projectType.useTypeScript ? 'Yes' : 'No'}, Entry: ${projectType.entryFile || 'default'}`);
+      const packageJson = generatePackageJson(projectName, files, projectType.type, projectType.useTypeScript, projectType.entryFile);
+      projectFiles.push({ path: 'package.json', content: packageJson });
+    } else if (hasPackageJson) {
+      // Enhance existing package.json with missing dependencies (with optimization)
+      const existingPkg = files.find(f => f.path === 'package.json');
+      if (existingPkg) {
+        try {
+          const pkg = JSON.parse(existingPkg.content);
+          const allCode = files.map(f => f.content).join('\n');
+          const { dependencies: detectedDeps, devDependencies: detectedDevDeps } = detectDependencies(allCode, projectType.useTypeScript);
+          
+          // Merge all dependencies (no dropping)
+          const allDeps = { ...pkg.dependencies, ...detectedDeps };
+          const allDevDeps = { ...pkg.devDependencies, ...detectedDevDeps };
+          const { dependencies: finalDeps, devDependencies: finalDevDeps, warning } = mergeDependencies(allDeps, allDevDeps);
+          
+          pkg.dependencies = finalDeps;
+          pkg.devDependencies = finalDevDeps;
+          
+          // Update the file
+          projectFiles = projectFiles.map(f => 
+            f.path === 'package.json' 
+              ? { ...f, content: JSON.stringify(pkg, null, 2) }
+              : f
+          );
+          log('✅ Enhanced package.json with detected dependencies');
+          if (warning) log(`   ${warning}`);
+        } catch (e) {
+          log('⚠️ Could not parse existing package.json');
+        }
+      }
+    }
+    
+    // Add Tailwind config if using Tailwind (check for @tailwind directives or tailwind imports)
+    const usesTailwind = files.some(f => 
+      f.content.includes('@tailwind') || 
+      f.content.includes('tailwindcss') || 
+      f.content.includes('from "tailwind') ||
+      f.content.includes("from 'tailwind")
+    );
+    if (usesTailwind && projectType.type === 'vite') {
+      log('🎨 Tailwind CSS detected, adding configs and dependencies...');
+      if (!files.some(f => f.path === 'tailwind.config.js')) {
+        projectFiles.push({
+          path: 'tailwind.config.js',
+          content: `/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: { extend: {} },
+  plugins: [],
+};`
+        });
+      }
+      if (!files.some(f => f.path === 'postcss.config.js')) {
+        projectFiles.push({
+          path: 'postcss.config.js',
+          content: `export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};`
+        });
+      }
+      
+      // Add Tailwind deps to package.json
+      const pkgFile = projectFiles.find(f => f.path === 'package.json');
+      if (pkgFile) {
+        try {
+          const pkg = JSON.parse(pkgFile.content);
+          pkg.devDependencies = {
+            ...pkg.devDependencies,
+            'tailwindcss': '^3.3.6',
+            'postcss': '^8.4.32',
+            'autoprefixer': '^10.4.16'
+          };
+          projectFiles = projectFiles.map(f => 
+            f.path === 'package.json' 
+              ? { ...f, content: JSON.stringify(pkg, null, 2) }
+              : f
+          );
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+    
+    updateState({ progress: 20, message: 'Project analyzed' });
+    
+    // Step 3: Mount files to WebContainer
+    updateState({ status: 'mounting', progress: 30, message: 'Setting up project files...' });
+    log('📁 Mounting project files...');
+    
+    const fileTree = filesToFileSystemTree(projectFiles);
+    await mountFiles(fileTree);
+    log(`✅ Mounted ${projectFiles.length} files`);
+    
+    updateState({ progress: 40, message: 'Files mounted' });
+    
+    // Step 4: Install dependencies (with caching)
+    if (projectType.type !== 'static') {
+      const pkgFile = projectFiles.find(f => f.path === 'package.json');
+      const pkgChanged = pkgFile ? setPackageJsonHash(pkgFile.content) : true;
+      const hasExistingModules = await hasNodeModules();
+      
+      const shouldSkipInstall = hasExistingModules && !pkgChanged && !options.forceInstall;
+      
+      if (shouldSkipInstall) {
+        log('⚡ Dependencies cached, skipping npm install');
+        updateState({ progress: 70, message: 'Using cached dependencies' });
+      } else {
+        updateState({ status: 'installing', progress: 50, message: 'Installing npm packages...' });
+        log(hasExistingModules ? '📦 Dependencies changed, reinstalling...' : '📦 Running npm install...');
+        
+        const installResult = await installDependencies((output) => {
+          log(output);
+        });
+        
+        if (!installResult.success) {
+          if (options.skipInstallOnFailure) {
+            // User opted to try anyway
+            log('⚠️ npm install failed but continuing as requested...');
+            updateState({ progress: 70, message: 'Install incomplete, proceeding...' });
+          } else {
+            // Stop and report error
+            const errorMsg = 'npm install failed - some dependencies could not be installed. This may be due to network issues or rate limiting. You can try again or click "Run Anyway" to proceed without all packages.';
+            log(`❌ ${errorMsg}`);
+            updateState({ 
+              status: 'error', 
+              error: errorMsg,
+              progress: 70, 
+              message: 'Installation failed' 
+            });
+            callbacks.onError?.(errorMsg);
+            return { success: false, previewUrl: null, error: errorMsg };
+          }
+        } else {
+          log('✅ Dependencies installed');
+          updateState({ progress: 70, message: 'Dependencies installed' });
+        }
+      }
+    }
+    
+    // Step 5: Start dev server
+    updateState({ status: 'starting', progress: 80, message: 'Starting development server...' });
+    log('🚀 Starting development server...');
+    
+    const { url } = await startDevServer(
+      (output) => log(output),
+      (serverUrl) => {
+        log(`✅ Server ready at ${serverUrl}`);
+        callbacks.onPreviewReady?.(serverUrl);
+      }
+    );
+    
+    updateState({ 
+      status: 'running', 
+      progress: 100, 
+      message: 'Application running!',
+      previewUrl: url 
+    });
+    
+    log(`🎉 Application running at ${url}`);
+    
+    return { success: true, previewUrl: url, error: null };
+    
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    updateState({ status: 'error', error: errorMessage, message: 'Error occurred' });
+    callbacks.onError?.(errorMessage);
+    log(`❌ Error: ${errorMessage}`);
+    
+    return { success: false, previewUrl: null, error: errorMessage };
+  }
+}
+
+// Quick run - simplified version for common cases
+export async function quickRun(
+  files: { path: string; content: string }[],
+  onProgress?: (message: string, progress: number) => void
+): Promise<string | null> {
+  const result = await autoRunProject(files, 'quick-project', {
+    onStatusChange: (state) => onProgress?.(state.message, state.progress),
+    onLog: (log) => console.log('[AutoRunner]', log)
+  });
+  
+  return result.previewUrl;
+}
+
+// Check if files represent a runnable project
+export function isRunnableProject(files: { path: string; content: string }[]): boolean {
+  // Must have at least an entry point (supports both JS and TS)
+  const hasEntryPoint = files.some(f => 
+    f.path === 'index.html' ||
+    f.path === 'src/main.jsx' ||
+    f.path === 'src/main.tsx' ||
+    f.path === 'src/index.jsx' ||
+    f.path === 'src/index.tsx' ||
+    f.path === 'server.js' ||
+    f.path === 'server.ts' ||
+    f.path === 'index.js' ||
+    f.path === 'index.ts' ||
+    f.path === 'app.js' ||
+    f.path === 'app.ts'
+  );
+  
+  return hasEntryPoint;
+}
+
+// Estimate install time based on dependencies
+export function estimateInstallTime(files: { path: string; content: string }[]): number {
+  const allCode = files.map(f => f.content).join('\n');
+  const useTypeScript = files.some(f => f.path.endsWith('.ts') || f.path.endsWith('.tsx'));
+  const { dependencies, devDependencies } = detectDependencies(allCode, useTypeScript);
+  const depCount = Object.keys(dependencies).length + Object.keys(devDependencies).length;
+  
+  // Rough estimate: 5 seconds base + 3 seconds per dependency
+  return 5 + (depCount * 3);
+}
