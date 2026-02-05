@@ -3,7 +3,7 @@ import * as path from 'path';
 import { ChildProcess, spawn } from 'child_process';
 
 const PREVIEW_BASE_DIR = '/tmp/preview-projects';
-const PREVIEW_PORT = 6000;
+const PREVIEW_PORT = 5200;
 
 let viteProcess: ChildProcess | null = null;
 let currentProjectId: number | null = null;
@@ -30,7 +30,7 @@ const basePackageJson = {
   version: "0.0.0",
   type: "module",
   scripts: {
-    dev: "vite --port 6000 --host",
+    dev: "vite --port 5200 --host",
     build: "vite build",
     preview: "vite preview"
   },
@@ -67,7 +67,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 6000,
+    port: 5200,
     host: true,
     strictPort: true,
   },

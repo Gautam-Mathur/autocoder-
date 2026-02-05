@@ -1050,11 +1050,8 @@ ${combinedJs}
   }, [files, refreshKey, transformJsForBrowser, isServerSideOnly]);
 
   const openInNewTab = () => {
-    if (!combinedPreview) return;
-    const blob = new Blob([combinedPreview], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Open the real Vite preview server
+    window.open("http://localhost:5200", "_blank");
   };
 
   const handleRefresh = () => {

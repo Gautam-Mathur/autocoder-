@@ -214,7 +214,7 @@ export function VitePreview({
         <div className="flex items-center gap-2">
           <Server className="w-4 h-4 text-emerald-400" />
           <span className="text-sm font-medium text-white">{projectName}</span>
-          <span className="text-xs text-slate-400">localhost:6000</span>
+          <span className="text-xs text-slate-400">localhost:5200</span>
         </div>
         <div className="flex items-center gap-2">
           <Button 
