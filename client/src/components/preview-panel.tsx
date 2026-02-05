@@ -1260,8 +1260,8 @@ ${combinedJs}
 
   return (
     <div className="flex flex-col h-full bg-muted/30">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-background">
-        <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5 overflow-x-auto max-w-full scrollbar-hide">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-background">
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5 overflow-x-auto flex-1 min-w-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
