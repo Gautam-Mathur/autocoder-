@@ -9,7 +9,7 @@ import {
   SECURITY_PATTERNS,
   ERROR_SOLUTIONS,
   getPatternByType 
-} from './complete-code-intelligence';
+} from './complete-code-intelligence.js';
 
 export interface FileToRefine {
   path: string;

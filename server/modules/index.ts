@@ -58,7 +58,7 @@ export {
   getPatternByType,
   getBlueprintFiles,
   getAllBlueprints,
-} from './complete-code-intelligence';
+} from './complete-code-intelligence.js';
 
 // AI Code Refiner - Continuous code improvement with AI
 export {
@@ -69,4 +69,4 @@ export {
   type FileToRefine,
   type RefinementResult,
   type RefinementOptions,
-} from './ai-code-refiner';
+} from './ai-code-refiner.js';

@@ -3197,7 +3197,7 @@ import {
   DATABASE_PATTERNS,
   getPatternByType,
   getAllBlueprints as getExternalBlueprints,
-} from './complete-code-intelligence';
+} from './complete-code-intelligence.js';
 
 /**
  * Get a framework pattern by framework and pattern type
