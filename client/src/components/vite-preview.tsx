@@ -1,12 +1,20 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Play, Square, RefreshCw, AlertCircle, Loader2, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+interface ProjectFile {
+  path: string;
+  content: string;
+  language?: string;
+}
 
 interface VitePreviewProps {
   conversationId: number;
   projectName?: string;
   height?: string;
+  autoStart?: boolean;
+  files?: ProjectFile[];
 }
 
 type PreviewStatus = 'idle' | 'preparing' | 'starting' | 'running' | 'error' | 'stopped';
@@ -14,30 +22,49 @@ type PreviewStatus = 'idle' | 'preparing' | 'starting' | 'running' | 'error' | '
 export function VitePreview({ 
   conversationId, 
   projectName = "Generated Project",
-  height = "500px"
+  height = "500px",
+  autoStart = false,
+  files = []
 }: VitePreviewProps) {
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const hasAutoStarted = useRef(false);
+  const lastConversationId = useRef<number | null>(null);
 
-  const startPreview = useCallback(async () => {
+  const prepareAndStart = useCallback(async () => {
     setStatus('preparing');
     setError(null);
     
     try {
-      const response = await fetch(`/api/preview/start/${conversationId}`, {
+      const prepareResponse = await fetch(`/api/preview/prepare/${conversationId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
       
-      const result = await response.json();
+      const prepareResult = await prepareResponse.json();
       
-      if (result.success) {
-        setPreviewUrl(result.url);
+      if (!prepareResult.success) {
+        setError(prepareResult.error || 'Failed to prepare project');
+        setStatus('error');
+        return;
+      }
+
+      setStatus('starting');
+      
+      const startResponse = await fetch(`/api/preview/start/${conversationId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const startResult = await startResponse.json();
+      
+      if (startResult.success) {
+        setPreviewUrl(startResult.url);
         setStatus('running');
       } else {
-        setError(result.error || 'Failed to start preview');
+        setError(startResult.error || 'Failed to start Vite server');
         setStatus('error');
       }
     } catch (err: any) {
@@ -61,42 +88,79 @@ export function VitePreview({
   }, []);
 
   useEffect(() => {
+    if (lastConversationId.current !== conversationId) {
+      lastConversationId.current = conversationId;
+      hasAutoStarted.current = false;
+      setStatus('idle');
+      setPreviewUrl(null);
+      setError(null);
+    }
+  }, [conversationId]);
+
+  useEffect(() => {
     const checkStatus = async () => {
       try {
         const response = await fetch('/api/preview/status');
-        const status = await response.json();
+        const statusData = await response.json();
         
-        if (status.running && status.conversationId === conversationId) {
-          setPreviewUrl(`http://localhost:${status.port}`);
+        if (statusData.running && statusData.conversationId === conversationId) {
+          setPreviewUrl(`http://localhost:${statusData.port}`);
           setStatus('running');
+          hasAutoStarted.current = true;
+        } else if (autoStart && files.length > 0 && !hasAutoStarted.current && status === 'idle') {
+          hasAutoStarted.current = true;
+          prepareAndStart();
         }
       } catch (err) {
         console.error('Failed to check preview status:', err);
+        if (autoStart && files.length > 0 && !hasAutoStarted.current && status === 'idle') {
+          hasAutoStarted.current = true;
+          prepareAndStart();
+        }
       }
     };
     
     checkStatus();
-  }, [conversationId]);
+  }, [conversationId, autoStart, files.length, prepareAndStart, status]);
+
+  useEffect(() => {
+    if (status === 'running' && files.length > 0) {
+      const updateProject = async () => {
+        try {
+          await fetch(`/api/preview/prepare/${conversationId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          setRefreshKey(k => k + 1);
+        } catch (err) {
+          console.error('Failed to update project files:', err);
+        }
+      };
+      
+      const debounceTimer = setTimeout(updateProject, 500);
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [files, conversationId, status]);
 
   if (status === 'idle' || status === 'stopped') {
     return (
       <div 
-        className="rounded-xl overflow-hidden border border-border bg-slate-900 flex flex-col items-center justify-center p-8" 
+        className="flex-1 overflow-hidden border-0 bg-slate-900 flex flex-col items-center justify-center p-8" 
         style={{ height }}
         data-testid="vite-preview"
       >
         <Server className="w-12 h-12 text-slate-500 mb-4" />
-        <h3 className="text-lg font-medium text-white mb-2">Vite Dev Server</h3>
+        <h3 className="text-lg font-medium text-white mb-2">Live Preview</h3>
         <p className="text-slate-400 text-sm text-center mb-6 max-w-md">
-          Start a real Vite development server on port 6000 to preview your generated project with full bundling, hot reload, and TypeScript support.
+          Start the Vite dev server to preview your project with full bundling, module resolution, and hot reload.
         </p>
         <Button 
-          onClick={startPreview}
+          onClick={prepareAndStart}
           className="bg-emerald-600 hover:bg-emerald-700"
           data-testid="button-start-vite-preview"
         >
           <Play className="w-4 h-4 mr-2" />
-          Start Dev Server
+          Start Preview
         </Button>
       </div>
     );
@@ -105,18 +169,18 @@ export function VitePreview({
   if (status === 'preparing' || status === 'starting') {
     return (
       <div 
-        className="rounded-xl overflow-hidden border border-border bg-slate-900 flex flex-col items-center justify-center p-8" 
+        className="flex-1 overflow-hidden border-0 bg-slate-900 flex flex-col items-center justify-center p-8" 
         style={{ height }}
         data-testid="vite-preview"
       >
         <Loader2 className="w-12 h-12 text-emerald-400 animate-spin mb-4" />
         <h3 className="text-lg font-medium text-white mb-2">
-          {status === 'preparing' ? 'Preparing Project...' : 'Starting Vite...'}
+          {status === 'preparing' ? 'Preparing Project...' : 'Starting Server...'}
         </h3>
         <p className="text-slate-400 text-sm text-center max-w-md">
           {status === 'preparing' 
-            ? 'Writing project files and installing dependencies...'
-            : 'Starting the Vite development server on port 6000...'}
+            ? 'Writing files and configuring Vite...'
+            : 'Starting the development server...'}
         </p>
       </div>
     );
@@ -125,7 +189,7 @@ export function VitePreview({
   if (status === 'error') {
     return (
       <div 
-        className="rounded-xl overflow-hidden border border-border bg-slate-900 flex flex-col items-center justify-center p-8" 
+        className="flex-1 overflow-hidden border-0 bg-slate-900 flex flex-col items-center justify-center p-8" 
         style={{ height }}
         data-testid="vite-preview"
       >
@@ -133,7 +197,7 @@ export function VitePreview({
         <h3 className="text-lg font-medium text-white mb-2">Preview Error</h3>
         <p className="text-red-400 text-sm text-center mb-4 max-w-md">{error}</p>
         <Button 
-          onClick={startPreview}
+          onClick={prepareAndStart}
           variant="outline"
           data-testid="button-retry-vite-preview"
         >
@@ -145,7 +209,7 @@ export function VitePreview({
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border flex flex-col" style={{ height }} data-testid="vite-preview">
+    <div className="flex-1 flex flex-col overflow-hidden" style={{ height }} data-testid="vite-preview">
       <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700 shrink-0">
         <div className="flex items-center gap-2">
           <Server className="w-4 h-4 text-emerald-400" />
@@ -173,7 +237,7 @@ export function VitePreview({
           </Button>
           <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mr-1.5" />
-            Vite Running
+            Running
           </Badge>
         </div>
       </div>
@@ -183,7 +247,7 @@ export function VitePreview({
           key={refreshKey}
           src={previewUrl}
           className="flex-1 w-full bg-white border-0"
-          title="Vite Preview"
+          title="Live Preview"
           data-testid="vite-preview-iframe"
         />
       )}

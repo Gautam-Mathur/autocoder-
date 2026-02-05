@@ -1180,44 +1180,18 @@ ${combinedJs}
         </div>
         <div className="flex-1 flex overflow-hidden">
           {activeTab === "preview" ? (
-            <div className="flex-1 flex items-center justify-center bg-muted/30 p-4 overflow-auto">
-              {isComplexReactApp ? (
-                <div
-                  className="bg-white shadow-2xl rounded-lg overflow-hidden transition-all duration-300 w-full h-full"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "100%",
-                  }}
-                >
-                  <LiveCodeRunner 
-                    files={files.map(f => ({ 
-                      path: f.path, 
-                      content: f.content,
-                      language: f.language 
-                    }))}
-                    projectName="React Application"
-                    height="100%"
-                    showEditor={false}
-                  />
-                </div>
+            <div className="flex-1 flex overflow-hidden">
+              {conversationId ? (
+                <VitePreview 
+                  conversationId={conversationId}
+                  projectName="Generated Project"
+                  height="100%"
+                  autoStart={true}
+                  files={files}
+                />
               ) : (
-                <div
-                  className="bg-white shadow-2xl rounded-lg overflow-hidden transition-all duration-300"
-                  style={{
-                    width: deviceSizes[deviceMode].width,
-                    height: deviceSizes[deviceMode].height,
-                    maxWidth: "100%",
-                    maxHeight: "100%",
-                  }}
-                >
-                  <iframe
-                    key={refreshKey}
-                    ref={iframeRef}
-                    srcDoc={combinedPreview}
-                    className="w-full h-full border-0"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
-                    title="Live Preview"
-                  />
+                <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+                  <p>No project to preview</p>
                 </div>
               )}
             </div>
@@ -1489,29 +1463,17 @@ ${combinedJs}
                   });
                 }}
               />
-            ) : isComplexReactApp ? (
-              <LiveCodeRunner 
-                files={files.map(f => ({ 
-                  path: f.path, 
-                  content: f.content,
-                  language: f.language 
-                }))}
-                projectName="React Application"
+            ) : conversationId ? (
+              <VitePreview 
+                conversationId={conversationId}
+                projectName="Generated Project"
                 height="100%"
-                showEditor={false}
-              />
-            ) : combinedPreview ? (
-              <iframe
-                key={refreshKey}
-                ref={iframeRef}
-                srcDoc={combinedPreview}
-                className="flex-1 w-full bg-white border-0"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
-                title="Live Preview"
+                autoStart={true}
+                files={files}
               />
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-                <p>No HTML file to preview</p>
+                <p>No project to preview</p>
               </div>
             )}
           </div>
