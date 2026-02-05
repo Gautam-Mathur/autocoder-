@@ -90,14 +90,39 @@ export function LiveCodeRunner({
       // Remove empty statements that could cause issues
       code = code.replace(/^\s*;\s*$/gm, '');
       
+      // Fix malformed imports with semicolons/newlines inside (e.g., "import { createRoot;\n} from")
+      code = code.replace(/import\s*\{([^}]*);+\s*\n?\s*\}/g, 'import {$1}');
+      code = code.replace(/import\s*\{\s*\n+\s*([^}]*)\}/g, 'import { $1 }');
+      
+      // Fix malformed return statements (e.g., "return (;" -> "return (")
+      code = code.replace(/return\s*\(\s*;+/g, 'return (');
+      
       // Remove all imports
       code = code.replace(/^import\s+.*$/gm, '');
+      
+      // Remove any declarations of icons we provide built-in (prevents "already declared" errors)
+      const builtInIcons = ['Check', 'X', 'Plus', 'Minus', 'ChevronUp', 'ChevronDown', 'ChevronLeft', 'ChevronRight', 
+        'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Search', 'Home', 'User', 'Users', 'Settings', 'Menu',
+        'Edit', 'Edit2', 'Trash', 'Trash2', 'Copy', 'Eye', 'EyeOff', 'Lock', 'Unlock', 'Star', 'Heart', 'Bell',
+        'Mail', 'Calendar', 'Download', 'Upload', 'File', 'Folder', 'Image', 'Camera', 'Phone', 'MessageSquare',
+        'MessageCircle', 'Send', 'MoreHorizontal', 'MoreVertical', 'Filter', 'RefreshCw', 'RotateCw', 'AlertCircle',
+        'AlertTriangle', 'Info', 'CheckCircle', 'XCircle', 'Clock', 'MapPin', 'Globe', 'ShoppingCart', 'CreditCard',
+        'DollarSign', 'Activity', 'BarChart', 'PieChart', 'TrendingUp', 'TrendingDown', 'Zap', 'Sun', 'Moon', 'Cloud',
+        'Loader', 'Loader2', 'Sparkles', 'Package', 'Box', 'Layers', 'Grid', 'List', 'Tag', 'Bookmark', 'Award',
+        'Gift', 'Briefcase', 'Building', 'Clipboard', 'Terminal', 'Code', 'Database', 'Server', 'Wifi', 'Bluetooth',
+        'Power', 'ExternalLink', 'LinkIcon', 'Paperclip', 'Play', 'Pause', 'StopCircle', 'SkipBack', 'SkipForward',
+        'Volume2', 'VolumeX', 'Maximize', 'Minimize', 'ZoomIn', 'ZoomOut', 'Printer', 'Save', 'Undo', 'Redo',
+        'Bold', 'Italic', 'Underline', 'AlignLeft', 'AlignCenter', 'AlignRight', 'HelpCircle'];
+      for (const iconName of builtInIcons) {
+        // Remove const/let/var declarations of these icons
+        code = code.replace(new RegExp(`(const|let|var)\\s+${iconName}\\s*=`, 'g'), `// removed-${iconName} =`);
+      }
       
       // Remove TypeScript type annotations
       code = code.replace(/:\s*React\.\w+(<[^>]+>)?/g, '');
       code = code.replace(/:\s*(string|number|boolean|any|void|null|undefined|FC|FunctionComponent|ReactNode|HTMLAttributes|ComponentProps)(\[\])?(\s*\|[^=]+)?/g, '');
       code = code.replace(/:\s*\{[^}]+\}(\s*\|[^=]+)?/g, '');
-      code = code.replace(/interface\s+\w+(\s+extends\s+\w+)?\s*\{[^}]*\}/gs, '');
+      code = code.replace(/interface\s+\w+(\s+extends\s+\w+)?\s*\{[\s\S]*?\}/g, '');
       code = code.replace(/type\s+\w+\s*=\s*[^;]+;/g, '');
       code = code.replace(/as\s+\w+(\[\])?/g, '');
       // Remove generic type parameters - only single letter generics to avoid matching JSX tags

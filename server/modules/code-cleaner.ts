@@ -58,6 +58,19 @@ export function cleanCodeArtifacts(code: string, language?: string): CleanCodeRe
   // Remove trailing explanation
   cleaned = cleaned.replace(/\n\n(Note:|Remember:|This |The above|Usage:)[\s\S]*$/i, '');
 
+  // Fix common malformed syntax patterns
+  // Fix malformed imports with semicolons/newlines inside (e.g., "import { createRoot;\n} from")
+  cleaned = cleaned.replace(/import\s*\{([^}]*);+\s*\n?\s*\}/g, 'import {$1}');
+  cleaned = cleaned.replace(/import\s*\{\s*\n+\s*([^}]*)\}/g, 'import { $1 }');
+  // Fix malformed return statements (e.g., "return (;" -> "return (")
+  cleaned = cleaned.replace(/return\s*\(\s*;+/g, 'return (');
+  // Clean up double/triple semicolons
+  cleaned = cleaned.replace(/;{2,}/g, ';');
+  // Fix "{ ;" patterns
+  cleaned = cleaned.replace(/\{\s*;+\s*\}/g, '{}');
+  // Remove empty statements
+  cleaned = cleaned.replace(/^\s*;\s*$/gm, '');
+
   // Remove empty lines at start/end
   cleaned = cleaned.trim();
 
