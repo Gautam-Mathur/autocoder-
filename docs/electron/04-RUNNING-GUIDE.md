@@ -26,7 +26,7 @@ This guide provides step-by-step instructions to get AutoCoder Electron running 
 | Component | Requirement |
 |-----------|-------------|
 | Operating System | Windows 10+, macOS 10.15+, Ubuntu 20.04+ |
-| Node.js | 18.0.0 or higher (20.x recommended) |
+| Node.js | 18.0.0 - 22.x (NOT v24+, use LTS versions) |
 | npm | 8.0.0 or higher |
 | RAM | 4GB minimum, 8GB recommended |
 | Disk Space | 2GB for app + space for projects |
@@ -71,6 +71,18 @@ This installs:
 - React frontend dependencies
 - Express backend dependencies
 - Electron and electron-builder
+
+**Verify Installation:**
+```bash
+# Check Node.js version (must be 18+, 20+ recommended)
+node --version
+
+# Check Electron is installed
+npm list electron
+# Should show: electron@40.x.x or similar
+```
+
+**Windows Users:** If using PowerShell, you may need to run as Administrator for global packages.
 
 ### Step 3: Build Electron
 
@@ -385,6 +397,49 @@ sudo dnf install gtk3 libnotify nss libXScrnSaver
 ---
 
 ## 8. Common Setup Issues
+
+### Issue: TypeScript Compilation Errors (Most Common!)
+
+If you see errors like this when running `npx tsc -p electron/tsconfig.json`:
+
+```
+electron/main.ts:1:52 - error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+electron/main.ts:33:50 - error TS7031: Binding element 'url' implicitly has an 'any' type.
+electron/main.ts:64:44 - error TS7006: Parameter '_event' implicitly has an 'any' type.
+electron/preload.ts:46:30 - error TS2503: Cannot find namespace 'Electron'.
+```
+
+**Root Cause:** Electron dependencies or types not installed properly.
+
+**Solution:**
+```bash
+# Step 1: Ensure all dependencies are installed
+npm install
+
+# Step 2: Verify electron is installed
+npm list electron
+# Should show: electron@40.x.x
+
+# Step 3: Rebuild
+npx tsc -p electron/tsconfig.json
+```
+
+**If Still Failing - Full Reset:**
+```bash
+# Delete everything and start fresh
+rm -rf node_modules
+rm -rf dist-electron
+npm cache clean --force
+npm install
+npx tsc -p electron/tsconfig.json
+```
+
+**Windows-Specific Fix:**
+On Windows, you may need to:
+1. Run Command Prompt as Administrator
+2. Or use PowerShell with execution policy set: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
+
+---
 
 ### Issue: "electron: command not found"
 

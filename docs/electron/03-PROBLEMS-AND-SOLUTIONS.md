@@ -32,26 +32,61 @@ This document catalogs potential problems that may arise during Electron develop
 
 **Description:** Electron TypeScript fails to compile.
 
-**Symptoms:**
+**Symptoms (10 common errors):**
 ```
-error TS2307: Cannot find module './services/local-runner'
+electron/main.ts:1:52 - error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+electron/main.ts:33:50 - error TS7031: Binding element 'url' implicitly has an 'any' type.
+electron/main.ts:64:44 - error TS7006: Parameter '_event' implicitly has an 'any' type.
+electron/preload.ts:1:44 - error TS2307: Cannot find module 'electron' or its corresponding type declarations.
+electron/preload.ts:46:30 - error TS2503: Cannot find namespace 'Electron'.
 ```
 
-**Root Cause:** Missing or incorrect tsconfig paths, or missing type definitions.
+**Root Cause:** 
+1. Electron package not installed
+2. TypeScript types not available
+3. Incorrect Node.js version (v24+ may have issues)
+4. Missing or incorrect tsconfig paths
 
-**Solution:**
+**Solution - Step by Step:**
+
 ```bash
-# Ensure electron/tsconfig.json exists and is correct
-cat electron/tsconfig.json
+# Step 1: Check Node.js version (use LTS, NOT v24+)
+node --version
+# If v24+, consider downgrading to v20.x LTS
 
-# Rebuild
+# Step 2: Clean install all dependencies
+rm -rf node_modules
+npm cache clean --force
+npm install
+
+# Step 3: Verify Electron is installed
+npm list electron
+# Should show: electron@40.x.x
+
+# Step 4: Rebuild Electron TypeScript
 npx tsc -p electron/tsconfig.json
-
-# If types are missing
-npm install --save-dev @types/node
 ```
 
-**Prevention:** Always run `npx tsc -p electron/tsconfig.json` after modifying Electron files.
+**If TS2307 "Cannot find module 'electron'" persists:**
+```bash
+# Check if electron exists in node_modules
+ls node_modules/electron
+
+# If missing, install explicitly
+npm install electron --save-dev
+```
+
+**If TS7006/TS7031 "implicit any" errors persist:**
+The code needs explicit type annotations. The latest code in the repository has these fixed. Pull the latest:
+```bash
+git pull origin main
+npx tsc -p electron/tsconfig.json
+```
+
+**Prevention:** 
+- Use Node.js LTS versions (18.x or 20.x)
+- Always run `npm install` before building
+- Run `npx tsc -p electron/tsconfig.json` after modifying Electron files
 
 ---
 
