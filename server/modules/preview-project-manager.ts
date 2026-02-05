@@ -319,9 +319,29 @@ function cleanupCode(content: string): string {
   code = code.replace(/<\/a>\s*<\/a>/g, '</a>');
   code = code.replace(/<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/div>/g, '</div></div></div>'); // Too many nested divs
   
-  // 5. Fix common opening tag issues
-  // <a href=...> followed by </Link> should be <Link href=...>
+  // 5. Fix common opening tag issues - AGGRESSIVE multiline fixes
+  // Convert <a href=...> to <Link href=...> when followed by </Link>
+  // Handle both quoted and JSX expression hrefs
   code = code.replace(/<a\s+href=([^>]+)>([\s\S]*?)<\/Link>/g, '<Link href=$1>$2</Link>');
+  code = code.replace(/<a\s+href=\{([^}]+)\}([^>]*)>([\s\S]*?)<\/Link>/g, '<Link href={$1}$2>$3</Link>');
+  
+  // If there's still an <a tag followed by </Link> somewhere, try line-by-line fix
+  // First, convert all <a href={...}> to <Link href={...}> when there's JSX syntax
+  code = code.replace(/<a\s+(href=\{[^}]+\})/g, '<Link $1');
+  
+  // Then remove any orphan </a> that appears right before </Link>
+  code = code.replace(/<\/a>\s*\n?\s*<\/Link>/g, '</Link>');
+  
+  // Also convert standalone <a> with to= attribute (React Router style) to <Link>
+  code = code.replace(/<a\s+(to=)/g, '<Link $1');
+  code = code.replace(/<\/a>/g, (match, offset, str) => {
+    // Check if this </a> is near a </Link> - if so, it's likely orphan
+    const after = str.substring(offset, offset + 50);
+    if (after.includes('</Link>')) {
+      return ''; // Remove orphan </a>
+    }
+    return match;
+  });
   
   // 6. Fix icon rendering patterns - dynamic component from variable
   // <item.icon should use proper component syntax
