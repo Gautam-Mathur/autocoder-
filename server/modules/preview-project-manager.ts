@@ -257,6 +257,25 @@ function cleanupCode(content: string): string {
   code = code.replace(/<button>/g, '<Button>');
   code = code.replace(/<\/button>/g, '</Button>');
   
+  // CRITICAL: Fix HTML void elements - they MUST be self-closing in JSX
+  // HTML allows <meta ...> but JSX requires <meta ... />
+  const voidElements = ['meta', 'link', 'br', 'hr', 'img', 'input', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr'];
+  for (const el of voidElements) {
+    // Match <element ...> that doesn't end with /> and convert to self-closing
+    // But skip if it's actually a React component (starts with capital after the tag name)
+    const pattern = new RegExp(`<${el}(\\s+[^>]*[^/])>`, 'gi');
+    code = code.replace(pattern, `<${el}$1 />`);
+    // Also handle <element> with no attributes
+    const simplePattern = new RegExp(`<${el}>`, 'gi');
+    code = code.replace(simplePattern, `<${el} />`);
+  }
+  
+  // Remove <meta> and other head elements that shouldn't be in React components
+  // These belong in index.html, not in component JSX
+  code = code.replace(/<meta\s+[^>]*\/?\s*>\s*\n?/gi, '');
+  code = code.replace(/<title>[^<]*<\/title>\s*\n?/gi, '');
+  code = code.replace(/<link\s+rel=["']stylesheet["'][^>]*\/?\s*>\s*\n?/gi, '');
+  
   // 1. Fix case mismatch for ALL common React components
   // AI sometimes generates lowercase HTML tags when it means React components
   const componentMappings = [
