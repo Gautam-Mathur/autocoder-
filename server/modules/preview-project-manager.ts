@@ -131,6 +131,47 @@ body {
 }
 `;
 
+const defaultAppTsx = `import { useState } from 'react';
+
+export function App() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+      <div className="text-center p-8 rounded-2xl bg-white/10 backdrop-blur border border-white/20">
+        <h1 className="text-4xl font-bold text-white mb-4">Preview Ready</h1>
+        <p className="text-slate-300 mb-6">Your generated project is running</p>
+        <div className="text-6xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent mb-6">
+          {count}
+        </div>
+        <div className="flex gap-3 justify-center">
+          <button
+            onClick={() => setCount(c => c - 1)}
+            className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition"
+          >
+            -
+          </button>
+          <button
+            onClick={() => setCount(0)}
+            className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition"
+          >
+            Reset
+          </button>
+          <button
+            onClick={() => setCount(c => c + 1)}
+            className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-semibold transition"
+          >
+            +
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+`;
+
 const tsConfig = `{
   "compilerOptions": {
     "target": "ES2020",
@@ -212,12 +253,20 @@ export async function preparePreviewProject(
   
   let hasMain = false;
   let hasIndexCss = false;
+  let hasApp = false;
   
   for (const file of files) {
     let filePath = file.path;
     
     if (filePath.startsWith('client/')) {
       filePath = filePath.replace('client/', '');
+    }
+    
+    // Skip files we always provide (to ensure correct Vite configuration)
+    if (filePath === 'index.html' || filePath === 'package.json' || 
+        filePath === 'vite.config.ts' || filePath === 'vite.config.js' ||
+        filePath === 'tsconfig.json') {
+      continue;
     }
     
     if (!filePath.startsWith('src/') && 
@@ -228,6 +277,7 @@ export async function preparePreviewProject(
     
     if (filePath === 'src/main.tsx') hasMain = true;
     if (filePath === 'src/index.css') hasIndexCss = true;
+    if (filePath === 'src/App.tsx' || filePath === 'src/App.jsx') hasApp = true;
     
     const fullPath = path.join(projectPath, filePath);
     const dir = path.dirname(fullPath);
@@ -242,6 +292,9 @@ export async function preparePreviewProject(
   }
   if (!hasIndexCss) {
     fs.writeFileSync(path.join(projectPath, 'src', 'index.css'), indexCss);
+  }
+  if (!hasApp) {
+    fs.writeFileSync(path.join(projectPath, 'src', 'App.tsx'), defaultAppTsx);
   }
   
   return projectPath;
