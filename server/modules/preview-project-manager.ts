@@ -241,6 +241,13 @@ function cleanupCode(content: string): string {
   // { ; something -> { something
   code = code.replace(/\{\s*;+\s*([a-zA-Z])/g, '{ $1');
   
+  // Fix case mismatch: <link href="..."> with </Link> -> <Link href="...">
+  // AI sometimes generates lowercase <link> when it means <Link> React component
+  code = code.replace(/<link(\s+href=)/gi, '<Link$1');
+  code = code.replace(/<\/link>/gi, '</Link>');
+  // Same for <button type="button" variant=...> -> <Button (if it has variant prop, it's a component)
+  code = code.replace(/<button(\s+[^>]*variant=)/gi, '<Button$1');
+  
   // Fix mismatched JSX closing tags - common AI generation errors
   // </a>\n</Link> -> </Link> (remove redundant </a> before </Link>)
   code = code.replace(/<\/a>\s*\n\s*<\/Link>/g, '</Link>');
