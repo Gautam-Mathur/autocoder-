@@ -106,8 +106,15 @@ serving on port 5000
 ```
 
 **Terminal 2 - Start Electron:**
+
+**Mac/Linux:**
 ```bash
 ./scripts/electron-dev.sh
+```
+
+**Windows (Command Prompt or PowerShell):**
+```cmd
+npx electron dist-electron/main.js
 ```
 
 ### Step 5: Verify It Works
@@ -340,19 +347,22 @@ ps aux | grep node
 
 ### Windows
 
-**PowerShell vs Command Prompt:**
-```powershell
-# PowerShell (recommended)
-./scripts/electron-dev.sh  # Works with Git Bash installed
-
-# Or use npx directly
-npx tsc -p electron/tsconfig.json
+**Starting Electron on Windows:**
+```cmd
+# Command Prompt or PowerShell - use this command:
 npx electron dist-electron/main.js
 ```
 
-**Path Issues:**
-- Use Git Bash or WSL for shell scripts
-- Or run commands directly with npx
+**Alternative - Use Git Bash:**
+If you have Git installed, open Git Bash and run:
+```bash
+./scripts/electron-dev.sh
+```
+
+**Important Notes:**
+- The `.sh` shell scripts do NOT work in Command Prompt or PowerShell
+- Use `npx electron dist-electron/main.js` directly, or use Git Bash
+- WSL (Windows Subsystem for Linux) also works with the shell scripts
 
 **Firewall:**
 - Windows Firewall may prompt on first run
@@ -511,15 +521,15 @@ xvfb-run ./scripts/electron-dev.sh
 
 ## Quick Reference Commands
 
-| Action | Command |
-|--------|---------|
-| Install dependencies | `npm install` |
-| Build Electron | `npx tsc -p electron/tsconfig.json` |
-| Start web server | `npm run dev` |
-| Start Electron (dev) | `./scripts/electron-dev.sh` |
-| Build desktop app | `./scripts/build-desktop.sh` |
-| Clean install | `rm -rf node_modules && npm install` |
-| View project files | `ls ~/AutoCoder/projects/` |
+| Action | Mac/Linux | Windows |
+|--------|-----------|---------|
+| Install dependencies | `npm install` | `npm install` |
+| Build Electron | `npx tsc -p electron/tsconfig.json` | `npx tsc -p electron/tsconfig.json` |
+| Start web server | `npm run dev` | `npm run dev` |
+| Start Electron (dev) | `./scripts/electron-dev.sh` | `npx electron dist-electron/main.js` |
+| Build desktop app | `./scripts/build-desktop.sh` | `npm run build && npx tsc -p electron/tsconfig.json && npx electron-builder` |
+| Clean install | `rm -rf node_modules && npm install` | `rmdir /s /q node_modules && npm install` |
+| View project files | `ls ~/AutoCoder/projects/` | `dir %USERPROFILE%\AutoCoder\projects` |
 
 ---
 
