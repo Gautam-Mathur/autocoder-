@@ -21,6 +21,7 @@
     }
   },
   "references": [
-    { "path": "./electron" }
+    { "path": "./electron" },
+    { "path": "./scripts" }
   ]
 }
