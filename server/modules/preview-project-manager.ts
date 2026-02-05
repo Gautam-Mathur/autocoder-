@@ -241,25 +241,92 @@ function cleanupCode(content: string): string {
   // { ; something -> { something
   code = code.replace(/\{\s*;+\s*([a-zA-Z])/g, '{ $1');
   
-  // Fix case mismatch: <link href="..."> with </Link> -> <Link href="...">
-  // AI sometimes generates lowercase <link> when it means <Link> React component
-  code = code.replace(/<link(\s+href=)/gi, '<Link$1');
-  code = code.replace(/<\/link>/gi, '</Link>');
-  // Same for <button type="button" variant=...> -> <Button (if it has variant prop, it's a component)
-  code = code.replace(/<button(\s+[^>]*variant=)/gi, '<Button$1');
+  // ============ COMPREHENSIVE JSX FIX PATTERNS ============
   
-  // Fix mismatched JSX closing tags - common AI generation errors
-  // </a>\n</Link> -> </Link> (remove redundant </a> before </Link>)
-  code = code.replace(/<\/a>\s*\n\s*<\/Link>/g, '</Link>');
-  // </span>\n</a>\n</Link> -> </span>\n</Link>
-  code = code.replace(/(<\/span>)\s*\n\s*<\/a>\s*\n\s*(<\/Link>)/g, '$1\n      $2');
-  // </div>\n</a> when inside Link -> </div>
-  code = code.replace(/(<\/[^>]+>)\s*\n\s*<\/a>\s*\n\s*(<\/Link>)/g, '$1\n      $2');
-  // Fix duplicate closing tags like </Link></Link>
-  code = code.replace(/<\/Link>\s*<\/Link>/g, '</Link>');
-  code = code.replace(/<\/a>\s*<\/a>/g, '</a>');
-  // Remove orphan </a> that appears before any </Component> pattern
+  // 1. Fix case mismatch for ALL common React components
+  // AI sometimes generates lowercase HTML tags when it means React components
+  const componentMappings = [
+    // Routing
+    ['link', 'Link'],
+    ['navlink', 'NavLink'],
+    ['route', 'Route'],
+    ['router', 'Router'],
+    ['switch', 'Switch'],
+    ['redirect', 'Redirect'],
+    // UI Components (shadcn/common)
+    ['button', 'Button'],
+    ['card', 'Card'],
+    ['input', 'Input'],
+    ['select', 'Select'],
+    ['textarea', 'Textarea'],
+    ['checkbox', 'Checkbox'],
+    ['radio', 'Radio'],
+    ['label', 'Label'],
+    ['badge', 'Badge'],
+    ['avatar', 'Avatar'],
+    ['dialog', 'Dialog'],
+    ['modal', 'Modal'],
+    ['dropdown', 'Dropdown'],
+    ['popover', 'Popover'],
+    ['tooltip', 'Tooltip'],
+    ['tabs', 'Tabs'],
+    ['accordion', 'Accordion'],
+    ['alert', 'Alert'],
+    ['toast', 'Toast'],
+    ['skeleton', 'Skeleton'],
+    ['spinner', 'Spinner'],
+    ['progress', 'Progress'],
+    ['slider', 'Slider'],
+    ['switch', 'Switch'],
+    ['toggle', 'Toggle'],
+    ['separator', 'Separator'],
+    ['scrollarea', 'ScrollArea'],
+    ['sheet', 'Sheet'],
+    ['sidebar', 'Sidebar'],
+  ];
+  
+  for (const [lower, proper] of componentMappings) {
+    // Fix opening tags with attributes that indicate it's a component (className, variant, etc.)
+    const openPattern = new RegExp(`<${lower}(\\s+[^>]*(className|variant|size|onClick|onChange|disabled)=)`, 'gi');
+    code = code.replace(openPattern, `<${proper}$1`);
+    // Fix closing tags when there's a corresponding uppercase usage nearby
+    const closePattern = new RegExp(`<\\/${lower}>`, 'gi');
+    code = code.replace(closePattern, `</${proper}>`);
+  }
+  
+  // 2. Fix self-closing component patterns with JSX attributes
+  // <icon className=... /> or <item.icon className=... />
+  // These need proper handling for dynamic components
+  
+  // 3. Fix mismatched JSX closing tags - common AI generation errors
+  // Remove redundant </a> before </Link>, </Card>, </Button>, etc.
+  code = code.replace(/<\/a>\s*\n?\s*<\/Link>/g, '</Link>');
+  code = code.replace(/<\/a>\s*\n?\s*<\/Card>/g, '</Card>');
+  code = code.replace(/<\/a>\s*\n?\s*<\/Button>/g, '</Button>');
+  
+  // Remove orphan </a> that appears before any </Component> pattern (PascalCase)
   code = code.replace(/<\/a>\s*\n(\s*)<\/([A-Z][a-zA-Z]+)>/g, '\n$1</$2>');
+  
+  // Remove nested intermediate closing tags in common patterns
+  code = code.replace(/(<\/span>)\s*\n\s*<\/a>\s*\n\s*(<\/[A-Z][a-zA-Z]+>)/g, '$1\n      $2');
+  code = code.replace(/(<\/div>)\s*\n\s*<\/a>\s*\n\s*(<\/[A-Z][a-zA-Z]+>)/g, '$1\n      $2');
+  code = code.replace(/(<\/[^>]+>)\s*\n\s*<\/a>\s*\n\s*(<\/[A-Z][a-zA-Z]+>)/g, '$1\n      $2');
+  
+  // 4. Fix duplicate closing tags
+  code = code.replace(/<\/Link>\s*<\/Link>/g, '</Link>');
+  code = code.replace(/<\/Button>\s*<\/Button>/g, '</Button>');
+  code = code.replace(/<\/Card>\s*<\/Card>/g, '</Card>');
+  code = code.replace(/<\/a>\s*<\/a>/g, '</a>');
+  code = code.replace(/<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/div>/g, '</div></div></div>'); // Too many nested divs
+  
+  // 5. Fix common opening tag issues
+  // <a href=...> followed by </Link> should be <Link href=...>
+  code = code.replace(/<a\s+href=([^>]+)>([\s\S]*?)<\/Link>/g, '<Link href=$1>$2</Link>');
+  
+  // 6. Fix icon rendering patterns - dynamic component from variable
+  // <item.icon should use proper component syntax
+  code = code.replace(/<item\.icon(\s+)/g, '<item.icon$1');
+  code = code.replace(/<Icon(\s+)/g, '<Icon$1');
   
   // Clean up multiple semicolons and empty lines
   code = code.replace(/;{2,}/g, ';');
