@@ -43,6 +43,9 @@ import { createConversation as createConvState, processTurn, getConversation as 
 // Deep Project Generator
 import { generateDeepProject, listBlueprints, listFeatures, getBlueprint, getFeature } from "./modules/deep-project-generator";
 
+// Preview Project Manager
+import { preparePreviewProject, startPreviewServer, stopPreviewServer, getPreviewStatus, cleanupOldProjects } from "./modules/preview-project-manager";
+
 // Extract project context from conversation content
 function extractProjectContext(
   allContent: string,
@@ -252,6 +255,80 @@ export async function registerRoutes(
       console.error('Transpilation error:', error);
       res.status(500).json({ error: 'Transpilation failed', success: false });
     }
+  });
+  
+  // Preview Project Vite Server API (port 6000)
+  app.post("/api/preview/prepare/:conversationId", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.conversationId);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: 'Invalid conversation ID' });
+      }
+      
+      const projectFiles = await storage.getProjectFiles(conversationId);
+      if (!projectFiles || projectFiles.length === 0) {
+        return res.status(404).json({ error: 'No project files found for this conversation' });
+      }
+      
+      const files = projectFiles.map(f => ({ path: f.path, content: f.content }));
+      const projectPath = await preparePreviewProject(conversationId, files);
+      
+      logger.info('PREVIEW', `Prepared preview project for conversation ${conversationId} at ${projectPath}`);
+      
+      res.json({ 
+        success: true, 
+        projectPath, 
+        fileCount: files.length 
+      });
+    } catch (error: any) {
+      logger.error('PREVIEW', `Failed to prepare preview: ${error.message}`);
+      res.status(500).json({ error: error.message, success: false });
+    }
+  });
+  
+  app.post("/api/preview/start/:conversationId", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.conversationId);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: 'Invalid conversation ID' });
+      }
+      
+      const projectFiles = await storage.getProjectFiles(conversationId);
+      if (!projectFiles || projectFiles.length === 0) {
+        return res.status(404).json({ error: 'No project files found' });
+      }
+      
+      const files = projectFiles.map(f => ({ path: f.path, content: f.content }));
+      await preparePreviewProject(conversationId, files);
+      
+      const result = await startPreviewServer(conversationId);
+      
+      if (result.success) {
+        logger.info('PREVIEW', `Started preview server for conversation ${conversationId} at ${result.url}`);
+      } else {
+        logger.error('PREVIEW', `Failed to start preview: ${result.error}`);
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      logger.error('PREVIEW', `Failed to start preview: ${error.message}`);
+      res.status(500).json({ error: error.message, success: false });
+    }
+  });
+  
+  app.post("/api/preview/stop", async (req, res) => {
+    try {
+      await stopPreviewServer();
+      logger.info('PREVIEW', 'Stopped preview server');
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message, success: false });
+    }
+  });
+  
+  app.get("/api/preview/status", (req, res) => {
+    const status = getPreviewStatus();
+    res.json(status);
   });
   
   // Cloud Sandbox API endpoints

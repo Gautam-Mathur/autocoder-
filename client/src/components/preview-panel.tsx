@@ -8,6 +8,7 @@ import { DeploymentPanel } from "@/components/deployment-panel";
 import { ErrorFixerPanel } from "@/components/error-fixer-panel";
 import { VSCodeIDE } from "@/components/vscode-ide";
 import { LiveCodeRunner } from "@/components/live-code-runner";
+import { VitePreview } from "@/components/vite-preview";
 import { ExecutionStatus } from "@/components/execution-status";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -274,7 +275,7 @@ function AutoTestSection({
 }
 
 export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps) {
-  const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug" | "intel" | "deploy" | "test" | "ide" | "execution">("preview");
+  const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug" | "intel" | "deploy" | "test" | "ide" | "execution" | "devserver">("preview");
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [generatedTests, setGeneratedTests] = useState<GeneratedTest[]>([]);
   const [activeFile, setActiveFile] = useState<string>("index.html");
@@ -1400,6 +1401,23 @@ ${combinedJs}
               <p className="text-xs">Run your project with WebContainer or cloud sandbox</p>
             </TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setActiveTab("devserver")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "devserver" ? "bg-background shadow-sm bg-purple-500/10" : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="tab-devserver"
+              >
+                <Terminal className="w-3 h-3" />
+                Vite
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[200px]">
+              <p className="text-xs">Run with real Vite dev server on port 6000 - full bundling &amp; hot reload</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <div className="flex items-center gap-1">
           {files.length > 0 && (
@@ -1865,6 +1883,20 @@ ${combinedJs}
                 </div>
               </div>
             </div>
+          </div>
+        ) : activeTab === "devserver" ? (
+          <div className="flex-1 overflow-hidden p-4">
+            {conversationId ? (
+              <VitePreview 
+                conversationId={conversationId} 
+                projectName={files[0]?.path?.split('/')[0] || 'Generated Project'}
+                height="100%"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p>Select a conversation to start the dev server</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex-1 flex overflow-hidden">
