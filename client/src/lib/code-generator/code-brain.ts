@@ -1785,10 +1785,51 @@ export function formatGeneratedApp(app: GeneratedApp): string {
     response += `\`\`\`${file.language}\n${file.content}\n\`\`\`\n\n`;
   }
   
-  response += `## 🏃 How to Run\n\n`;
+  response += `## How to Run\n\n`;
   response += `1. Install dependencies: \`npm install\`\n`;
   response += `2. Start development: \`npm run dev\`\n`;
   response += `3. Open http://localhost:5173\n`;
   
   return response;
 }
+
+// =============================================================================
+// ADVANCED INTELLIGENCE RE-EXPORTS
+// =============================================================================
+
+export {
+  parseSemanticIntent,
+  resolveSynonyms,
+  handleAmbiguousRequest,
+  decomposeProblem,
+  addToMemory,
+  rememberComponent,
+  resolveReference,
+  getRecentContext,
+  getBuiltComponents,
+  getCurrentProject,
+  setCurrentProject,
+  getPreferences,
+  clearMemory,
+  analyzeError,
+  generateFix,
+  traceRootCause,
+  parseCode,
+  modifyCode,
+  refactorCode,
+  solveCreatively,
+  combinePatterns,
+  explainCode,
+  teachConcept,
+  processWithIntelligence,
+  type SemanticIntent,
+  type Task,
+  type DecomposedProblem,
+  type BuiltComponent,
+  type ConversationContext,
+  type ErrorAnalysis,
+  type CodeStructure,
+  type CreativeSolution,
+  type CodeExplanation,
+  type IntelligenceResult,
+} from './advanced-intelligence';

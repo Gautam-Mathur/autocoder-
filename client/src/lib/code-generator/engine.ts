@@ -13,7 +13,21 @@ import { debugCode, checkErrors, recordCodeChange, getDebugStats, CodeError } fr
 import { testCode, validateCode, generateTestReport, TestResult } from "./auto-tester";
 import { matchRunnableTemplate, RunnableProject } from "./runnable-templates";
 import { enhanceTemplate, polishCode, detectFeatures } from "./smart-enhancer";
-import { generateFromScratch, formatGeneratedApp, parseIntent } from "./code-brain";
+import { 
+  generateFromScratch, 
+  formatGeneratedApp, 
+  parseIntent,
+  processWithIntelligence,
+  addToMemory,
+  rememberComponent,
+  analyzeError,
+  generateFix,
+  explainCode,
+  teachConcept,
+  solveCreatively,
+  handleAmbiguousRequest,
+  decomposeProblem,
+} from "./code-brain";
 
 // Format runnable project as response with file blocks
 function formatRunnableProjectResponse(project: RunnableProject): string {
@@ -651,8 +665,206 @@ function isDebugRequest(input: string): boolean {
   ].some(t => lower.includes(t));
 }
 
+// Detect explanation requests (excluding creation requests)
+function isExplainRequest(input: string): boolean {
+  const lower = input.toLowerCase();
+  
+  // Exclude creation requests - these should generate code, not explain
+  const creationPatterns = [
+    "create", "build", "make", "generate", "develop", "code",
+    "implement", "add", "write", "set up", "setup"
+  ];
+  if (creationPatterns.some(p => lower.includes(p))) {
+    return false;
+  }
+  
+  // Only trigger for pure explanation requests
+  return [
+    "explain this", "how does this work", "what does this mean", 
+    "tell me about", "teach me about", "what is a", "what are",
+    "why does this", "understand this", "learn about",
+    "walk me through this", "break down this", "describe this"
+  ].some(t => lower.includes(t));
+}
+
+// Detect creative/novel problem solving requests
+function isCreativeRequest(input: string): boolean {
+  const lower = input.toLowerCase();
+  return [
+    "creative", "novel", "unique", "innovative", "best way",
+    "optimal", "efficient", "clever", "smart way", "elegant",
+    "alternative", "different approach", "how would you"
+  ].some(t => lower.includes(t));
+}
+
+// Handle explanation requests with intelligence
+function handleExplainRequest(input: string): string {
+  const lower = input.toLowerCase();
+  
+  const conceptMatches = [
+    { pattern: /react/i, topic: 'react' },
+    { pattern: /hook/i, topic: 'hooks' },
+    { pattern: /state/i, topic: 'state' },
+    { pattern: /async|await|promise/i, topic: 'async' },
+    { pattern: /api|fetch|request/i, topic: 'api' },
+    { pattern: /component/i, topic: 'react' },
+    { pattern: /css|style/i, topic: 'styling' },
+    { pattern: /database|sql/i, topic: 'database' },
+    { pattern: /auth|login/i, topic: 'authentication' },
+  ];
+  
+  for (const { pattern, topic } of conceptMatches) {
+    if (pattern.test(lower)) {
+      return teachConcept(topic);
+    }
+  }
+  
+  const codeMatch = input.match(/```[\s\S]*?```/);
+  if (codeMatch) {
+    const code = codeMatch[0].replace(/```\w*\n?/g, '').replace(/```/g, '');
+    const explanation = explainCode(code);
+    
+    let response = `## Code Explanation\n\n`;
+    response += `**Summary:** ${explanation.summary}\n\n`;
+    
+    if (explanation.lineByLine.length > 0) {
+      response += `### Line by Line\n\n`;
+      for (const line of explanation.lineByLine.slice(0, 10)) {
+        response += `- \`${line.lines}\`: ${line.explanation}\n`;
+      }
+      response += `\n`;
+    }
+    
+    if (explanation.concepts.length > 0) {
+      response += `### Key Concepts\n\n`;
+      for (const concept of explanation.concepts) {
+        response += `**${concept.name}**: ${concept.description}\n\n`;
+      }
+    }
+    
+    if (explanation.alternatives.length > 0) {
+      response += `### Alternative Approaches\n\n`;
+      for (const alt of explanation.alternatives) {
+        response += `**${alt.approach}**: ${alt.tradeoff}\n`;
+      }
+    }
+    
+    return response;
+  }
+  
+  return teachConcept('react');
+}
+
+// Handle creative problem solving
+function handleCreativeRequest(input: string): string {
+  const solutions = solveCreatively(input);
+  
+  if (solutions.length === 0) {
+    return generateFallbackResponse(input);
+  }
+  
+  let response = `## Creative Solutions\n\n`;
+  response += `Here are ${solutions.length} approaches to solve this:\n\n`;
+  
+  for (let i = 0; i < solutions.length; i++) {
+    const solution = solutions[i];
+    response += `### Option ${i + 1}: ${solution.approach}\n\n`;
+    response += `**Complexity:** ${solution.complexity} | **Novelty Score:** ${Math.round(solution.novelty * 100)}%\n\n`;
+    
+    response += `**Pros:**\n`;
+    for (const pro of solution.pros) {
+      response += `- ${pro}\n`;
+    }
+    
+    response += `\n**Cons:**\n`;
+    for (const con of solution.cons) {
+      response += `- ${con}\n`;
+    }
+    
+    response += `\n\`\`\`typescript\n${solution.implementation}\n\`\`\`\n\n`;
+  }
+  
+  return response;
+}
+
+// Handle error analysis with intelligence
+function handleErrorAnalysis(input: string, errorMessage: string): string {
+  const analysis = analyzeError(errorMessage);
+  
+  let response = `## Error Analysis\n\n`;
+  response += `**Error Type:** ${analysis.errorType}\n\n`;
+  response += `**Root Cause:** ${analysis.rootCause}\n\n`;
+  
+  if (analysis.filePath) {
+    response += `**Location:** ${analysis.filePath}`;
+    if (analysis.lineNumber) response += `:${analysis.lineNumber}`;
+    response += `\n\n`;
+  }
+  
+  if (analysis.suggestedFixes.length > 0) {
+    response += `### Suggested Fixes\n\n`;
+    for (const fix of analysis.suggestedFixes) {
+      response += `**${fix.description}** (${Math.round(fix.confidence * 100)}% confidence)\n`;
+      response += `\`\`\`javascript\n${fix.code}\n\`\`\`\n\n`;
+    }
+  }
+  
+  response += `### Quick Fix\n\n`;
+  response += `\`\`\`javascript\n${generateFix(analysis)}\n\`\`\`\n`;
+  
+  return response;
+}
+
 // Main generation function
 export function generateCode(input: string): string {
+  // ADVANCED NLU: Process input with full intelligence pipeline
+  const intelligence = processWithIntelligence(input);
+  const { intent: semanticIntent, decomposition } = intelligence;
+  
+  // AMBIGUITY HANDLING: If request is unclear, provide clarification
+  if (semanticIntent.confidence < 0.4 && semanticIntent.ambiguities.length > 0) {
+    const { clarifications, suggestions } = handleAmbiguousRequest(input);
+    if (clarifications.length > 0) {
+      let response = `## Need More Details\n\n`;
+      response += `I want to help you, but I need a bit more information:\n\n`;
+      for (const q of clarifications) {
+        response += `- ${q}\n`;
+      }
+      if (suggestions.length > 0) {
+        response += `\n**Quick options:**\n`;
+        for (const s of suggestions) {
+          response += `- ${s}\n`;
+        }
+      }
+      response += `\n**Tip:** Try being more specific, like "create a todo app with React" or "build an ecommerce dashboard"`;
+      return response;
+    }
+  }
+  
+  // REASONING: Show task breakdown for complex requests
+  if (decomposition.tasks.length > 3 && decomposition.warnings.length > 0) {
+    // Log warnings but continue with generation
+    console.log('Task warnings:', decomposition.warnings);
+  }
+  
+  // EXPLANATION: Handle requests for understanding code or concepts
+  if (isExplainRequest(input) || semanticIntent.action === 'explain') {
+    return handleExplainRequest(input);
+  }
+  
+  // CREATIVE: Handle requests for innovative solutions
+  if (isCreativeRequest(input)) {
+    return handleCreativeRequest(input);
+  }
+  
+  // ERROR ANALYSIS: Handle specific error messages
+  const errorMatch = input.match(/error[:\s]+(.+?)(?:\n|$)/i);
+  if ((errorMatch && isDebugRequest(input)) || semanticIntent.action === 'fix') {
+    if (errorMatch) {
+      return handleErrorAnalysis(input, errorMatch[1]);
+    }
+  }
+  
   // RUNNABLE TEMPLATES: Check for projects that can run in WebContainer
   const runnableProject = matchRunnableTemplate(input);
   if (runnableProject) {
@@ -729,8 +941,8 @@ ${(() => {
   let code = template.generate(params);
   
   // CREATIVITY: Detect domain and customize output
-  const intent = understandRequest(input);
-  const domain = detectDomain(intent, input);
+  const requestIntent = understandRequest(input);
+  const domain = detectDomain(requestIntent, input);
   
   // Customize the template for the detected domain
   if (domain !== "default" && template.language === "html") {
