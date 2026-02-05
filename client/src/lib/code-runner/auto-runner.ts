@@ -451,6 +451,7 @@ export default {
     let pendingDeps: Record<string, string> = {};
     let pendingDevDeps: Record<string, string> = {};
     let useBatchedInstall = false;
+    let originalPkgData: Record<string, unknown> | null = null;
     
     if (pkgContent) {
       log('📝 Writing package.json...');
@@ -462,20 +463,16 @@ export default {
         
         try {
           const fullPkg = JSON.parse(pkgContent);
+          originalPkgData = fullPkg; // Save for later restoration
           
           // Extract dependencies for batched install later
           pendingDeps = fullPkg.dependencies || {};
           pendingDevDeps = fullPkg.devDependencies || {};
           
-          // Create minimal package.json with just metadata and scripts (no deps)
-          const minimalPkg = {
-            name: fullPkg.name || projectName,
-            version: fullPkg.version || '1.0.0',
-            type: fullPkg.type || 'module',
-            scripts: fullPkg.scripts || {},
-            dependencies: {},
-            devDependencies: {}
-          };
+          // Create minimal package.json preserving ALL fields except deps
+          const minimalPkg = { ...fullPkg };
+          minimalPkg.dependencies = {};
+          minimalPkg.devDependencies = {};
           
           const minimalContent = JSON.stringify(minimalPkg, null, 2);
           await writeFile('package.json', minimalContent);
@@ -488,35 +485,47 @@ export default {
       }
       
       if (!useBatchedInstall) {
-        // Standard write for smaller files
-        await writeFile('package.json', pkgContent);
+        // Standard write with retry for smaller files
+        let writeSuccess = false;
+        for (let attempt = 1; attempt <= 3 && !writeSuccess; attempt++) {
+          try {
+            await writeFile('package.json', pkgContent);
+            const readBack = await readFile('package.json');
+            
+            if (readBack === pkgContent) {
+              writeSuccess = true;
+              log('✅ package.json verified');
+            } else if (readBack.length < pkgContent.length * 0.9) {
+              log(`⚠️ Possible truncation (attempt ${attempt}): wrote ${pkgContent.length}, read ${readBack.length}`);
+              if (attempt < 3) {
+                await new Promise(r => setTimeout(r, 100 * attempt));
+              }
+            } else {
+              writeSuccess = true;
+              log('✅ package.json written');
+            }
+          } catch (err) {
+            log(`   Write attempt ${attempt} failed: ${err}`);
+          }
+        }
         
-        // Verify write
-        try {
-          const readBack = await readFile('package.json');
-          if (readBack.length < pkgContent.length * 0.9) {
-            log(`⚠️ Possible truncation: wrote ${pkgContent.length}, read ${readBack.length}`);
-            // Fall back to batched install
-            useBatchedInstall = true;
+        // If all retries failed, fall back to batched install
+        if (!writeSuccess) {
+          log('⚠️ Standard write failed, switching to batched install...');
+          try {
             const fullPkg = JSON.parse(pkgContent);
+            originalPkgData = fullPkg;
             pendingDeps = fullPkg.dependencies || {};
             pendingDevDeps = fullPkg.devDependencies || {};
+            useBatchedInstall = true;
             
-            const minimalPkg = {
-              name: fullPkg.name || projectName,
-              version: '1.0.0',
-              type: 'module',
-              scripts: fullPkg.scripts || {},
-              dependencies: {},
-              devDependencies: {}
-            };
+            const minimalPkg = { ...fullPkg };
+            minimalPkg.dependencies = {};
+            minimalPkg.devDependencies = {};
             await writeFile('package.json', JSON.stringify(minimalPkg, null, 2));
-            log('   Switched to batched install mode');
-          } else {
-            log('✅ package.json verified');
+          } catch {
+            log('⚠️ Could not switch to batched install');
           }
-        } catch {
-          log('✅ package.json written');
         }
       }
     }
@@ -587,6 +596,33 @@ export default {
             if (!result.success) {
               log(`   ⚠️ Some dev packages in batch ${batchNum} failed, continuing...`);
             }
+          }
+        }
+        
+        // Restore full package.json with dependencies after install
+        if (originalPkgData) {
+          try {
+            // Read current package.json (npm may have updated versions)
+            const currentPkgContent = await readFile('package.json');
+            const currentPkg = JSON.parse(currentPkgContent);
+            
+            // Merge: keep npm's installed versions, restore original metadata
+            const restoredPkg = {
+              ...originalPkgData,
+              dependencies: currentPkg.dependencies || {},
+              devDependencies: currentPkg.devDependencies || {}
+            };
+            
+            // Write in chunks if still too large (unlikely after npm normalizes versions)
+            const restoredContent = JSON.stringify(restoredPkg, null, 2);
+            if (restoredContent.length <= MAX_SAFE_SIZE) {
+              await writeFile('package.json', restoredContent);
+              log('✅ Restored full package.json');
+            } else {
+              log('   Package.json still large, keeping minimal version');
+            }
+          } catch (err) {
+            log(`⚠️ Could not restore package.json: ${err}`);
           }
         }
         
