@@ -1007,9 +1007,13 @@ function generateConfigFiles(blueprint: ProjectBlueprint, options: GenerationOpt
       devDependencies: {
         typescript: '^5.3.0',
         vite: '^5.0.0',
+        '@vitejs/plugin-react': '^4.2.0',
         '@types/react': '^18.2.0',
         '@types/react-dom': '^18.2.0',
+        '@types/node': '^20.10.0',
         vitest: '^1.0.0',
+        autoprefixer: '^10.4.16',
+        postcss: '^8.4.32',
       },
     }, null, 2),
     type: 'config',
@@ -1084,6 +1088,137 @@ SESSION_SECRET=your-secret-key
 dist/
 .env
 *.log
+`,
+    type: 'config',
+  });
+
+  // index.html - Vite entry point
+  files.push({
+    path: 'index.html',
+    content: `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${options.name}</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/client/src/main.tsx"></script>
+  </body>
+</html>
+`,
+    type: 'config',
+  });
+
+  // main.tsx - React entry point
+  files.push({
+    path: 'client/src/main.tsx',
+    content: `import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import App from './App';
+import './index.css';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      retry: 1,
+    },
+  },
+});
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </StrictMode>
+);
+`,
+    type: 'source',
+  });
+
+  // App.tsx - Root component with routing
+  files.push({
+    path: 'client/src/App.tsx',
+    content: `import { Switch, Route } from 'wouter';
+import { Layout } from '@/components/layout';
+import Home from '@/pages/Home';
+import Dashboard from '@/pages/Dashboard';
+import Users from '@/pages/Users';
+import Settings from '@/pages/Settings';
+
+function App() {
+  return (
+    <Layout>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/users" component={Users} />
+        <Route path="/settings" component={Settings} />
+        <Route>
+          <div className="flex items-center justify-center h-full">
+            <h1 className="text-2xl">404 - Page Not Found</h1>
+          </div>
+        </Route>
+      </Switch>
+    </Layout>
+  );
+}
+
+export default App;
+`,
+    type: 'source',
+  });
+
+  // index.css - Tailwind CSS
+  files.push({
+    path: 'client/src/index.css',
+    content: `@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: 222.2 84% 4.9%;
+  --background: 0 0% 100%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --border: 214.3 31.8% 91.4%;
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+}
+
+.dark {
+  --foreground: 210 40% 98%;
+  --background: 222.2 84% 4.9%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --border: 217.2 32.6% 17.5%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+`,
+    type: 'style',
+  });
+
+  // postcss.config.js
+  files.push({
+    path: 'postcss.config.js',
+    content: `export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
 `,
     type: 'config',
   });
@@ -1378,86 +1513,288 @@ export type InsertUser = typeof users.$inferInsert;
 
 function generatePages(blueprint: ProjectBlueprint, options: GenerationOptions): FileTemplate[] {
   const files: FileTemplate[] = [];
-  
-  const pages = [
-    { name: 'Home', path: '/' },
-    { name: 'Dashboard', path: '/dashboard' },
-    { name: 'Login', path: '/login' },
-    { name: 'Register', path: '/register' },
-    { name: 'Settings', path: '/settings' },
-    { name: 'NotFound', path: '*' },
-  ];
 
-  for (const page of pages) {
-    files.push({
-      path: `client/src/pages/${page.name}.tsx`,
-      content: `import { Layout } from '@/components/layout';
+  // Home Page
+  files.push({
+    path: 'client/src/pages/Home.tsx',
+    content: `import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 
-export function ${page.name}Page() {
+export default function Home() {
   return (
-    <Layout>
-      <div className="container mx-auto">
-        <h1 className="text-3xl font-bold mb-6">${page.name}</h1>
-        {/* Page content */}
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Home</h1>
+      <p className="text-gray-600">Welcome to ${options.name}!</p>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Quick Start</h3>
+          <p className="text-gray-500 mb-4">Get started with your new project.</p>
+          <Button>Learn More</Button>
+        </Card>
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Documentation</h3>
+          <p className="text-gray-500 mb-4">Read the full documentation.</p>
+          <Button variant="outline">View Docs</Button>
+        </Card>
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Support</h3>
+          <p className="text-gray-500 mb-4">Need help? We're here for you.</p>
+          <Button variant="ghost">Contact Us</Button>
+        </Card>
       </div>
-    </Layout>
+    </div>
   );
 }
 `,
-      type: 'source',
-    });
-  }
+    type: 'source',
+  });
 
+  // Dashboard Page
   files.push({
-    path: 'client/src/App.tsx',
-    content: `import { Switch, Route } from 'wouter';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+    path: 'client/src/pages/Dashboard.tsx',
+    content: `import { Card } from '@/components/ui/Card';
+import { BarChart, Users, DollarSign, Activity } from 'lucide-react';
 
-import { HomePage } from './pages/Home';
-import { DashboardPage } from './pages/Dashboard';
-import { LoginPage } from './pages/Login';
-import { RegisterPage } from './pages/Register';
-import { SettingsPage } from './pages/Settings';
-import { NotFoundPage } from './pages/NotFound';
+const stats = [
+  { label: 'Total Revenue', value: '$45,231', change: '+20.1%', icon: DollarSign },
+  { label: 'Active Users', value: '2,350', change: '+15.3%', icon: Users },
+  { label: 'Page Views', value: '12,543', change: '+8.2%', icon: Activity },
+  { label: 'Conversion Rate', value: '3.2%', change: '+2.4%', icon: BarChart },
+];
 
-const queryClient = new QueryClient();
-
-export function App() {
+export default function Dashboard() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Switch>
-        <Route path="/" component={HomePage} />
-        <Route path="/dashboard" component={DashboardPage} />
-        <Route path="/login" component={LoginPage} />
-        <Route path="/register" component={RegisterPage} />
-        <Route path="/settings" component={SettingsPage} />
-        <Route component={NotFoundPage} />
-      </Switch>
-    </QueryClientProvider>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Dashboard</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat) => (
+          <Card key={stat.label} className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">{stat.label}</p>
+                <p className="text-2xl font-bold">{stat.value}</p>
+                <p className="text-sm text-green-500">{stat.change}</p>
+              </div>
+              <stat.icon className="w-10 h-10 text-gray-400" />
+            </div>
+          </Card>
+        ))}
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-medium">Activity Item {i}</p>
+                  <p className="text-sm text-gray-500">{i} hour(s) ago</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Performance Overview</h3>
+          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+            <p className="text-gray-400">Chart placeholder</p>
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }
 `,
     type: 'source',
   });
 
+  // Users Page
   files.push({
-    path: 'client/src/main.tsx',
-    content: `import { createRoot } from 'react-dom/client';
-import { App } from './App';
-import './index.css';
+    path: 'client/src/pages/Users.tsx',
+    content: `import { useState } from 'react';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Table } from '@/components/ui/Table';
+import { Input } from '@/components/ui/Input';
+import { Search, Plus, MoreVertical } from 'lucide-react';
 
-createRoot(document.getElementById('root')!).render(<App />);
+const users = [
+  { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Admin', status: 'Active' },
+  { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'User', status: 'Active' },
+  { id: 3, name: 'Bob Johnson', email: 'bob@example.com', role: 'User', status: 'Inactive' },
+  { id: 4, name: 'Alice Williams', email: 'alice@example.com', role: 'Editor', status: 'Active' },
+  { id: 5, name: 'Charlie Brown', email: 'charlie@example.com', role: 'User', status: 'Active' },
+];
+
+export default function Users() {
+  const [search, setSearch] = useState('');
+  
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(search.toLowerCase()) ||
+    user.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Users</h1>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Add User
+        </Button>
+      </div>
+      
+      <Card className="p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search users..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-3 px-4">Name</th>
+                <th className="text-left py-3 px-4">Email</th>
+                <th className="text-left py-3 px-4">Role</th>
+                <th className="text-left py-3 px-4">Status</th>
+                <th className="text-left py-3 px-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map((user) => (
+                <tr key={user.id} className="border-b hover:bg-gray-50">
+                  <td className="py-3 px-4 font-medium">{user.name}</td>
+                  <td className="py-3 px-4 text-gray-500">{user.email}</td>
+                  <td className="py-3 px-4">{user.role}</td>
+                  <td className="py-3 px-4">
+                    <span className={\`px-2 py-1 rounded-full text-xs \${user.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}\`}>
+                      {user.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <Button variant="ghost" size="sm">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
 `,
     type: 'source',
   });
 
+  // Settings Page
   files.push({
-    path: 'client/src/index.css',
-    content: `@tailwind base;
-@tailwind components;
-@tailwind utilities;
+    path: 'client/src/pages/Settings.tsx',
+    content: `import { useState } from 'react';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+
+export default function Settings() {
+  const [profile, setProfile] = useState({
+    name: 'John Doe',
+    email: 'john@example.com',
+    company: 'Acme Inc',
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert('Settings saved!');
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <h1 className="text-3xl font-bold">Settings</h1>
+      
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold mb-4">Profile Settings</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="name">Full Name</Label>
+            <Input
+              id="name"
+              value={profile.name}
+              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={profile.email}
+              onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label htmlFor="company">Company</Label>
+            <Input
+              id="company"
+              value={profile.company}
+              onChange={(e) => setProfile({ ...profile, company: e.target.value })}
+            />
+          </div>
+          <Button type="submit">Save Changes</Button>
+        </form>
+      </Card>
+      
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold mb-4">Notification Preferences</h2>
+        <div className="space-y-3">
+          {['Email notifications', 'Push notifications', 'Weekly digest'].map((item) => (
+            <label key={item} className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" className="w-4 h-4" defaultChecked />
+              <span>{item}</span>
+            </label>
+          ))}
+        </div>
+      </Card>
+      
+      <Card className="p-6 border-red-200">
+        <h2 className="text-lg font-semibold mb-4 text-red-600">Danger Zone</h2>
+        <p className="text-gray-600 mb-4">Once you delete your account, there is no going back.</p>
+        <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+          Delete Account
+        </Button>
+      </Card>
+    </div>
+  );
+}
 `,
-    type: 'style',
+    type: 'source',
+  });
+
+  // Pages index export
+  files.push({
+    path: 'client/src/pages/index.ts',
+    content: `export { default as Home } from './Home';
+export { default as Dashboard } from './Dashboard';
+export { default as Users } from './Users';
+export { default as Settings } from './Settings';
+`,
+    type: 'source',
   });
 
   return files;
