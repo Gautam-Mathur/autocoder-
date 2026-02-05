@@ -4,6 +4,8 @@
 import { 
   getWebContainer, 
   mountFiles, 
+  writeFile,
+  readFile,
   installDependencies, 
   startDevServer,
   isWebContainerSupported,
@@ -427,35 +429,60 @@ export default {
     
     updateState({ progress: 20, message: 'Project analyzed' });
     
-    // Validate package.json before mounting - fix truncation/corruption issues
-    const pkgIdx = projectFiles.findIndex(f => f.path === 'package.json');
-    if (pkgIdx >= 0) {
-      const pkgContent = projectFiles[pkgIdx].content;
-      
-      // Check for suspiciously large package.json (> 10KB is unusual)
-      if (pkgContent.length > 10240) {
-        log(`⚠️ package.json is unusually large (${(pkgContent.length / 1024).toFixed(1)}KB), regenerating...`);
-        const freshPkg = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
-        projectFiles[pkgIdx] = { path: 'package.json', content: freshPkg };
-      } else {
-        // Validate JSON structure
-        try {
-          JSON.parse(pkgContent);
-        } catch (parseError) {
-          log('⚠️ package.json has invalid JSON, regenerating...');
-          const freshPkg = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
-          projectFiles[pkgIdx] = { path: 'package.json', content: freshPkg };
-        }
-      }
-    }
-    
     // Step 3: Mount files to WebContainer
     updateState({ status: 'mounting', progress: 30, message: 'Setting up project files...' });
     log('📁 Mounting project files...');
     
-    const fileTree = filesToFileSystemTree(projectFiles);
+    // Separate package.json to write it directly (avoids mount truncation issues)
+    const pkgIdx = projectFiles.findIndex(f => f.path === 'package.json');
+    const pkgContent = pkgIdx >= 0 ? projectFiles[pkgIdx].content : null;
+    const filesWithoutPkg = pkgIdx >= 0 
+      ? [...projectFiles.slice(0, pkgIdx), ...projectFiles.slice(pkgIdx + 1)]
+      : projectFiles;
+    
+    // Mount all files except package.json
+    const fileTree = filesToFileSystemTree(filesWithoutPkg);
     await mountFiles(fileTree);
-    log(`✅ Mounted ${projectFiles.length} files`);
+    log(`✅ Mounted ${filesWithoutPkg.length} files`);
+    
+    // Write package.json directly using writeFile (bypasses mount chunking issues)
+    if (pkgContent) {
+      log('📝 Writing package.json...');
+      try {
+        await writeFile('package.json', pkgContent);
+        
+        // Verify the file was written correctly by reading it back
+        const readBack = await readFile('package.json');
+        if (readBack.length !== pkgContent.length) {
+          log(`⚠️ package.json verification failed (wrote ${pkgContent.length} bytes, read ${readBack.length} bytes)`);
+          log('   Regenerating package.json...');
+          const freshPkg = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
+          await writeFile('package.json', freshPkg);
+          
+          // Verify regenerated file
+          const verifyRead = await readFile('package.json');
+          if (verifyRead.length !== freshPkg.length) {
+            throw new Error(`Failed to write package.json correctly after retry`);
+          }
+          log('✅ Regenerated package.json successfully');
+        } else {
+          // Also validate JSON structure
+          try {
+            JSON.parse(readBack);
+            log('✅ package.json verified');
+          } catch {
+            log('⚠️ package.json has invalid JSON, regenerating...');
+            const freshPkg = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
+            await writeFile('package.json', freshPkg);
+          }
+        }
+      } catch (writeErr) {
+        log(`⚠️ Error writing package.json: ${writeErr}`);
+        // Try to regenerate a simpler package.json
+        const freshPkg = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
+        await writeFile('package.json', freshPkg);
+      }
+    }
     
     updateState({ progress: 40, message: 'Files mounted' });
     
