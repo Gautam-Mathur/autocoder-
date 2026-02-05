@@ -231,6 +231,16 @@ function cleanupCode(content: string): string {
   code = code.replace(/\(\s*;+\s*</g, '(\n<');
   code = code.replace(/;\s*(\n\s*<[A-Z])/g, '$1');
   
+  // Fix stray semicolons after opening brackets in arrays/objects
+  // = [; -> = [
+  code = code.replace(/=\s*\[\s*;+/g, '= [');
+  // = {; -> = {
+  code = code.replace(/=\s*\{\s*;+/g, '= {');
+  // [ ; { -> [ {
+  code = code.replace(/\[\s*;+\s*\{/g, '[\n  {');
+  // { ; something -> { something
+  code = code.replace(/\{\s*;+\s*([a-zA-Z])/g, '{ $1');
+  
   // Clean up multiple semicolons and empty lines
   code = code.replace(/;{2,}/g, ';');
   code = code.replace(/\{\s*;+\s*}/g, '{}');
