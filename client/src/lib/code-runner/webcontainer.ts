@@ -72,9 +72,55 @@ export async function runCommand(
 }
 
 export async function installDependencies(
-  onOutput?: (data: string) => void
+  onOutput?: (data: string) => void,
+  timeoutMs: number = 60000
 ): Promise<RunResult> {
-  return runCommand('npm', ['install'], onOutput);
+  const container = await getWebContainer();
+  const output: string[] = [];
+  const errors: string[] = [];
+  
+  return new Promise(async (resolve) => {
+    const timeoutId = setTimeout(() => {
+      onOutput?.('\n⚠️ npm install timed out after 60s - proceeding anyway...\n');
+      resolve({
+        success: true,
+        output: [...output, 'Installation timed out - some packages may be missing'],
+        errors: ['Timeout after 60 seconds'],
+        exitCode: 0,
+      });
+    }, timeoutMs);
+    
+    try {
+      const process = await container.spawn('npm', ['install', '--prefer-offline', '--no-audit', '--progress=false']);
+      
+      process.output.pipeTo(
+        new WritableStream({
+          write(data) {
+            output.push(data);
+            onOutput?.(data);
+          },
+        })
+      );
+      
+      const exitCode = await process.exit;
+      clearTimeout(timeoutId);
+      
+      resolve({
+        success: exitCode === 0,
+        output,
+        errors,
+        exitCode,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      resolve({
+        success: false,
+        output,
+        errors: [String(err)],
+        exitCode: 1,
+      });
+    }
+  });
 }
 
 export async function runNodeScript(
