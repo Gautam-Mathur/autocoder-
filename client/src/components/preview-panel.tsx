@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles, Brain, Rocket, TestTube, Play, Terminal, Download, HelpCircle } from "lucide-react";
+import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles, Brain, Rocket, TestTube, Play, Terminal, Download, HelpCircle, Cloud } from "lucide-react";
 import { downloadProjectAsZip } from "@/lib/code-runner/zip-export";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { IntelligencePanel } from "@/components/IntelligencePanel";
@@ -8,6 +8,7 @@ import { DeploymentPanel } from "@/components/deployment-panel";
 import { ErrorFixerPanel } from "@/components/error-fixer-panel";
 import { VSCodeIDE } from "@/components/vscode-ide";
 import { LiveCodeRunner } from "@/components/live-code-runner";
+import { ExecutionStatus } from "@/components/execution-status";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -273,7 +274,7 @@ function AutoTestSection({
 }
 
 export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps) {
-  const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug" | "intel" | "deploy" | "test" | "ide">("preview");
+  const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug" | "intel" | "deploy" | "test" | "ide" | "execution">("preview");
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [generatedTests, setGeneratedTests] = useState<GeneratedTest[]>([]);
   const [activeFile, setActiveFile] = useState<string>("index.html");
@@ -1382,6 +1383,23 @@ ${combinedJs}
               <p className="text-xs">Edit code directly like a pro (advanced)</p>
             </TooltipContent>
           </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setActiveTab("execution")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "execution" ? "bg-background shadow-sm bg-green-500/10" : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="tab-execution"
+              >
+                <Cloud className="w-3 h-3" />
+                Run
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[200px]">
+              <p className="text-xs">Run your project with WebContainer or cloud sandbox</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <div className="flex items-center gap-1">
           {files.length > 0 && (
@@ -1815,6 +1833,38 @@ ${combinedJs}
                 });
               }}
             />
+          </div>
+        ) : activeTab === "execution" ? (
+          <div className="flex-1 overflow-auto p-4">
+            <ExecutionStatus 
+              files={files.map(f => ({ path: f.path, content: f.content }))} 
+              onUrlChange={(url) => {
+                if (url && url !== 'blob://preview') {
+                  console.log('WebContainer/Cloud URL:', url);
+                }
+              }}
+            />
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <h4 className="font-medium text-sm mb-2">Execution Modes</h4>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <span><strong>WebContainer:</strong> Full Node.js execution in browser</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <span><strong>Cloud Sandbox:</strong> Server-side container (planned)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                  <span><strong>Static Preview:</strong> Browser-based HTML/React rendering</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+                  <span><strong>Code View:</strong> Source display only</span>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="flex-1 flex overflow-hidden">

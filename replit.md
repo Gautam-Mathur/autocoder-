@@ -137,8 +137,19 @@ Preferred communication style: Simple, everyday language.
     - **Export System**: Facilitates project downloads.
 - **AI Integrations**: Modular capabilities for audio (voice chat), chat (OpenAI), image (gpt-image-1), and batch processing.
 
-### Code Runner & Auto-Fix System
-- **Code Runner**: Browser-based execution via WebContainer for Node.js projects, deployment guide generation, test generation, and AI-powered error fixing.
+### Code Runner & Execution System
+- **Multi-Tier Execution Manager** (`client/src/lib/code-runner/execution-manager.ts`):
+    - **Tier 1 - WebContainer**: Full Node.js execution in browser via @webcontainer/api
+    - **Tier 2 - Cloud Sandbox**: Server-side container execution (planned, API endpoints at `/api/sandbox/*`)
+    - **Tier 3 - Static Preview**: Browser-based HTML/React/JS rendering with Babel transpilation
+    - **Tier 4 - Code View**: Source display fallback
+    - Features: Automatic tier failover, health monitoring, timeout/retry/abort handling, state subscription pattern
+- **Execution Status UI** (`client/src/components/execution-status.tsx`): 
+    - Visual tier indicators, real-time logs, error display, run/stop/restart controls
+    - Integrated into preview panel "Run" tab
+- **WebContainer Service** (`client/src/lib/code-runner/webcontainer.ts`):
+    - File system mounting, npm install, dev server management
+    - COEP `credentialless` header compatibility (required for SharedArrayBuffer)
 - **Auto-Fix System**: Real-time error detection and automatic fixes within the preview panel, handling ES6 import/export transformations, React injection, and global variable provisioning, with support for browser-compatible code.
 - **Extended Feature Modules**: Includes Version History (undo/redo, diff view), ZIP Export (pure JS, auto-generates project files), Mobile Preview (device presets, responsive testing), Test Runner (browser-based, 15+ matchers), Vulnerability Scanner (CVE database, security patterns), Code Formatter (multi-language, linting), AI Context Persistence, Template Customization, Offline Mode, Progress Estimator, and Real-time Collaboration.
 

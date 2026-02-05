@@ -254,6 +254,57 @@ export async function registerRoutes(
     }
   });
   
+  // Cloud Sandbox API endpoints
+  app.post("/api/sandbox/create", async (req, res) => {
+    try {
+      const { files } = req.body;
+      if (!files || !Array.isArray(files)) {
+        return res.status(400).json({ error: 'Files array required', available: false });
+      }
+      
+      const cloudSandboxEnabled = process.env.CLOUD_SANDBOX_ENABLED === 'true';
+      if (!cloudSandboxEnabled) {
+        return res.status(503).json({
+          error: 'Cloud sandbox not available',
+          available: false,
+          message: 'Cloud execution is a planned feature. Using local preview.',
+          fallbackTo: 'static-preview'
+        });
+      }
+      
+      res.status(503).json({
+        error: 'Cloud sandbox not configured',
+        available: false,
+        fallbackTo: 'static-preview'
+      });
+    } catch (error) {
+      console.error('Sandbox creation error:', error);
+      res.status(500).json({ error: 'Internal server error', available: false });
+    }
+  });
+
+  app.post("/api/sandbox/stop", async (req, res) => {
+    res.json({ success: true, message: 'No active session found' });
+  });
+
+  app.get("/api/sandbox/status", async (req, res) => {
+    const cloudSandboxEnabled = process.env.CLOUD_SANDBOX_ENABLED === 'true';
+    res.json({
+      available: cloudSandboxEnabled,
+      activeSessions: 0,
+      features: {
+        nodeExecution: cloudSandboxEnabled,
+        databaseAccess: false,
+        persistentStorage: false,
+      },
+      limits: {
+        maxSessionsPerUser: 2,
+        maxExecutionTimeMs: 300000,
+        maxMemoryMB: 512,
+      }
+    });
+  });
+  
   // Logger API endpoints
   app.get("/api/logs", (req, res) => {
     try {
