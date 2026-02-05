@@ -2388,9 +2388,351 @@ app.listen(PORT, '0.0.0.0', () => console.log(\`Kanban running at http://localho
   };
 }
 
+// ============================================
+// INVOICING APP
+// ============================================
+export function generateInvoicingApp(): RunnableProject {
+  return {
+    name: "Invoice Manager",
+    description: "Professional invoicing system with client management and payment tracking",
+    files: [
+      {
+        path: "package.json",
+        content: createFullStackPackageJson("invoice-manager", { uuid: "^9.0.0" }),
+        language: "json"
+      },
+      {
+        path: "server.js",
+        content: `import express from 'express';
+import cors from 'cors';
+import { randomUUID } from 'crypto';
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+let clients = [
+  { id: '1', name: 'Acme Corp', email: 'contact@acme.com', address: '123 Business St', phone: '555-0100' },
+  { id: '2', name: 'Tech Solutions', email: 'info@techsol.com', address: '456 Tech Ave', phone: '555-0200' }
+];
+
+let invoices = [
+  { id: 'INV-001', clientId: '1', items: [{ desc: 'Web Development', qty: 1, rate: 2500 }], status: 'paid', date: '2024-01-15', dueDate: '2024-02-15', total: 2500 },
+  { id: 'INV-002', clientId: '2', items: [{ desc: 'Consulting', qty: 10, rate: 150 }], status: 'pending', date: '2024-01-20', dueDate: '2024-02-20', total: 1500 }
+];
+
+app.get('/api/clients', (req, res) => res.json(clients));
+app.post('/api/clients', (req, res) => {
+  const client = { id: randomUUID(), ...req.body };
+  clients.push(client);
+  res.json(client);
+});
+
+app.get('/api/invoices', (req, res) => {
+  const enriched = invoices.map(inv => ({
+    ...inv,
+    client: clients.find(c => c.id === inv.clientId)
+  }));
+  res.json(enriched);
+});
+
+app.post('/api/invoices', (req, res) => {
+  const id = 'INV-' + String(invoices.length + 1).padStart(3, '0');
+  const total = req.body.items.reduce((sum, item) => sum + (item.qty * item.rate), 0);
+  const invoice = { id, ...req.body, total, status: 'pending' };
+  invoices.push(invoice);
+  res.json(invoice);
+});
+
+app.patch('/api/invoices/:id/status', (req, res) => {
+  const invoice = invoices.find(i => i.id === req.params.id);
+  if (invoice) {
+    invoice.status = req.body.status;
+    res.json(invoice);
+  } else {
+    res.status(404).json({ error: 'Not found' });
+  }
+});
+
+app.get('/api/stats', (req, res) => {
+  const total = invoices.reduce((s, i) => s + i.total, 0);
+  const paid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.total, 0);
+  const pending = invoices.filter(i => i.status === 'pending').reduce((s, i) => s + i.total, 0);
+  res.json({ total, paid, pending, count: invoices.length, clientCount: clients.length });
+});
+
+app.listen(3000, () => console.log('Server running on port 3000'));`,
+        language: "javascript"
+      },
+      {
+        path: "public/index.html",
+        content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice Manager</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #0f0f23; color: #e2e8f0; min-height: 100vh; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    header { background: #1a1a2e; padding: 1rem 2rem; border-bottom: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; }
+    h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    nav { display: flex; gap: 1rem; }
+    nav button { padding: 0.5rem 1rem; background: transparent; border: 1px solid #374151; color: #e2e8f0; border-radius: 8px; cursor: pointer; }
+    nav button.active { background: #6366f1; border-color: #6366f1; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: #1a1a2e; padding: 1.5rem; border-radius: 12px; border: 1px solid #374151; }
+    .stat-label { color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.5rem; }
+    .stat-value { font-size: 1.75rem; font-weight: 700; }
+    .stat-value.green { color: #22c55e; }
+    .stat-value.yellow { color: #eab308; }
+    .btn { padding: 0.75rem 1.5rem; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
+    .btn-success { background: #22c55e; }
+    .btn-outline { background: transparent; border: 1px solid #374151; }
+    table { width: 100%; border-collapse: collapse; background: #1a1a2e; border-radius: 12px; overflow: hidden; }
+    th, td { padding: 1rem; text-align: left; border-bottom: 1px solid #374151; }
+    th { background: #0f0f23; font-weight: 600; color: #94a3b8; }
+    .status { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .status-paid { background: rgba(34,197,94,0.2); color: #22c55e; }
+    .status-pending { background: rgba(234,179,8,0.2); color: #eab308; }
+    .status-overdue { background: rgba(239,68,68,0.2); color: #ef4444; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
+    .modal.open { display: flex; }
+    .modal-content { background: #1a1a2e; border-radius: 16px; padding: 2rem; width: 500px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; }
+    .close-btn { background: none; border: none; color: #e2e8f0; font-size: 1.5rem; cursor: pointer; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.5rem; color: #94a3b8; font-size: 0.875rem; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border: 1px solid #374151; border-radius: 8px; background: #0f0f23; color: #e2e8f0; }
+    .items-list { margin-bottom: 1rem; }
+    .item-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .item-row input { padding: 0.5rem; }
+    .total-row { display: flex; justify-content: space-between; padding: 1rem; background: #0f0f23; border-radius: 8px; font-weight: 700; font-size: 1.25rem; }
+    .page { display: none; }
+    .page.active { display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📄 Invoice Manager</h1>
+    <nav>
+      <button class="active" onclick="showPage('dashboard')">Dashboard</button>
+      <button onclick="showPage('invoices')">Invoices</button>
+      <button onclick="showPage('clients')">Clients</button>
+    </nav>
+  </header>
+  
+  <div class="container">
+    <div id="dashboard" class="page active">
+      <h2 style="margin-bottom: 1.5rem">Dashboard</h2>
+      <div class="stats" id="stats"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Recent Invoices</h3>
+        <button class="btn" onclick="openInvoiceModal()">+ New Invoice</button>
+      </div>
+      <table id="recentInvoices"></table>
+    </div>
+    
+    <div id="invoices" class="page">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>All Invoices</h2>
+        <button class="btn" onclick="openInvoiceModal()">+ New Invoice</button>
+      </div>
+      <table id="invoiceTable"></table>
+    </div>
+    
+    <div id="clients" class="page">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>Clients</h2>
+        <button class="btn" onclick="openClientModal()">+ Add Client</button>
+      </div>
+      <table id="clientTable"></table>
+    </div>
+  </div>
+
+  <div class="modal" id="invoiceModal">
+    <div class="modal-content">
+      <div class="modal-header"><h2>New Invoice</h2><button class="close-btn" onclick="closeModals()">&times;</button></div>
+      <form onsubmit="createInvoice(event)">
+        <div class="form-group"><label>Client</label><select id="invClient" required></select></div>
+        <div class="form-group"><label>Date</label><input type="date" id="invDate" required></div>
+        <div class="form-group"><label>Due Date</label><input type="date" id="invDueDate" required></div>
+        <div class="form-group"><label>Items</label></div>
+        <div class="items-list" id="itemsList"></div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="addItem()">+ Add Item</button>
+        <div class="total-row" style="margin-top: 1rem;"><span>Total</span><span id="invoiceTotal">$0.00</span></div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Create Invoice</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="clientModal">
+    <div class="modal-content">
+      <div class="modal-header"><h2>Add Client</h2><button class="close-btn" onclick="closeModals()">&times;</button></div>
+      <form onsubmit="createClient(event)">
+        <div class="form-group"><label>Name</label><input type="text" id="clientName" required></div>
+        <div class="form-group"><label>Email</label><input type="email" id="clientEmail" required></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="clientPhone"></div>
+        <div class="form-group"><label>Address</label><textarea id="clientAddress"></textarea></div>
+        <button type="submit" class="btn" style="width: 100%;">Add Client</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let invoices = [];
+    let clients = [];
+    let items = [];
+
+    async function loadData() {
+      const [invRes, clientRes, statsRes] = await Promise.all([
+        fetch('/api/invoices'), fetch('/api/clients'), fetch('/api/stats')
+      ]);
+      invoices = await invRes.json();
+      clients = await clientRes.json();
+      const stats = await statsRes.json();
+      renderStats(stats);
+      renderInvoices();
+      renderClients();
+    }
+
+    function renderStats(stats) {
+      document.getElementById('stats').innerHTML = \`
+        <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">$\${stats.total.toLocaleString()}</div></div>
+        <div class="stat-card"><div class="stat-label">Paid</div><div class="stat-value green">$\${stats.paid.toLocaleString()}</div></div>
+        <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value yellow">$\${stats.pending.toLocaleString()}</div></div>
+        <div class="stat-card"><div class="stat-label">Invoices</div><div class="stat-value">\${stats.count}</div></div>
+      \`;
+    }
+
+    function renderInvoices() {
+      const html = \`<thead><tr><th>Invoice</th><th>Client</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>\${
+        invoices.map(inv => \`<tr>
+          <td>\${inv.id}</td>
+          <td>\${inv.client?.name || 'Unknown'}</td>
+          <td>\${inv.date}</td>
+          <td>$\${inv.total.toLocaleString()}</td>
+          <td><span class="status status-\${inv.status}">\${inv.status}</span></td>
+          <td>\${inv.status === 'pending' ? \`<button class="btn btn-sm btn-success" onclick="markPaid('\${inv.id}')">Mark Paid</button>\` : ''}</td>
+        </tr>\`).join('')
+      }</tbody>\`;
+      document.getElementById('invoiceTable').innerHTML = html;
+      document.getElementById('recentInvoices').innerHTML = html;
+    }
+
+    function renderClients() {
+      document.getElementById('clientTable').innerHTML = \`<thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Address</th></tr></thead><tbody>\${
+        clients.map(c => \`<tr><td>\${c.name}</td><td>\${c.email}</td><td>\${c.phone || '-'}</td><td>\${c.address || '-'}</td></tr>\`).join('')
+      }</tbody>\`;
+      document.getElementById('invClient').innerHTML = clients.map(c => \`<option value="\${c.id}">\${c.name}</option>\`).join('');
+    }
+
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(page).classList.add('active');
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function openInvoiceModal() {
+      items = [{ desc: '', qty: 1, rate: 0 }];
+      renderItems();
+      document.getElementById('invDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('invDueDate').value = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+      document.getElementById('invoiceModal').classList.add('open');
+    }
+
+    function openClientModal() { document.getElementById('clientModal').classList.add('open'); }
+    function closeModals() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('open')); }
+
+    function addItem() { items.push({ desc: '', qty: 1, rate: 0 }); renderItems(); }
+
+    function renderItems() {
+      document.getElementById('itemsList').innerHTML = items.map((item, i) => \`
+        <div class="item-row">
+          <input placeholder="Description" value="\${item.desc}" onchange="updateItem(\${i}, 'desc', this.value)">
+          <input type="number" placeholder="Qty" value="\${item.qty}" onchange="updateItem(\${i}, 'qty', this.value)">
+          <input type="number" placeholder="Rate" value="\${item.rate}" onchange="updateItem(\${i}, 'rate', this.value)">
+          <button type="button" class="btn btn-sm btn-outline" onclick="removeItem(\${i})">X</button>
+        </div>
+      \`).join('');
+      updateTotal();
+    }
+
+    function updateItem(i, field, value) {
+      items[i][field] = field === 'desc' ? value : Number(value);
+      updateTotal();
+    }
+
+    function removeItem(i) { items.splice(i, 1); renderItems(); }
+
+    function updateTotal() {
+      const total = items.reduce((sum, item) => sum + (item.qty * item.rate), 0);
+      document.getElementById('invoiceTotal').textContent = '$' + total.toLocaleString();
+    }
+
+    async function createInvoice(e) {
+      e.preventDefault();
+      await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: document.getElementById('invClient').value,
+          date: document.getElementById('invDate').value,
+          dueDate: document.getElementById('invDueDate').value,
+          items: items.filter(i => i.desc)
+        })
+      });
+      closeModals();
+      loadData();
+    }
+
+    async function createClient(e) {
+      e.preventDefault();
+      await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('clientName').value,
+          email: document.getElementById('clientEmail').value,
+          phone: document.getElementById('clientPhone').value,
+          address: document.getElementById('clientAddress').value
+        })
+      });
+      closeModals();
+      loadData();
+    }
+
+    async function markPaid(id) {
+      await fetch(\`/api/invoices/\${id}/status\`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'paid' })
+      });
+      loadData();
+    }
+
+    loadData();
+  </script>
+</body>
+</html>`,
+        language: "html"
+      }
+    ]
+  };
+}
+
 // Pattern matching to select the right template
 export function matchRunnableTemplate(input: string): RunnableProject | null {
   const lower = input.toLowerCase();
+  
+  // Invoice / Billing
+  if (lower.includes('invoice') || lower.includes('invoicing') || lower.includes('billing') || lower.includes('receipt')) {
+    return generateInvoicingApp();
+  }
   
   // Kanban / Project management
   if (lower.includes('kanban') || lower.includes('project board') || lower.includes('task board') || lower.includes('trello')) {
@@ -2465,5 +2807,6 @@ export const runnableTemplates = {
   blog: generateBlogApp,
   dashboard: generateDashboardApp,
   notes: generateNotesApp,
-  kanban: generateKanbanApp
+  kanban: generateKanbanApp,
+  invoicing: generateInvoicingApp
 };

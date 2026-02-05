@@ -73,7 +73,7 @@ export async function runCommand(
 
 export async function installDependencies(
   onOutput?: (data: string) => void,
-  timeoutMs: number = 60000
+  timeoutMs: number = 180000
 ): Promise<RunResult> {
   const container = await getWebContainer();
   const output: string[] = [];
@@ -81,11 +81,11 @@ export async function installDependencies(
   
   return new Promise(async (resolve) => {
     const timeoutId = setTimeout(() => {
-      onOutput?.('\n⚠️ npm install timed out after 60s - proceeding anyway...\n');
+      onOutput?.('\n⚠️ npm install timed out after 3 minutes - proceeding anyway...\n');
       resolve({
         success: true,
         output: [...output, 'Installation timed out - some packages may be missing'],
-        errors: ['Timeout after 60 seconds'],
+        errors: ['Timeout after 3 minutes'],
         exitCode: 0,
       });
     }, timeoutMs);
