@@ -427,6 +427,28 @@ export default {
     
     updateState({ progress: 20, message: 'Project analyzed' });
     
+    // Validate package.json before mounting - fix truncation/corruption issues
+    const pkgIdx = projectFiles.findIndex(f => f.path === 'package.json');
+    if (pkgIdx >= 0) {
+      const pkgContent = projectFiles[pkgIdx].content;
+      
+      // Check for suspiciously large package.json (> 10KB is unusual)
+      if (pkgContent.length > 10240) {
+        log(`⚠️ package.json is unusually large (${(pkgContent.length / 1024).toFixed(1)}KB), regenerating...`);
+        const freshPkg = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
+        projectFiles[pkgIdx] = { path: 'package.json', content: freshPkg };
+      } else {
+        // Validate JSON structure
+        try {
+          JSON.parse(pkgContent);
+        } catch (parseError) {
+          log('⚠️ package.json has invalid JSON, regenerating...');
+          const freshPkg = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
+          projectFiles[pkgIdx] = { path: 'package.json', content: freshPkg };
+        }
+      }
+    }
+    
     // Step 3: Mount files to WebContainer
     updateState({ status: 'mounting', progress: 30, message: 'Setting up project files...' });
     log('📁 Mounting project files...');
