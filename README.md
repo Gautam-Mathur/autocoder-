@@ -239,8 +239,80 @@ Instant WebContainer-ready projects:
 ### Code Execution
 | Technology | Purpose |
 |------------|---------|
-| WebContainer | In-Browser Node.js |
+| Electron | Desktop App (native file system, no limits) |
+| WebContainer | In-Browser fallback (16KB file limit) |
 | Sandboxed iframe | Safe Preview |
+
+---
+
+## Running Modes
+
+AutoCoder supports three running modes:
+
+### 1. Web Development Mode (Default)
+```bash
+npm run dev
+```
+- Runs in browser with WebContainer
+- Good for quick UI development
+- Has 16KB file write limitation for previews
+
+### 2. Electron Development Mode
+```bash
+# First, start the web server in one terminal:
+npm run dev
+
+# Then, in another terminal, run Electron:
+./scripts/electron-dev.sh
+```
+- Runs as desktop app with hot reload
+- Uses native file system (no limits)
+- Best for testing large projects
+- No need to build/package
+
+### 3. Production Desktop App
+```bash
+./scripts/build-desktop.sh
+```
+- Builds packaged desktop app
+- Creates installers for Windows/Mac/Linux
+- Full offline capability
+
+---
+
+## Architecture Overview
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                      ELECTRON APPLICATION                         │
+│                                                                   │
+│  ┌─────────────────────────┐    ┌──────────────────────────────┐ │
+│  │      MAIN PROCESS       │    │     RENDERER PROCESS         │ │
+│  │     (Node.js runtime)   │    │     (Chromium window)        │ │
+│  │                         │    │                              │ │
+│  │  • Local Runner Service │◄──►│  • React Frontend (CodeAI)  │ │
+│  │  • File System I/O      │IPC │  • Code Generation Engine   │ │
+│  │  • npm install          │    │  • Preview Panel            │ │
+│  │  • Dev Server Manager   │    │  • VS Code-like IDE         │ │
+│  │  • Project Workspace    │    │                              │ │
+│  └─────────────────────────┘    └──────────────────────────────┘ │
+│                                                                   │
+│                    ┌──────────────────────┐                       │
+│                    │  LOCAL FILE SYSTEM   │                       │
+│                    │  ~/AutoCoder/projects│                       │
+│                    │  (unlimited size)    │                       │
+│                    └──────────────────────┘                       │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Why Electron?
+
+| WebContainer (Browser) | Electron (Desktop) |
+|------------------------|-------------------|
+| 16KB file write limit | Unlimited file size |
+| Virtual npm (slow) | Real npm (fast) |
+| Lost on page refresh | Persistent projects |
+| Browser memory limits | Native performance |
 
 ---
 
@@ -388,15 +460,172 @@ All environment variables are **optional**:
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### Development
+
+#### Web Development (Quick UI iteration)
 ```bash
-# Run in development mode
+# Start web development server
 npm run dev
 
+# Opens at http://localhost:5000
+# Uses WebContainer for code preview
+```
+
+#### Electron Development (Full capability testing)
+```bash
+# Terminal 1: Start web server
+npm run dev
+
+# Terminal 2: Run Electron
+./scripts/electron-dev.sh
+
+# Opens desktop app window
+# Uses native file system (no limits)
+# React hot reload still works
+```
+
+#### Other Commands
+```bash
 # Type checking
 npm run check
 
 # Database push
 npm run db:push
+
+# Build desktop app
+./scripts/build-desktop.sh
+
+# Build Electron only
+npx tsc -p electron/tsconfig.json
+```
+
+---
+
+## Testing Guide
+
+### Testing Without Building (Recommended for Development)
+
+You don't need to build the full desktop app to test Electron functionality:
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start web server (Terminal 1)
+npm run dev
+
+# 3. Run Electron (Terminal 2)
+./scripts/electron-dev.sh
+```
+
+This runs:
+- Vite dev server (hot reload for React)
+- Electron main process (watches for changes)
+- Full desktop app experience
+
+### Testing Workflow
+
+| What to Test | Command | Description |
+|--------------|---------|-------------|
+| UI/Frontend | `npm run dev` | Browser-based, fast reload |
+| Electron + Native | `./scripts/electron-dev.sh` | Full desktop experience |
+| Built App | `./scripts/build-desktop.sh` | Final packaged app |
+
+### Manual Testing Steps
+
+1. **Generate Code**
+   - Open the app
+   - Type "Create a React todo app with localStorage"
+   - Click Run
+
+2. **Verify File System**
+   - Check `~/AutoCoder/projects/` for generated files
+   - Verify package.json is complete (not truncated)
+
+3. **Test npm Install**
+   - Watch console for npm output
+   - Verify node_modules is created
+
+4. **Test Preview**
+   - Dev server should start automatically
+   - Preview should show the running app
+
+---
+
+## Electron Project Structure
+
+```
+autocoder/
+├── electron/                    # Electron-specific code
+│   ├── main.ts                  # Main process entry
+│   ├── preload.ts               # IPC bridge
+│   └── services/
+│       ├── local-runner.ts      # File system & npm
+│       ├── project-manager.ts   # Workspace management
+│       └── dev-server.ts        # Dev server control
+│
+├── client/                      # React frontend (same as web)
+│   └── src/
+│       └── lib/code-runner/
+│           ├── webcontainer.ts  # Browser fallback
+│           ├── electron-runner.ts   # Electron IPC wrapper
+│           └── runner-factory.ts    # Auto-detect environment
+│
+├── electron-builder.json        # Build configuration
+└── package.json                 # Scripts for all modes
+```
+
+---
+
+## How It Works
+
+### Code Generation Flow
+
+```
+User Request → NLU Parser → Code Brain → Template Engine → Files
+     ↓
+"Create a todo app"
+     ↓
+Intent: { type: "react-app", features: ["todo", "localStorage"] }
+     ↓
+Pattern Match: todo-app template + localStorage pattern
+     ↓
+Generated Files: App.tsx, components/, package.json, etc.
+```
+
+### Execution Flow (Electron)
+
+```
+Generated Files → IPC → Main Process → Local File System
+     ↓                      ↓
+[package.json]         fs.writeFileSync()
+[src/App.tsx]               ↓
+[src/...]              ~/AutoCoder/projects/my-app/
+                            ↓
+                    npm install (real npm)
+                            ↓
+                    npm run dev
+                            ↓
+                    Preview at localhost:3000
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| `npm run electron:dev` fails | Run `npm install electron electron-builder --save-dev` |
+| Preview not loading | Check if dev server started in console |
+| Files not appearing | Check `~/AutoCoder/projects/` directory |
+| npm install timeout | Check internet connection, retry |
+
+### Debug Mode
+
+```bash
+# Run with verbose logging
+DEBUG=* npm run electron:dev
 ```
 
 ---
