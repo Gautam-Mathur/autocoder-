@@ -267,6 +267,76 @@ export async function installDependencies(
   };
 }
 
+export async function runNpmInstall(
+  packages: string[],
+  isDev: boolean = false,
+  onOutput?: (data: string) => void,
+  timeoutMs: number = 60000
+): Promise<RunResult> {
+  const container = await getWebContainer();
+  const output: string[] = [];
+  const errors: string[] = [];
+  
+  const args = [
+    'install',
+    ...packages,
+    '--prefer-offline',
+    '--no-audit',
+    '--no-fund',
+    '--loglevel=error',
+    '--fetch-retries=1',
+    '--fetch-timeout=15000'
+  ];
+  
+  if (isDev) {
+    args.push('--save-dev');
+  }
+  
+  return new Promise(async (resolve) => {
+    const timeoutId = setTimeout(() => {
+      resolve({
+        success: false,
+        output,
+        errors: ['Timeout'],
+        exitCode: -1,
+      });
+    }, timeoutMs);
+    
+    try {
+      const process = await container.spawn('npm', args);
+      
+      process.output.pipeTo(
+        new WritableStream({
+          write(data) {
+            output.push(data);
+            onOutput?.(data);
+          },
+        })
+      );
+      
+      const exitCode = await process.exit;
+      clearTimeout(timeoutId);
+      
+      resolve({
+        success: exitCode === 0,
+        output,
+        errors,
+        exitCode,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const errStr = String(err);
+      errors.push(errStr);
+      resolve({
+        success: false,
+        output,
+        errors: [errStr],
+        exitCode: 1,
+      });
+    }
+  });
+}
+
 export async function runNodeScript(
   scriptPath: string,
   onOutput?: (data: string) => void

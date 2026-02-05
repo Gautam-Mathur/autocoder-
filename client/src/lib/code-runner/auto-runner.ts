@@ -6,7 +6,8 @@ import {
   mountFiles, 
   writeFile,
   readFile,
-  installDependencies, 
+  installDependencies,
+  runNpmInstall,
   startDevServer,
   isWebContainerSupported,
   hasNodeModules,
@@ -445,93 +446,152 @@ export default {
     await mountFiles(fileTree);
     log(`✅ Mounted ${filesWithoutPkg.length} files`);
     
-    // Write package.json directly using writeFile (bypasses mount chunking issues)
-    let finalPkgContent = pkgContent;
+    // Handle package.json with special care for large files (WebContainer has ~16KB write limit)
+    const MAX_SAFE_SIZE = 15000; // 15KB to leave buffer
+    let pendingDeps: Record<string, string> = {};
+    let pendingDevDeps: Record<string, string> = {};
+    let useBatchedInstall = false;
+    
     if (pkgContent) {
       log('📝 Writing package.json...');
       
-      // Helper to verify write was successful
-      const verifyWrite = async (content: string): Promise<boolean> => {
+      if (pkgContent.length > MAX_SAFE_SIZE) {
+        // Large package.json - use batched install strategy
+        log(`   Package.json is ${pkgContent.length} bytes (>${MAX_SAFE_SIZE}), using batched install...`);
+        useBatchedInstall = true;
+        
         try {
-          const readBack = await readFile('package.json');
-          if (readBack !== content) {
-            log(`⚠️ package.json verification failed (content mismatch: wrote ${content.length} bytes, read ${readBack.length} bytes)`);
-            return false;
-          }
-          JSON.parse(readBack); // Validate JSON structure
-          return true;
-        } catch {
-          return false;
-        }
-      };
-      
-      // Try writing original content up to 3 times
-      let writeSuccess = false;
-      for (let attempt = 1; attempt <= 3 && !writeSuccess; attempt++) {
-        try {
-          await writeFile('package.json', pkgContent);
-          writeSuccess = await verifyWrite(pkgContent);
-          if (!writeSuccess && attempt < 3) {
-            log(`   Retry ${attempt}/3...`);
-            await new Promise(r => setTimeout(r, 100 * attempt));
-          }
-        } catch (err) {
-          log(`   Write attempt ${attempt} failed: ${err}`);
-        }
-      }
-      
-      if (!writeSuccess) {
-        // Last resort: regenerate while preserving original metadata
-        log('⚠️ Could not write original package.json, merging with generated dependencies...');
-        try {
-          const originalPkg = JSON.parse(pkgContent);
-          const freshDeps = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
-          const freshPkg = JSON.parse(freshDeps);
+          const fullPkg = JSON.parse(pkgContent);
           
-          // Merge: keep original scripts, metadata; add detected deps
-          const mergedPkg = {
-            ...freshPkg,
-            name: originalPkg.name || freshPkg.name,
-            scripts: { ...freshPkg.scripts, ...originalPkg.scripts },
-            dependencies: { ...freshPkg.dependencies, ...originalPkg.dependencies },
-            devDependencies: { ...freshPkg.devDependencies, ...originalPkg.devDependencies }
+          // Extract dependencies for batched install later
+          pendingDeps = fullPkg.dependencies || {};
+          pendingDevDeps = fullPkg.devDependencies || {};
+          
+          // Create minimal package.json with just metadata and scripts (no deps)
+          const minimalPkg = {
+            name: fullPkg.name || projectName,
+            version: fullPkg.version || '1.0.0',
+            type: fullPkg.type || 'module',
+            scripts: fullPkg.scripts || {},
+            dependencies: {},
+            devDependencies: {}
           };
           
-          finalPkgContent = JSON.stringify(mergedPkg, null, 2);
-          await writeFile('package.json', finalPkgContent);
-          log('✅ Wrote merged package.json');
-        } catch {
-          // Complete fallback: just use generated
-          finalPkgContent = generatePackageJson(projectName, projectFiles, projectType.type, projectType.useTypeScript, projectType.entryFile);
-          await writeFile('package.json', finalPkgContent);
-          log('✅ Wrote generated package.json');
+          const minimalContent = JSON.stringify(minimalPkg, null, 2);
+          await writeFile('package.json', minimalContent);
+          log(`✅ Wrote minimal package.json (${minimalContent.length} bytes)`);
+          log(`   Will install ${Object.keys(pendingDeps).length} deps + ${Object.keys(pendingDevDeps).length} devDeps in batches`);
+        } catch (err) {
+          log(`⚠️ Failed to parse package.json for batched install: ${err}`);
+          useBatchedInstall = false;
         }
-      } else {
-        log('✅ package.json verified');
       }
       
-      // Update projectFiles to match what was actually written (keeps cache in sync)
-      if (finalPkgContent && finalPkgContent !== pkgContent) {
-        const idx = projectFiles.findIndex(f => f.path === 'package.json');
-        if (idx >= 0) {
-          projectFiles[idx] = { path: 'package.json', content: finalPkgContent };
+      if (!useBatchedInstall) {
+        // Standard write for smaller files
+        await writeFile('package.json', pkgContent);
+        
+        // Verify write
+        try {
+          const readBack = await readFile('package.json');
+          if (readBack.length < pkgContent.length * 0.9) {
+            log(`⚠️ Possible truncation: wrote ${pkgContent.length}, read ${readBack.length}`);
+            // Fall back to batched install
+            useBatchedInstall = true;
+            const fullPkg = JSON.parse(pkgContent);
+            pendingDeps = fullPkg.dependencies || {};
+            pendingDevDeps = fullPkg.devDependencies || {};
+            
+            const minimalPkg = {
+              name: fullPkg.name || projectName,
+              version: '1.0.0',
+              type: 'module',
+              scripts: fullPkg.scripts || {},
+              dependencies: {},
+              devDependencies: {}
+            };
+            await writeFile('package.json', JSON.stringify(minimalPkg, null, 2));
+            log('   Switched to batched install mode');
+          } else {
+            log('✅ package.json verified');
+          }
+        } catch {
+          log('✅ package.json written');
         }
       }
     }
     
     updateState({ progress: 40, message: 'Files mounted' });
     
-    // Step 4: Install dependencies (with caching)
+    // Step 4: Install dependencies (with caching or batched install)
     if (projectType.type !== 'static') {
       const pkgFile = projectFiles.find(f => f.path === 'package.json');
       const pkgChanged = pkgFile ? setPackageJsonHash(pkgFile.content) : true;
       const hasExistingModules = await hasNodeModules();
       
-      const shouldSkipInstall = hasExistingModules && !pkgChanged && !options.forceInstall;
+      const shouldSkipInstall = hasExistingModules && !pkgChanged && !options.forceInstall && !useBatchedInstall;
       
       if (shouldSkipInstall) {
         log('⚡ Dependencies cached, skipping npm install');
         updateState({ progress: 70, message: 'Using cached dependencies' });
+      } else if (useBatchedInstall) {
+        // Batched install for large package.json files
+        updateState({ status: 'installing', progress: 50, message: 'Installing packages in batches...' });
+        
+        const allDeps = Object.entries(pendingDeps);
+        const allDevDeps = Object.entries(pendingDevDeps);
+        const BATCH_SIZE = 10; // Install 10 packages at a time
+        
+        log(`📦 Installing ${allDeps.length} dependencies in batches...`);
+        
+        // Install regular dependencies in batches
+        for (let i = 0; i < allDeps.length; i += BATCH_SIZE) {
+          const batch = allDeps.slice(i, i + BATCH_SIZE);
+          const pkgSpecs = batch.map(([name, version]) => {
+            const ver = String(version);
+            return ver.startsWith('^') || ver.startsWith('~') || ver === '*' || ver === 'latest'
+              ? name
+              : `${name}@${ver}`;
+          });
+          
+          const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+          const totalBatches = Math.ceil(allDeps.length / BATCH_SIZE);
+          log(`   Batch ${batchNum}/${totalBatches}: ${pkgSpecs.join(' ')}`);
+          
+          const progress = 50 + Math.floor((i / allDeps.length) * 15);
+          updateState({ progress, message: `Installing batch ${batchNum}/${totalBatches}...` });
+          
+          const result = await runNpmInstall(pkgSpecs, false, (out) => log(out));
+          if (!result.success) {
+            log(`   ⚠️ Some packages in batch ${batchNum} failed, continuing...`);
+          }
+        }
+        
+        // Install dev dependencies
+        if (allDevDeps.length > 0) {
+          log(`📦 Installing ${allDevDeps.length} dev dependencies...`);
+          for (let i = 0; i < allDevDeps.length; i += BATCH_SIZE) {
+            const batch = allDevDeps.slice(i, i + BATCH_SIZE);
+            const pkgSpecs = batch.map(([name, version]) => {
+              const ver = String(version);
+              return ver.startsWith('^') || ver.startsWith('~') || ver === '*' || ver === 'latest'
+                ? name
+                : `${name}@${ver}`;
+            });
+            
+            const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+            const totalBatches = Math.ceil(allDevDeps.length / BATCH_SIZE);
+            log(`   DevDep batch ${batchNum}/${totalBatches}: ${pkgSpecs.join(' ')}`);
+            
+            const result = await runNpmInstall(pkgSpecs, true, (out) => log(out));
+            if (!result.success) {
+              log(`   ⚠️ Some dev packages in batch ${batchNum} failed, continuing...`);
+            }
+          }
+        }
+        
+        log('✅ Batched install complete');
+        updateState({ progress: 70, message: 'Dependencies installed' });
       } else {
         updateState({ status: 'installing', progress: 50, message: 'Installing npm packages...' });
         log(hasExistingModules ? '📦 Dependencies changed, reinstalling...' : '📦 Running npm install...');
