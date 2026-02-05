@@ -67,13 +67,42 @@ npm list electron
 npx tsc -p electron/tsconfig.json
 ```
 
-**If TS2307 "Cannot find module 'electron'" persists:**
-```bash
-# Check if electron exists in node_modules
-ls node_modules/electron
+**Critical Fix for TS2307 "Cannot find module 'electron'":**
 
-# If missing, install explicitly
-npm install electron --save-dev
+This is the most common error. It means Electron is not installed. Run these commands:
+```bash
+# Install Electron and types explicitly
+npm install electron electron-builder --save-dev
+
+# Verify installation
+npm list electron
+# Should output: electron@40.x.x
+
+# Now rebuild
+npx tsc -p electron/tsconfig.json
+```
+
+**Node.js v24+ Users - IMPORTANT:**
+Node.js v24 is not an LTS version and may have compatibility issues. **Downgrade to LTS:**
+```bash
+# Using nvm (recommended)
+nvm install 20
+nvm use 20
+node --version  # Should show v20.x.x
+
+# Clean reinstall
+rm -rf node_modules
+npm cache clean --force
+npm install
+npx tsc -p electron/tsconfig.json
+```
+
+**Windows PowerShell Users:**
+If npm install fails with permission errors:
+```powershell
+# Run PowerShell as Administrator, then:
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+npm install electron electron-builder --save-dev
 ```
 
 **If TS7006/TS7031 "implicit any" errors persist:**
