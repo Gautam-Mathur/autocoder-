@@ -241,6 +241,19 @@ function cleanupCode(content: string): string {
   // { ; something -> { something
   code = code.replace(/\{\s*;+\s*([a-zA-Z])/g, '{ $1');
   
+  // Fix mismatched JSX closing tags - common AI generation errors
+  // </a>\n</Link> -> </Link> (remove redundant </a> before </Link>)
+  code = code.replace(/<\/a>\s*\n\s*<\/Link>/g, '</Link>');
+  // </span>\n</a>\n</Link> -> </span>\n</Link>
+  code = code.replace(/(<\/span>)\s*\n\s*<\/a>\s*\n\s*(<\/Link>)/g, '$1\n      $2');
+  // </div>\n</a> when inside Link -> </div>
+  code = code.replace(/(<\/[^>]+>)\s*\n\s*<\/a>\s*\n\s*(<\/Link>)/g, '$1\n      $2');
+  // Fix duplicate closing tags like </Link></Link>
+  code = code.replace(/<\/Link>\s*<\/Link>/g, '</Link>');
+  code = code.replace(/<\/a>\s*<\/a>/g, '</a>');
+  // Remove orphan </a> that appears before any </Component> pattern
+  code = code.replace(/<\/a>\s*\n(\s*)<\/([A-Z][a-zA-Z]+)>/g, '\n$1</$2>');
+  
   // Clean up multiple semicolons and empty lines
   code = code.replace(/;{2,}/g, ';');
   code = code.replace(/\{\s*;+\s*}/g, '{}');
