@@ -38,7 +38,8 @@ const basePackageJson = {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "wouter": "^3.0.0",
-    "@tanstack/react-query": "^5.0.0"
+    "@tanstack/react-query": "^5.0.0",
+    "lucide-react": "^0.344.0"
   },
   devDependencies: {
     "@types/react": "^18.2.0",
@@ -243,14 +244,18 @@ function cleanupCode(content: string): string {
   
   // ============ COMPREHENSIVE JSX FIX PATTERNS ============
   
-  // CRITICAL: Simple global fix FIRST - convert all <link to <Link
-  // HTML <link> is ONLY used in <head> and is self-closing (e.g., <link rel="stylesheet" href="..."/>)
-  // If we see <link ...>content, it's 100% meant to be React <Link>
+  // CRITICAL: Simple global fix FIRST - convert lowercase to uppercase for common components
+  // These fixes run BEFORE the complex patterns to catch all variations
+  
+  // <link → <Link (HTML link is only in head, self-closing)
   code = code.replace(/<link\s/g, '<Link ');
   code = code.replace(/<link>/g, '<Link>');
   
-  // Same for <button> - HTML button doesn't use className in JSX context
-  // Actually, we'll leave button to the component mappings since it could be either
+  // <button → <Button when followed by </Button> (case mismatch fix)
+  // Also just convert all <button to <Button since we're in React/JSX context
+  code = code.replace(/<button\s/g, '<Button ');
+  code = code.replace(/<button>/g, '<Button>');
+  code = code.replace(/<\/button>/g, '</Button>');
   
   // 1. Fix case mismatch for ALL common React components
   // AI sometimes generates lowercase HTML tags when it means React components
