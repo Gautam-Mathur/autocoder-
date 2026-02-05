@@ -1,6 +1,15 @@
 // Runnable Full-Stack Templates - Generate projects that actually run in WebContainer
 // Each template produces a complete Node.js project with package.json, server, and frontend
 
+import { 
+  matchSaaSTemplate, 
+  saasTemplates,
+  generateInvoicingSaaS,
+  generateCRMSaaS,
+  generateEcommerceSaaS,
+  generateProjectSaaS
+} from './saas-templates';
+
 export interface RunnableProject {
   name: string;
   description: string;
@@ -2792,21 +2801,39 @@ export function matchRunnableTemplate(input: string): RunnableProject | null {
     return generateChatApp();
   }
   
+  // Check for comprehensive SaaS templates (priority for business apps)
+  const saasTemplate = matchSaaSTemplate(input);
+  if (saasTemplate) {
+    return saasTemplate;
+  }
+  
   return null;
 }
 
-// Export all generators
+// Export all generators (including comprehensive SaaS templates)
 export const runnableTemplates = {
+  // Simple apps
   counter: generateCounterApp,
   todo: generateTodoApp,
   fullstackTodo: generateFullStackTodoApp,
   calculator: generateCalculatorApp,
   weather: generateWeatherApp,
   chat: generateChatApp,
-  ecommerce: generateEcommerceApp,
   blog: generateBlogApp,
   dashboard: generateDashboardApp,
   notes: generateNotesApp,
+  
+  // Comprehensive SaaS templates (20-40+ files each)
+  invoicingSaaS: generateInvoicingSaaS,
+  crmSaaS: generateCRMSaaS,
+  ecommerceSaaS: generateEcommerceSaaS,
+  projectSaaS: generateProjectSaaS,
+  
+  // Legacy simple versions
+  ecommerce: generateEcommerceApp,
   kanban: generateKanbanApp,
   invoicing: generateInvoicingApp
 };
+
+// Re-export SaaS templates for direct access
+export { saasTemplates, matchSaaSTemplate };
