@@ -13,6 +13,7 @@ import { debugCode, checkErrors, recordCodeChange, getDebugStats, CodeError } fr
 import { testCode, validateCode, generateTestReport, TestResult } from "./auto-tester";
 import { matchRunnableTemplate, RunnableProject } from "./runnable-templates";
 import { enhanceTemplate, polishCode, detectFeatures } from "./smart-enhancer";
+import { generateFromScratch, formatGeneratedApp, parseIntent } from "./code-brain";
 
 // Format runnable project as response with file blocks
 function formatRunnableProjectResponse(project: RunnableProject): string {
@@ -713,6 +714,14 @@ ${(() => {
   const params = extractParams(input);
   
   if (!result) {
+    // Try code brain for intelligent from-scratch generation
+    const intent = parseIntent(input);
+    if (intent.complexity !== 'simple' || intent.hasBackend || intent.hasAuth) {
+      const app = generateFromScratch(input);
+      if (app.files.length > 0) {
+        return formatGeneratedApp(app);
+      }
+    }
     return generateFallbackResponse(input);
   }
   
