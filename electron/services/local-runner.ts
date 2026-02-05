@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export type LogCallback = (log: string) => void;
+export type ProgressCallback = (percent: number, message: string) => void;
 
 export class LocalRunner {
   private currentProcess: ChildProcess | null = null;
@@ -22,38 +23,108 @@ export class LocalRunner {
     }
   }
 
-  async npmInstall(projectPath: string, onLog: LogCallback): Promise<{ success: boolean; error?: string }> {
+  private countDependencies(projectPath: string): number {
+    try {
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      if (!fs.existsSync(packageJsonPath)) return 0;
+      
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+      const deps = Object.keys(packageJson.dependencies || {}).length;
+      const devDeps = Object.keys(packageJson.devDependencies || {}).length;
+      return deps + devDeps;
+    } catch {
+      return 0;
+    }
+  }
+
+  async npmInstall(
+    projectPath: string, 
+    onLog: LogCallback,
+    onProgress?: ProgressCallback
+  ): Promise<{ success: boolean; error?: string }> {
     return new Promise((resolve) => {
+      const totalDeps = this.countDependencies(projectPath);
+      let installedCount = 0;
+      let lastPercent = 0;
+      
       onLog('[AutoCoder] Running npm install...');
+      onProgress?.(0, `Starting installation (${totalDeps} packages)...`);
       
       const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-      const child = spawn(npm, ['install'], {
+      const child = spawn(npm, ['install', '--progress'], {
         cwd: projectPath,
         shell: true,
         env: { ...process.env, FORCE_COLOR: '1' },
       });
 
+      const updateProgress = (line: string) => {
+        if (totalDeps === 0) {
+          onProgress?.(50, 'Installing packages...');
+          return;
+        }
+
+        const addedMatch = line.match(/added (\d+) package/i);
+        if (addedMatch) {
+          installedCount = parseInt(addedMatch[1], 10);
+          const percent = Math.min(Math.round((installedCount / Math.max(totalDeps, installedCount)) * 100), 99);
+          if (percent > lastPercent) {
+            lastPercent = percent;
+            onProgress?.(percent, `Installed ${installedCount} packages...`);
+          }
+          return;
+        }
+
+        const httpMatch = line.match(/http fetch (GET|POST)/i);
+        if (httpMatch && lastPercent < 30) {
+          lastPercent = Math.min(lastPercent + 2, 30);
+          onProgress?.(lastPercent, 'Fetching packages...');
+          return;
+        }
+
+        const reifyMatch = line.match(/reify:/i);
+        if (reifyMatch && lastPercent < 60) {
+          lastPercent = Math.min(lastPercent + 5, 60);
+          onProgress?.(lastPercent, 'Extracting packages...');
+          return;
+        }
+
+        const buildMatch = line.match(/timing build/i);
+        if (buildMatch && lastPercent < 90) {
+          lastPercent = Math.min(lastPercent + 3, 90);
+          onProgress?.(lastPercent, 'Building packages...');
+        }
+      };
+
       child.stdout?.on('data', (data) => {
         const lines = data.toString().split('\n').filter(Boolean);
-        lines.forEach((line: string) => onLog(`[npm] ${line}`));
+        lines.forEach((line: string) => {
+          onLog(`[npm] ${line}`);
+          updateProgress(line);
+        });
       });
 
       child.stderr?.on('data', (data) => {
         const lines = data.toString().split('\n').filter(Boolean);
-        lines.forEach((line: string) => onLog(`[npm] ${line}`));
+        lines.forEach((line: string) => {
+          onLog(`[npm] ${line}`);
+          updateProgress(line);
+        });
       });
 
       child.on('error', (error) => {
         onLog(`[AutoCoder] npm install failed: ${error.message}`);
+        onProgress?.(0, `Error: ${error.message}`);
         resolve({ success: false, error: error.message });
       });
 
       child.on('close', (code) => {
         if (code === 0) {
           onLog('[AutoCoder] npm install completed successfully');
+          onProgress?.(100, 'Installation complete!');
           resolve({ success: true });
         } else {
           onLog(`[AutoCoder] npm install failed with code ${code}`);
+          onProgress?.(0, `Failed with code ${code}`);
           resolve({ success: false, error: `npm install exited with code ${code}` });
         }
       });

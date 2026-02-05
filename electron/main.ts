@@ -78,9 +78,15 @@ ipcMain.handle('runner:writeFiles', async (_event: IpcMainInvokeEvent, projectNa
 ipcMain.handle('runner:npmInstall', async (_event: IpcMainInvokeEvent, projectName: string) => {
   try {
     const projectPath = projectManager.getProjectPath(projectName);
-    const result = await runner.npmInstall(projectPath, (log) => {
-      mainWindow?.webContents.send('runner:log', log);
-    });
+    const result = await runner.npmInstall(
+      projectPath, 
+      (log) => {
+        mainWindow?.webContents.send('runner:log', log);
+      },
+      (percent, message) => {
+        mainWindow?.webContents.send('runner:progress', { percent, message });
+      }
+    );
     return result;
   } catch (error) {
     return { success: false, error: String(error) };
