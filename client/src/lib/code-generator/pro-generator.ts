@@ -1,6 +1,7 @@
 // Pro Generator - Comprehensive Smart Code Generation Engine
 // Produces proper multi-file React+Vite projects with Tailwind CSS
-// Self-contained: no imports from other generator modules
+
+import { synthesizeContent, type SynthesizedContent } from './content-synthesizer';
 
 // =============================================================================
 // TYPES
@@ -890,104 +891,15 @@ body {
 // APP-TYPE SPECIFIC GENERATORS
 // =============================================================================
 
-function generateEcommerceProject(req: ProjectRequirements): GeneratedFile[] {
+function generateEcommerceProject(req: ProjectRequirements, content: SynthesizedContent): GeneratedFile[] {
   const files: GeneratedFile[] = [];
 
   files.push({
     path: 'src/data/products.js',
     language: 'javascript',
-    content: `const products = [
-  {
-    id: 1,
-    name: 'Wireless Noise-Cancelling Headphones',
-    price: 299.99,
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop',
-    category: 'Electronics',
-    description: 'Premium over-ear headphones with active noise cancellation, 30-hour battery life, and crystal-clear audio quality.',
-    rating: 4.8,
-    inStock: true,
-    reviews: 234,
-  },
-  {
-    id: 2,
-    name: 'Minimalist Leather Watch',
-    price: 189.00,
-    image: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&h=400&fit=crop',
-    category: 'Accessories',
-    description: 'Elegant timepiece with genuine Italian leather strap, sapphire crystal glass, and Japanese quartz movement.',
-    rating: 4.6,
-    inStock: true,
-    reviews: 156,
-  },
-  {
-    id: 3,
-    name: 'Ergonomic Office Chair',
-    price: 549.00,
-    image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?w=400&h=400&fit=crop',
-    category: 'Furniture',
-    description: 'Adjustable lumbar support, breathable mesh back, and 4D armrests for all-day comfort.',
-    rating: 4.9,
-    inStock: true,
-    reviews: 412,
-  },
-  {
-    id: 4,
-    name: 'Smart Fitness Tracker',
-    price: 129.99,
-    image: 'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=400&h=400&fit=crop',
-    category: 'Electronics',
-    description: 'Track heart rate, sleep quality, steps, and 20+ workout modes. Water-resistant to 50 meters.',
-    rating: 4.5,
-    inStock: true,
-    reviews: 589,
-  },
-  {
-    id: 5,
-    name: 'Organic Cotton T-Shirt',
-    price: 34.99,
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
-    category: 'Clothing',
-    description: 'Sustainably sourced 100% organic cotton, pre-shrunk, available in 12 colors.',
-    rating: 4.3,
-    inStock: true,
-    reviews: 98,
-  },
-  {
-    id: 6,
-    name: 'Portable Bluetooth Speaker',
-    price: 79.99,
-    image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400&h=400&fit=crop',
-    category: 'Electronics',
-    description: '360-degree sound, IPX7 waterproof, 12-hour playtime, built-in microphone for calls.',
-    rating: 4.7,
-    inStock: false,
-    reviews: 321,
-  },
-  {
-    id: 7,
-    name: 'Stainless Steel Water Bottle',
-    price: 24.99,
-    image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop',
-    category: 'Accessories',
-    description: 'Double-wall vacuum insulated, keeps drinks cold for 24 hours or hot for 12 hours.',
-    rating: 4.4,
-    inStock: true,
-    reviews: 178,
-  },
-  {
-    id: 8,
-    name: 'Mechanical Keyboard',
-    price: 159.99,
-    image: 'https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?w=400&h=400&fit=crop',
-    category: 'Electronics',
-    description: 'Cherry MX switches, per-key RGB lighting, aircraft-grade aluminum frame, hot-swappable.',
-    rating: 4.8,
-    inStock: true,
-    reviews: 267,
-  },
-];
+    content: `const products = ${JSON.stringify(content.products, null, 2)};
 
-export const categories = ['All', 'Electronics', 'Accessories', 'Clothing', 'Furniture'];
+export const categories = ${JSON.stringify(['All', ...content.productCategories])};
 
 export default products;
 `,
@@ -1696,50 +1608,19 @@ export default function App() {
 // DASHBOARD GENERATOR
 // =============================================================================
 
-function generateDashboardProject(req: ProjectRequirements): GeneratedFile[] {
+function generateDashboardProject(req: ProjectRequirements, content: SynthesizedContent): GeneratedFile[] {
   const files: GeneratedFile[] = [];
 
   files.push({
     path: 'src/data/dashboard.js',
     language: 'javascript',
-    content: `export const metrics = [
-  { label: 'Total Revenue', value: 48250, change: 12.5, prefix: '$', icon: 'DollarSign' },
-  { label: 'Active Users', value: 2340, change: 8.2, prefix: '', icon: 'Users' },
-  { label: 'Conversion Rate', value: 3.24, change: -1.8, suffix: '%', icon: 'TrendingUp' },
-  { label: 'Avg. Order Value', value: 68.40, change: 5.3, prefix: '$', icon: 'ShoppingCart' },
-];
+    content: `export const metrics = ${JSON.stringify(content.metrics, null, 2)};
 
-export const recentActivity = [
-  { id: 1, user: 'Sarah Chen', action: 'Completed purchase', amount: 129.99, time: '2 min ago', avatar: 'SC' },
-  { id: 2, user: 'Mike Johnson', action: 'Signed up for Pro plan', amount: 49.00, time: '8 min ago', avatar: 'MJ' },
-  { id: 3, user: 'Emma Davis', action: 'Submitted support ticket', amount: null, time: '15 min ago', avatar: 'ED' },
-  { id: 4, user: 'Alex Rivera', action: 'Upgraded subscription', amount: 99.00, time: '32 min ago', avatar: 'AR' },
-  { id: 5, user: 'Lisa Wang', action: 'Left a 5-star review', amount: null, time: '45 min ago', avatar: 'LW' },
-  { id: 6, user: 'Tom Baker', action: 'Completed purchase', amount: 245.50, time: '1 hr ago', avatar: 'TB' },
-];
+export const recentActivity = ${JSON.stringify(content.recentActivity, null, 2)};
 
-export const chartData = [
-  { name: 'Jan', revenue: 4200, users: 180 },
-  { name: 'Feb', revenue: 5100, users: 220 },
-  { name: 'Mar', revenue: 4800, users: 200 },
-  { name: 'Apr', revenue: 6200, users: 310 },
-  { name: 'May', revenue: 7100, users: 380 },
-  { name: 'Jun', revenue: 6800, users: 350 },
-  { name: 'Jul', revenue: 8200, users: 420 },
-  { name: 'Aug', revenue: 9100, users: 480 },
-  { name: 'Sep', revenue: 8600, users: 450 },
-  { name: 'Oct', revenue: 10200, users: 520 },
-  { name: 'Nov', revenue: 11500, users: 580 },
-  { name: 'Dec', revenue: 12800, users: 640 },
-];
+export const chartData = ${JSON.stringify(content.chartData, null, 2)};
 
-export const topProducts = [
-  { name: 'Wireless Headphones', sales: 1240, revenue: 37200, trend: 'up' },
-  { name: 'Smart Watch Pro', sales: 890, revenue: 31150, trend: 'up' },
-  { name: 'Laptop Stand', sales: 756, revenue: 22680, trend: 'down' },
-  { name: 'USB-C Hub', sales: 623, revenue: 18690, trend: 'up' },
-  { name: 'Desk Lamp', sales: 512, revenue: 12800, trend: 'down' },
-];
+export const topItems = ${JSON.stringify(content.topItems, null, 2)};
 `,
   });
 
@@ -1975,7 +1856,7 @@ export default function TopProducts({ products }) {
   files.push({
     path: 'src/pages/DashboardPage.jsx',
     language: 'jsx',
-    content: `import { metrics, recentActivity, chartData, topProducts } from '../data/dashboard';
+    content: `import { metrics, recentActivity, chartData, topItems } from '../data/dashboard';
 import MetricCard from '../components/MetricCard';
 import ActivityFeed from '../components/ActivityFeed';
 import StatsChart from '../components/StatsChart';
@@ -2004,7 +1885,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <TopProducts products={topProducts} />
+      <TopProducts products={topItems} />
     </div>
   );
 }
@@ -2118,22 +1999,13 @@ export default function App() {
 // TODO / TASK MANAGER GENERATOR
 // =============================================================================
 
-function generateTodoProject(req: ProjectRequirements): GeneratedFile[] {
+function generateTodoProject(req: ProjectRequirements, content: SynthesizedContent): GeneratedFile[] {
   const files: GeneratedFile[] = [];
 
   files.push({
     path: 'src/data/tasks.js',
     language: 'javascript',
-    content: `const initialTasks = [
-  { id: 1, title: 'Design new landing page', description: 'Create wireframes and high-fidelity mockups for the marketing site redesign', status: 'in-progress', priority: 'high', dueDate: '2025-02-15', assignee: 'Sarah Chen' },
-  { id: 2, title: 'Implement user authentication', description: 'Set up JWT-based auth with login, signup, and password reset flows', status: 'todo', priority: 'high', dueDate: '2025-02-18', assignee: 'Mike Johnson' },
-  { id: 3, title: 'Write API documentation', description: 'Document all REST endpoints with request/response examples using OpenAPI spec', status: 'todo', priority: 'medium', dueDate: '2025-02-20', assignee: 'Emma Davis' },
-  { id: 4, title: 'Fix mobile navigation bug', description: 'Hamburger menu doesn\\'t close after selecting a link on iOS Safari', status: 'done', priority: 'high', dueDate: '2025-02-10', assignee: 'Alex Rivera' },
-  { id: 5, title: 'Set up CI/CD pipeline', description: 'Configure GitHub Actions for automated testing and deployment to staging', status: 'in-progress', priority: 'medium', dueDate: '2025-02-22', assignee: 'Tom Baker' },
-  { id: 6, title: 'Database optimization', description: 'Add indexes and optimize slow queries identified in performance monitoring', status: 'todo', priority: 'low', dueDate: '2025-02-25', assignee: 'Lisa Wang' },
-  { id: 7, title: 'Update dependencies', description: 'Upgrade React to v19 and update all packages to latest compatible versions', status: 'done', priority: 'low', dueDate: '2025-02-08', assignee: 'Sarah Chen' },
-  { id: 8, title: 'Add dark mode support', description: 'Implement system preference detection and manual toggle with persistent state', status: 'in-progress', priority: 'medium', dueDate: '2025-02-28', assignee: 'Mike Johnson' },
-];
+    content: `const initialTasks = ${JSON.stringify(content.tasks, null, 2)};
 
 export const statusOptions = ['todo', 'in-progress', 'done'];
 export const priorityOptions = ['low', 'medium', 'high'];
@@ -2471,81 +2343,15 @@ export default function App() {
 // BLOG GENERATOR
 // =============================================================================
 
-function generateBlogProject(req: ProjectRequirements): GeneratedFile[] {
+function generateBlogProject(req: ProjectRequirements, content: SynthesizedContent): GeneratedFile[] {
   const files: GeneratedFile[] = [];
 
   files.push({
     path: 'src/data/posts.js',
     language: 'javascript',
-    content: `const posts = [
-  {
-    id: 1,
-    title: 'Building Scalable Web Applications with React',
-    excerpt: 'Learn the architectural patterns and best practices for building large-scale React applications that can grow with your team.',
-    content: 'React has become the de facto standard for building modern web applications. In this comprehensive guide, we explore component architecture, state management strategies, and performance optimization techniques that will help you build applications that scale gracefully.',
-    author: 'Sarah Chen',
-    authorAvatar: 'SC',
-    date: '2025-02-01',
-    category: 'Engineering',
-    readTime: '8 min read',
-    image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=400&fit=crop',
-    tags: ['React', 'Architecture', 'Frontend'],
-  },
-  {
-    id: 2,
-    title: 'The Future of AI in Software Development',
-    excerpt: 'How artificial intelligence is transforming the way we write, test, and deploy code, and what developers should prepare for.',
-    content: 'Artificial intelligence is no longer just a buzzword in the software industry. From intelligent code completion to automated testing and deployment, AI tools are fundamentally changing how developers work. This article explores the current landscape and future possibilities.',
-    author: 'Alex Rivera',
-    authorAvatar: 'AR',
-    date: '2025-01-28',
-    category: 'AI & ML',
-    readTime: '6 min read',
-    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=400&fit=crop',
-    tags: ['AI', 'Machine Learning', 'DevTools'],
-  },
-  {
-    id: 3,
-    title: 'Mastering TypeScript: Advanced Patterns',
-    excerpt: 'Deep dive into advanced TypeScript features including conditional types, template literal types, and type-level programming.',
-    content: 'TypeScript continues to evolve with increasingly powerful type system features. This guide covers advanced patterns that will help you write more type-safe and maintainable code, including mapped types, conditional types, and practical applications of the type system.',
-    author: 'Emma Davis',
-    authorAvatar: 'ED',
-    date: '2025-01-25',
-    category: 'Engineering',
-    readTime: '10 min read',
-    image: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800&h=400&fit=crop',
-    tags: ['TypeScript', 'JavaScript', 'Types'],
-  },
-  {
-    id: 4,
-    title: 'Designing for Accessibility: A Practical Guide',
-    excerpt: 'Practical techniques for making your web applications accessible to everyone, including keyboard navigation and screen reader support.',
-    content: 'Web accessibility is not just a legal requirement; it is the right thing to do. This guide provides practical, actionable steps for implementing accessibility features in your web applications, covering ARIA attributes, keyboard navigation, color contrast, and testing strategies.',
-    author: 'Mike Johnson',
-    authorAvatar: 'MJ',
-    date: '2025-01-20',
-    category: 'Design',
-    readTime: '7 min read',
-    image: 'https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?w=800&h=400&fit=crop',
-    tags: ['Accessibility', 'UX', 'Design'],
-  },
-  {
-    id: 5,
-    title: 'Containerization Best Practices with Docker',
-    excerpt: 'Production-ready Docker configurations, multi-stage builds, security hardening, and orchestration patterns for modern applications.',
-    content: 'Docker has revolutionized how we package and deploy applications. This article covers production-ready configurations including multi-stage builds for smaller images, security best practices for container hardening, and orchestration patterns using Docker Compose and Kubernetes.',
-    author: 'Tom Baker',
-    authorAvatar: 'TB',
-    date: '2025-01-15',
-    category: 'DevOps',
-    readTime: '9 min read',
-    image: 'https://images.unsplash.com/photo-1605745341112-85968b19335b?w=800&h=400&fit=crop',
-    tags: ['Docker', 'DevOps', 'Containers'],
-  },
-];
+    content: `const posts = ${JSON.stringify(content.posts, null, 2)};
 
-export const blogCategories = ['All', 'Engineering', 'AI & ML', 'Design', 'DevOps'];
+export const blogCategories = ${JSON.stringify(['All', ...content.blogCategories])};
 
 export default posts;
 `,
@@ -2818,50 +2624,13 @@ export default function App() {
 // PORTFOLIO GENERATOR
 // =============================================================================
 
-function generatePortfolioProject(req: ProjectRequirements): GeneratedFile[] {
+function generatePortfolioProject(req: ProjectRequirements, content: SynthesizedContent): GeneratedFile[] {
   const files: GeneratedFile[] = [];
 
   files.push({
     path: 'src/data/projects.js',
     language: 'javascript',
-    content: `const projects = [
-  {
-    id: 1,
-    title: 'E-Commerce Platform',
-    description: 'Full-stack e-commerce application with real-time inventory management, payment processing, and admin dashboard.',
-    image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop',
-    tags: ['React', 'Node.js', 'PostgreSQL', 'Stripe'],
-    link: '#',
-    github: '#',
-  },
-  {
-    id: 2,
-    title: 'AI Chat Assistant',
-    description: 'Intelligent conversational AI built with natural language processing, supporting multiple languages and context-aware responses.',
-    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&h=400&fit=crop',
-    tags: ['Python', 'TensorFlow', 'FastAPI', 'React'],
-    link: '#',
-    github: '#',
-  },
-  {
-    id: 3,
-    title: 'Project Management Tool',
-    description: 'Collaborative task management with Kanban boards, time tracking, team analytics, and Slack integration.',
-    image: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=600&h=400&fit=crop',
-    tags: ['TypeScript', 'Next.js', 'Prisma', 'WebSocket'],
-    link: '#',
-    github: '#',
-  },
-  {
-    id: 4,
-    title: 'Health & Fitness Tracker',
-    description: 'Mobile-first fitness application with workout logging, nutrition tracking, progress charts, and social challenges.',
-    image: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&h=400&fit=crop',
-    tags: ['React Native', 'Firebase', 'Charts', 'OAuth'],
-    link: '#',
-    github: '#',
-  },
-];
+    content: `const projects = ${JSON.stringify(content.portfolioProjects, null, 2)};
 
 export default projects;
 `,
@@ -3009,7 +2778,7 @@ export default function App() {
 // LANDING PAGE GENERATOR
 // =============================================================================
 
-function generateLandingProject(req: ProjectRequirements): GeneratedFile[] {
+function generateLandingProject(req: ProjectRequirements, content: SynthesizedContent): GeneratedFile[] {
   const files: GeneratedFile[] = [];
 
   files.push({
@@ -3052,13 +2821,13 @@ function Hero() {
       <div className="relative mx-auto max-w-4xl">
         <span className="badge mb-4 bg-indigo-500/20 text-indigo-400">Now in Public Beta</span>
         <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
-          Build Faster.<br />Ship <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Smarter</span>.
+          ${content.heroTitle.replace(/'/g, "\\'")}
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
-          The modern platform that helps teams ship products 10x faster with intelligent automation, seamless collaboration, and powerful integrations.
+          ${content.heroSubtitle.replace(/'/g, "\\'")}
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
-          <button className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" /></button>
+          <button className="btn-primary px-8 py-3 text-base">${content.heroCta.replace(/'/g, "\\'")} <ArrowRight className="h-4 w-4" /></button>
           <button className="btn-secondary px-8 py-3 text-base">Watch Demo</button>
         </div>
         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
@@ -3069,9 +2838,7 @@ function Hero() {
 
 function Features() {
   const features = [
-    { icon: Zap, title: 'Lightning Fast', description: 'Optimized for speed with edge computing and intelligent caching. Load times under 100ms globally.' },
-    { icon: Shield, title: 'Enterprise Security', description: 'SOC 2 compliant with end-to-end encryption, role-based access control, and audit logging.' },
-    { icon: Globe, title: 'Global Scale', description: 'Deploy to 50+ regions worldwide with automatic scaling and zero-downtime deployments.' },
+${content.landingFeatures.map(f => `    { icon: ${f.icon}, title: '${f.title.replace(/'/g, "\\'")}', description: '${f.description.replace(/'/g, "\\'")}' },`).join('\n')}
   ];
 
   return (
@@ -3095,9 +2862,7 @@ function Features() {
 
 function Pricing() {
   const plans = [
-    { name: 'Starter', price: 0, period: 'Free forever', features: ['Up to 3 projects', '1 GB storage', 'Community support', 'Basic analytics'], cta: 'Get Started', popular: false },
-    { name: 'Pro', price: 29, period: '/month', features: ['Unlimited projects', '100 GB storage', 'Priority support', 'Advanced analytics', 'Custom domains', 'Team collaboration'], cta: 'Start Free Trial', popular: true },
-    { name: 'Enterprise', price: 99, period: '/month', features: ['Everything in Pro', 'Unlimited storage', 'Dedicated support', 'SSO & SAML', 'SLA guarantee', 'Custom integrations'], cta: 'Contact Sales', popular: false },
+${content.pricingPlans.map(p => `    { name: '${p.name.replace(/'/g, "\\'")}', price: ${p.price}, period: '${p.period.replace(/'/g, "\\'")}', features: [${p.features.map(f => `'${f.replace(/'/g, "\\'")}'`).join(', ')}], cta: '${p.cta.replace(/'/g, "\\'")}', popular: ${p.popular} },`).join('\n')}
   ];
 
   return (
@@ -3131,10 +2896,7 @@ function Pricing() {
 function FAQ() {
   const [openIdx, setOpenIdx] = useState(null);
   const faqs = [
-    { q: 'How does the free trial work?', a: 'You get full access to Pro features for 14 days. No credit card required. At the end of the trial, you can choose a plan or continue with the free Starter plan.' },
-    { q: 'Can I cancel my subscription anytime?', a: 'Yes, you can cancel your subscription at any time. Your account will remain active until the end of the current billing period.' },
-    { q: 'Do you offer discounts for startups?', a: 'Yes, we offer a 50% discount for qualifying startups. Contact our sales team to learn more about our startup program.' },
-    { q: 'What kind of support do you offer?', a: 'Starter plans have access to community support. Pro plans include priority email support with 24-hour response time. Enterprise plans get dedicated support with a named account manager.' },
+${content.faqs.map(faq => `    { q: '${faq.q.replace(/'/g, "\\'")}', a: '${faq.a.replace(/'/g, "\\'")}' },`).join('\n')}
   ];
 
   return (
@@ -3181,34 +2943,15 @@ export default function App() {
 // CHAT APP GENERATOR
 // =============================================================================
 
-function generateChatProject(req: ProjectRequirements): GeneratedFile[] {
+function generateChatProject(req: ProjectRequirements, content: SynthesizedContent): GeneratedFile[] {
   const files: GeneratedFile[] = [];
 
   files.push({
     path: 'src/data/conversations.js',
     language: 'javascript',
-    content: `export const conversations = [
-  { id: 1, name: 'Sarah Chen', lastMessage: 'Sounds great, let me check the design specs', timestamp: '2 min ago', avatar: 'SC', online: true, unread: 2 },
-  { id: 2, name: 'Engineering Team', lastMessage: 'Mike: The deployment is ready for review', timestamp: '15 min ago', avatar: 'ET', online: false, unread: 0 },
-  { id: 3, name: 'Alex Rivera', lastMessage: 'Can we schedule a call for tomorrow?', timestamp: '1 hr ago', avatar: 'AR', online: true, unread: 1 },
-  { id: 4, name: 'Design Review', lastMessage: 'Emma: Updated the mockups in Figma', timestamp: '3 hr ago', avatar: 'DR', online: false, unread: 0 },
-  { id: 5, name: 'Lisa Wang', lastMessage: 'Thanks for the feedback on the API docs!', timestamp: 'Yesterday', avatar: 'LW', online: false, unread: 0 },
-];
+    content: `export const conversations = ${JSON.stringify(content.chatContacts, null, 2)};
 
-export const messages = {
-  1: [
-    { id: 1, sender: 'Sarah Chen', text: 'Hey! Have you seen the new component library?', timestamp: '10:30 AM', isMe: false },
-    { id: 2, sender: 'You', text: 'Yes! It looks amazing. The button variants are really well done.', timestamp: '10:32 AM', isMe: true },
-    { id: 3, sender: 'Sarah Chen', text: 'Thanks! I spent a lot of time on the hover states.', timestamp: '10:33 AM', isMe: false },
-    { id: 4, sender: 'You', text: 'It shows. Want to pair on integrating it into the dashboard?', timestamp: '10:35 AM', isMe: true },
-    { id: 5, sender: 'Sarah Chen', text: 'Sounds great, let me check the design specs', timestamp: '10:36 AM', isMe: false },
-  ],
-  3: [
-    { id: 1, sender: 'Alex Rivera', text: 'Hey, I wanted to discuss the API architecture.', timestamp: '9:00 AM', isMe: false },
-    { id: 2, sender: 'You', text: 'Sure, what are you thinking?', timestamp: '9:15 AM', isMe: true },
-    { id: 3, sender: 'Alex Rivera', text: 'Can we schedule a call for tomorrow?', timestamp: '9:20 AM', isMe: false },
-  ],
-};
+export const messages = ${JSON.stringify(content.chatMessages, null, 2)};
 `,
   });
 
@@ -3485,7 +3228,9 @@ export default function App() {
 // MAIN PROJECT GENERATOR
 // =============================================================================
 
-export function generateProject(requirements: ProjectRequirements): GeneratedProject {
+export function generateProject(requirements: ProjectRequirements, userPrompt?: string): GeneratedProject {
+  const content = synthesizeContent(requirements, userPrompt);
+
   const baseFiles: GeneratedFile[] = [
     { path: 'package.json', content: genPackageJson(requirements), language: 'json' },
     { path: 'vite.config.js', content: genViteConfig(), language: 'javascript' },
@@ -3501,31 +3246,31 @@ export function generateProject(requirements: ProjectRequirements): GeneratedPro
   switch (requirements.appType) {
     case 'ecommerce':
     case 'marketplace':
-      appFiles = generateEcommerceProject(requirements);
+      appFiles = generateEcommerceProject(requirements, content);
       break;
     case 'dashboard':
     case 'admin':
     case 'analytics':
-      appFiles = generateDashboardProject(requirements);
+      appFiles = generateDashboardProject(requirements, content);
       break;
     case 'todo':
     case 'crm':
-      appFiles = generateTodoProject(requirements);
+      appFiles = generateTodoProject(requirements, content);
       break;
     case 'blog':
     case 'cms':
-      appFiles = generateBlogProject(requirements);
+      appFiles = generateBlogProject(requirements, content);
       break;
     case 'portfolio':
-      appFiles = generatePortfolioProject(requirements);
+      appFiles = generatePortfolioProject(requirements, content);
       break;
     case 'landing':
     case 'saas':
-      appFiles = generateLandingProject(requirements);
+      appFiles = generateLandingProject(requirements, content);
       break;
     case 'chat':
     case 'social':
-      appFiles = generateChatProject(requirements);
+      appFiles = generateChatProject(requirements, content);
       break;
     default:
       appFiles = generateGenericProject(requirements);
@@ -3795,13 +3540,16 @@ export function analyzePromptWithThinking(
 
 export function generateProjectWithThinking(
   requirements: ProjectRequirements,
-  onStep: ThinkingCallback
+  onStep: ThinkingCallback,
+  userPrompt?: string
 ): GeneratedProject {
   onStep({
     phase: 'generating',
     label: 'Setting up project scaffold',
     detail: 'Creating package.json, Vite config, Tailwind config, and entry files',
   });
+
+  const content = synthesizeContent(requirements, userPrompt);
 
   const baseFiles: GeneratedFile[] = [
     { path: 'package.json', content: genPackageJson(requirements), language: 'json' },
@@ -3823,31 +3571,31 @@ export function generateProjectWithThinking(
   switch (requirements.appType) {
     case 'ecommerce':
     case 'marketplace':
-      appFiles = generateEcommerceProject(requirements);
+      appFiles = generateEcommerceProject(requirements, content);
       break;
     case 'dashboard':
     case 'admin':
     case 'analytics':
-      appFiles = generateDashboardProject(requirements);
+      appFiles = generateDashboardProject(requirements, content);
       break;
     case 'todo':
     case 'crm':
-      appFiles = generateTodoProject(requirements);
+      appFiles = generateTodoProject(requirements, content);
       break;
     case 'blog':
     case 'cms':
-      appFiles = generateBlogProject(requirements);
+      appFiles = generateBlogProject(requirements, content);
       break;
     case 'portfolio':
-      appFiles = generatePortfolioProject(requirements);
+      appFiles = generatePortfolioProject(requirements, content);
       break;
     case 'landing':
     case 'saas':
-      appFiles = generateLandingProject(requirements);
+      appFiles = generateLandingProject(requirements, content);
       break;
     case 'chat':
     case 'social':
-      appFiles = generateChatProject(requirements);
+      appFiles = generateChatProject(requirements, content);
       break;
     default:
       appFiles = generateGenericProject(requirements);

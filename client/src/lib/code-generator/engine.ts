@@ -262,7 +262,7 @@ export function generateCodeWithThinking(
   if (shouldUseProGenerator(input)) {
     try {
       const requirements = analyzePromptWithThinking(input, emit);
-      const project = generateProjectWithThinking(requirements, emit);
+      const project = generateProjectWithThinking(requirements, emit, input);
 
       if (project.files.length > 0) {
         emit({
@@ -945,7 +945,7 @@ export function generateCode(input: string): string {
   if (shouldUseProGenerator(input)) {
     try {
       const requirements = analyzePrompt(input);
-      const project = generateProject(requirements);
+      const project = generateProject(requirements, input);
       if (project.files.length > 0) {
         const validation = validateGeneratedCode(project.files.map(f => ({ path: f.path, content: f.content })));
         const fixedFiles = validation.fixedFiles.length > 0 ? validation.fixedFiles : project.files.map(f => ({ path: f.path, content: f.content }));

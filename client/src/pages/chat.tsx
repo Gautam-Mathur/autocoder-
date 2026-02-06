@@ -31,7 +31,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { DevGuide } from "@/components/dev-guide";
 import { PreviewPanel } from "@/components/preview-panel";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { generateCodeWithContext, generateCodeWithThinking } from "@/lib/code-generator";
+import { generateCodeWithContext, generateCodeWithThinking, type ThinkingStep } from "@/lib/code-generator";
 import type { Conversation, Message, ProjectFile } from "@shared/schema";
 
 // Extract code files from AI response and save to project
@@ -243,8 +243,8 @@ export default function Chat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [aiMode, setAiMode] = useState<"cloud" | "local">("cloud");
   const [showPreview, setShowPreview] = useState(true);
-  const [streamingThinkingSteps, setStreamingThinkingSteps] = useState<Array<{phase: string; label: string; detail: string; timestamp?: number}>>([]);
-  const [completedThinkingSteps, setCompletedThinkingSteps] = useState<Map<number, Array<{phase: string; label: string; detail: string; timestamp?: number}>>>(new Map());
+  const [streamingThinkingSteps, setStreamingThinkingSteps] = useState<ThinkingStep[]>([]);
+  const [completedThinkingSteps, setCompletedThinkingSteps] = useState<Map<number, ThinkingStep[]>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Prevent CMD+1/CMD+2 from interfering with the app
@@ -281,6 +281,24 @@ export default function Chat() {
     queryKey: ["/api/conversations", activeConversationId, "files"],
     enabled: !!activeConversationId,
   });
+
+  useEffect(() => {
+    if (activeConversation?.messages && activeConversationId) {
+      const stepsMap = new Map(completedThinkingSteps);
+      let changed = false;
+      for (const msg of activeConversation.messages) {
+        if (msg.role === 'assistant' && msg.thinkingSteps && Array.isArray(msg.thinkingSteps) && (msg.thinkingSteps as any[]).length > 0) {
+          if (!stepsMap.has(activeConversationId)) {
+            stepsMap.set(activeConversationId, msg.thinkingSteps as any[]);
+            changed = true;
+          }
+        }
+      }
+      if (changed) {
+        setCompletedThinkingSteps(stepsMap);
+      }
+    }
+  }, [activeConversation?.messages, activeConversationId]);
 
   const createConversationMutation = useMutation({
     mutationFn: async (title: string) => {
@@ -355,6 +373,7 @@ export default function Chat() {
               conversationId,
               role: "user",
               content,
+              thinkingSteps: null,
               createdAt: new Date(),
             },
           ],
@@ -421,10 +440,11 @@ export default function Chat() {
                   setStreamingContent(localResponse.slice(0, i + 5));
                 }
                 
-                // Save assistant message to server so it persists
+                // Save assistant message to server so it persists (with thinking steps)
                 try {
                   await apiRequest("POST", `/api/conversations/${conversationId}/assistant-message`, {
-                    content: localResponse
+                    content: localResponse,
+                    thinkingSteps: result.thinkingSteps.length > 0 ? result.thinkingSteps : undefined
                   });
                 } catch (saveError) {
                   console.error("Failed to save assistant message:", saveError);
@@ -516,10 +536,11 @@ export default function Chat() {
         setStreamingContent(localResponse.slice(0, i + 10));
       }
       
-      // Save assistant message to server so it persists
+      // Save assistant message to server so it persists (with thinking steps)
       try {
         await apiRequest("POST", `/api/conversations/${conversationId}/assistant-message`, {
-          content: localResponse
+          content: localResponse,
+          thinkingSteps: result.thinkingSteps.length > 0 ? result.thinkingSteps : undefined
         });
       } catch (saveError) {
         console.error("Failed to save assistant message:", saveError);
@@ -583,6 +604,7 @@ export default function Chat() {
       conversationId: activeConversationId || 0,
       role: "assistant",
       content: streamingContent,
+      thinkingSteps: null,
       createdAt: new Date(),
     });
   }
@@ -735,7 +757,7 @@ export default function Chat() {
                             message.id === -1 && isStreaming
                               ? streamingThinkingSteps
                               : message.role === "assistant" && activeConversationId && index === displayMessages.length - 1
-                                ? completedThinkingSteps.get(activeConversationId)
+                                ? completedThinkingSteps.get(activeConversationId) as ThinkingStep[] | undefined
                                 : undefined
                           }
                         />
