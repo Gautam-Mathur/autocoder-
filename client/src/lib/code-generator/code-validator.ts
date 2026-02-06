@@ -567,7 +567,7 @@ function fixVoidElements(content: string, filePath: string): string {
   if (!isJsxFile(filePath)) return content;
   let result = content;
   for (const tag of VOID_ELEMENTS) {
-    const openTagRegex = new RegExp(`<${tag}\\b`, 'gi');
+    const openTagRegex = new RegExp(`<${tag}\\b`, 'g');
     let tagMatch: RegExpExecArray | null;
     const replacements: { start: number; end: number; replacement: string }[] = [];
     while ((tagMatch = openTagRegex.exec(result)) !== null) {
