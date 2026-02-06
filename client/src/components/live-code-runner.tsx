@@ -116,13 +116,12 @@ export function LiveCodeRunner({
       code = code.replace(/=>\s*;(\s*\n)/g, '=>$1');
       code = code.replace(/=>\s*;(\s*$)/gm, '=>$1');
 
-      // Fix JSX tag case mismatches: <button ...>...</Button> → <Button ...>...</Button>
+      // Fix JSX tag case mismatches: <button ...>...</Button> → matching case
+      // Only uppercase tags where mock components have compatible APIs
       code = code.replace(/<button(?=[\s>\/])/g, '<Button');
       code = code.replace(/<\/button>/gi, '</Button>');
       code = code.replace(/<input(?=[\s>\/])/g, '<Input');
       code = code.replace(/<\/input>/gi, '</Input>');
-      code = code.replace(/<select(?=[\s>\/])/g, '<Select');
-      code = code.replace(/<\/select>/gi, '</Select>');
       code = code.replace(/<label(?=[\s>\/])/g, '<Label');
       code = code.replace(/<\/label>/gi, '</Label>');
       code = code.replace(/<textarea(?=[\s>\/])/g, '<Textarea');
@@ -404,15 +403,15 @@ export function LiveCodeRunner({
         updateStatus('Loading Babel...');
         loadScript('babel', function() {
           updateStatus('All scripts loaded, transpiling...');
-          // Trigger Babel to process script tags - delay slightly to ensure DOM is ready
+          updateStatus('Compiling components...');
           setTimeout(function() {
             try {
-              if (window.Babel && window.Babel.transformScriptTags) {
-                window.Babel.transformScriptTags();
+              if (window.__runIsolatedBabel) {
+                window.__runIsolatedBabel();
               }
             } catch (e) {
-              console.error('Babel transform failed:', e);
-              showFallback('Babel transformation error: ' + e.message);
+              console.error('Babel compile failed:', e);
+              showFallback('Babel compilation error: ' + e.message);
             }
           }, 100);
         });
@@ -430,9 +429,9 @@ export function LiveCodeRunner({
       document.getElementById('root').innerHTML = '<div style="padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;margin:20px;font-family:system-ui;"><strong>Preview Error:</strong><br/><pre style="white-space:pre-wrap;margin-top:8px;font-size:11px;">' + (e.reason || 'Unhandled promise rejection') + '</pre></div>';
     });
   </script>
-  <script type="text/babel" data-presets="react,typescript">
+  <script>
     // React hooks and utilities
-    const { useState, useEffect, useCallback, useMemo, useRef, useReducer, createContext, useContext, Fragment, forwardRef, Children, cloneElement, isValidElement } = React;
+    var { useState, useEffect, useCallback, useMemo, useRef, useReducer, createContext, useContext, Fragment, forwardRef, Children, cloneElement, isValidElement } = React;
     
     // Routing mocks (supports both React Router v5 and v6 patterns)
     const RouteContext = createContext({ path: '/', setPath: () => {}, params: {} });
@@ -909,50 +908,187 @@ export function LiveCodeRunner({
       return classes.filter(Boolean).join(' ');
     }
     
-    // User-defined shared/utility components (loaded before pages)
-    ${sharedComponents}
+    // Babel-isolated component loader
+    var __babelErrors = [];
+    var __loadedComponents = [];
     
-    // Page components
-    ${pageComponents}
-    
-    // Override mock icons with real page components where names collide
-    ${pageComponentOverrides}
-    
-    // App component
-    ${appCode}
-    
-    // Render App with timeout fallback
-    var renderAttempted = false;
-    try {
-      renderAttempted = true;
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      if (typeof App !== 'undefined') {
-        root.render(React.createElement(Router, null, React.createElement(App)));
-      } else if (typeof HomePage !== 'undefined') {
-        root.render(React.createElement(HomePage));
-      } else if (typeof Home !== 'undefined') {
-        root.render(React.createElement(Home));
-      } else if (typeof DashboardPage !== 'undefined') {
-        root.render(React.createElement(DashboardPage));
-      } else {
-        root.render(React.createElement('div', { className: 'p-8 text-center' }, 
-          React.createElement('h1', { className: 'text-2xl font-bold text-gray-800 mb-4' }, '${projectName}'),
-          React.createElement('p', { className: 'text-gray-600' }, 'React application loaded successfully.')
-        ));
+    function __safeCompileAndExec(code, label, maxRetries) {
+      maxRetries = maxRetries || 3;
+      var currentCode = code;
+      for (var attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          var result = Babel.transform(currentCode, { presets: ['env', 'react'] });
+          (0, eval)(result.code);
+          __loadedComponents.push(label);
+          return true;
+        } catch (e) {
+          var msg = e.message || String(e);
+          console.warn('[Babel] Attempt ' + (attempt+1) + '/' + maxRetries + ' failed for ' + label + ': ' + msg);
+          
+          var fixed = __tryAutoFix(currentCode, msg);
+          if (fixed === currentCode) {
+            __babelErrors.push({ component: label, error: msg, code: currentCode });
+            console.error('[Babel] Quarantined ' + label + ': ' + msg);
+            console.groupCollapsed('[Babel] Quarantined code for ' + label);
+            console.log(currentCode);
+            console.groupEnd();
+            return false;
+          }
+          currentCode = fixed;
+        }
       }
-    } catch (e) {
-      console.error('Preview render error:', e);
-      document.getElementById('root').innerHTML = '<div style="padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;margin:20px;font-family:system-ui;"><strong>Preview Error:</strong><br/><pre style="white-space:pre-wrap;margin-top:8px;font-size:12px;max-height:300px;overflow:auto;">' + (e.message || e) + '</pre></div>';
+      __babelErrors.push({ component: label, error: 'Failed after ' + maxRetries + ' attempts', code: currentCode });
+      return false;
     }
     
-    // Fallback: If root is still showing "Loading preview..." after 2s, show diagnostic
+    function __tryAutoFix(code, errorMsg) {
+      var fixed = code;
+      
+      if (/Unexpected token/.test(errorMsg) || /Expected.*closing tag/.test(errorMsg)) {
+        fixed = fixed.replace(/<link\\b([^>]*\\bto\\s*=)/gi, '<Link$1');
+        fixed = fixed.replace(/<\\/link>/g, '</Link>');
+        fixed = fixed.replace(/;;+/g, ';');
+        fixed = fixed.replace(/return\\s*\\(\\s*;/g, 'return (');
+        fixed = fixed.replace(/(\\()\\s*;\\s*</g, '$1<');
+      }
+      
+      if (/Unexpected token/.test(errorMsg)) {
+        var lineMatch = errorMsg.match(/\\((\\d+):(\\d+)\\)/);
+        if (lineMatch) {
+          var errLine = parseInt(lineMatch[1], 10);
+          var lines = fixed.split('\\n');
+          if (errLine > 0 && errLine <= lines.length) {
+            var targetLine = lines[errLine - 1];
+            if (/^\\s*<\\/\\w+>/.test(targetLine) && errLine > 1) {
+              var prevLine = lines[errLine - 2];
+              if (/<\\w[^>]*[^/]$/.test(prevLine.trim())) {
+                lines[errLine - 2] = prevLine.replace(/>\\s*$/, ' />');
+                lines.splice(errLine - 1, 1);
+                fixed = lines.join('\\n');
+              }
+            }
+          }
+        }
+      }
+      
+      if (/Unterminated JSX/.test(errorMsg) || /Expected.*closing tag/.test(errorMsg)) {
+        var containerTags = ['Routes', 'Switch', 'BrowserRouter', 'HashRouter', 'MemoryRouter'];
+        containerTags.forEach(function(tag) {
+          var openCount = (fixed.match(new RegExp('<' + tag + '[\\\\s>/]', 'g')) || []).length;
+          var closeCount = (fixed.match(new RegExp('</' + tag + '>', 'g')) || []).length;
+          if (openCount > closeCount) {
+            var lastRoute = fixed.lastIndexOf('</Route>');
+            if (lastRoute !== -1) {
+              var nlPos = fixed.indexOf('\\n', lastRoute + 8);
+              var insertPos = nlPos !== -1 ? nlPos + 1 : lastRoute + 8;
+              fixed = fixed.substring(0, insertPos) + '      </' + tag + '>\\n' + fixed.substring(insertPos);
+            } else {
+              fixed = fixed + '\\n</' + tag + '>';
+            }
+          }
+        });
+        
+        var voidEls = ['img', 'input', 'br', 'hr', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr'];
+        voidEls.forEach(function(el) {
+          var re = new RegExp('<' + el + '(\\\\b[^>]*[^/])>', 'gi');
+          fixed = fixed.replace(re, '<' + el + '$1 />');
+        });
+      }
+      
+      if (/Expected.*closing tag/.test(errorMsg)) {
+        var tagMatch = errorMsg.match(/closing tag for\\s+<?(\\w+)/i);
+        if (tagMatch) {
+          var missingTag = tagMatch[1];
+          var openRe = new RegExp('<' + missingTag + '[\\\\s>/]', 'g');
+          var closeRe = new RegExp('</' + missingTag + '>', 'g');
+          var opens = (fixed.match(openRe) || []).length;
+          var closes = (fixed.match(closeRe) || []).length;
+          if (opens > closes) {
+            var lastOpen = fixed.lastIndexOf('<' + missingTag);
+            if (lastOpen !== -1) {
+              var afterOpen = fixed.indexOf('>', lastOpen);
+              if (afterOpen !== -1 && fixed[afterOpen - 1] !== '/') {
+                var nextNewline = fixed.indexOf('\\n', afterOpen + 1);
+                if (nextNewline !== -1) {
+                  fixed = fixed.substring(0, nextNewline) + '</' + missingTag + '>' + fixed.substring(nextNewline);
+                } else {
+                  fixed = fixed + '</' + missingTag + '>';
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      return fixed;
+    }
+    
+    // Babel isolation: compile components from data scripts
+    window.__runIsolatedBabel = function() {
+      var componentScripts = document.querySelectorAll('script[type="text/x-component"]');
+      for (var i = 0; i < componentScripts.length; i++) {
+        var el = componentScripts[i];
+        var code = (el.textContent || '').replace(/__ENDSCRIPT__/g, '</script');
+        __safeCompileAndExec(code, el.getAttribute('data-label') || 'Component' + i);
+      }
+      
+      ${pageComponentOverrides}
+      
+      // Show quarantine warnings if any
+      if (__babelErrors.length > 0) {
+        console.warn('[Babel Isolation] ' + __babelErrors.length + ' component(s) quarantined:');
+        __babelErrors.forEach(function(err) { console.warn('  - ' + err.component + ': ' + err.error); });
+      }
+      
+      // Render App
+      try {
+        var root = ReactDOM.createRoot(document.getElementById('root'));
+        if (typeof App !== 'undefined') {
+          root.render(React.createElement(Router, null, React.createElement(App)));
+        } else if (typeof HomePage !== 'undefined') {
+          root.render(React.createElement(HomePage));
+        } else if (typeof Home !== 'undefined') {
+          root.render(React.createElement(Home));
+        } else if (typeof DashboardPage !== 'undefined') {
+          root.render(React.createElement(DashboardPage));
+        } else {
+          root.render(React.createElement('div', { className: 'p-8 text-center' }, 
+            React.createElement('h1', { className: 'text-2xl font-bold text-gray-800 mb-4' }, '${projectName}'),
+            React.createElement('p', { className: 'text-gray-600' }, 'React application loaded successfully.')
+          ));
+        }
+        
+        if (__babelErrors.length > 0) {
+          setTimeout(function() {
+            var warningEl = document.createElement('div');
+            warningEl.style.cssText = 'position:fixed;bottom:12px;right:12px;background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;font-family:system-ui;font-size:12px;max-width:400px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);';
+            warningEl.innerHTML = '<strong style="color:#92400e;">Babel: ' + __babelErrors.length + ' component(s) had issues</strong>' +
+              __babelErrors.map(function(err) { return '<div style="color:#78350f;margin-top:4px;font-size:11px;"><b>' + err.component + '</b>: ' + err.error.substring(0, 120) + '</div>'; }).join('');
+            var closeBtn = document.createElement('button');
+            closeBtn.textContent = 'x';
+            closeBtn.style.cssText = 'position:absolute;top:4px;right:8px;background:none;border:none;cursor:pointer;color:#92400e;font-size:14px;';
+            closeBtn.onclick = function() { warningEl.remove(); };
+            warningEl.appendChild(closeBtn);
+            document.body.appendChild(warningEl);
+          }, 500);
+        }
+      } catch (e) {
+        console.error('Preview render error:', e);
+        document.getElementById('root').innerHTML = '<div style="padding:20px;background:#fef2f2;color:#b91c1c;border-radius:8px;margin:20px;font-family:system-ui;"><strong>Preview Error:</strong><br/><pre style="white-space:pre-wrap;margin-top:8px;font-size:12px;max-height:300px;overflow:auto;">' + (e.message || e) + '</pre></div>';
+      }
+    };
+    
+    // Fallback: If root is still showing "Loading preview..." after 3s, show diagnostic
     setTimeout(function() {
       var rootEl = document.getElementById('root');
       if (rootEl && rootEl.innerHTML.indexOf('Loading preview') !== -1) {
         rootEl.innerHTML = '<div style="padding:20px;background:#fffbeb;color:#92400e;border-radius:8px;margin:20px;font-family:system-ui;"><strong>Preview Warning:</strong><p style="margin-top:8px;">Could not render the application. This may happen if:</p><ul style="margin-top:8px;padding-left:20px;"><li>The generated code has syntax errors</li><li>Required components are not defined</li><li>Transpilation failed silently</li></ul></div>';
       }
-    }, 2000);
+    }, 3000);
   </script>
+  <script type="text/x-component" data-label="SharedComponents">${sharedComponents.replace(/<\/script/gi, '__ENDSCRIPT__')}</script>
+  <script type="text/x-component" data-label="PageComponents">${pageComponents.replace(/<\/script/gi, '__ENDSCRIPT__')}</script>
+  <script type="text/x-component" data-label="App">${appCode.replace(/<\/script/gi, '__ENDSCRIPT__')}</script>
 </body>
 </html>`;
     
