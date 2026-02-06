@@ -172,12 +172,11 @@ async function pushToGitHub() {
   
   console.log(`Uploaded ${uploaded} files, ${failed} failed`);
 
-  console.log('Creating tree...');
+  console.log('Creating tree (full replace — removes stale files)...');
   const { data: tree } = await octokit.git.createTree({
     owner: OWNER,
     repo: REPO,
     tree: treeItems,
-    base_tree: parentSha
   });
 
   console.log('Creating commit...');
