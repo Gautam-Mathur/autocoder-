@@ -23,6 +23,7 @@ This document catalogs potential problems that may arise during Electron develop
 8. [Cross-Platform Issues](#8-cross-platform-issues)
 9. [Performance Issues](#9-performance-issues)
 10. [Security Issues](#10-security-issues)
+11. [LiveCodeRunner Troubleshooting](#11-livecoderunner-troubleshooting)
 
 ---
 
@@ -91,7 +92,7 @@ node --version  # Should show v20.x.x
 rm -rf node_modules
 npm cache clean --force
 npm install
-npx tsc -p electron/tsconfig.json
+npm run build:electron
 ```
 
 **Windows PowerShell Users:**
@@ -106,13 +107,13 @@ npm install electron electron-builder --save-dev
 The code needs explicit type annotations. The latest code in the repository has these fixed. Pull the latest:
 ```bash
 git pull origin main
-npx tsc -p electron/tsconfig.json
+npm run build:electron
 ```
 
 **Prevention:** 
 - Use Node.js LTS versions (18.x or 20.x)
 - Always run `npm install` before building
-- Run `npx tsc -p electron/tsconfig.json` after modifying Electron files
+- Run `npm run build:electron` after modifying Electron files
 
 ---
 
@@ -134,7 +135,7 @@ The project uses `"type": "module"` in package.json, but Electron TypeScript was
 This has been fixed in the latest code. Pull the latest version:
 ```bash
 git pull origin main
-npx tsc -p electron/tsconfig.json
+npm run build:electron
 npx electron dist-electron/main.js
 ```
 
@@ -188,8 +189,8 @@ npm list electron
 # Ensure web server is running first
 npm run dev  # In terminal 1
 
-# Build Electron
-npx tsc -p electron/tsconfig.json
+# Build Electron with esbuild
+npm run build:electron
 
 # Check dist-electron exists
 ls dist-electron/main.js
@@ -242,7 +243,7 @@ Error: Application entry file "dist-electron/main.js" not found
 ```bash
 # Ensure correct build order
 npm run build                      # Build React first
-npx tsc -p electron/tsconfig.json  # Build Electron second
+npm run build:electron             # Build Electron second (uses esbuild)
 npx electron-builder               # Package last
 
 # Check files exist
@@ -843,3 +844,140 @@ webPreferences: {
 | ERESOLVE | npm dependency conflict | Try --legacy-peer-deps |
 | spawn ENOENT | Command not found | Check PATH and command name |
 | IPC timeout | Handler error | Add logging to main process |
+
+---
+
+## 11. LiveCodeRunner Troubleshooting
+
+The `LiveCodeRunner` component (`client/src/components/live-code-runner.tsx`) provides in-browser preview of generated projects by transpiling JSX/TSX with Babel and rendering in a sandboxed iframe. Below are common issues and their solutions.
+
+### 11.1 Blank Preview / No Output
+
+**Description:** The preview iframe is empty or shows nothing.
+
+**Symptoms:** Preview panel renders but displays a blank white area with no content.
+
+**Root Cause 1:** All files were filtered out as backend files.
+LiveCodeRunner excludes files whose paths match backend patterns: `server/`, `routes/`, `models/`, `controllers/`, `middleware/`, `services/`, `validators/`, `db/`, `migrations/`, `scripts/`, `prisma/`, `tests/`, `spec/`, `__tests__/`, and `e2e/`.
+
+**Fix:** Check file paths in the generated project. Move frontend component files out of backend-named directories. For example, `server/components/App.tsx` will be filtered out — use `client/src/App.tsx` or `src/App.tsx` instead.
+
+**Root Cause 2:** No `.jsx` or `.tsx` files exist in the project.
+LiveCodeRunner only processes files ending in `.tsx`, `.jsx`, or `.js`. If the project contains only `.ts` files or configuration files, there is nothing to render.
+
+**Fix:** Ensure at least one component file with a `.tsx` or `.jsx` extension exists in the project. The file must contain a React component with JSX markup.
+
+---
+
+### 11.2 Babel Transpilation Errors
+
+**Description:** The preview shows a Babel error or fails to render components.
+
+**Symptoms:** Console errors mentioning `SyntaxError` from Babel, or the preview shows an error overlay.
+
+**Root Cause 1:** TypeScript syntax not fully stripped.
+LiveCodeRunner uses regex-based stripping to remove TypeScript constructs before Babel processes the code. Complex generic types (e.g., `Record<string, Map<number, Set<T>>>`), `enum` declarations, `namespace` blocks, and `declare` statements may not be fully removed.
+
+**Fix:** Simplify TypeScript usage in generated code:
+- Use plain JS/JSX instead of complex TypeScript
+- Avoid `enum` declarations (use plain objects or string unions instead)
+- Avoid complex nested generic types
+- Avoid `declare module`, `declare global`, and `namespace` blocks
+
+**Root Cause 2:** JSX syntax errors such as unclosed tags or mismatched brackets.
+
+**Fix:** Run the Code Validator (`client/src/lib/code-generator/code-validator.ts`) before preview to catch syntax issues. LiveCodeRunner does auto-fix some common issues (stray semicolons, tag case mismatches), but it cannot fix all malformed JSX.
+
+---
+
+### 11.3 Missing Components / Icons
+
+**Description:** Components render as empty or throw "not defined" errors. Icons don't appear.
+
+**Symptoms:** Parts of the UI are missing, or console shows `ReferenceError: ComponentName is not defined`.
+
+**Root Cause 1:** The component is not in the 205+ mocked components list.
+LiveCodeRunner provides mock implementations for common UI components (Button, Card, Input, Dialog, Table, Tabs, Form, Avatar, Badge, Select, etc.) and layout components (Router, Route, Link, Sidebar, Header, Footer, etc.). Components not in this list will be undefined.
+
+**Fix:** Use only mocked components or fall back to simple HTML elements. Check the `builtInMocks` set in `live-code-runner.tsx` for the full list of available components.
+
+**Root Cause 2:** The Lucide icon is not in the 60+ mocked icons list.
+LiveCodeRunner mocks common Lucide icons (Check, X, Plus, Search, Home, User, Settings, Menu, Edit, Trash, Star, Heart, Bell, Mail, etc.). Icons not in this list will render as empty spans.
+
+**Fix:** Check the `builtInIconsList` array in `live-code-runner.tsx` for available icons. Use an alternative icon from the mocked list, or use a simple HTML/SVG element instead.
+
+---
+
+### 11.4 Styling Issues (Tailwind Classes Not Working)
+
+**Description:** Tailwind CSS classes have no effect on the rendered output.
+
+**Symptoms:** Elements appear unstyled despite having Tailwind class names.
+
+**Root Cause:** LiveCodeRunner embeds a subset of ~500 common Tailwind CSS utility classes directly in the generated HTML. Classes outside this subset will have no effect.
+
+**Fix:** Stick to common Tailwind classes that are included in the embedded subset:
+- **Layout:** `flex`, `grid`, `block`, `inline`, `hidden`, `relative`, `absolute`, `fixed`, `sticky`
+- **Spacing:** `p-*`, `px-*`, `py-*`, `m-*`, `mx-*`, `my-*`, `gap-*` (values: 1-8)
+- **Sizing:** `w-full`, `h-full`, `min-h-screen`, `max-w-*`
+- **Typography:** `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`, `font-medium`, `font-semibold`, `font-bold`, `text-center`
+- **Colors:** `text-white`, `text-gray-*`, `bg-white`, `bg-gray-*`, `bg-blue-*`, `bg-green-*`, `bg-red-*`
+- **Borders:** `rounded`, `rounded-md`, `rounded-lg`, `rounded-full`, `border`, `border-gray-*`
+- **Flexbox:** `items-center`, `justify-center`, `justify-between`, `flex-col`, `flex-row`, `flex-wrap`
+
+**Not available:** Advanced Tailwind utilities such as `ring-*`, `divide-*`, `placeholder-*`, `backdrop-*`, `scroll-*`, and arbitrary value syntax (e.g., `w-[200px]`) are not included.
+
+---
+
+### 11.5 Import Errors
+
+**Description:** Imports fail or referenced modules are undefined.
+
+**Symptoms:** `ReferenceError` for imported values, or components fail to render due to missing dependencies.
+
+**Root Cause 1:** Using npm packages that aren't mocked.
+LiveCodeRunner strips all `import` statements and provides mocks for React, React Router, and shadcn/ui components. Packages like `axios`, `lodash`, `moment`, `date-fns`, `framer-motion`, `zustand`, etc. are not available.
+
+**Fix:**
+- Use `fetch()` instead of `axios` for HTTP requests
+- Inline simple utility functions instead of importing `lodash`
+- Use `new Date()` and `Intl.DateTimeFormat` instead of `moment` or `date-fns`
+- Use CSS transitions/animations instead of `framer-motion`
+
+**Root Cause 2:** Relative imports reference files that were filtered out as backend files.
+
+**Fix:** Ensure all imported files are frontend files (not in `server/`, `routes/`, `models/`, etc.). LiveCodeRunner processes all qualifying frontend files and makes their exported components available in the same scope.
+
+---
+
+### 11.6 COEP/Cross-Origin Issues
+
+**Description:** Babel CDN fails to load, or the iframe content is blocked.
+
+**Symptoms:** Network errors for `unpkg.com/babel-standalone`, or the iframe shows a blank page with CSP errors in the console.
+
+**Root Cause 1:** Babel CDN (`unpkg.com`) blocked by Content-Security-Policy headers.
+
+**Fix:** LiveCodeRunner automatically falls back to a local proxy (`/api/babel-proxy`) when the CDN is blocked. Check the browser Network tab to verify the fallback is working. If neither CDN nor proxy works, Babel transpilation will fail silently.
+
+**Root Cause 2:** `srcDoc` attribute blocked by Cross-Origin-Embedder-Policy (COEP).
+
+**Fix:** LiveCodeRunner uses `blob:` URLs instead of `srcDoc` to bypass COEP restrictions. This is handled automatically. If you still see cross-origin issues, ensure the server is not setting overly restrictive COEP headers. The iframe uses the `sandbox` attribute with `allow-scripts` to maintain security.
+
+---
+
+### 11.7 Memory Leaks / Performance
+
+**Description:** Browser memory usage grows over time, or the preview is slow to render.
+
+**Symptoms:** Browser tab becomes sluggish, memory usage climbs in Task Manager, or preview takes several seconds to appear.
+
+**Root Cause 1:** Blob URLs not being revoked.
+Each preview render creates a new `blob:` URL for the iframe. If old URLs aren't revoked, they accumulate in memory.
+
+**Fix:** LiveCodeRunner automatically revokes previous blob URLs after a 2-second delay (to allow the iframe to finish loading). If memory still leaks, check for multiple LiveCodeRunner instances being mounted simultaneously — each instance manages its own blob URLs independently.
+
+**Root Cause 2:** Large projects (30+ files) are slow to process.
+LiveCodeRunner processes all frontend files, strips TypeScript, applies syntax fixes, and concatenates them into a single HTML document. Projects with many files increase processing time.
+
+**Fix:** Keep generated projects to 15-20 files or fewer. The Pro Generator (`client/src/lib/code-generator/pro-generator.ts`) is designed to limit output to this range. If previewing a large project, consider splitting it into smaller modules or previewing individual components.
