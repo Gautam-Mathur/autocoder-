@@ -637,23 +637,8 @@ export default {
         });
         
         if (!installResult.success) {
-          if (options.skipInstallOnFailure) {
-            // User opted to try anyway
-            log('⚠️ npm install failed but continuing as requested...');
-            updateState({ progress: 70, message: 'Install incomplete, proceeding...' });
-          } else {
-            // Stop and report error
-            const errorMsg = 'npm install failed - some dependencies could not be installed. This may be due to network issues or rate limiting. You can try again or click "Run Anyway" to proceed without all packages.';
-            log(`❌ ${errorMsg}`);
-            updateState({ 
-              status: 'error', 
-              error: errorMsg,
-              progress: 70, 
-              message: 'Installation failed' 
-            });
-            callbacks.onError?.(errorMsg);
-            return { success: false, previewUrl: null, error: errorMsg };
-          }
+          log('⚠️ npm install had issues, attempting to proceed anyway...');
+          updateState({ progress: 70, message: 'Install incomplete, trying to start...' });
         } else {
           log('✅ Dependencies installed');
           updateState({ progress: 70, message: 'Dependencies installed' });
