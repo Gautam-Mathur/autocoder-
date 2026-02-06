@@ -5,7 +5,7 @@ A comprehensive, intelligent code generation platform that produces production-r
 ![AutoCoder Preview](https://img.shields.io/badge/AI-Powered-8b5cf6?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Lines of Code](https://img.shields.io/badge/Lines-93K+-blue?style=for-the-badge)
+![Lines of Code](https://img.shields.io/badge/Lines-92K+-blue?style=for-the-badge)
 
 ---
 
@@ -13,33 +13,100 @@ A comprehensive, intelligent code generation platform that produces production-r
 
 | Metric | Value |
 |--------|-------|
-| **Total Lines of Code** | 93,000+ |
-| **Source Files** | 390+ |
-| **AI Intelligence Modules** | 7 |
-| **Code Generator** | Pro Generator (15-20 clean JSX files per project) |
+| **Total Lines of Code** | 92,000+ |
+| **Source Files** | 400+ |
+| **AI Intelligence Modules** | 34 server-side modules |
+| **Code Generator** | Pro Generator (3,600+ lines, 15-20 clean JSX files per project) |
 | **Preview Engine** | LiveCodeRunner (browser-based Babel, instant preview) |
 | **SaaS Templates** | 10+ complete stacks |
 | **Runnable Templates** | 20+ instant projects |
 | **Code Patterns** | 500+ |
 | **Error Pattern Recognizers** | 10+ |
-| **Synonym Mappings** | 40+ |
-| **Domain Contexts** | 8 |
+| **App Type Patterns** | 20 categories |
+| **Domain Profiles** | 12 industry-specific enrichment profiles |
+| **Intent Phrase Patterns** | 12 action-verb-based app type inference |
+| **Typo Corrections** | 205+ common misspellings auto-corrected |
+| **Synonym Mappings** | 17+ conversational expansions |
+| **Conversational Strips** | 5 filler-removal patterns |
+| **UI Components** | 70 React components |
+| **Electron Files** | 5 (desktop app support) |
 
 ---
 
 ## What's New (Feb 2026)
+
+### Contextual Understanding Engine (NEW)
+The chatbot now understands casual, conversational, non-technical user input without requiring prompt engineering expertise.
+
+**Typo Tolerance (205+ corrections):**
+- Handles common misspellings across all domains: "resturant", "recipies", "exersise", "fittness", "buisness", "budgit", "expences", "hosptial", "employes", "inventry", "playist", "ecomerce", "websit", and 190+ more
+- Applied as the first step in normalization, before any domain detection runs
+- Dictionary-based correction at word boundaries for speed and reliability
+
+**12 Industry Domain Profiles:**
+Each domain automatically provides specialized data models, pages, features, and UI styling:
+
+| Domain | App Name | Data Models | UI Style |
+|--------|----------|-------------|----------|
+| Fitness | FitTracker | Workout, Exercise | Bold |
+| Restaurant | FoodSpot | MenuItem, Order | Modern |
+| Recipe | RecipeHub | Recipe | Playful |
+| Finance | FinanceFlow | Transaction, Budget | Corporate |
+| Real Estate | PropManager | Property | Corporate |
+| Education | LearnHub | Course, Lesson | Modern |
+| Healthcare | HealthConnect | Doctor, Appointment | Minimal |
+| Travel | TravelPlanner | Destination, Trip | Playful |
+| Pet Care | PetPal | Pet, Appointment | Playful |
+| Inventory | StockManager | Item | Corporate |
+| Music | MusicBox | Song, Playlist | Bold |
+| HR | TeamHub | Employee, LeaveRequest | Corporate |
+
+**Conversational Input Understanding:**
+- Strips filler: "hey", "can you", "I want to", "help me make", "build me a"
+- Expands vague language: "keep track of" -> "track manage dashboard", "something for" -> "app to"
+- 12 intent phrase patterns: "track" -> dashboard, "sell" -> ecommerce, "share" -> social, "book" -> booking
+- Domain-aware app naming: "gym tracker" -> FitTracker, "recipe sharing" -> RecipeHub
+
+**Example prompts that now work perfectly:**
+```
+"i wanna track my gym workouts"           -> FitTracker dashboard with Workout/Exercise models
+"help me share recipies with frends"      -> RecipeHub social app with Recipe model
+"something for my small bakery"           -> FoodSpot ecommerce with MenuItem/Order models
+"keep track of my expences and budgit"    -> FinanceFlow dashboard with Transaction/Budget models
+"can you make a thing to manage employes" -> TeamHub admin with Employee/LeaveRequest models
+"build a websit for my resturant"         -> FoodSpot ecommerce with MenuItem/Order models
+"i need to organize my pets vet visits"   -> PetPal dashboard with Pet/Appointment models
+```
+
+### Prompt Analysis Pipeline
+The `analyzePrompt` function now runs a 6-stage pipeline:
+
+```
+User Input -> Typo Correction -> Conversational Stripping -> Synonym Expansion
+     -> Domain Detection -> Intent Inference -> App Type Pattern Matching
+```
+
+Each stage enriches the understanding:
+1. **Typo Correction** - 205+ misspelling fixes
+2. **Conversational Stripping** - Remove filler phrases
+3. **Synonym Expansion** - Expand vague language into specific terms
+4. **Domain Detection** - Match against 12 industry profiles (with plural handling)
+5. **Intent Inference** - 12 action-verb patterns for app type
+6. **Pattern Matching** - 20 app type regex patterns with false-positive guards
 
 ### Pro Generator
 - Replaced deep-project-generator with **Pro Generator** for all code paths
 - Produces **15-20 clean JSX files** per project (instead of 149 TypeScript files)
 - Compatible with browser-based Babel preview (LiveCodeRunner)
 - Automatic validation pipeline via `code-validator.ts`
+- **3,600+ lines** of pure template-based code generation (zero API dependencies)
 
 ### LiveCodeRunner (Browser Preview)
 - Instant in-browser preview using Babel transpilation
 - No npm install overhead for previews
 - Handles multi-file React projects with import resolution
-- Strips TypeScript types, resolves relative imports
+- Strips TypeScript types (nested generics up to 3 levels, `as Type` patterns)
+- Runtime auto-fix for void elements and JSX issues
 
 ### GitHub Integration
 - Secure authenticated pushes via Replit's GitHub connector (Octokit)
@@ -51,11 +118,14 @@ A comprehensive, intelligent code generation platform that produces production-r
 - esbuild-based build pipeline (`npm run build:electron`)
 - Windows compatibility: `cross-env` for env vars, conditional `reusePort`
 - Single command: `npm run electron:dev`
+- Default port 5100 for local development (avoids conflicts with port 5000)
 
 ### Code Validator Fixes
 - Void element auto-fixer respects JSX curly braces (no more `=> />` corruption)
 - Dot-notation components (e.g., `TasksContext.Provider`) handled correctly
 - Default export check skips entry/context/provider files
+- React Router `<Link>` vs HTML `<link>` detection
+- Missing container closing tags auto-inserted (`</Routes>`, `</BrowserRouter>`, etc.)
 
 ---
 
@@ -64,9 +134,13 @@ A comprehensive, intelligent code generation platform that produces production-r
 All intelligence operates 100% locally with zero external API dependencies.
 
 ### 1. Natural Language Understanding (NLU)
-- **Semantic Parsing** - Understands intent beyond keywords
-- **40+ Synonym Mappings** - "webpage" = "site" = "page" = "landing"
-- **8 Domain Contexts** - E-commerce, blog, social, dashboard, portfolio, SaaS, mobile, API
+- **Contextual Understanding Engine** - 6-stage pipeline: typo correction -> filler stripping -> synonym expansion -> domain detection -> intent inference -> pattern matching
+- **205+ Typo Corrections** - Handles misspellings like "resturant", "recipies", "exersise", "buisness"
+- **12 Industry Domain Profiles** - Fitness, restaurant, recipe, finance, real estate, education, healthcare, travel, pet care, inventory, music, HR
+- **17+ Synonym Mappings** - "keep track of" = "track manage dashboard", "something for" = "app to"
+- **12 Intent Phrase Patterns** - Action-verb-based app type inference ("track" -> dashboard, "sell" -> ecommerce)
+- **20 App Type Categories** - Dashboard, ecommerce, blog, portfolio, social, SaaS, todo, chat, CRM, analytics, booking, marketplace, CMS, game, calculator, form, landing, admin, API
+- **Conversational Filler Removal** - Strips "hey", "can you", "I want to", "help me make"
 - **Ambiguity Handling** - Asks clarifying questions when requests are unclear
 - **Confidence Scoring** - Rates understanding from 0-1 for each request
 
@@ -393,13 +467,20 @@ Generated Files --> IPC --> Main Process --> Local File System
 
 ## Pro Generator Pipeline (Deep Dive)
 
-The Pro Generator (`client/src/lib/code-generator/pro-generator.ts`) is a **3,243-line** pure template-based code generation engine that converts natural language prompts into complete, multi-file React+Vite+Tailwind projects. It operates entirely without external API calls.
+The Pro Generator (`client/src/lib/code-generator/pro-generator.ts`) is a **3,600+ line** pure template-based code generation engine that converts natural language prompts into complete, multi-file React+Vite+Tailwind projects. It operates entirely without external API calls.
 
 ### `analyzePrompt(prompt: string): ProjectRequirements`
 
-Parses natural language input through multiple pattern-matching passes to extract structured project requirements.
+Parses natural language input through a **6-stage pipeline** to extract structured project requirements:
 
-**App Type Detection (19 patterns):**
+1. **Typo Correction** (205+ entries) - Fixes common misspellings before any matching
+2. **Conversational Stripping** (5 patterns) - Removes filler phrases like "hey", "can you", "I want to"
+3. **Synonym Expansion** (17+ mappings) - Expands vague language into specific terms
+4. **Domain Detection** (12 industry profiles) - Matches against fitness, restaurant, recipe, finance, real estate, education, healthcare, travel, pet care, inventory, music, HR
+5. **Intent Inference** (12 action-verb patterns) - "track" -> dashboard, "sell" -> ecommerce, "share" -> social
+6. **App Type Pattern Matching** (20 categories) - Final regex-based classification
+
+**App Type Detection (20 patterns):**
 
 | Pattern Key | Regex Matches |
 |-------------|---------------|
@@ -1005,7 +1086,7 @@ Created by [Gautam Mathur](https://github.com/Gautam-Mathur)
 ---
 
 <p align="center">
-  <strong>93,000+ lines of code</strong> | <strong>390+ files</strong> | <strong>7 AI capabilities</strong> | <strong>100% Local</strong>
+  <strong>92,000+ lines of code</strong> | <strong>400+ files</strong> | <strong>34 intelligence modules</strong> | <strong>205+ typo corrections</strong> | <strong>12 domain profiles</strong> | <strong>100% Local</strong>
 </p>
 
 <p align="center">
