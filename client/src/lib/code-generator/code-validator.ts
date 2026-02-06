@@ -79,6 +79,58 @@ function isJsFile(filePath: string): boolean {
   return /\.(js|jsx|ts|tsx)$/.test(filePath);
 }
 
+function isEntryFile(filePath: string): boolean {
+  const baseName = filePath.split('/').pop()?.toLowerCase() || '';
+  return baseName === 'main.jsx' || baseName === 'main.tsx' || baseName === 'index.jsx' || baseName === 'index.tsx';
+}
+
+function preserveImports(original: string, modified: string): string {
+  const importRegex = /^(import\s+.+;\s*$)/gm;
+  const originalImports: string[] = [];
+  let match;
+  while ((match = importRegex.exec(original)) !== null) {
+    originalImports.push(match[1].trim());
+  }
+  if (originalImports.length === 0) return modified;
+
+  let result = modified;
+  for (const imp of originalImports) {
+    if (!result.includes(imp)) {
+      const corrupted = result.split('\n');
+      const origLines = original.split('\n');
+      for (let i = 0; i < origLines.length; i++) {
+        const origLine = origLines[i].trim();
+        if (origLine === imp && corrupted[i] !== undefined && corrupted[i].trim() !== origLine) {
+          const importBlock = findImportBlock(original, imp);
+          const corruptedBlock = findCorruptedImportBlock(result, imp);
+          if (importBlock && corruptedBlock) {
+            result = result.replace(corruptedBlock, importBlock);
+          }
+        }
+      }
+    }
+  }
+  return result;
+}
+
+function findImportBlock(content: string, importLine: string): string | null {
+  const idx = content.indexOf(importLine);
+  if (idx === -1) return null;
+  const lineStart = content.lastIndexOf('\n', idx) + 1;
+  const lineEnd = content.indexOf('\n', idx);
+  return content.substring(lineStart, lineEnd === -1 ? content.length : lineEnd);
+}
+
+function findCorruptedImportBlock(content: string, importLine: string): string | null {
+  const parts = importLine.match(/^import\s+\{?\s*(\w+)/);
+  if (!parts) return null;
+  const name = parts[1];
+  const regex = new RegExp(`import\\s+[^;]*${name}[^;]*;[\\s\\S]*?from\\s+['"][^'"]+['"];?`, 'g');
+  const match = regex.exec(content);
+  if (match) return match[0];
+  return null;
+}
+
 function getLineNumber(content: string, index: number): number {
   return content.substring(0, index).split('\n').length;
 }
@@ -700,6 +752,7 @@ function fixReactImportTypos(content: string): string {
 
 function fixMissingDefaultExport(content: string, filePath: string): string {
   if (!isJsxFile(filePath)) return content;
+  if (isEntryFile(filePath)) return content;
   if (/export\s+default\s+/.test(content)) return content;
   if (/export\s*\{\s*\w+\s+as\s+default\s*\}/.test(content)) return content;
 
@@ -739,6 +792,8 @@ function fixUnclosedTags(content: string, filePath: string): string {
     if (VOID_ELEMENTS.includes(baseName)) continue;
     if (CONTAINER_TAGS_HANDLED.includes(tag)) continue;
     if (isInsideString(content, tagMatch.index) || isInsideComment(content, tagMatch.index)) continue;
+    const lineStart = content.lastIndexOf('\n', tagMatch.index) + 1;
+    if (/^\s*import\s/.test(content.substring(lineStart))) continue;
     let depth = 0;
     let i = tagMatch.index + tagMatch[0].length;
     let selfClosed = false;
@@ -820,6 +875,14 @@ function fixMissingClosingTags(content: string, filePath: string): string {
 }
 
 export function autoFixCode(content: string, filePath: string): string {
+  if (isEntryFile(filePath)) {
+    let fixed = content;
+    fixed = fixStraySemicolons(fixed);
+    fixed = fixDuplicateSemicolons(fixed);
+    return fixed;
+  }
+
+  const original = content;
   let fixed = content;
   fixed = fixStraySemicolons(fixed);
   fixed = fixDuplicateSemicolons(fixed);
@@ -831,6 +894,7 @@ export function autoFixCode(content: string, filePath: string): string {
   fixed = fixMissingDefaultExport(fixed, filePath);
   fixed = fixUnclosedTags(fixed, filePath);
   fixed = fixMissingClosingTags(fixed, filePath);
+  fixed = preserveImports(original, fixed);
   return fixed;
 }
 

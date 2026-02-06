@@ -429,6 +429,13 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
         // Only fix HTML, JS, CSS files
         if (!file.path.match(/\.(html|js|jsx|ts|tsx|css)$/i)) continue;
         
+        // Skip entry files - they are simple bootstrap files that don't need fixing
+        const baseName = file.path.split('/').pop()?.toLowerCase() || '';
+        if (baseName === 'main.jsx' || baseName === 'main.tsx' || baseName === 'index.jsx' || baseName === 'index.tsx') continue;
+        
+        // Skip config files
+        if (baseName.includes('config')) continue;
+        
         // Create a hash of the content to avoid re-fixing
         const contentHash = `${file.id}-${file.content.length}-${file.content.slice(0, 100)}`;
         if (fixedFileHashes.has(contentHash)) continue;

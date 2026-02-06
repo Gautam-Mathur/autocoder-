@@ -133,8 +133,9 @@ export function LiveCodeRunner({
       // Does NOT match different tags: <ArrowRight /></Button> stays unchanged
       code = code.replace(/<(\w+)\b([^>]*?)\/>\s*<\/\1>/g, '<$1$2/>');
       
-      // Fix duplicate closing tags: </Button></Button> → </Button>
-      code = code.replace(/<\/(\w+)>\s*<\/\1>/g, '</$1>');
+      // Fix duplicate closing tags on the same line: </Button></Button> → </Button>
+      // Use [^\S\n]* instead of \s* to avoid matching across newlines (which would remove legitimate nested closing tags)
+      code = code.replace(/<\/(\w+)>[^\S\n]*<\/\1>/g, '</$1>');
       
       // Remove all imports (single-line and multi-line)
       code = code.replace(/^import\s+[\s\S]*?from\s+['"][^'"]*['"];?\s*$/gm, '');

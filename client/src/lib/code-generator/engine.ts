@@ -1385,6 +1385,8 @@ function applyAutoFixes(code: string, errors: CodeError[]): { code: string; fixe
   for (let i = 0; i < jsLines.length; i++) {
     const line = jsLines[i].trim();
     if (!line || line.startsWith('//') || line.startsWith('/*') || line.startsWith('*')) continue;
+    if (line.startsWith('import ') || line.startsWith('import{') || line.startsWith('export ')) continue;
+    if (/^\}\s*from\s+['"]/.test(line)) continue;
     if (line.endsWith(';') || line.endsWith('{') || line.endsWith('}') || line.endsWith(',') || line.endsWith(':')) continue;
     if (line.endsWith(')') && !line.includes('=')) continue;
     if (line.endsWith('(') || line.endsWith('[') || line.endsWith('=>') || line.endsWith('&&') || line.endsWith('||') || line.endsWith('?') || line.endsWith('+') || line.endsWith('-') || line.endsWith('*') || line.endsWith('/') || line.endsWith('=') || line.endsWith('>') || line.endsWith('<') || line.endsWith('|') || line.endsWith('&')) continue;
