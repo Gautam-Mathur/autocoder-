@@ -1146,7 +1146,7 @@ export default function ProductCard({ product }) {
         </div>
 
         <div className="mt-auto flex items-center justify-between pt-2">
-          <span className="text-lg font-bold text-white">\${product.price.toFixed(2)}</span>
+          <span className="text-lg font-bold text-white">{"$"}{product.price.toFixed(2)}</span>
           <button
             onClick={(e) => { e.preventDefault(); addItem(product); }}
             disabled={!product.inStock}
@@ -1424,7 +1424,7 @@ export default function CartPage() {
             <img src={item.image} alt={item.name} className="h-20 w-20 rounded-lg object-cover" />
             <div className="flex-1">
               <h3 className="font-semibold text-white">{item.name}</h3>
-              <p className="text-sm text-gray-500">\${item.price.toFixed(2)} each</p>
+              <p className="text-sm text-gray-500">{"$"}{item.price.toFixed(2)} each</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -1443,7 +1443,7 @@ export default function CartPage() {
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
-            <span className="w-24 text-right font-bold text-white">\${(item.price * item.quantity).toFixed(2)}</span>
+            <span className="w-24 text-right font-bold text-white">{"$"}{(item.price * item.quantity).toFixed(2)}</span>
             <button
               onClick={() => removeItem(item.id)}
               className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
@@ -1458,7 +1458,7 @@ export default function CartPage() {
       <div className="mt-8 card">
         <div className="flex items-center justify-between border-b border-gray-800 pb-4">
           <span className="text-gray-400">Subtotal</span>
-          <span className="text-lg font-bold text-white">\${cartTotal.toFixed(2)}</span>
+          <span className="text-lg font-bold text-white">{"$"}{cartTotal.toFixed(2)}</span>
         </div>
         <div className="flex items-center justify-between pt-4">
           <Link to="/products" className="btn-ghost">
@@ -1546,13 +1546,13 @@ export default function CheckoutPage() {
             {items.map((item) => (
               <div key={item.id} className="flex items-center justify-between text-sm">
                 <span className="text-gray-300">{item.name} x{item.quantity}</span>
-                <span className="text-gray-400">\${(item.price * item.quantity).toFixed(2)}</span>
+                <span className="text-gray-400">{"$"}{(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
           </div>
           <div className="mt-4 flex items-center justify-between border-t border-gray-800 pt-4">
             <span className="font-semibold text-white">Total</span>
-            <span className="text-xl font-bold text-indigo-400">\${cartTotal.toFixed(2)}</span>
+            <span className="text-xl font-bold text-indigo-400">{"$"}{cartTotal.toFixed(2)}</span>
           </div>
         </div>
 
@@ -1749,7 +1749,7 @@ export default function MetricCard({ metric }) {
               <p className="truncate text-xs text-gray-500">{activity.action}</p>
             </div>
             <div className="text-right shrink-0">
-              {activity.amount && <p className="text-sm font-semibold text-white">\${activity.amount.toFixed(2)}</p>}
+              {activity.amount && <p className="text-sm font-semibold text-white">{"$"}{activity.amount.toFixed(2)}</p>}
               <p className="text-xs text-gray-600">{activity.time}</p>
             </div>
           </div>
@@ -1793,7 +1793,7 @@ export default function StatsChart({ data }) {
             >
               {hoveredIndex === index && (
                 <div className="absolute -top-10 rounded-lg bg-gray-800 px-2 py-1 text-xs font-medium text-white shadow-lg">
-                  \${item.revenue.toLocaleString()}
+                  {"$"}{item.revenue.toLocaleString()}
                 </div>
               )}
               <div
@@ -1835,7 +1835,7 @@ export default function TopProducts({ products }) {
               <tr key={i} className="border-b border-gray-800/50 last:border-0">
                 <td className="py-3 text-sm font-medium text-gray-200">{product.name}</td>
                 <td className="py-3 text-right text-sm text-gray-400">{product.sales.toLocaleString()}</td>
-                <td className="py-3 text-right text-sm font-medium text-white">\${product.revenue.toLocaleString()}</td>
+                <td className="py-3 text-right text-sm font-medium text-white">{"$"}{product.revenue.toLocaleString()}</td>
                 <td className="py-3 text-right">
                   {product.trend === 'up'
                     ? <TrendingUp className="ml-auto h-4 w-4 text-emerald-400" />
