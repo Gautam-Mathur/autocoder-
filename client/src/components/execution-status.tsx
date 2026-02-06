@@ -235,16 +235,10 @@ export function ExecutionStatus({ files, onUrlChange, compact = false }: Executi
 
         {state.url && (
           <div className="flex items-center gap-2 p-2 bg-muted rounded text-xs">
-            <Globe className="w-3 h-3 text-green-500" />
-            <a 
-              href={state.url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary hover:underline truncate"
-              data-testid="link-preview-url"
-            >
-              {state.url}
-            </a>
+            <CheckCircle className="w-3 h-3 text-green-500" />
+            <span className="text-muted-foreground" data-testid="link-preview-url">
+              Preview is running — view it in the "See It Live" tab above
+            </span>
           </div>
         )}
 

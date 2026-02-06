@@ -275,6 +275,43 @@ function AutoTestSection({
   );
 }
 
+function RunTabContent({ files }: { files: ProjectFile[] }) {
+  const [executionUrl, setExecutionUrl] = useState<string | null>(null);
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="shrink-0 p-3">
+        <ExecutionStatus 
+          files={files.map(f => ({ path: f.path, content: f.content }))} 
+          onUrlChange={(url) => {
+            if (url && url !== 'blob://preview') {
+              setExecutionUrl(url);
+            } else {
+              setExecutionUrl(null);
+            }
+          }}
+        />
+      </div>
+      {executionUrl ? (
+        <div className="flex-1 overflow-hidden border-t border-border">
+          <iframe
+            src={executionUrl}
+            className="w-full h-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            allow="cross-origin-isolated"
+            title="WebContainer Preview"
+            data-testid="iframe-execution-preview"
+          />
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
+          <p>Click "Run" above to start the project. The preview will appear here.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps) {
   const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug" | "intel" | "deploy" | "test" | "ide" | "execution" | "devserver" | "autorun">("preview");
   const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -1191,10 +1228,11 @@ ${combinedJs}
           {activeTab === "preview" ? (
             <div className="flex-1 flex overflow-hidden">
               {files.length > 0 ? (
-                <LiveCodeRunner 
+                <AutoRunPreview
                   files={files.map(f => ({ path: f.path, content: f.content, language: f.language }))}
-                  projectName="Generated Project"
+                  projectName={files[0]?.path?.split('/')[0] || 'Generated Project'}
                   height="100%"
+                  autoStart={true}
                 />
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
@@ -1488,10 +1526,11 @@ ${combinedJs}
                 }}
               />
             ) : files.length > 0 ? (
-              <LiveCodeRunner 
+              <AutoRunPreview
                 files={files.map(f => ({ path: f.path, content: f.content, language: f.language }))}
-                projectName="Generated Project"
+                projectName={files[0]?.path?.split('/')[0] || 'Generated Project'}
                 height="100%"
+                autoStart={true}
               />
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
@@ -1837,37 +1876,7 @@ ${combinedJs}
             />
           </div>
         ) : activeTab === "execution" ? (
-          <div className="flex-1 overflow-auto p-4">
-            <ExecutionStatus 
-              files={files.map(f => ({ path: f.path, content: f.content }))} 
-              onUrlChange={(url) => {
-                if (url && url !== 'blob://preview') {
-                  console.log('WebContainer/Cloud URL:', url);
-                }
-              }}
-            />
-            <div className="mt-4 p-3 bg-muted rounded-lg">
-              <h4 className="font-medium text-sm mb-2">Execution Modes</h4>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  <span><strong>WebContainer:</strong> Full Node.js execution in browser</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  <span><strong>Cloud Sandbox:</strong> Server-side container (planned)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                  <span><strong>Static Preview:</strong> Browser-based HTML/React rendering</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                  <span><strong>Code View:</strong> Source display only</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <RunTabContent files={files} />
         ) : activeTab === "devserver" ? (
           <div className="flex-1 overflow-hidden p-4">
             {conversationId ? (

@@ -1327,13 +1327,13 @@ function applyAutoFixes(code: string, errors: CodeError[]): { code: string; fixe
     trackFix(before, fixedCode, 'Added alt="" to images');
   }
   
-  // 7. Fix unclosed tags
+  // 7. Fix unclosed tags (case-sensitive to avoid converting React components like <Link> to <link>)
   const selfClosingTags = ['br', 'hr', 'img', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'param', 'source', 'track', 'wbr'];
   for (const tag of selfClosingTags) {
-    const regex = new RegExp(`<${tag}([^>]*[^/])>`, 'gi');
+    const regex = new RegExp(`<${tag}([^>]*[^/])>`, 'g');
     if (regex.test(fixedCode)) {
       const before = fixedCode;
-      fixedCode = fixedCode.replace(new RegExp(`<${tag}([^>]*[^/])>`, 'gi'), `<${tag}$1>`);
+      fixedCode = fixedCode.replace(new RegExp(`<${tag}([^>]*[^/])>`, 'g'), `<${tag}$1>`);
     }
   }
   

@@ -669,11 +669,21 @@ function fixLinkCasing(content: string, filePath: string): string {
     allReplacements.push({ start: pos, end: pos + 5, text: '<Link' });
     const tagEnd = result.indexOf('>', pos);
     if (tagEnd === -1) continue;
-    const closeIdx = result.indexOf('</link>', tagEnd);
+    const closeLowerIdx = result.indexOf('</link>', tagEnd);
+    const closeUpperIdx = result.indexOf('</Link>', tagEnd);
+    let closeIdx = -1;
+    let closeLen = 7;
+    if (closeLowerIdx !== -1 && closeUpperIdx !== -1) {
+      closeIdx = Math.min(closeLowerIdx, closeUpperIdx);
+    } else if (closeLowerIdx !== -1) {
+      closeIdx = closeLowerIdx;
+    } else if (closeUpperIdx !== -1) {
+      closeIdx = closeUpperIdx;
+    }
     if (closeIdx !== -1) {
       const nextOpen = result.indexOf('<link', tagEnd + 1);
       if (nextOpen === -1 || nextOpen > closeIdx) {
-        allReplacements.push({ start: closeIdx, end: closeIdx + 7, text: '</Link>' });
+        allReplacements.push({ start: closeIdx, end: closeIdx + closeLen, text: '</Link>' });
       }
     }
   }

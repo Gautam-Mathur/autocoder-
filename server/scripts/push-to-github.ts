@@ -166,7 +166,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Push from Replit: Fix broken preview by preventing removal of legitimate nested closing tags',
+      message: 'Fix preview auto-start with WebContainer and JSX tag casing bug',
       tree: newTree.sha,
       parents: [latestSha]
     });
