@@ -28,24 +28,23 @@ This document catalogs potential problems that may arise during Electron develop
 
 ## 1. Development Issues
 
-### 1.1 TypeScript Compilation Errors
+### 1.1 Electron Build Errors
 
-**Description:** Electron TypeScript fails to compile.
+**Description:** Electron build fails when running `npm run build:electron`.
 
-**Symptoms (10 common errors):**
+**Note:** AutoCoder uses **esbuild** (not tsc) to compile Electron files. The build script is `scripts/build-electron.ts`.
+
+**Common Symptoms:**
 ```
-electron/main.ts:1:52 - error TS2307: Cannot find module 'electron' or its corresponding type declarations.
-electron/main.ts:33:50 - error TS7031: Binding element 'url' implicitly has an 'any' type.
-electron/main.ts:64:44 - error TS7006: Parameter '_event' implicitly has an 'any' type.
-electron/preload.ts:1:44 - error TS2307: Cannot find module 'electron' or its corresponding type declarations.
-electron/preload.ts:46:30 - error TS2503: Cannot find namespace 'Electron'.
+Error: Cannot find module 'electron'
+esbuild: Build failed with errors
+dist-electron/ directory is empty or missing
 ```
 
 **Root Cause:** 
 1. Electron package not installed
-2. TypeScript types not available
+2. Node modules corrupted
 3. Incorrect Node.js version (v24+ may have issues)
-4. Missing or incorrect tsconfig paths
 
 **Solution - Step by Step:**
 
@@ -63,15 +62,13 @@ npm install
 npm list electron
 # Should show: electron@40.x.x
 
-# Step 4: Rebuild Electron TypeScript
-npx tsc -p electron/tsconfig.json
+# Step 4: Build Electron with esbuild
+npm run build:electron
 ```
 
-**Critical Fix for TS2307 "Cannot find module 'electron'":**
-
-This is the most common error. It means Electron is not installed. Run these commands:
+**If Electron is not installed:**
 ```bash
-# Install Electron and types explicitly
+# Install Electron explicitly
 npm install electron electron-builder --save-dev
 
 # Verify installation
@@ -79,7 +76,7 @@ npm list electron
 # Should output: electron@40.x.x
 
 # Now rebuild
-npx tsc -p electron/tsconfig.json
+npm run build:electron
 ```
 
 **Node.js v24+ Users - IMPORTANT:**

@@ -2,7 +2,19 @@
 
 ## Overview
 
-Transform AutoCoder from a browser-based WebContainer application to a full Electron desktop app. This eliminates the 16KB file write limitation and enables running large projects with unlimited dependencies.
+AutoCoder runs as both a web application (Express + React on Replit) and an Electron desktop app for Windows/Mac/Linux. The desktop mode provides native file system access, real npm, and persistent project storage.
+
+## Current Status (Feb 2026)
+
+All items completed:
+
+- [x] Electron main process + preload script
+- [x] esbuild-based build pipeline (`scripts/build-electron.ts`)
+- [x] IPC bridge for file I/O, npm install, dev server
+- [x] Runner factory (auto-detects Electron vs browser)
+- [x] Windows compatibility (cross-env, conditional reusePort)
+- [x] Single command: `npm run electron:dev`
+- [x] electron-builder config for Win/Mac/Linux packaging
 
 ## Why Electron?
 
@@ -14,65 +26,59 @@ Transform AutoCoder from a browser-based WebContainer application to a full Elec
 | Lost state on refresh | Persistent local storage |
 | Can't access local tools | Full system access |
 
+**Note:** The web mode now uses **LiveCodeRunner** (browser-based Babel preview) which eliminates the 16KB limitation for previews. Electron is still preferred for full project builds with real npm.
+
 ---
 
 ## Architecture
 
-### High-Level Overview
-
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                      ELECTRON APPLICATION                         │
-│                                                                   │
-│  ┌─────────────────────────┐    ┌──────────────────────────────┐ │
-│  │      MAIN PROCESS       │    │     RENDERER PROCESS         │ │
-│  │     (Node.js runtime)   │    │     (Chromium window)        │ │
-│  │                         │    │                              │ │
-│  │  ┌───────────────────┐  │    │  ┌────────────────────────┐  │ │
-│  │  │  Local Runner     │  │    │  │   React Frontend       │  │ │
-│  │  │  Service          │  │    │  │   (existing CodeAI UI) │  │ │
-│  │  │                   │  │◄──►│  │                        │  │ │
-│  │  │  • File I/O       │  │IPC │  │  • Chat interface      │  │ │
-│  │  │  • npm install    │  │    │  │  • Code generation     │  │ │
-│  │  │  • Dev server     │  │    │  │  • Preview panel       │  │ │
-│  │  │  • Process mgmt   │  │    │  │  • IDE features        │  │ │
-│  │  └───────────────────┘  │    │  └────────────────────────┘  │ │
-│  │                         │    │                              │ │
-│  │  ┌───────────────────┐  │    │  ┌────────────────────────┐  │ │
-│  │  │  Project Manager  │  │    │  │   Preview WebView      │  │ │
-│  │  │  • Workspace mgmt │  │    │  │   (localhost preview)  │  │ │
-│  │  │  • Project state  │  │    │  │                        │  │ │
-│  │  └───────────────────┘  │    │  └────────────────────────┘  │ │
-│  └─────────────────────────┘    └──────────────────────────────┘ │
-│                                                                   │
-│                         ┌──────────────────┐                      │
-│                         │  LOCAL FILE      │                      │
-│                         │  SYSTEM          │                      │
-│                         │  ~/AutoCoder/    │                      │
-│                         │  projects/       │                      │
-│                         └──────────────────┘                      │
-└──────────────────────────────────────────────────────────────────┘
++------------------------------------------------------------------+
+|                      ELECTRON APPLICATION                          |
+|                                                                    |
+|  +-------------------------+    +------------------------------+  |
+|  |      MAIN PROCESS       |    |     RENDERER PROCESS         |  |
+|  |     (Node.js runtime)   |    |     (Chromium window)        |  |
+|  |                         |    |                              |  |
+|  |  +-------------------+  |    |  +------------------------+  |  |
+|  |  |  Local Runner     |  |    |  |   React Frontend       |  |  |
+|  |  |  Service          |  |    |  |   (existing CodeAI UI) |  |  |
+|  |  |                   |  |<-->|  |                        |  |  |
+|  |  |  * File I/O       |  |IPC |  |  * Chat interface      |  |  |
+|  |  |  * npm install    |  |    |  |  * Code generation     |  |  |
+|  |  |  * Dev server     |  |    |  |  * Preview panel       |  |  |
+|  |  |  * Process mgmt   |  |    |  |  * IDE features        |  |  |
+|  |  +-------------------+  |    |  +------------------------+  |  |
+|  |                         |    |                              |  |
+|  |  +-------------------+  |    |  +------------------------+  |  |
+|  |  |  Project Manager  |  |    |  |   Preview WebView      |  |  |
+|  |  |  * Workspace mgmt |  |    |  |   (localhost preview)  |  |  |
+|  |  +-------------------+  |    |  +------------------------+  |  |
+|  +-------------------------+    +------------------------------+  |
+|                                                                    |
+|                         +------------------+                       |
+|                         |  LOCAL FILE      |                       |
+|                         |  SYSTEM          |                       |
+|                         |  ~/AutoCoder/    |                       |
+|                         |  projects/       |                       |
+|                         +------------------+                       |
++------------------------------------------------------------------+
 ```
 
-### Process Communication
+### IPC Channels
 
-```
-┌─────────────┐     IPC Channels      ┌─────────────┐
-│  Renderer   │ ◄─────────────────────► │    Main     │
-│  (React)    │                        │  (Node.js)  │
-└─────────────┘                        └─────────────┘
-      │                                       │
-      │  runner:writeFiles                    │
-      │  runner:npmInstall                    │
-      │  runner:startServer ─────────────────►│
-      │  runner:stopServer                    │
-      │  runner:getStatus                     │
-      │                                       │
-      │◄───────────────────────────────────── │
-      │  runner:log                           │
-      │  runner:serverReady                   │
-      │  runner:error                         │
-```
+| Channel | Direction | Purpose |
+|---------|-----------|---------|
+| `runner:writeFiles` | Renderer -> Main | Write project files to disk |
+| `runner:npmInstall` | Renderer -> Main | Run npm install |
+| `runner:startServer` | Renderer -> Main | Start dev server |
+| `runner:stopServer` | Renderer -> Main | Stop dev server |
+| `runner:getStatus` | Renderer -> Main | Get server status |
+| `runner:log` | Main -> Renderer | Stream logs to UI |
+| `runner:serverReady` | Main -> Renderer | Notify when server is ready |
+| `project:list` | Renderer -> Main | List all projects |
+| `project:delete` | Renderer -> Main | Delete a project |
+| `project:open` | Renderer -> Main | Open project folder |
 
 ---
 
@@ -80,393 +86,137 @@ Transform AutoCoder from a browser-based WebContainer application to a full Elec
 
 ```
 autocoder/
-├── electron/                    # Electron-specific code
-│   ├── main.ts                  # Main process entry point
-│   ├── preload.ts               # Preload script (IPC bridge)
-│   ├── services/
-│   │   ├── local-runner.ts      # File system & npm operations
-│   │   ├── project-manager.ts   # Workspace management
-│   │   └── dev-server.ts        # Dev server management
-│   └── utils/
-│       └── ipc-handlers.ts      # IPC channel handlers
+├── electron/                    # Electron source (TypeScript)
+│   ├── main.ts                  # Main process entry point (ESM)
+│   ├── preload.ts               # Preload script (CommonJS)
+│   ├── tsconfig.json            # TypeScript config for main.ts
+│   ├── tsconfig.preload.json    # TypeScript config for preload.ts
+│   └── services/
+│       ├── local-runner.ts      # File system & npm operations
+│       ├── project-manager.ts   # Workspace management
+│       └── logger.ts            # File-based logging with rotation
 │
-├── client/                      # Existing React frontend
+├── scripts/
+│   ├── build-electron.ts        # esbuild pipeline for Electron
+│   └── github-push.ts           # GitHub push (full tree replace)
+│
+├── dist-electron/               # Compiled Electron output
+│   ├── main.js                  # esbuild output from main.ts
+│   ├── main.js.map
+│   ├── preload.js               # esbuild output from preload.ts
+│   └── preload.js.map
+│
+├── client/                      # React frontend
 │   └── src/
-│       ├── lib/
-│       │   └── code-runner/
-│       │       ├── webcontainer.ts      # Keep for web fallback
-│       │       ├── electron-runner.ts   # NEW: Electron IPC wrapper
-│       │       └── runner-factory.ts    # NEW: Auto-detect environment
-│       └── ...
+│       └── lib/code-runner/
+│           ├── electron-runner.ts   # Electron IPC wrapper
+│           ├── runner-factory.ts    # Auto-detect environment
+│           └── webcontainer.ts      # Browser fallback
 │
-├── electron-builder.json        # Electron builder config
-└── package.json                 # Updated with electron scripts
+├── electron-builder.json        # Desktop packaging config
+└── package.json                 # NPM scripts
 ```
 
 ---
 
-## Implementation Details
+## Build System
 
-### 1. Main Process (electron/main.ts)
+### Electron Build Pipeline (esbuild)
 
-Responsibilities:
-- Create browser window
-- Handle IPC from renderer
-- Manage child processes (npm, dev server)
-- File system operations
+The build uses **esbuild** (not tsc) via `scripts/build-electron.ts`:
 
-```typescript
-// Pseudo-code structure
-import { app, BrowserWindow, ipcMain } from 'electron';
-import { LocalRunner } from './services/local-runner';
-
-const runner = new LocalRunner();
-
-// IPC Handlers
-ipcMain.handle('runner:writeFiles', (event, files) => runner.writeFiles(files));
-ipcMain.handle('runner:npmInstall', (event, projectPath) => runner.npmInstall(projectPath));
-ipcMain.handle('runner:startServer', (event, projectPath) => runner.startServer(projectPath));
-ipcMain.handle('runner:stopServer', () => runner.stopServer());
-```
-
-### 2. Local Runner Service (electron/services/local-runner.ts)
-
-Responsibilities:
-- Write project files to disk
-- Run npm install (real npm, no limits)
-- Start/stop development server
-- Stream logs back to renderer
-
-```typescript
-// Key methods
-class LocalRunner {
-  private projectsDir: string;  // ~/AutoCoder/projects/
-  private currentProcess: ChildProcess | null;
-  
-  async writeFiles(files: ProjectFile[]): Promise<void>;
-  async npmInstall(projectPath: string): Promise<void>;
-  async startServer(projectPath: string): Promise<string>; // Returns localhost URL
-  async stopServer(): Promise<void>;
-}
-```
-
-### 3. Preload Script (electron/preload.ts)
-
-Bridge between renderer and main process:
-
-```typescript
-import { contextBridge, ipcRenderer } from 'electron';
-
-contextBridge.exposeInMainWorld('electronAPI', {
-  writeFiles: (files) => ipcRenderer.invoke('runner:writeFiles', files),
-  npmInstall: (path) => ipcRenderer.invoke('runner:npmInstall', path),
-  startServer: (path) => ipcRenderer.invoke('runner:startServer', path),
-  stopServer: () => ipcRenderer.invoke('runner:stopServer'),
-  onLog: (callback) => ipcRenderer.on('runner:log', callback),
-  onServerReady: (callback) => ipcRenderer.on('runner:serverReady', callback),
-});
-```
-
-### 4. Electron Runner (client/src/lib/code-runner/electron-runner.ts)
-
-Same interface as WebContainer, but calls Electron IPC:
-
-```typescript
-// Drop-in replacement for webcontainer.ts when in Electron
-export async function writeFiles(files: ProjectFile[]): Promise<void> {
-  return window.electronAPI.writeFiles(files);
-}
-
-export async function installDependencies(onLog: LogCallback): Promise<RunResult> {
-  return window.electronAPI.npmInstall(currentProject);
-}
-
-export async function startDevServer(onLog: LogCallback): Promise<{ url: string }> {
-  return window.electronAPI.startServer(currentProject);
-}
-```
-
-### 5. Runner Factory (client/src/lib/code-runner/runner-factory.ts)
-
-Auto-detect environment and use appropriate runner:
-
-```typescript
-export function getRunner() {
-  if (typeof window !== 'undefined' && window.electronAPI) {
-    return import('./electron-runner');
-  }
-  return import('./webcontainer');
-}
-```
-
----
-
-## Development Modes
-
-### Mode 1: Web Development (Current)
 ```bash
-npm run dev
-# Runs Vite + Express on localhost:5000
-# Uses WebContainer for preview
-# For quick iteration on UI
+npm run build:electron
 ```
 
-### Mode 2: Electron Development
+This compiles:
+1. `electron/main.ts` (ESM) -> `dist-electron/main.js` (CJS, platform: node)
+2. `electron/preload.ts` (CJS) -> `dist-electron/preload.js` (CJS, platform: node)
+
+Both files use `external: ['electron']` since Electron provides its own runtime.
+
+**Why esbuild instead of tsc?**
+- 10x faster compilation
+- Handles ESM -> CJS conversion automatically
+- Bundles services inline (no separate service files needed)
+- Source maps included
+
+### NPM Scripts
+
+| Script | What it does |
+|--------|-------------|
+| `npm run dev` | Start web dev server (Replit mode, port 5000) |
+| `npm run build:electron` | Compile Electron files with esbuild |
+| `npm run electron:dev` | Build + launch Electron desktop app |
+| `npm run build` | Build React + Express for production |
+
+### Running Electron
+
 ```bash
+# All-in-one (builds + launches):
 npm run electron:dev
-# Runs Vite + Electron together
-# Uses native file system for preview
-# Test Electron without building
-```
 
-### Mode 3: Production Build
-```bash
-npm run build:desktop
-# Builds React app
-# Packages with electron-builder
-# Creates .exe/.dmg/.AppImage
+# Or manually:
+npm run build:electron
+cross-env NODE_ENV=development npx electron dist-electron/main.js
 ```
 
 ---
 
-## Build Configuration
+## Windows Compatibility
 
-### electron-builder.json
-```json
-{
-  "appId": "com.autocoder.app",
-  "productName": "AutoCoder",
-  "directories": {
-    "output": "dist-electron"
-  },
-  "files": [
-    "dist/**/*",
-    "electron/**/*"
-  ],
-  "mac": {
-    "target": "dmg",
-    "icon": "assets/icon.icns"
-  },
-  "win": {
-    "target": "nsis",
-    "icon": "assets/icon.ico"
-  },
-  "linux": {
-    "target": "AppImage",
-    "icon": "assets/icon.png"
-  }
-}
-```
+### Issues Fixed
 
----
+1. **cross-env** - All npm scripts use `cross-env` for environment variables (no Unix-only `NODE_ENV=x` syntax)
+2. **reusePort** - Server conditionally skips `reusePort` option on Windows (prevents ENOTSUP error)
+3. **EBUSY error** - Close VS Code before running `npm install` (VS Code locks Electron files)
 
-## Project Workspace
+### Windows Setup
 
-Generated projects are stored locally:
-
-```
-~/AutoCoder/
-├── projects/
-│   ├── my-react-app/
-│   │   ├── package.json
-│   │   ├── src/
-│   │   └── node_modules/    # Real npm, persists
-│   │
-│   └── ecommerce-site/
-│       ├── package.json
-│       └── ...
-│
-└── config/
-    └── settings.json        # App preferences
-```
-
----
-
-## Migration Path
-
-### What Changes
-| Component | Before (WebContainer) | After (Electron) |
-|-----------|----------------------|------------------|
-| File writes | `webcontainer.fs.writeFile()` | `fs.writeFileSync()` via IPC |
-| npm install | Virtual npm in browser | Real npm child process |
-| Dev server | WebContainer spawn | Node child process |
-| Preview | WebContainer iframe | WebView to localhost |
-| File limit | 16KB | Unlimited |
-
-### What Stays Same
-- React frontend UI
-- Code generation logic
-- AI integration
-- Chat interface
-- All existing features
-
----
-
-## Testing Strategy
-
-### Test Without Building
-
-Run Electron in dev mode:
-```bash
-npm run electron:dev
-```
-
-This runs:
-1. Vite dev server for React (hot reload)
-2. Electron main process (watches for changes)
-3. Full Electron app with dev tools
-
-### Test Specific Components
-
-```bash
-# Test local runner service
-npm run test:electron
-
-# Test IPC communication
-npm run test:ipc
-```
-
----
-
-## Security Considerations
-
-1. **File System Access**: Limited to ~/AutoCoder directory
-2. **npm Commands**: Sandboxed to project directories
-3. **No Remote Code**: All code generation is local
-4. **Context Isolation**: Renderer can't access Node directly
-
----
-
-## Timeline Estimate
-
-| Task | Effort |
-|------|--------|
-| Electron setup & config | 2 hours |
-| Local runner service | 3 hours |
-| IPC bridge & handlers | 2 hours |
-| Update auto-runner to use factory | 1 hour |
-| Build scripts & packaging | 2 hours |
-| Testing & debugging | 2 hours |
-| **Total** | **~12 hours** |
-
----
-
-## Success Criteria
-
-1. ✅ Generate code → writes to local file system
-2. ✅ npm install works for any size project
-3. ✅ Dev server starts and preview works
-4. ✅ Development mode works without building
-5. ✅ Packaged app runs on Windows/Mac/Linux
-
----
-
-## Run Guide (Windows/macOS/Linux)
-
-### Prerequisites
-
-- **Node.js 20 LTS** (NOT v24+) - [Download](https://nodejs.org/)
-- **Git** - [Download](https://git-scm.com/)
-
-### Initial Setup
-
-```bash
-# Clone the repository
+```cmd
 git clone https://github.com/Gautam-Mathur/autocoder-.git
 cd autocoder-
 
-# Install dependencies
+REM Install dependencies (close VS Code first!)
 npm install
-```
 
-### Windows: EBUSY Error Fix
-
-If you get this error during `npm install`:
-```
-npm error code EBUSY
-npm error syscall rename
-npm error path ...\node_modules\electron\...
-```
-
-**Solution:**
-1. **Close VS Code completely** (it locks Electron files)
-2. **Close all terminals** in the project folder
-3. **Close any running Electron instances**
-4. Open a fresh Command Prompt and run:
-
-```cmd
-cd C:\path\to\autocoder-
-rmdir /s /q node_modules
-del package-lock.json
-npm install
-```
-
-> **Important:** VS Code must be closed before running npm install when Electron packages are involved.
-
-### Build & Run Electron
-
-After `npm install` succeeds:
-
-```bash
-# Step 1: Compile TypeScript
-npx tsc -p electron/tsconfig.json
-npx tsc -p electron/tsconfig.preload.json
-
-# Step 2: Run Electron in dev mode
+REM Run Electron
 npm run electron:dev
 ```
 
-**Or use the all-in-one script (macOS/Linux):**
-```bash
-chmod +x scripts/electron-dev.sh
-./scripts/electron-dev.sh
-```
+### Troubleshooting Windows
 
-**Windows equivalent:**
-```cmd
-rmdir /s /q dist-electron 2>nul
-npx tsc -p electron/tsconfig.json
-npx tsc -p electron/tsconfig.preload.json
-npx electron dist-electron/main.js
-```
+| Issue | Solution |
+|-------|----------|
+| EBUSY during npm install | Close VS Code, delete node_modules, reinstall |
+| ENOTSUP reusePort | Already fixed in server/index.ts |
+| `cross-env` not found | Run `npm install` (it's a dependency) |
+| Port 5000 in use | Set PORT env var: `set PORT=3000 && npm run dev` |
 
-### Dev Server Port
+---
 
-The dev server runs on **port 5100** (not 5000).
+## Dev Server Port
 
-### Logging
+- **Replit (web mode):** Port 5000 (default)
+- **Electron (dev mode):** Connects to localhost:5000
+- **Generated projects:** Port 3000 or next available
 
-Logs are saved to:
+---
+
+## Logging
+
+Electron app logs are saved to:
 - **Windows:** `%APPDATA%\autocoder\logs\autocoder-YYYY-MM-DD.log`
 - **macOS:** `~/Library/Application Support/autocoder/logs/`
 - **Linux:** `~/.config/autocoder/logs/`
 
-### Troubleshooting
+---
 
-| Issue | Solution |
-|-------|----------|
-| `Cannot find module 'electron'` | Run `npm install` first |
-| EBUSY error | Close VS Code, then run `npm install` |
-| TypeScript errors | Run `npm install` to get @types/electron |
-| Preload script fails | Ensure preload uses CommonJS (require), not ES modules |
-| Port 5100 in use | Kill the process: `npx kill-port 5100` |
-
-### Project Structure
-
-```
-electron/
-├── main.ts              # Main process (ESNext modules)
-├── preload.ts           # Preload script (CommonJS!)
-├── tsconfig.json        # Config for main.ts
-├── tsconfig.preload.json # Config for preload.ts (CommonJS)
-└── services/
-    ├── logger.ts        # File logging with rotation
-    ├── local-runner.ts  # npm/file operations
-    └── project-manager.ts
-```
-
-### Important Notes
+## Important Notes
 
 1. **Preload scripts MUST use CommonJS** - They run in a special Electron context that doesn't support ES modules
-2. **Separate TypeScript configs** - main.ts uses ESNext, preload.ts uses CommonJS
-3. **Delete dist-electron before recompiling** - Avoids stale output issues
+2. **main.ts uses ESM** - Uses `import.meta.url` for `__dirname` equivalent
+3. **esbuild handles the conversion** - Both are compiled to CJS output for Node.js compatibility
+4. **electron-builder.json** configures packaging for all three platforms
+5. **Pro Generator** is used for code generation in both web and Electron modes
+6. **LiveCodeRunner** provides instant preview in web mode; Electron mode uses real npm + dev server

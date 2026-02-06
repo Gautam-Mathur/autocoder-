@@ -115,10 +115,16 @@ Press the **Run** button or hit Enter. AutoCoder will:
 
 ### Step 3: Preview Your Application
 
-AutoCoder will automatically:
+**Web Mode (Replit):**
+AutoCoder uses LiveCodeRunner for instant browser-based preview:
+1. **Generates React JSX files** (15-20 files per project)
+2. **Transpiles with Babel** in the browser (no npm install needed)
+3. **Shows instant preview** in the Preview tab
 
-1. **Write files** to your computer
-2. **Install dependencies** (npm install)
+**Electron Desktop Mode:**
+AutoCoder writes files to your local system:
+1. **Write files** to `~/AutoCoder/projects/`
+2. **Install dependencies** (real npm install)
 3. **Start the development server**
 4. **Show the preview** in the Preview tab
 

@@ -60,6 +60,14 @@ WebContainer's virtual file system is ephemeral. When users:
 
 All project files, installed dependencies, and progress are lost.
 
+### What Changed: LiveCodeRunner + Electron
+
+AutoCoder now has two solutions to the WebContainer limitations:
+
+1. **LiveCodeRunner (Web Mode)** - Browser-based Babel transpilation that provides instant preview of React projects without npm install. This eliminates the 16KB limitation for previews and runs entirely in the browser.
+
+2. **Electron (Desktop Mode)** - Native file system access with real npm for full project builds. This is the complete solution for running generated projects locally.
+
 ### Why Electron Solves These Problems
 
 Electron combines Chromium (browser rendering) with Node.js (native runtime). This gives us:
@@ -287,21 +295,25 @@ mainWindow.webContents.setWindowOpenHandler(({ url }) => {
 
 ## Part 3: Comparison Summary
 
-| Aspect | WebContainer (Before) | Electron (After) |
-|--------|----------------------|------------------|
-| File size limit | 16KB | Unlimited |
-| npm speed | Slow (virtual) | Fast (native) |
-| Dependencies | Limited count | Unlimited |
-| Persistence | None (ephemeral) | Full (disk) |
-| Memory | Browser-limited | System resources |
-| Offline | No | Yes |
-| System access | None | Full (sandboxed) |
-| Distribution | Web URL | .exe/.dmg/.AppImage |
+| Aspect | WebContainer | LiveCodeRunner (Web) | Electron (Desktop) |
+|--------|-------------|---------------------|-------------------|
+| File size limit | 16KB | None (Babel-based) | Unlimited |
+| npm speed | Slow (virtual) | Not needed (instant) | Fast (native) |
+| Dependencies | Limited | Simulated via CDN | Unlimited |
+| Persistence | None | Database-backed | Full (disk) |
+| Preview speed | Slow | Instant | Depends on npm |
+| Full project build | Limited | Preview only | Full build |
+| System access | None | None (browser) | Full (sandboxed) |
+| Distribution | Web URL | Web URL | .exe/.dmg/.AppImage |
 
 ---
 
 ## Conclusion
 
-The move to Electron is not a preference but a necessity. The WebContainer limitations fundamentally prevent AutoCoder from being a reliable, professional code generation tool. Electron provides the native capabilities required to handle real-world projects without artificial constraints.
+AutoCoder now uses a dual approach:
 
-The architecture maintains the same React frontend that users know, while replacing the limited WebContainer execution layer with a robust native implementation. This ensures a smooth transition for users while dramatically improving capability and reliability.
+1. **Web mode (Replit)** uses the **Pro Generator** + **LiveCodeRunner** for instant browser-based previews via Babel transpilation. This eliminates the 16KB WebContainer limitation entirely for preview purposes.
+
+2. **Desktop mode (Electron)** provides the complete experience with native file system access, real npm, and persistent project storage for full project builds.
+
+Both modes share the same React frontend and code generation engine. The Pro Generator produces 15-20 clean JSX files that work with both LiveCodeRunner (instant preview) and Electron (full build).

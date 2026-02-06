@@ -84,37 +84,25 @@ npm list electron
 
 **Windows Users:** If using PowerShell, you may need to run as Administrator for global packages.
 
-### Step 3: Build Electron
+### Step 3: Run Electron Desktop App
 
 ```bash
-npx tsc -p electron/tsconfig.json
+# All-in-one command (builds Electron with esbuild + launches):
+npm run electron:dev
 ```
 
-This compiles TypeScript to JavaScript in `dist-electron/`.
+This automatically:
+1. Compiles `electron/main.ts` and `electron/preload.ts` with esbuild
+2. Launches the Electron desktop app
+3. Connects to the web server at localhost:5000
 
-### Step 4: Start the Application
-
-Open **two terminal windows**:
-
-**Terminal 1 - Start Web Server:**
+**Alternative (manual steps):**
 ```bash
-npm run dev
-```
-Wait until you see:
-```
-serving on port 5000
-```
+# Build Electron separately
+npm run build:electron
 
-**Terminal 2 - Start Electron:**
-
-**Mac/Linux:**
-```bash
-./scripts/electron-dev.sh
-```
-
-**Windows (Command Prompt or PowerShell):**
-```cmd
-npx electron dist-electron/main.js
+# Then launch
+cross-env NODE_ENV=development npx electron dist-electron/main.js
 ```
 
 ### Step 5: Verify It Works
@@ -136,37 +124,37 @@ Development mode is for making changes to the codebase.
 ```
 autocoder/
 ├── node_modules/           # Dependencies (created by npm install)
-├── dist-electron/          # Compiled Electron code
-│   ├── main.js
-│   ├── preload.js
-│   └── services/
+├── dist-electron/          # Compiled Electron output (esbuild)
+│   ├── main.js             # From electron/main.ts
+│   ├── main.js.map
+│   ├── preload.js          # From electron/preload.ts
+│   └── preload.js.map
 ├── electron/               # Electron source (TypeScript)
 ├── client/                 # React frontend source
 ├── server/                 # Express backend source
-└── scripts/                # Helper scripts
+└── scripts/                # Build scripts (build-electron.ts, github-push.ts)
 ```
 
 ### Development Workflow
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     DEVELOPMENT CYCLE                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. Make changes to code                                    │
-│     ├── React (client/src/)     → Auto hot-reload          │
-│     ├── Express (server/)       → Auto restart             │
-│     └── Electron (electron/)    → Manual rebuild           │
-│                                                             │
-│  2. If you changed Electron code:                           │
-│     $ npx tsc -p electron/tsconfig.json                     │
-│     → Close and reopen Electron window                      │
-│                                                             │
-│  3. Test your changes                                       │
-│                                                             │
-│  4. Repeat                                                  │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+|                     DEVELOPMENT CYCLE                        |
++-------------------------------------------------------------+
+|                                                              |
+|  1. Make changes to code                                     |
+|     - React (client/src/)     -> Auto hot-reload             |
+|     - Express (server/)       -> Auto restart                |
+|     - Electron (electron/)    -> Run: npm run build:electron |
+|                                                              |
+|  2. If you changed Electron code:                            |
+|     $ npm run build:electron                                 |
+|     -> Close and reopen Electron window                      |
+|                                                              |
+|  3. Test your changes                                        |
+|                                                              |
+|  4. Repeat                                                   |
++-------------------------------------------------------------+
 ```
 
 ### Starting Fresh
@@ -174,19 +162,18 @@ autocoder/
 If something goes wrong:
 
 ```bash
-# Stop all processes (Ctrl+C in both terminals)
+# Stop all processes (Ctrl+C)
 
 # Clear caches
 rm -rf node_modules
 rm -rf dist-electron
 
-# Reinstall
+# Reinstall and rebuild
 npm install
-npx tsc -p electron/tsconfig.json
+npm run build:electron
 
-# Start again
-npm run dev  # Terminal 1
-./scripts/electron-dev.sh  # Terminal 2
+# Run again
+npm run electron:dev
 ```
 
 ---
@@ -198,13 +185,15 @@ Production build creates distributable applications.
 ### Building for All Platforms
 
 ```bash
-./scripts/build-desktop.sh
-```
+# Step 1: Build React app for production
+npm run build
 
-This runs:
-1. `npm run build` - Build React for production
-2. `npx tsc -p electron/tsconfig.json` - Build Electron
-3. `npx electron-builder` - Package for current platform
+# Step 2: Build Electron with esbuild
+npm run build:electron
+
+# Step 3: Package with electron-builder
+npx electron-builder
+```
 
 ### Output Location
 
@@ -347,26 +336,26 @@ ps aux | grep node
 
 ### Windows
 
-**Starting Electron on Windows:**
+**Running Electron on Windows:**
 ```cmd
-# Command Prompt or PowerShell - use this command:
-npx electron dist-electron/main.js
+REM Single command (works in CMD, PowerShell, or Git Bash):
+npm run electron:dev
 ```
 
-**Alternative - Use Git Bash:**
-If you have Git installed, open Git Bash and run:
-```bash
-./scripts/electron-dev.sh
+**EBUSY Error During npm install:**
+If you get `EBUSY` errors:
+1. Close VS Code completely (it locks Electron files)
+2. Close all terminals in the project folder
+3. Run:
+```cmd
+rmdir /s /q node_modules
+npm install
 ```
 
 **Important Notes:**
-- The `.sh` shell scripts do NOT work in Command Prompt or PowerShell
-- Use `npx electron dist-electron/main.js` directly, or use Git Bash
-- WSL (Windows Subsystem for Linux) also works with the shell scripts
-
-**Firewall:**
-- Windows Firewall may prompt on first run
-- Allow Node.js access for npm install to work
+- All npm scripts use `cross-env` for Windows compatibility
+- Server auto-detects Windows and skips `reusePort` (prevents ENOTSUP)
+- Windows Firewall may prompt on first run - allow Node.js access
 
 ### macOS
 
@@ -408,46 +397,27 @@ sudo dnf install gtk3 libnotify nss libXScrnSaver
 
 ## 8. Common Setup Issues
 
-### Issue: TypeScript Compilation Errors (Most Common!)
+### Issue: Electron Build Errors
 
-If you see errors like this when running `npx tsc -p electron/tsconfig.json`:
-
-```
-electron/main.ts:1:52 - error TS2307: Cannot find module 'electron' or its corresponding type declarations.
-electron/main.ts:33:50 - error TS7031: Binding element 'url' implicitly has an 'any' type.
-electron/main.ts:64:44 - error TS7006: Parameter '_event' implicitly has an 'any' type.
-electron/preload.ts:46:30 - error TS2503: Cannot find namespace 'Electron'.
-```
-
-**Root Cause:** Electron dependencies or types not installed properly.
-
-**Solution:**
+**Note:** AutoCoder uses **esbuild** (not tsc) to build Electron. Run:
 ```bash
-# Step 1: Ensure all dependencies are installed
+npm run build:electron
+```
+
+If this fails, ensure dependencies are installed:
+```bash
 npm install
-
-# Step 2: Verify electron is installed
-npm list electron
-# Should show: electron@40.x.x
-
-# Step 3: Rebuild
-npx tsc -p electron/tsconfig.json
+npm run build:electron
 ```
 
-**If Still Failing - Full Reset:**
+**Full Reset:**
 ```bash
-# Delete everything and start fresh
 rm -rf node_modules
 rm -rf dist-electron
 npm cache clean --force
 npm install
-npx tsc -p electron/tsconfig.json
+npm run build:electron
 ```
-
-**Windows-Specific Fix:**
-On Windows, you may need to:
-1. Run Command Prompt as Administrator
-2. Or use PowerShell with execution policy set: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
 
 ---
 
@@ -458,8 +428,8 @@ On Windows, you may need to:
 # Electron is a local dependency, use npx
 npx electron dist-electron/main.js
 
-# Or install globally (not recommended)
-npm install -g electron
+# Or just use the npm script:
+npm run electron:dev
 ```
 
 ### Issue: "Cannot find module 'electron'"
@@ -521,15 +491,17 @@ xvfb-run ./scripts/electron-dev.sh
 
 ## Quick Reference Commands
 
-| Action | Mac/Linux | Windows |
-|--------|-----------|---------|
-| Install dependencies | `npm install` | `npm install` |
-| Build Electron | `npx tsc -p electron/tsconfig.json` | `npx tsc -p electron/tsconfig.json` |
-| Start web server | `npm run dev` | `npm run dev` |
-| Start Electron (dev) | `./scripts/electron-dev.sh` | `npx electron dist-electron/main.js` |
-| Build desktop app | `./scripts/build-desktop.sh` | `npm run build && npx tsc -p electron/tsconfig.json && npx electron-builder` |
-| Clean install | `rm -rf node_modules && npm install` | `rmdir /s /q node_modules && npm install` |
-| View project files | `ls ~/AutoCoder/projects/` | `dir %USERPROFILE%\AutoCoder\projects` |
+| Action | All Platforms |
+|--------|--------------|
+| Install dependencies | `npm install` |
+| Build Electron | `npm run build:electron` |
+| Start web server only | `npm run dev` |
+| Start Electron (dev) | `npm run electron:dev` |
+| Build desktop app | `npm run build && npm run build:electron && npx electron-builder` |
+| Push to GitHub | `npx tsx scripts/github-push.ts` |
+| Clean install | Delete `node_modules/` then `npm install` |
+| View project files (Mac/Linux) | `ls ~/AutoCoder/projects/` |
+| View project files (Windows) | `dir %USERPROFILE%\AutoCoder\projects` |
 
 ---
 

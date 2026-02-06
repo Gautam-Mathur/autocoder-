@@ -42,14 +42,11 @@ cd autocoder-
 # Install dependencies
 npm install
 
-# Build Electron
-npx tsc -p electron/tsconfig.json
+# Run Electron desktop app (all-in-one)
+npm run electron:dev
 
-# Terminal 1
+# Or for web-only testing:
 npm run dev
-
-# Terminal 2
-./scripts/electron-dev.sh
 ```
 
 **Production Mode Testing:**

@@ -25,37 +25,45 @@ This guide is for developers who want to understand, modify, or extend the AutoC
 
 ```
 autocoder/
-├── electron/                        # Electron-specific code
-│   ├── main.ts                      # Main process entry point
-│   ├── preload.ts                   # IPC bridge (context bridge)
-│   ├── tsconfig.json                # TypeScript config for Electron
+├── electron/                        # Electron source (TypeScript)
+│   ├── main.ts                      # Main process entry point (ESM)
+│   ├── preload.ts                   # IPC bridge (CommonJS)
+│   ├── tsconfig.json                # TypeScript config for main.ts
+│   ├── tsconfig.preload.json        # TypeScript config for preload.ts (CJS)
 │   └── services/
 │       ├── local-runner.ts          # File system & npm operations
-│       └── project-manager.ts       # Workspace management
+│       ├── project-manager.ts       # Workspace management
+│       └── logger.ts                # File-based logging with rotation
 │
 ├── client/                          # React frontend
 │   └── src/
 │       ├── lib/
+│       │   ├── code-generator/
+│       │   │   ├── pro-generator.ts     # Main code generator (15-20 JSX files)
+│       │   │   └── code-validator.ts    # Auto-fix validation pipeline
 │       │   └── code-runner/
 │       │       ├── webcontainer.ts      # WebContainer (browser fallback)
 │       │       ├── electron-runner.ts   # Electron IPC wrapper
 │       │       └── runner-factory.ts    # Environment detection
 │       ├── components/
+│       │   ├── preview-panel.tsx        # Preview with LiveCodeRunner
+│       │   └── live-code-runner.tsx     # Browser-based Babel preview
 │       ├── pages/
 │       └── ...
 │
-├── server/                          # Express backend
-│   └── ...
-│
-├── dist-electron/                   # Compiled Electron code
-├── release/                         # Packaged desktop apps
-│
-├── electron-builder.json            # Desktop build config
 ├── scripts/
-│   ├── electron-dev.sh              # Dev mode script
-│   └── build-desktop.sh             # Production build script
+│   ├── build-electron.ts            # esbuild pipeline for Electron
+│   └── github-push.ts               # GitHub push (full tree replace)
 │
-└── docs/electron/                   # Documentation
+├── dist-electron/                   # Compiled Electron output (esbuild)
+│   ├── main.js                      # From main.ts
+│   ├── main.js.map
+│   ├── preload.js                   # From preload.ts
+│   └── preload.js.map
+│
+├── server/                          # Express backend
+├── electron-builder.json            # Desktop packaging config
+└── docs/electron/                   # Documentation (6 guides)
 ```
 
 ---
@@ -79,8 +87,8 @@ cd autocoder-
 # Install all dependencies
 npm install
 
-# Build Electron TypeScript
-npx tsc -p electron/tsconfig.json
+# Build Electron with esbuild
+npm run build:electron
 ```
 
 ### Running in Development
@@ -89,16 +97,13 @@ npx tsc -p electron/tsconfig.json
 ```bash
 npm run dev
 # Opens at http://localhost:5000
-# Uses WebContainer for preview (has limitations)
+# Uses LiveCodeRunner for instant browser-based preview
 ```
 
 **Option B: Full Electron Development**
 ```bash
-# Terminal 1: Start the web server
-npm run dev
-
-# Terminal 2: Run Electron
-./scripts/electron-dev.sh
+# Single command (builds + launches):
+npm run electron:dev
 ```
 
 ### Rebuilding Electron After Changes
@@ -106,10 +111,14 @@ npm run dev
 When you modify files in `electron/`:
 
 ```bash
-npx tsc -p electron/tsconfig.json
+npm run build:electron
 ```
 
-The compiled output goes to `dist-electron/`.
+This runs `scripts/build-electron.ts` which uses **esbuild** to compile:
+- `electron/main.ts` (ESM) -> `dist-electron/main.js` (CJS)
+- `electron/preload.ts` (CJS) -> `dist-electron/preload.js` (CJS)
+
+Both output files use `external: ['electron']` and include source maps.
 
 ---
 
@@ -505,28 +514,36 @@ if (!result.success) {
 ### Development Build
 
 ```bash
-# Build Electron TypeScript
-npx tsc -p electron/tsconfig.json
+# Build Electron with esbuild
+npm run build:electron
 
-# Output: dist-electron/
+# Output: dist-electron/main.js, dist-electron/preload.js
 ```
 
 ### Production Build
 
 ```bash
-./scripts/build-desktop.sh
+# Step 1: Build React app for production
+npm run build
 
-# This:
-# 1. Builds React app (npm run build)
-# 2. Builds Electron TypeScript
-# 3. Packages with electron-builder
-# 
-# Output: release/
+# Step 2: Build Electron
+npm run build:electron
+
+# Step 3: Package with electron-builder
+npx electron-builder
 ```
+
+Output goes to `release/` directory.
 
 ### Build Configuration
 
 See `electron-builder.json` for platform-specific settings.
+
+### Windows Notes
+
+- All npm scripts use `cross-env` for cross-platform environment variables
+- Server auto-detects Windows and skips `reusePort` (prevents ENOTSUP)
+- Close VS Code before `npm install` (prevents EBUSY lock errors on Electron files)
 
 ---
 

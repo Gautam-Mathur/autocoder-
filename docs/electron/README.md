@@ -19,82 +19,45 @@ Complete documentation for the AutoCoder Electron desktop application.
 # Install
 npm install
 
-# Build Electron
-npx tsc -p electron/tsconfig.json
+# Build Electron (uses esbuild, not tsc)
+npm run build:electron
 
-# Run (two terminals)
-npm run dev                    # Terminal 1
-./scripts/electron-dev.sh      # Terminal 2
+# Run Electron desktop app (all-in-one)
+npm run electron:dev
+
+# Or for web-only mode:
+npm run dev    # Opens at http://localhost:5000
 ```
 
-## Document Summaries
+## Build System
 
-### 1. Why and How (`01-WHY-AND-HOW.md`)
-Explains the technical reasoning behind choosing Electron over WebContainer:
-- 16KB file write limitation problem
-- Virtual npm performance issues
-- Browser memory constraints
-- Architecture diagrams and data flow
+AutoCoder uses **esbuild** to compile Electron files (not `tsc`):
 
-### 2. Developer's Guide (`02-DEVELOPERS-GUIDE.md`)
-Everything developers need to work on the codebase:
-- Project structure and key files
-- Component deep-dives (main process, preload, services)
-- Adding new features step-by-step
-- IPC patterns and best practices
-- Build and packaging instructions
-
-### 3. Problems and Solutions (`03-PROBLEMS-AND-SOLUTIONS.md`)
-Comprehensive troubleshooting reference:
-- 50+ predicted problems with solutions
-- Development, build, runtime, and cross-platform issues
-- Security considerations
-- Quick reference error code table
-
-### 4. Running Guide (`04-RUNNING-GUIDE.md`)
-Step-by-step instructions to get up and running:
-- System requirements
-- Development mode setup
-- Production build process
-- Platform-specific notes (Windows, macOS, Linux)
-- Common setup issues and fixes
-
-### 5. User's Guide (`05-USERS-GUIDE.md`)
-Non-technical guide for end users:
-- Interface overview
-- Creating first project
-- Working with generated code
-- Tips for better results
-- FAQ section
-
-### 6. Tester's Guide (`06-TESTERS-GUIDE.md`)
-QA testing procedures:
-- Test environment setup
-- 30+ functional test cases
-- Integration, performance, and edge case tests
-- Cross-platform testing matrix
-- Bug reporting template
-- Regression checklist
+| Command | What it does |
+|---------|-------------|
+| `npm run build:electron` | Compiles `electron/main.ts` + `electron/preload.ts` to `dist-electron/` |
+| `npm run electron:dev` | Builds Electron + launches desktop app |
+| `npm run dev` | Web-only mode (Replit, port 5000) |
 
 ## Architecture Overview
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                      ELECTRON APPLICATION                         │
-│                                                                   │
-│  ┌─────────────────────────┐    ┌──────────────────────────────┐ │
-│  │      MAIN PROCESS       │    │     RENDERER PROCESS         │ │
-│  │                         │    │                              │ │
-│  │  • Local Runner Service │◄──►│  • React Frontend           │ │
-│  │  • File System I/O      │IPC │  • Code Generation          │ │
-│  │  • npm Operations       │    │  • Preview Panel            │ │
-│  │  • Dev Server Manager   │    │                              │ │
-│  └─────────────────────────┘    └──────────────────────────────┘ │
-│                                                                   │
-│                    ┌──────────────────────┐                       │
-│                    │  ~/AutoCoder/projects │                      │
-│                    └──────────────────────┘                       │
-└──────────────────────────────────────────────────────────────────┘
++------------------------------------------------------------------+
+|                      ELECTRON APPLICATION                          |
+|                                                                    |
+|  +-------------------------+    +------------------------------+  |
+|  |      MAIN PROCESS       |    |     RENDERER PROCESS         |  |
+|  |                         |    |                              |  |
+|  |  * Local Runner Service |<-->|  * React Frontend            |  |
+|  |  * File System I/O      |IPC |  * Pro Generator             |  |
+|  |  * npm Operations       |    |  * LiveCodeRunner            |  |
+|  |  * Dev Server Manager   |    |  * Preview Panel             |  |
+|  +-------------------------+    +------------------------------+  |
+|                                                                    |
+|                    +----------------------+                        |
+|                    |  ~/AutoCoder/projects |                       |
+|                    +----------------------+                        |
++------------------------------------------------------------------+
 ```
 
 ## Key Benefits Over WebContainer
@@ -105,3 +68,9 @@ QA testing procedures:
 | npm speed | Slow | Native speed |
 | Persistence | Lost on refresh | Permanent |
 | System access | None | Full (sandboxed) |
+
+## Windows Compatibility
+
+- All npm scripts use `cross-env` for cross-platform environment variables
+- Server auto-detects Windows and skips `reusePort` (prevents ENOTSUP)
+- Close VS Code before running `npm install` (prevents EBUSY lock errors)
