@@ -1,0 +1,30 @@
+5:10:16 PM [express] serving on port 5100
+(!) Failed to run dependency scan. Skipping dependency pre-bundling. Error:   Failed to scan for dependencies from entries:
+  C:/Users/Lenovo/Downloads/autocoder--main/autocoder--main/client/index.html
+
+  X [ERROR] No matching export in "client/src/lib/code-runner/webcontainer.ts" for import "hasNodeModules"
+
+    client/src/lib/code-runner/auto-runner.ts:10:2:
+      10 │   hasNodeModules,
+         ╵   ~~~~~~~~~~~~~~
+
+
+X [ERROR] No matching export in "client/src/lib/code-runner/webcontainer.ts" for import "setPackageJsonHash"
+
+    client/src/lib/code-runner/auto-runner.ts:11:2:
+      11 │   setPackageJsonHash,
+         ╵   ~~~~~~~~~~~~~~~~~~
+
+
+    at failureErrorWithLog (C:\Users\Lenovo\Downloads\autocoder--main\autocoder--main\node_modules\vite\node_modules\esbuild\lib\main.js:1467:15)
+    at C:\Users\Lenovo\Downloads\autocoder--main\autocoder--main\node_modules\vite\node_modules\esbuild\lib\main.js:926:25 
+    at runOnEndCallbacks (C:\Users\Lenovo\Downloads\autocoder--main\autocoder--main\node_modules\vite\node_modules\esbuild\lib\main.js:1307:45)
+    at buildResponseToResult (C:\Users\Lenovo\Downloads\autocoder--main\autocoder--main\node_modules\vite\node_modules\esbuild\lib\main.js:924:7)
+    at C:\Users\Lenovo\Downloads\autocoder--main\autocoder--main\node_modules\vite\node_modules\esbuild\lib\main.js:936:9  
+    at new Promise (<anonymous>)
+    at requestCallbacks.on-end (C:\Users\Lenovo\Downloads\autocoder--main\autocoder--main\node_modules\vite\node_modules\esbuild\lib\main.js:935:54)
+    at handleRequest (C:\Users\Lenovo\Downloads\autocoder--main\autocoder--main\node_modules\vite\node_modules\esbuild\lib\main.js:628:17)
+    at handleIncomingPacket (C:\Users\Lenovo\Downloads\autocoder--main\autocoder--main\node_modules\vite\node_modules\esbuild\lib\main.js:653:7)
+    at Socket.readFromStdout (C:\Users\Lenovo\Downloads\autocoder--main\autocoder--main\node_modules\vite\node_modules\esbuild\lib\main.js:581:7)
+
+C:\Users\Lenovo\Downloads\autocoder--main\autocoder--main>
