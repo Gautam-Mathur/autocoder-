@@ -1,4 +1,5 @@
 // Code Generation Engine - Smart Template-based code generator
+// Uses Pro Generator for multi-file React project output
 // Uses Sage Knowledge Base for human-like understanding
 // WebApp Knowledge for multi-language apps
 // Learning Module for constant improvement
@@ -28,6 +29,8 @@ import {
   handleAmbiguousRequest,
   decomposeProblem,
 } from "./code-brain";
+import { analyzePrompt, generateProject, formatProjectResponse, shouldUseProGenerator } from "./pro-generator";
+import { validateGeneratedCode } from "./code-validator";
 
 // Format runnable project as response with file blocks
 function formatRunnableProjectResponse(project: RunnableProject): string {
@@ -865,6 +868,32 @@ export function generateCode(input: string): string {
     }
   }
   
+  // PRO GENERATOR: Use smart multi-file React project generator for any coding request
+  if (shouldUseProGenerator(input)) {
+    try {
+      const requirements = analyzePrompt(input);
+      const project = generateProject(requirements);
+      if (project.files.length > 0) {
+        const validation = validateGeneratedCode(project.files.map(f => ({ path: f.path, content: f.content })));
+        const fixedFiles = validation.fixedFiles.length > 0 ? validation.fixedFiles : project.files.map(f => ({ path: f.path, content: f.content }));
+        const validatedProject = {
+          ...project,
+          files: fixedFiles.map(f => {
+            const orig = project.files.find(o => o.path === f.path);
+            return { ...f, language: orig?.language || 'text' };
+          }),
+        };
+        let response = formatProjectResponse(validatedProject);
+        if (validation.errors.length > 0) {
+          response += `\n\n**Validation:** ${validation.errors.length} issue${validation.errors.length > 1 ? 's' : ''} auto-fixed before delivery.`;
+        }
+        return response;
+      }
+    } catch (e) {
+      console.error('Pro generator failed, falling back:', e);
+    }
+  }
+
   // RUNNABLE TEMPLATES: Check for projects that can run in WebContainer
   const runnableProject = matchRunnableTemplate(input);
   if (runnableProject) {

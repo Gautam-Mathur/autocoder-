@@ -43,6 +43,10 @@ import { createConversation as createConvState, processTurn, getConversation as 
 // Deep Project Generator
 import { generateDeepProject, listBlueprints, listFeatures, getBlueprint, getFeature } from "./modules/deep-project-generator";
 
+// Pro Generator (client-side, produces clean JSX for preview)
+import { analyzePrompt as proAnalyzePrompt, generateProject as proGenerateProject, shouldUseProGenerator } from "../client/src/lib/code-generator/pro-generator";
+import { validateGeneratedCode } from "../client/src/lib/code-generator/code-validator";
+
 // Preview Project Manager
 import { preparePreviewProject, startPreviewServer, stopPreviewServer, getPreviewStatus, cleanupOldProjects } from "./modules/preview-project-manager";
 
@@ -691,17 +695,19 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
         const nameMatch = content.match(/(?:called?|named?|build|create|make)\s+["']?([A-Za-z][A-Za-z0-9_-]+)["']?/i);
         const projectName = nameMatch ? nameMatch[1] : 'GeneratedProject';
         
-        // Generate the deep project
-        const project = generateDeepProject({
-          blueprint,
-          name: projectName,
-          features: ['auth', 'dashboard', 'crud', 'settings', 'notifications'],
-          includeTests: true,
-          includeDocs: true,
-        });
+        // Use Pro Generator for clean JSX output that works with live preview
+        const requirements = proAnalyzePrompt(content);
+        const proProject = proGenerateProject(requirements);
+        
+        // Validate and auto-fix the generated code
+        const validation = validateGeneratedCode(proProject.files.map(f => ({ path: f.path, content: f.content })));
+        const filesToSave = validation.fixedFiles.length > 0 ? validation.fixedFiles : proProject.files;
+        
+        // Clear old files before saving new ones to prevent accumulation
+        await storage.deleteProjectFilesByConversation(conversationId);
         
         // Save all files to storage
-        for (const file of project.files) {
+        for (const file of filesToSave) {
           const ext = file.path.split('.').pop() || 'txt';
           const langMap: Record<string, string> = {
             ts: 'typescript', tsx: 'tsx', js: 'javascript', jsx: 'jsx',
@@ -712,64 +718,26 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
           await storage.upsertProjectFile(conversationId, file.path, file.content, language);
         }
         
+        const featureList = requirements.features || [];
+        
         // Create assistant response
-        const responseContent = `🎉 **Great news! I've built your ${projectName} app!**
+        const responseContent = `**Project: ${projectName}**
 
-I understood you wanted to create a **${project.blueprint.name.toLowerCase()}**, so I went ahead and built a complete, ready-to-use application for you!
-
----
-
-## 📋 What I Created For You
-
-Here's what your new app can do:
-${project.features.map(f => {
-          const explanations: Record<string, string> = {
-            'auth': 'Users can create accounts and log in securely',
-            'dashboard': 'A control panel where users can see everything at a glance',
-            'crud': 'Users can add, view, edit, and delete their data',
-            'settings': 'Users can customize their preferences',
-            'notifications': 'Users get alerts when something important happens',
-          };
-          return `- ✅ **${f}** - ${explanations[f] || 'A useful feature for your app'}`;
-        }).join('\n')}
+Files generated and ready for download. Use "View Code" tab to see generated files.
 
 ---
 
-## 🗂️ Your Project Files (${project.totalFiles} files)
+**Tech Stack:** React, Vite, Tailwind CSS, React Router
 
-I organized everything neatly into folders:
+**Files Created:** ${filesToSave.length} files
 
-**📁 client/** - This is what your users will see (the website/app interface)
-**📁 server/** - This is the behind-the-scenes logic (handles data and requests)  
-**📁 shared/** - Common code used by both parts
+${featureList.length > 0 ? `**Features:**\n${featureList.map((f: string) => `- ${f}`).join('\n')}` : ''}
 
 ---
 
-## 🔧 What's Under The Hood (Don't worry, you don't need to understand this!)
+Click "Preview" to see your app running live, or browse the files to view the code.
 
-- **React** - Makes your app interactive and responsive
-- **Tailwind CSS** - Makes everything look beautiful
-- **Express** - Handles requests from users
-- **PostgreSQL** - Stores all your data safely
-
----
-
-## 🚀 What You Can Do Now
-
-1. **Browse your files** - Click on any file in the panel on the right to see the code
-2. **Download everything** - Click "Download All" button to get a ZIP file
-3. **Ask me to change things** - Just tell me what you'd like different!
-
----
-
-## 💡 Need Something Changed?
-
-Just tell me in plain English! For example:
-- "Make the buttons blue instead of purple"
-- "Add a contact form"
-- "Make it work on mobile phones"
-
-I'm here to help! 😊`;
+Want changes? Just tell me what you'd like different!`;
 
         await storage.createMessage(conversationId, "assistant", responseContent);
         
@@ -786,7 +754,7 @@ I'm here to help! 😊`;
         }
         
         // Send done signal and refresh files
-        res.write(`data: ${JSON.stringify({ done: true, deepProject: { name: projectName, totalFiles: project.totalFiles } })}\n\n`);
+        res.write(`data: ${JSON.stringify({ done: true, deepProject: { name: projectName, totalFiles: filesToSave.length } })}\n\n`);
         res.end();
         return;
       }
@@ -3088,6 +3056,21 @@ You're not just a code generator - you're a thinking partner who builds exactly 
     }
   });
 
+  // Delete all files for a conversation (used before regeneration to prevent duplicates)
+  app.delete("/api/conversations/:id/files", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+      await storage.deleteProjectFilesByConversation(conversationId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting project files:", error);
+      res.status(500).json({ error: "Failed to delete project files" });
+    }
+  });
+
   // Bulk save files from code generation
   app.post("/api/conversations/:id/files/bulk", async (req, res) => {
     try {
@@ -5216,7 +5199,7 @@ Output ONLY the fixed code. No explanations.`;
     }
   });
 
-  // Generate a deep project
+  // Generate a deep project (uses pro-generator for clean JSX output)
   app.post("/api/ai/deep/generate", async (req, res) => {
     try {
       const schema = z.object({
@@ -5233,12 +5216,15 @@ Output ONLY the fixed code. No explanations.`;
         return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
       }
 
-      const project = generateDeepProject(parsed.data);
+      const prompt = `${parsed.data.name} with features: ${parsed.data.features.join(', ')}`;
+      const requirements = proAnalyzePrompt(prompt);
+      const proProject = proGenerateProject(requirements);
+      const validation = validateGeneratedCode(proProject.files.map(f => ({ path: f.path, content: f.content })));
+      const filesToSave = validation.fixedFiles.length > 0 ? validation.fixedFiles : proProject.files;
       
-      // If conversationId provided, save all files to storage for UI display
       if (parsed.data.conversationId) {
         const convId = parsed.data.conversationId;
-        for (const file of project.files) {
+        for (const file of filesToSave) {
           const ext = file.path.split('.').pop() || 'txt';
           const langMap: Record<string, string> = {
             ts: 'typescript', tsx: 'tsx', js: 'javascript', jsx: 'jsx',
@@ -5253,19 +5239,18 @@ Output ONLY the fixed code. No explanations.`;
       res.json({
         success: true,
         project: {
-          name: project.name,
-          blueprint: project.blueprint.id,
-          totalFiles: project.totalFiles,
-          features: project.features,
-          structure: project.structure,
+          name: parsed.data.name,
+          blueprint: parsed.data.blueprint,
+          totalFiles: filesToSave.length,
+          features: parsed.data.features,
+          structure: filesToSave.map(f => f.path),
         },
-        files: project.files.map(f => ({
+        files: filesToSave.map(f => ({
           path: f.path,
-          type: f.type,
+          type: 'source',
           size: f.content.length,
           content: f.content,
         })),
-        fullProject: project,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Project generation failed';
@@ -5273,7 +5258,7 @@ Output ONLY the fixed code. No explanations.`;
     }
   });
 
-  // Generate a deep project with AI refinement
+  // Generate a deep project with AI refinement (uses pro-generator for clean JSX output)
   app.post("/api/ai/deep/generate-refined", async (req, res) => {
     try {
       const schema = z.object({
@@ -5299,32 +5284,27 @@ Output ONLY the fixed code. No explanations.`;
         return res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
       }
 
-      // Import the async generator
-      const { generateDeepProjectWithAI } = await import('./modules/deep-project-generator');
-      
-      const project = await generateDeepProjectWithAI({
-        ...parsed.data,
-        enableAIRefinement: parsed.data.enableAIRefinement ?? true,
-        aiRefinementOptions: parsed.data.aiRefinementOptions,
-      });
+      const prompt = `${parsed.data.name} with features: ${parsed.data.features.join(', ')}`;
+      const requirements = proAnalyzePrompt(prompt);
+      const proProject = proGenerateProject(requirements);
+      const validation = validateGeneratedCode(proProject.files.map(f => ({ path: f.path, content: f.content })));
+      const filesToSave = validation.fixedFiles.length > 0 ? validation.fixedFiles : proProject.files;
       
       res.json({
         success: true,
         project: {
-          name: project.name,
-          blueprint: project.blueprint.id,
-          totalFiles: project.totalFiles,
-          features: project.features,
-          structure: project.structure,
-          refinement: project.refinement,
+          name: parsed.data.name,
+          blueprint: parsed.data.blueprint,
+          totalFiles: filesToSave.length,
+          features: parsed.data.features,
+          structure: filesToSave.map(f => f.path),
         },
-        files: project.files.map(f => ({
+        files: filesToSave.map(f => ({
           path: f.path,
-          type: f.type,
+          type: 'source',
           size: f.content.length,
           content: f.content,
         })),
-        fullProject: project,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Project generation with AI refinement failed';

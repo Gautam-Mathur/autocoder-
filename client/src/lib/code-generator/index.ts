@@ -1,5 +1,5 @@
-// Code Generator - Local Template-Based Engine + AI-Powered Generation
-// Templates for instant generation, AI for unlimited custom applications
+// Code Generator - Local Template-Based Engine + Pro Generator + AI-Powered Generation
+// Pro Generator for multi-file React projects, Templates for simple requests
 
 export { generateCode, generateCodeWithContext, getAvailableTemplates, isCodingRequest } from "./engine";
 export type { CodeTemplate } from "./templates";
@@ -7,3 +7,8 @@ export { matchRunnableTemplate, runnableTemplates } from "./runnable-templates";
 export type { RunnableProject } from "./runnable-templates";
 export { generateFullStackApp, generateFullStackAppSync, shouldUseAIGeneration } from "./ai-fullstack-generator";
 export type { GeneratedProject, GenerationProgress } from "./ai-fullstack-generator";
+export { analyzePrompt, generateProject, formatProjectResponse, shouldUseProGenerator } from "./pro-generator";
+export type { ProjectRequirements } from "./pro-generator";
+export type { GeneratedProject as ProGeneratedProject } from "./pro-generator";
+export { validateGeneratedCode, autoFixCode } from "./code-validator";
+export type { ValidationResult, ValidationError, ValidationWarning } from "./code-validator";

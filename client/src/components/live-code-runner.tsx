@@ -33,7 +33,9 @@ export function LiveCodeRunner({
       /\bdb\b/i, /\bmigrations?\b/i, /\bscripts?\b/i
     ];
     const tsxFiles = files.filter(f => {
-      if (!f.path.endsWith('.tsx') && !f.path.endsWith('.jsx')) return false;
+      if (!f.path.endsWith('.tsx') && !f.path.endsWith('.jsx') && !f.path.endsWith('.js')) return false;
+      if (f.path.endsWith('.config.js') || f.path.endsWith('.config.ts')) return false;
+      if (f.path === 'package.json' || f.path === 'vite.config.js') return false;
       const pathLower = f.path.toLowerCase();
       if (backendPathPatterns.some(p => p.test(pathLower))) return false;
       if (pathLower.includes('.test.') || pathLower.includes('.spec.')) return false;
@@ -78,7 +80,7 @@ export function LiveCodeRunner({
     const componentMap: Record<string, string> = {};
     
     for (const file of tsxFiles) {
-      const fileName = file.path.split('/').pop()?.replace(/\.(tsx|jsx)$/, '') || '';
+      const fileName = file.path.split('/').pop()?.replace(/\.(tsx|jsx|js)$/, '') || '';
       let code = file.content;
       
       // Fix common syntax errors in generated code
@@ -126,8 +128,12 @@ export function LiveCodeRunner({
       code = code.replace(/<textarea(?=[\s>\/])/g, '<Textarea');
       code = code.replace(/<\/textarea>/gi, '</Textarea>');
       
-      // Remove all imports
-      code = code.replace(/^import\s+.*$/gm, '');
+      // Fix malformed self-closing + closing tag combos: <Tag ... /></Tag> → <Tag ... />
+      code = code.replace(/\/>\s*<\/\w+>/g, '/>');
+      
+      // Remove all imports (single-line and multi-line)
+      code = code.replace(/^import\s+[\s\S]*?from\s+['"][^'"]*['"];?\s*$/gm, '');
+      code = code.replace(/^import\s+['"][^'"]*['"];?\s*$/gm, '');
       
       // Remove TypeScript-only constructs (enum, declare, namespace, abstract class)
       code = code.replace(/declare\s+module\s+['"][^'"]+['"]\s*\{[\s\S]*?\}/g, '');
@@ -191,7 +197,9 @@ export function LiveCodeRunner({
     
     // Components provided by our mock library - don't include user versions
     const builtInMocks = new Set([
-      'Switch', 'Router', 'Route', 'Link', 'Button', 'Card', 'CardHeader', 'CardTitle', 
+      'Router', 'Route', 'Routes', 'Link', 'NavLink', 'BrowserRouter', 'HashRouter',
+      'MemoryRouter', 'Outlet', 'Navigate', 'Switch',
+      'Button', 'Card', 'CardHeader', 'CardTitle', 
       'CardDescription', 'CardContent', 'CardFooter', 'Input', 'Label', 'Badge', 
       'Separator', 'Avatar', 'AvatarImage', 'AvatarFallback', 'ScrollArea', 'Tabs', 
       'TabsList', 'TabsTrigger', 'TabsContent', 'Select', 'SelectTrigger', 'SelectValue', 
@@ -232,15 +240,24 @@ export function LiveCodeRunner({
 
     const appCode = stripBuiltInDeclarations(rawAppCode);
     
-    // Find page components
-    const pageComponentEntries = Object.entries(componentMap)
+    // Collect ALL user-defined components (not just pages)
+    // Order: utility/shared components first, then pages, then App last
+    const userComponentEntries = Object.entries(componentMap)
+      .filter(([name]) => name !== 'App' && name !== 'main' && name !== 'index');
+    
+    const sharedComponents = userComponentEntries
+      .filter(([name]) => !name.includes('Page'))
+      .map(([_, code]) => stripBuiltInDeclarations(code))
+      .join('\n\n');
+
+    const pageComponentEntries = userComponentEntries
       .filter(([name]) => name.includes('Page') || name === 'Home' || name === 'Dashboard' || name === 'Login' || name === 'Register' || name === 'Settings' || name === 'NotFound');
     
     const pageComponents = pageComponentEntries
       .map(([_, code]) => stripBuiltInDeclarations(code))
       .join('\n\n');
     
-    const pageComponentOverrides = pageComponentEntries
+    const pageComponentOverrides = userComponentEntries
       .filter(([name]) => allReservedNames.includes(name))
       .map(([name]) => `try { if (typeof __stripped_${name} !== 'undefined') { ${name} = __stripped_${name}; } } catch(e) {}`)
       .join('\n');
@@ -415,28 +432,52 @@ export function LiveCodeRunner({
   </script>
   <script type="text/babel" data-presets="react,typescript">
     // React hooks and utilities
-    const { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, Fragment } = React;
+    const { useState, useEffect, useCallback, useMemo, useRef, useReducer, createContext, useContext, Fragment, forwardRef, Children, cloneElement, isValidElement } = React;
     
-    // Routing mocks
-    const RouteContext = createContext({ path: '/', setPath: () => {} });
+    // Routing mocks (supports both React Router v5 and v6 patterns)
+    const RouteContext = createContext({ path: '/', setPath: () => {}, params: {} });
     function Router({ children }) {
       const [path, setPath] = useState('/');
-      return React.createElement(RouteContext.Provider, { value: { path, setPath } }, children);
+      return React.createElement(RouteContext.Provider, { value: { path, setPath, params: {} } }, children);
     }
-    function Route({ path, component: Component }) {
+    const BrowserRouter = Router;
+    const HashRouter = Router;
+    const MemoryRouter = Router;
+    function Route({ path, component: Component, element, children }) {
       const { path: currentPath } = useContext(RouteContext);
-      if (path === currentPath || (!path && currentPath)) {
-        return Component ? React.createElement(Component) : null;
-      }
-      return null;
+      const isMatch = !path || path === '*' || currentPath === path || currentPath.startsWith(path + '/');
+      if (!isMatch) return null;
+      if (element) return element;
+      if (Component) return React.createElement(Component);
+      return children || null;
     }
-    function RouteSwitch({ children }) {
+    function Routes({ children }) {
       const { path: currentPath } = useContext(RouteContext);
       const routes = React.Children.toArray(children);
       for (const route of routes) {
-        if (route.props?.path === currentPath) return route;
+        if (!route.props) continue;
+        const rPath = route.props.path;
+        if (rPath === currentPath) return route;
+        if (rPath && currentPath.startsWith(rPath + '/')) return route;
       }
-      return routes.find(r => !r.props?.path) || routes[0] || null;
+      const wildcard = routes.find(r => r.props?.path === '*');
+      if (wildcard) return wildcard;
+      return routes[0] || null;
+    }
+    function RouteSwitch({ children }) { return React.createElement(Routes, null, children); }
+    function Outlet() { return null; }
+    function Navigate({ to, replace }) {
+      const { setPath } = useContext(RouteContext);
+      useEffect(() => { setPath(to || '/'); }, []);
+      return null;
+    }
+    function NavLink({ to, href, children, className, activeClassName, onClick, ...props }) {
+      const { path: currentPath, setPath } = useContext(RouteContext);
+      const target = to || href || '/';
+      const isActive = currentPath === target;
+      const handleClick = (e) => { e.preventDefault(); setPath(target); onClick?.(e); };
+      const cls = typeof className === 'function' ? className({ isActive }) : (isActive && activeClassName ? \`\${className || ''} \${activeClassName}\` : (className || ''));
+      return React.createElement('a', { href: target, className: cls, onClick: handleClick, ...props }, children);
     }
     function Link({ to, href, children, className, onClick, ...props }) {
       const { setPath } = useContext(RouteContext);
@@ -449,7 +490,19 @@ export function LiveCodeRunner({
     }
     function useLocation() {
       const { path, setPath } = useContext(RouteContext);
-      return [path, setPath];
+      return { pathname: path, search: '', hash: '', state: null, key: 'default' };
+    }
+    function useNavigate() {
+      const { setPath } = useContext(RouteContext);
+      return (to, opts) => setPath(typeof to === 'string' ? to : '/');
+    }
+    function useParams() {
+      const { params } = useContext(RouteContext);
+      return params || {};
+    }
+    function useSearchParams() {
+      const [params, setParams] = useState(new URLSearchParams());
+      return [params, setParams];
     }
     function useRoute(pattern) {
       const { path } = useContext(RouteContext);
@@ -856,7 +909,8 @@ export function LiveCodeRunner({
       return classes.filter(Boolean).join(' ');
     }
     
-    // Other components disabled - rely on mocks to reduce Babel errors
+    // User-defined shared/utility components (loaded before pages)
+    ${sharedComponents}
     
     // Page components
     ${pageComponents}

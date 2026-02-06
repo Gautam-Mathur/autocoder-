@@ -49,6 +49,7 @@ export interface IStorage {
   createProjectFile(file: InsertProjectFile): Promise<ProjectFile>;
   updateProjectFile(id: number, content: string): Promise<ProjectFile | undefined>;
   deleteProjectFile(id: number): Promise<void>;
+  deleteProjectFilesByConversation(conversationId: number): Promise<void>;
   upsertProjectFile(conversationId: number, path: string, content: string, language: string): Promise<ProjectFile>;
   
   // Project plans
@@ -214,6 +215,10 @@ export class MemStorage implements IStorage {
         return;
       }
     }
+  }
+
+  async deleteProjectFilesByConversation(conversationId: number): Promise<void> {
+    this.files.set(conversationId, []);
   }
 
   async upsertProjectFile(conversationId: number, path: string, content: string, language: string): Promise<ProjectFile> {
@@ -527,6 +532,11 @@ export class DatabaseStorage implements IStorage {
   async deleteProjectFile(id: number): Promise<void> {
     const db = await this.getDb();
     await db.delete(projectFiles).where(eq(projectFiles.id, id));
+  }
+
+  async deleteProjectFilesByConversation(conversationId: number): Promise<void> {
+    const db = await this.getDb();
+    await db.delete(projectFiles).where(eq(projectFiles.conversationId, conversationId));
   }
 
   async upsertProjectFile(conversationId: number, path: string, content: string, language: string): Promise<ProjectFile> {

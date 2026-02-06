@@ -1179,13 +1179,11 @@ ${combinedJs}
         <div className="flex-1 flex overflow-hidden">
           {activeTab === "preview" ? (
             <div className="flex-1 flex overflow-hidden">
-              {conversationId ? (
-                <VitePreview 
-                  conversationId={conversationId}
+              {files.length > 0 ? (
+                <LiveCodeRunner 
+                  files={files.map(f => ({ path: f.path, content: f.content, language: f.language }))}
                   projectName="Generated Project"
                   height="100%"
-                  autoStart={true}
-                  files={files}
                 />
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
@@ -1478,13 +1476,11 @@ ${combinedJs}
                   });
                 }}
               />
-            ) : conversationId ? (
-              <VitePreview 
-                conversationId={conversationId}
+            ) : files.length > 0 ? (
+              <LiveCodeRunner 
+                files={files.map(f => ({ path: f.path, content: f.content, language: f.language }))}
                 projectName="Generated Project"
                 height="100%"
-                autoStart={true}
-                files={files}
               />
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
