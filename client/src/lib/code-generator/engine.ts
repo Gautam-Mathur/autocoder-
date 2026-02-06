@@ -1282,11 +1282,10 @@ function applyAutoFixes(code: string, errors: CodeError[]): { code: string; fixe
   let fixedSemicolons = false;
   for (let i = 0; i < jsLines.length; i++) {
     const line = jsLines[i].trim();
-    // Skip if empty, comment, or already has semicolon/brace
     if (!line || line.startsWith('//') || line.startsWith('/*') || line.startsWith('*')) continue;
     if (line.endsWith(';') || line.endsWith('{') || line.endsWith('}') || line.endsWith(',') || line.endsWith(':')) continue;
-    if (line.endsWith(')') && !line.includes('=')) continue; // function call might be ok
-    // Check if it's a statement that should end with semicolon
+    if (line.endsWith(')') && !line.includes('=')) continue;
+    if (line.endsWith('(') || line.endsWith('[') || line.endsWith('=>') || line.endsWith('&&') || line.endsWith('||') || line.endsWith('?') || line.endsWith('+') || line.endsWith('-') || line.endsWith('*') || line.endsWith('/') || line.endsWith('=') || line.endsWith('>') || line.endsWith('<') || line.endsWith('|') || line.endsWith('&')) continue;
     if (/^(const|let|var|return|throw|break|continue)\s/.test(line) && !line.endsWith(';')) {
       jsLines[i] = jsLines[i].trimEnd() + ';';
       fixedSemicolons = true;

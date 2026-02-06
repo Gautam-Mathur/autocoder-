@@ -26,10 +26,19 @@ export function LiveCodeRunner({
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const previewHtml = useMemo(() => {
-    // Collect all TSX/JSX files
-    const tsxFiles = files.filter(f => 
-      f.path.endsWith('.tsx') || f.path.endsWith('.jsx')
-    );
+    const backendPathPatterns = [
+      /\bserver\b/i, /\bcontrollers?\b/i, /\bmiddleware\b/i, /\bmodels?\b/i,
+      /\broutes?\b/i, /\bservices?\b/i, /\bvalidators?\b/i, /\be2e\b/i,
+      /\btests?\b/i, /\bspec\b/i, /\b__tests__\b/i, /\bprisma\b/i,
+      /\bdb\b/i, /\bmigrations?\b/i, /\bscripts?\b/i
+    ];
+    const tsxFiles = files.filter(f => {
+      if (!f.path.endsWith('.tsx') && !f.path.endsWith('.jsx')) return false;
+      const pathLower = f.path.toLowerCase();
+      if (backendPathPatterns.some(p => p.test(pathLower))) return false;
+      if (pathLower.includes('.test.') || pathLower.includes('.spec.')) return false;
+      return true;
+    });
     const cssFiles = files.filter(f => f.path.endsWith('.css'));
     
     // For HTML-only projects (no TSX files)
@@ -83,6 +92,10 @@ export function LiveCodeRunner({
       code = code.replace(/\(\s*;+\s*</g, '(\n<');
       // Handle stray semicolons before JSX tags
       code = code.replace(/;\s*(\n\s*<[A-Z])/g, '$1');
+      // Remove stray semicolons after [ (array open), { (object open), => (arrow)
+      code = code.replace(/\[\s*;+\s*/g, '[\n');
+      code = code.replace(/\{\s*;+\s*(?!})/g, '{\n');
+      code = code.replace(/=>\s*;+\s*/g, '=>\n');
       // Clean up double/triple semicolons
       code = code.replace(/;{2,}/g, ';');
       // Fix "{ ;" patterns inside JSX
@@ -94,30 +107,39 @@ export function LiveCodeRunner({
       code = code.replace(/import\s*\{([^}]*);+\s*\n?\s*\}/g, 'import {$1}');
       code = code.replace(/import\s*\{\s*\n+\s*([^}]*)\}/g, 'import { $1 }');
       
-      // Fix malformed return statements (e.g., "return (;" -> "return (")
-      code = code.replace(/return\s*\(\s*;+/g, 'return (');
+      // Fix stray semicolons after opening delimiters/continuation chars
+      // Handles patterns from old auto-fix bug: "return (;", "const arr = [;", "=> ;"
+      code = code.replace(/\(\s*;(\s*\n)/g, '($1');
+      code = code.replace(/\[\s*;(\s*\n)/g, '[$1');
+      code = code.replace(/=>\s*;(\s*\n)/g, '=>$1');
+      code = code.replace(/=>\s*;(\s*$)/gm, '=>$1');
+
+      // Fix JSX tag case mismatches: <button ...>...</Button> → <Button ...>...</Button>
+      code = code.replace(/<button(?=[\s>\/])/g, '<Button');
+      code = code.replace(/<\/button>/gi, '</Button>');
+      code = code.replace(/<input(?=[\s>\/])/g, '<Input');
+      code = code.replace(/<\/input>/gi, '</Input>');
+      code = code.replace(/<select(?=[\s>\/])/g, '<Select');
+      code = code.replace(/<\/select>/gi, '</Select>');
+      code = code.replace(/<label(?=[\s>\/])/g, '<Label');
+      code = code.replace(/<\/label>/gi, '</Label>');
+      code = code.replace(/<textarea(?=[\s>\/])/g, '<Textarea');
+      code = code.replace(/<\/textarea>/gi, '</Textarea>');
       
       // Remove all imports
       code = code.replace(/^import\s+.*$/gm, '');
       
-      // Remove any declarations of icons we provide built-in (prevents "already declared" errors)
-      const builtInIcons = ['Check', 'X', 'Plus', 'Minus', 'ChevronUp', 'ChevronDown', 'ChevronLeft', 'ChevronRight', 
-        'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Search', 'Home', 'User', 'Users', 'Settings', 'Menu',
-        'Edit', 'Edit2', 'Trash', 'Trash2', 'Copy', 'Eye', 'EyeOff', 'Lock', 'Unlock', 'Star', 'Heart', 'Bell',
-        'Mail', 'Calendar', 'Download', 'Upload', 'File', 'Folder', 'Image', 'Camera', 'Phone', 'MessageSquare',
-        'MessageCircle', 'Send', 'MoreHorizontal', 'MoreVertical', 'Filter', 'RefreshCw', 'RotateCw', 'AlertCircle',
-        'AlertTriangle', 'Info', 'CheckCircle', 'XCircle', 'Clock', 'MapPin', 'Globe', 'ShoppingCart', 'CreditCard',
-        'DollarSign', 'Activity', 'BarChart', 'PieChart', 'TrendingUp', 'TrendingDown', 'Zap', 'Sun', 'Moon', 'Cloud',
-        'Loader', 'Loader2', 'Sparkles', 'Package', 'Box', 'Layers', 'Grid', 'List', 'Tag', 'Bookmark', 'Award',
-        'Gift', 'Briefcase', 'Building', 'Clipboard', 'Terminal', 'Code', 'Database', 'Server', 'Wifi', 'Bluetooth',
-        'Power', 'ExternalLink', 'LinkIcon', 'Paperclip', 'Play', 'Pause', 'StopCircle', 'SkipBack', 'SkipForward',
-        'Volume2', 'VolumeX', 'Maximize', 'Minimize', 'ZoomIn', 'ZoomOut', 'Printer', 'Save', 'Undo', 'Redo',
-        'Bold', 'Italic', 'Underline', 'AlignLeft', 'AlignCenter', 'AlignRight', 'HelpCircle'];
-      for (const iconName of builtInIcons) {
-        // Remove const/let/var declarations of these icons
-        code = code.replace(new RegExp(`(const|let|var)\\s+${iconName}\\s*=`, 'g'), `// removed-${iconName} =`);
-      }
-      
+      // Remove TypeScript-only constructs (enum, declare, namespace, abstract class)
+      code = code.replace(/declare\s+module\s+['"][^'"]+['"]\s*\{[\s\S]*?\}/g, '');
+      code = code.replace(/declare\s+(global|const|function|class|type|interface|var|let|enum)\b[\s\S]*?[;\n]/g, '');
+      code = code.replace(/\benum\s+\w+\s*\{[\s\S]*?\}/g, '');
+      code = code.replace(/\bnamespace\s+\w+\s*\{[\s\S]*?\}/g, '');
+      code = code.replace(/\babstract\s+class\b/g, 'class');
+
+      // Remove require() calls (Node.js)
+      code = code.replace(/const\s+\w+\s*=\s*require\([^)]+\)\s*;?/g, '');
+      code = code.replace(/const\s*\{[^}]+\}\s*=\s*require\([^)]+\)\s*;?/g, '');
+
       // Remove TypeScript type annotations
       code = code.replace(/:\s*React\.\w+(<[^>]+>)?/g, '');
       code = code.replace(/:\s*(string|number|boolean|any|void|null|undefined|FC|FunctionComponent|ReactNode|HTMLAttributes|ComponentProps)(\[\])?(\s*\|[^=]+)?/g, '');
@@ -128,12 +150,25 @@ export function LiveCodeRunner({
       // Remove generic type parameters - only single letter generics to avoid matching JSX tags
       code = code.replace(/<[A-Z]>/g, ''); // Single letter generics like <T>, <K>
       code = code.replace(/<[A-Z],\s*[A-Z]>/g, ''); // Double generics like <K, V>
+      // Remove complex generic patterns like <string, number[]>
+      code = code.replace(/<(string|number|boolean|any|unknown|never|void|null|undefined|object)(\[\])?(,\s*(string|number|boolean|any|unknown|never|void|null|undefined|object)(\[\])?)*>/g, '');
       // Remove custom type annotations on function parameters (e.g. props: MyProps)
       code = code.replace(/(\w+)\s*:\s*[A-Z]\w*Props/g, '$1');
       code = code.replace(/(\w+)\s*:\s*[A-Z]\w*Type/g, '$1');
       // Remove any remaining type annotations after variable/parameter names
+      // Only match the last param before closing paren: (param: Type)
       code = code.replace(/(\([\w\s,]*\w)\s*:\s*[A-Z]\w*\s*(\))/g, '$1$2');
-      code = code.replace(/(\w+)\s*:\s*[A-Z]\w+(?=[,\)])/g, '$1');
+      // Only strip type annotations with known TypeScript type suffixes to avoid breaking object properties like {icon: DollarSign}
+      code = code.replace(/(\w+)\s*:\s*[A-Z]\w*(Type|Props|State|Interface|Options|Config|Params|Args|Response|Request|Handler|Error|Context|Ref|Data|Result|Info|Payload|Schema|Enum|Event|Element|Component|Service|Factory|Class|Module|Store|Reducer|Action|Dispatch|Middleware|Hook|Util|Helper|Manager|Controller|Decorator|Mixin|Observable|Subject|Subscriber|Observer|Iterator|Generator|Promise|Callback|Listener|Emitter|Stream|Buffer|Record|Map|Set|Tuple|Union|Intersection|Guard|Assertion|Predicate|Validator|Serializer|Deserializer|Transformer|Converter|Adapter|Wrapper|Proxy|Interceptor)s?(?=[,\)\s;])/g, '$1');
+      // Remove 'as const', 'satisfies', readonly, keyof patterns
+      code = code.replace(/\bas\s+const\b/g, '');
+      code = code.replace(/\bsatisfies\s+\w+/g, '');
+      code = code.replace(/\breadonly\s+/g, '');
+      code = code.replace(/\bkeyof\s+typeof\s+\w+/g, '""');
+      code = code.replace(/\bkeyof\s+\w+/g, '""');
+      // Remove non-null assertions (!)
+      code = code.replace(/(\w)!\./g, '$1.');
+      code = code.replace(/(\w)!(?=[,;\)\]\s])/g, '$1');
       
       // Convert exports
       code = code.replace(/export\s+default\s+function\s+(\w+)/g, 'function $1');
@@ -141,11 +176,18 @@ export function LiveCodeRunner({
       code = code.replace(/export\s+const\s+(\w+)/g, 'const $1');
       code = code.replace(/export\s+default\s+(\w+)\s*;?/g, '');
       
+      // Skip files that don't look like React components (no JSX/return/render patterns)
+      const hasJSX = /<[A-Z]|React\.createElement|return\s*\(/.test(code);
+      const isComponent = /function\s+\w+|const\s+\w+\s*=/.test(code);
+      if (!hasJSX && !isComponent) {
+        continue;
+      }
+      
       componentMap[fileName] = code;
     }
 
-    // Find the App component
-    const appCode = componentMap['App'] || '';
+    // Find the App component (will apply stripBuiltInDeclarations after defining the function)
+    const rawAppCode = componentMap['App'] || '';
     
     // Components provided by our mock library - don't include user versions
     const builtInMocks = new Set([
@@ -162,35 +204,50 @@ export function LiveCodeRunner({
       'FormItem', 'FormLabel', 'FormControl', 'FormDescription', 'FormMessage',
       'Layout', 'Navbar', 'Sidebar', 'Header', 'Footer', 'QueryClient', 'QueryClientProvider'
     ]);
+
+    const builtInIconsList = ['Check', 'X', 'Plus', 'Minus', 'ChevronUp', 'ChevronDown', 'ChevronLeft', 'ChevronRight', 
+      'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Search', 'Home', 'User', 'Users', 'Settings', 'Menu',
+      'Edit', 'Edit2', 'Trash', 'Trash2', 'Copy', 'Eye', 'EyeOff', 'Lock', 'Unlock', 'Star', 'Heart', 'Bell',
+      'Mail', 'Calendar', 'Download', 'Upload', 'File', 'Folder', 'Image', 'Camera', 'Phone', 'MessageSquare',
+      'MessageCircle', 'Send', 'MoreHorizontal', 'MoreVertical', 'Filter', 'RefreshCw', 'RotateCw', 'AlertCircle',
+      'AlertTriangle', 'Info', 'CheckCircle', 'XCircle', 'Clock', 'MapPin', 'Globe', 'ShoppingCart', 'CreditCard',
+      'DollarSign', 'Activity', 'BarChart', 'PieChart', 'TrendingUp', 'TrendingDown', 'Zap', 'Sun', 'Moon', 'Cloud',
+      'Loader', 'Loader2', 'Sparkles', 'Package', 'Box', 'Layers', 'Grid', 'List', 'Tag', 'Bookmark', 'Award',
+      'Gift', 'Briefcase', 'Building', 'Clipboard', 'Terminal', 'Code', 'Database', 'Server', 'Wifi', 'Bluetooth',
+      'Power', 'ExternalLink', 'LinkIcon', 'Paperclip', 'Play', 'Pause', 'StopCircle', 'SkipBack', 'SkipForward',
+      'Volume2', 'VolumeX', 'Maximize', 'Minimize', 'ZoomIn', 'ZoomOut', 'Printer', 'Save', 'Undo', 'Redo',
+      'Bold', 'Italic', 'Underline', 'AlignLeft', 'AlignCenter', 'AlignRight', 'HelpCircle'];
+
+    const allReservedNames = Array.from(builtInMocks).concat(builtInIconsList);
+
+    function stripBuiltInDeclarations(code: string): string {
+      let cleaned = code;
+      allReservedNames.forEach(name => {
+        cleaned = cleaned.replace(new RegExp(`function\\s+${name}\\s*\\([^)]*\\)\\s*\\{`, 'g'), `/* stripped */ function __stripped_${name}(/* stripped */) {`);
+        cleaned = cleaned.replace(new RegExp(`const\\s+${name}\\s*=\\s*`, 'g'), `const __stripped_${name} = `);
+        cleaned = cleaned.replace(new RegExp(`(let|var)\\s+${name}\\s*=`, 'g'), `$1 __stripped_${name} =`);
+      });
+      return cleaned;
+    }
+
+    const appCode = stripBuiltInDeclarations(rawAppCode);
     
     // Find page components
-    const pageComponents = Object.entries(componentMap)
-      .filter(([name]) => name.includes('Page') || name === 'Home' || name === 'Dashboard' || name === 'Login' || name === 'Register' || name === 'Settings' || name === 'NotFound')
-      .map(([_, code]) => code)
+    const pageComponentEntries = Object.entries(componentMap)
+      .filter(([name]) => name.includes('Page') || name === 'Home' || name === 'Dashboard' || name === 'Login' || name === 'Register' || name === 'Settings' || name === 'NotFound');
+    
+    const pageComponents = pageComponentEntries
+      .map(([_, code]) => stripBuiltInDeclarations(code))
       .join('\n\n');
     
-    // Page names to exclude from otherComponents (these are in pageComponents)
-    const pageNames = new Set(['Home', 'Dashboard', 'Login', 'Register', 'Settings', 'NotFound']);
+    const pageComponentOverrides = pageComponentEntries
+      .filter(([name]) => allReservedNames.includes(name))
+      .map(([name]) => `try { if (typeof __stripped_${name} !== 'undefined') { ${name} = __stripped_${name}; } } catch(e) {}`)
+      .join('\n');
     
-    // Find other components (excluding built-in mocks, test files, pages, and problematic files)
-    const otherComponents = Object.entries(componentMap)
-      .filter(([name]) => 
-        !name.includes('Page') && 
-        name !== 'App' && 
-        name !== 'main' && 
-        name !== 'index' &&
-        !builtInMocks.has(name) &&
-        !pageNames.has(name) && // Exclude page names that don't have 'Page' suffix
-        !name.includes('.test') &&
-        !name.includes('.spec') &&
-        !name.includes('test') // exclude test files
-      )
-      .map(([_, code]) => code)
-      .join('\n\n');
-
     const cssContent = cssFiles.map(f => f.content).join('\n');
 
-    return `<!DOCTYPE html>
+    let generatedHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -799,11 +856,13 @@ export function LiveCodeRunner({
       return classes.filter(Boolean).join(' ');
     }
     
-    // Other components (disabled for now - rely on mocks to reduce Babel errors)
-    // ${otherComponents}
+    // Other components disabled - rely on mocks to reduce Babel errors
     
     // Page components
     ${pageComponents}
+    
+    // Override mock icons with real page components where names collide
+    ${pageComponentOverrides}
     
     // App component
     ${appCode}
@@ -842,6 +901,24 @@ export function LiveCodeRunner({
   </script>
 </body>
 </html>`;
+    
+    // Make mock icon declarations reassignable for names that conflict with page components
+    // Only target mock icon patterns (IconBase createElement or alias assignments), not user code
+    const conflictingPageNames = pageComponentEntries
+      .map(([name]) => name)
+      .filter(name => allReservedNames.includes(name));
+    conflictingPageNames.forEach(name => {
+      generatedHtml = generatedHtml.replace(
+        new RegExp(`const ${name} = \\(props\\) => React\\.createElement\\(IconBase`, 'g'),
+        `var ${name} = (props) => React.createElement(IconBase`
+      );
+      generatedHtml = generatedHtml.replace(
+        new RegExp(`const ${name} = (\\w+);`, 'g'),
+        `var ${name} = $1;`
+      );
+    });
+    
+    return generatedHtml;
   }, [files, projectName]);
 
   // Create blob URL from previewHtml to bypass COEP restrictions
