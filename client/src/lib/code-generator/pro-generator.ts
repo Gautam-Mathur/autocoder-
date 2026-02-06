@@ -77,26 +77,312 @@ function singularize(s: string): string {
 // 1. analyzePrompt — Deep prompt analysis
 // =============================================================================
 
+// --- Contextual Understanding Layer ---
+// Expands vague, conversational language into concrete app concepts
+// so non-technical users don't need to know the "right words"
+
+const INTENT_PHRASES: [RegExp, string][] = [
+  [/\b(keep\s*track\s*(of)?|track(ing)?|log(ging)?|monitor(ing)?|record(ing)?)\b/i, 'dashboard'],
+  [/\b(show\s*me|display|view|see|look\s*at|check\s*on)\b/i, 'dashboard'],
+  [/\b(organize|manage|maintain|handle|oversee|run)\b/i, 'admin'],
+  [/\b(share|sharing|connect|post|upload|contribute|collaborate)\b/i, 'social'],
+  [/\b(sell|selling|buy|buying|order|ordering|pay|payment|price|pricing|purchase)\b/i, 'ecommerce'],
+  [/\b(book|booking|appoint|schedule|reserve|reservation|slot)\b/i, 'booking'],
+  [/\b(talk|talking|chat|message|discuss|communicate|dm)\b/i, 'chat'],
+  [/\b(learn|course|lesson|class|study|tutorial|education|student|teacher|quiz)\b/i, 'landing'],
+  [/\b(write|blog|story|publish|draft|editorial|newsletter)\b/i, 'blog'],
+  [/\b(sign\s*up|register|member|join|membership|account)\b/i, 'saas'],
+  [/\b(vote|poll|survey|feedback|rating|review|rate)\b/i, 'form'],
+  [/\b(compare|versus|vs|rank|tier|benchmark)\b/i, 'analytics'],
+];
+
+const DOMAIN_ENRICHMENT: Record<string, { appType: string; features: string[]; dataModels: DataModel[]; pages: string[]; uiStyle: ProjectRequirements['uiStyle'] }> = {
+  fitness: {
+    appType: 'dashboard',
+    features: ['crud', 'charts', 'responsive'],
+    dataModels: [
+      { name: 'Workout', fields: [{ name: 'id', type: 'number' }, { name: 'name', type: 'string' }, { name: 'date', type: 'string' }, { name: 'duration', type: 'number' }, { name: 'calories', type: 'number' }, { name: 'type', type: 'string' }, { name: 'notes', type: 'string' }] },
+      { name: 'Exercise', fields: [{ name: 'id', type: 'number' }, { name: 'name', type: 'string' }, { name: 'sets', type: 'number' }, { name: 'reps', type: 'number' }, { name: 'weight', type: 'number' }, { name: 'workoutId', type: 'number' }] },
+    ],
+    pages: ['Dashboard', 'Workouts', 'AddWorkout', 'Progress', 'Settings'],
+    uiStyle: 'bold',
+  },
+  restaurant: {
+    appType: 'ecommerce',
+    features: ['crud', 'search', 'responsive'],
+    dataModels: [
+      { name: 'MenuItem', fields: [{ name: 'id', type: 'number' }, { name: 'name', type: 'string' }, { name: 'description', type: 'string' }, { name: 'price', type: 'number' }, { name: 'category', type: 'string' }, { name: 'image', type: 'string' }, { name: 'available', type: 'boolean' }] },
+      { name: 'Order', fields: [{ name: 'id', type: 'number' }, { name: 'items', type: 'string[]' }, { name: 'total', type: 'number' }, { name: 'status', type: 'string' }, { name: 'customerName', type: 'string' }, { name: 'tableNumber', type: 'number' }] },
+    ],
+    pages: ['Home', 'Menu', 'Order', 'About', 'Contact'],
+    uiStyle: 'modern',
+  },
+  recipe: {
+    appType: 'social',
+    features: ['crud', 'search', 'filtering', 'file-upload', 'responsive'],
+    dataModels: [
+      { name: 'Recipe', fields: [{ name: 'id', type: 'number' }, { name: 'title', type: 'string' }, { name: 'description', type: 'string' }, { name: 'ingredients', type: 'string[]' }, { name: 'instructions', type: 'string' }, { name: 'cookTime', type: 'number' }, { name: 'servings', type: 'number' }, { name: 'category', type: 'string' }, { name: 'image', type: 'string' }, { name: 'rating', type: 'number' }] },
+    ],
+    pages: ['Home', 'Recipes', 'RecipeDetail', 'AddRecipe', 'Favorites'],
+    uiStyle: 'playful',
+  },
+  finance: {
+    appType: 'dashboard',
+    features: ['crud', 'charts', 'filtering', 'export', 'responsive'],
+    dataModels: [
+      { name: 'Transaction', fields: [{ name: 'id', type: 'number' }, { name: 'description', type: 'string' }, { name: 'amount', type: 'number' }, { name: 'type', type: 'string' }, { name: 'category', type: 'string' }, { name: 'date', type: 'string' }] },
+      { name: 'Budget', fields: [{ name: 'id', type: 'number' }, { name: 'category', type: 'string' }, { name: 'limit', type: 'number' }, { name: 'spent', type: 'number' }, { name: 'month', type: 'string' }] },
+    ],
+    pages: ['Dashboard', 'Transactions', 'Budgets', 'Reports', 'Settings'],
+    uiStyle: 'corporate',
+  },
+  realestate: {
+    appType: 'marketplace',
+    features: ['search', 'filtering', 'crud', 'responsive'],
+    dataModels: [
+      { name: 'Property', fields: [{ name: 'id', type: 'number' }, { name: 'title', type: 'string' }, { name: 'address', type: 'string' }, { name: 'price', type: 'number' }, { name: 'bedrooms', type: 'number' }, { name: 'bathrooms', type: 'number' }, { name: 'sqft', type: 'number' }, { name: 'image', type: 'string' }, { name: 'type', type: 'string' }, { name: 'status', type: 'string' }] },
+    ],
+    pages: ['Home', 'Listings', 'PropertyDetail', 'Search', 'Contact'],
+    uiStyle: 'corporate',
+  },
+  education: {
+    appType: 'landing',
+    features: ['crud', 'search', 'responsive'],
+    dataModels: [
+      { name: 'Course', fields: [{ name: 'id', type: 'number' }, { name: 'title', type: 'string' }, { name: 'description', type: 'string' }, { name: 'instructor', type: 'string' }, { name: 'duration', type: 'string' }, { name: 'level', type: 'string' }, { name: 'price', type: 'number' }, { name: 'image', type: 'string' }, { name: 'enrolled', type: 'number' }] },
+      { name: 'Lesson', fields: [{ name: 'id', type: 'number' }, { name: 'courseId', type: 'number' }, { name: 'title', type: 'string' }, { name: 'content', type: 'string' }, { name: 'order', type: 'number' }, { name: 'duration', type: 'string' }] },
+    ],
+    pages: ['Home', 'Courses', 'CourseDetail', 'Dashboard', 'Profile'],
+    uiStyle: 'modern',
+  },
+  healthcare: {
+    appType: 'booking',
+    features: ['crud', 'search', 'auth', 'responsive'],
+    dataModels: [
+      { name: 'Doctor', fields: [{ name: 'id', type: 'number' }, { name: 'name', type: 'string' }, { name: 'specialty', type: 'string' }, { name: 'image', type: 'string' }, { name: 'rating', type: 'number' }, { name: 'available', type: 'boolean' }] },
+      { name: 'Appointment', fields: [{ name: 'id', type: 'number' }, { name: 'doctorId', type: 'number' }, { name: 'patientName', type: 'string' }, { name: 'date', type: 'string' }, { name: 'time', type: 'string' }, { name: 'reason', type: 'string' }, { name: 'status', type: 'string' }] },
+    ],
+    pages: ['Home', 'Doctors', 'BookAppointment', 'MyAppointments', 'Profile'],
+    uiStyle: 'minimal',
+  },
+  travel: {
+    appType: 'booking',
+    features: ['search', 'filtering', 'crud', 'responsive'],
+    dataModels: [
+      { name: 'Destination', fields: [{ name: 'id', type: 'number' }, { name: 'name', type: 'string' }, { name: 'country', type: 'string' }, { name: 'description', type: 'string' }, { name: 'image', type: 'string' }, { name: 'price', type: 'number' }, { name: 'rating', type: 'number' }, { name: 'category', type: 'string' }] },
+      { name: 'Trip', fields: [{ name: 'id', type: 'number' }, { name: 'destinationId', type: 'number' }, { name: 'startDate', type: 'string' }, { name: 'endDate', type: 'string' }, { name: 'travelers', type: 'number' }, { name: 'status', type: 'string' }] },
+    ],
+    pages: ['Home', 'Explore', 'DestinationDetail', 'MyTrips', 'BookTrip'],
+    uiStyle: 'bold',
+  },
+  petcare: {
+    appType: 'dashboard',
+    features: ['crud', 'search', 'responsive'],
+    dataModels: [
+      { name: 'Pet', fields: [{ name: 'id', type: 'number' }, { name: 'name', type: 'string' }, { name: 'species', type: 'string' }, { name: 'breed', type: 'string' }, { name: 'age', type: 'number' }, { name: 'image', type: 'string' }, { name: 'weight', type: 'number' }] },
+      { name: 'Appointment', fields: [{ name: 'id', type: 'number' }, { name: 'petId', type: 'number' }, { name: 'type', type: 'string' }, { name: 'date', type: 'string' }, { name: 'vet', type: 'string' }, { name: 'notes', type: 'string' }] },
+    ],
+    pages: ['Home', 'MyPets', 'PetDetail', 'Appointments', 'AddPet'],
+    uiStyle: 'playful',
+  },
+  inventory: {
+    appType: 'admin',
+    features: ['crud', 'search', 'filtering', 'charts', 'export', 'responsive'],
+    dataModels: [
+      { name: 'Item', fields: [{ name: 'id', type: 'number' }, { name: 'name', type: 'string' }, { name: 'sku', type: 'string' }, { name: 'quantity', type: 'number' }, { name: 'price', type: 'number' }, { name: 'category', type: 'string' }, { name: 'supplier', type: 'string' }, { name: 'reorderLevel', type: 'number' }] },
+    ],
+    pages: ['Dashboard', 'Items', 'AddItem', 'Reports', 'Settings'],
+    uiStyle: 'corporate',
+  },
+  music: {
+    appType: 'social',
+    features: ['search', 'filtering', 'crud', 'responsive'],
+    dataModels: [
+      { name: 'Song', fields: [{ name: 'id', type: 'number' }, { name: 'title', type: 'string' }, { name: 'artist', type: 'string' }, { name: 'album', type: 'string' }, { name: 'duration', type: 'string' }, { name: 'genre', type: 'string' }, { name: 'cover', type: 'string' }] },
+      { name: 'Playlist', fields: [{ name: 'id', type: 'number' }, { name: 'name', type: 'string' }, { name: 'description', type: 'string' }, { name: 'songCount', type: 'number' }, { name: 'image', type: 'string' }] },
+    ],
+    pages: ['Home', 'Browse', 'Playlists', 'NowPlaying', 'Library'],
+    uiStyle: 'bold',
+  },
+  hr: {
+    appType: 'admin',
+    features: ['crud', 'search', 'filtering', 'charts', 'responsive'],
+    dataModels: [
+      { name: 'Employee', fields: [{ name: 'id', type: 'number' }, { name: 'name', type: 'string' }, { name: 'email', type: 'string' }, { name: 'department', type: 'string' }, { name: 'position', type: 'string' }, { name: 'startDate', type: 'string' }, { name: 'salary', type: 'number' }, { name: 'status', type: 'string' }] },
+      { name: 'LeaveRequest', fields: [{ name: 'id', type: 'number' }, { name: 'employeeId', type: 'number' }, { name: 'type', type: 'string' }, { name: 'startDate', type: 'string' }, { name: 'endDate', type: 'string' }, { name: 'status', type: 'string' }, { name: 'reason', type: 'string' }] },
+    ],
+    pages: ['Dashboard', 'Employees', 'EmployeeDetail', 'LeaveRequests', 'Reports'],
+    uiStyle: 'corporate',
+  },
+};
+
+const DOMAIN_KEYWORDS: [RegExp, string][] = [
+  // More specific domains first to avoid false matches
+  [/\b(pets?|dogs?|cats?|animals?|vets?|veterinar(y|ian)?|grooming|adoption|shelters?|kennels?)\b/i, 'petcare'],
+  [/\b(recipes?|cooking|ingredients?|baking|dishes?|cuisine)\b/i, 'recipe'],
+  [/\b(gym|workouts?|exercises?|fitness|training|muscles?|cardio|yoga|crossfit|weight.?lift)\b/i, 'fitness'],
+  [/\b(restaurants?|foods?|menus?|dine|dining|cafes?|baker(y|ies)|pizza|burgers?|sushi|kitchen|chefs?|cook(ing|s)?|meals?|catering)\b/i, 'restaurant'],
+  [/\b(money|expenses?|budgets?|finance|financial|bank(ing)?|invest(ments?|ing)?|savings?|income|spending|accounting|wallets?|payments?|invoices?|bills?)\b/i, 'finance'],
+  [/\b(real\s*estate|propert(y|ies)|houses?|apartments?|rent(al|ing)?|leas(e|ing)|tenants?|landlords?|listings?|home\s*for|bedrooms?|condos?)\b/i, 'realestate'],
+  [/\b(employees?|hr|human\s*resources?|staff|team\s*members?|departments?|payroll|hir(e|ing)|recruit|onboard|leave\s*requests?|workers?)\b/i, 'hr'],
+  [/\b(schools?|education|courses?|learn(ing)?|students?|teachers?|class(es)?|lessons?|tutors?|universit(y|ies)|colleges?|academ(y|ies)|training)\b/i, 'education'],
+  [/\b(health|medical|doctors?|patients?|clinics?|hospitals?|diagnos(is|es)|medicine|therapy|wellness|dental)\b/i, 'healthcare'],
+  [/\b(travel(ing)?|trips?|hotels?|flights?|vacations?|destinations?|tours?|resorts?|airbnb|itinerar(y|ies))\b/i, 'travel'],
+  [/\b(inventor(y|ies)|warehouses?|stocks?|suppl(y|ies|ier)|reorder|shipments?|logistics|procurement)\b/i, 'inventory'],
+  [/\b(music|songs?|playlists?|albums?|artists?|genres?|podcasts?|audio|stream(ing)?|radio|spotify|bands?)\b/i, 'music'],
+];
+
+const TYPO_CORRECTIONS: Record<string, string> = {
+  resturant: 'restaurant', restraunt: 'restaurant', restarant: 'restaurant', resteraunt: 'restaurant',
+  restaraunt: 'restaurant', restaurnt: 'restaurant', restrant: 'restaurant', reastaurant: 'restaurant',
+  recipie: 'recipe', recipies: 'recipes', recepie: 'recipe', recepies: 'recipes',
+  reciepe: 'recipe', reciepes: 'recipes', receipe: 'recipe', receipes: 'recipes',
+  exersise: 'exercise', exersize: 'exercise', excercise: 'exercise', exercize: 'exercise',
+  exerscise: 'exercise', exercse: 'exercise', exericse: 'exercise',
+  fitnes: 'fitness', fittness: 'fitness', fitnees: 'fitness', fittnes: 'fitness',
+  workou: 'workout', workuot: 'workout', wrokout: 'workout', worckout: 'workout',
+  buisness: 'business', bussiness: 'business', busines: 'business', buisines: 'business',
+  bussines: 'business', biusiness: 'business', busniess: 'business',
+  calender: 'calendar', calandar: 'calendar', calander: 'calendar', calendr: 'calendar',
+  employes: 'employees', emploees: 'employees', emplyees: 'employees', employess: 'employees',
+  employies: 'employees', employe: 'employee', emploee: 'employee', emplyee: 'employee',
+  managment: 'management', managemnt: 'management', mangement: 'management', manegement: 'management',
+  budgit: 'budget', buget: 'budget', budjet: 'budget', bugdet: 'budget',
+  expence: 'expense', expences: 'expenses', expens: 'expense', exspense: 'expense',
+  finanse: 'finance', finacial: 'financial', financal: 'financial', finanical: 'financial',
+  inventry: 'inventory', inventroy: 'inventory', invetory: 'inventory', inventary: 'inventory',
+  warehaus: 'warehouse', warehous: 'warehouse', warhouse: 'warehouse',
+  shedulle: 'schedule', schedul: 'schedule', scedule: 'schedule', shedule: 'schedule',
+  schedual: 'schedule', schedle: 'schedule',
+  appointmnt: 'appointment', apointment: 'appointment', appointement: 'appointment',
+  appoitment: 'appointment', appoinment: 'appointment',
+  educaton: 'education', educaiton: 'education', educashion: 'education',
+  univeristy: 'university', unversity: 'university', univesity: 'university',
+  colege: 'college', colledge: 'college', collage: 'college',
+  helthcare: 'healthcare', healtcare: 'healthcare', helthcar: 'healthcare',
+  hosptial: 'hospital', hospitl: 'hospital', hopsital: 'hospital',
+  patiant: 'patient', pateint: 'patient', patinet: 'patient',
+  medcine: 'medicine', medicne: 'medicine', medecine: 'medicine',
+  vetenary: 'veterinary', veternary: 'veterinary', vetinary: 'veterinary',
+  realestate: 'real estate', relastate: 'real estate',
+  proprety: 'property', properyt: 'property', propety: 'property', proparty: 'property',
+  appartment: 'apartment', aparment: 'apartment', apartmnet: 'apartment',
+  dashbord: 'dashboard', dahsboard: 'dashboard', dashbaord: 'dashboard',
+  ecomerce: 'ecommerce', ecommerece: 'ecommerce', ecommmerce: 'ecommerce', ecomers: 'ecommerce',
+  websit: 'website', webiste: 'website', wesbite: 'website', webstie: 'website',
+  applicaton: 'application', aplication: 'application', aplicaiton: 'application',
+  shoping: 'shopping', shoppin: 'shopping', shpping: 'shopping',
+  portfolo: 'portfolio', porfolio: 'portfolio', portflio: 'portfolio',
+  analitics: 'analytics', analytcs: 'analytics', anayltics: 'analytics',
+  subcription: 'subscription', subscrption: 'subscription', subscribtion: 'subscription',
+  notificaton: 'notification', notifcation: 'notification', notificaiton: 'notification',
+  authetication: 'authentication', authentcation: 'authentication', athentication: 'authentication',
+  registation: 'registration', registraton: 'registration', regsitration: 'registration',
+  catergory: 'category', categroy: 'category', catagory: 'category',
+  favorit: 'favorite', favourit: 'favourite', favroite: 'favorite',
+  playist: 'playlist', playlst: 'playlist', playslit: 'playlist',
+  podast: 'podcast', podcst: 'podcast', podacast: 'podcast',
+  bakrey: 'bakery', bakary: 'bakery', bakey: 'bakery',
+  cusotmer: 'customer', custmer: 'customer', cutomer: 'customer', costumer: 'customer',
+  payrol: 'payroll', payrole: 'payroll', payrool: 'payroll',
+  recrut: 'recruit', recuit: 'recruit', recriut: 'recruit',
+  travle: 'travel', traval: 'travel', traveel: 'travel',
+  vacaton: 'vacation', vaccation: 'vacation', vacaiton: 'vacation',
+  bookins: 'bookings', bokings: 'bookings', boooking: 'booking',
+  grosery: 'grocery', grocrey: 'grocery', groccery: 'grocery', grocary: 'grocery',
+  adress: 'address', adres: 'address', addres: 'address',
+  mesage: 'message', messsage: 'message', massege: 'message',
+  proflie: 'profile', profiel: 'profile', porfile: 'profile',
+  setings: 'settings', settigns: 'settings', seting: 'setting',
+  accout: 'account', acount: 'account', acconut: 'account',
+};
+
+function correctTypos(text: string): string {
+  return text.replace(/\b\w+\b/g, (word) => {
+    const lower = word.toLowerCase();
+    if (TYPO_CORRECTIONS[lower]) {
+      return TYPO_CORRECTIONS[lower];
+    }
+    return word;
+  });
+}
+
+function normalizePrompt(input: string): string {
+  let text = correctTypos(input);
+
+  const conversationalStrips: RegExp[] = [
+    /^(hey|hi|hello|yo|sup)\s*[,!.]?\s*/i,
+    /^(can you|could you|would you|will you|please|pls|plz)\s*/i,
+    /^(i\s+want|i\s+need|i'd\s+like|i\s+wanna|i\s+would\s+like)\s+(to\s+)?(have\s+|get\s+)?/i,
+    /^(help\s+me\s+)(to\s+)?(build|create|make|design|develop|set\s*up)?\s*/i,
+    /^(make\s+me|build\s+me|create\s+me|give\s+me|get\s+me)\s+(a\s+|an\s+)?/i,
+  ];
+  for (const pat of conversationalStrips) {
+    text = text.replace(pat, '');
+  }
+
+  const synonymMap: [RegExp, string][] = [
+    [/\bkeep\s*track\s*(of)?/gi, 'track manage dashboard'],
+    [/\bplace\s+(where|for)\s+(people|users|everyone)\s+(can|to)\s+/gi, 'platform app where users can '],
+    [/\bsomething\s+(to|for|that)\s+/gi, 'app to '],
+    [/\bspot\s+(to|for|where)\s+/gi, 'platform to '],
+    [/\bway\s+to\s+/gi, 'tool to '],
+    [/\bthing\s+(to|for|that)\s+/gi, 'app to '],
+    [/\bstuff\s+(for|about|like)\s+/gi, 'content for '],
+    [/\bshow\s*(off)?\s+my\b/gi, 'portfolio showcase my'],
+    [/\bput\s+online\b/gi, 'website publish'],
+    [/\bfor\s+my\s+(small\s+)?business\b/gi, 'for my business website management'],
+    [/\bfor\s+my\s+(small\s+)?company\b/gi, 'for my company website management'],
+    [/\blist\s+of\b/gi, 'manage collection of'],
+    [/\bnotes?\s+(about|on|for)\b/gi, 'notes app for'],
+    [/\bremind(er)?s?\s+(for|about|to)\b/gi, 'todo reminder notifications for'],
+    [/\bwhere\s+people\s+can\s+/gi, 'where users can '],
+    [/\bpeople\s+can\s+(see|view|browse|look)\b/gi, 'users can browse view'],
+    [/\brun\s+my\s+/gi, 'manage my '],
+  ];
+  for (const [pat, replacement] of synonymMap) {
+    text = text.replace(pat, replacement);
+  }
+
+  return text.trim() || input;
+}
+
+function detectDomain(input: string): string | null {
+  const lower = input.toLowerCase();
+  for (const [pat, domain] of DOMAIN_KEYWORDS) {
+    if (pat.test(lower)) return domain;
+  }
+  return null;
+}
+
+function inferFromIntentPhrases(input: string): string | null {
+  const lower = input.toLowerCase();
+  for (const [pat, appType] of INTENT_PHRASES) {
+    if (pat.test(lower)) return appType;
+  }
+  return null;
+}
+
 const APP_TYPE_PATTERNS: Record<string, RegExp> = {
   dashboard: /dashboard|admin panel|analytics view|overview|metrics|kpi/i,
-  ecommerce: /e-?commerce|shop|store|product|cart|checkout|buy|sell|marketplace|retail/i,
-  blog: /blog|article|post|news|magazine|journal|writing|publication/i,
+  ecommerce: /e-?commerce|shop(?!ping\s*list)|store(?!d)|product(?!ion)|cart|checkout|buy|sell|marketplace|retail/i,
+  blog: /blog|article|post(?!gres)|news(?!letter)|magazine|journal|writing|publication/i,
   portfolio: /portfolio|resume|cv|personal site|showcase|gallery/i,
-  social: /social|feed|timeline|profile|follow|friend|community|network/i,
-  saas: /saas|subscription|pricing|plan|tier|billing|platform|service/i,
-  todo: /todo|task|kanban|checklist|planner|organizer|to-?do/i,
-  chat: /chat|messag|conversation|inbox|dm|real-?time|websocket/i,
-  crm: /crm|customer|contact|lead|pipeline|deal|sales/i,
-  analytics: /analytics|report|chart|graph|data viz|visualization|insight/i,
-  booking: /booking|appointment|schedule|calendar|reservation|event/i,
+  social: /social\b|feed\b|timeline|profile|follow|friend|community|network(?!ing\s*error)/i,
+  saas: /\bsaas\b|subscription|pricing\s*(page|plan|tier)|billing|(?<!plat)form\s+builder/i,
+  todo: /todo|task(?!\s*bar)|kanban|checklist|planner|organizer|to-?do/i,
+  chat: /\bchat\b|messag|conversation|inbox|dm\b|real-?time|websocket/i,
+  crm: /crm|customer\s*(management|relation)|lead\s*(management|track)|pipeline|deal\s*(track|manag)|sales\s*(track|manag|crm)/i,
+  analytics: /analytics|report(?!er)|chart(?!er)|graph|data viz|visualization|insight/i,
+  booking: /booking|appointment|schedule|calendar|reservation|event\s*(book|manag)/i,
   marketplace: /marketplace|listing|seller|buyer|auction|classified/i,
   cms: /cms|content management|editor|publish|page builder/i,
-  game: /game|quiz|puzzle|trivia|score|leaderboard|play/i,
-  calculator: /calculator|converter|compute|math|formula|unit/i,
-  form: /form|survey|questionnaire|poll|feedback|registration/i,
-  landing: /landing|hero|marketing|launch|coming soon|waitlist/i,
-  admin: /admin|management|back-?office|control panel|settings/i,
-  api: /api|endpoint|rest|graphql|backend|server/i,
+  game: /\bgame\b|quiz|puzzle|trivia|score|leaderboard|\bplay\b(?!list|er)/i,
+  calculator: /calculator|converter|compute|math|formula|unit\s*convert/i,
+  form: /\bform\b(?!\s*(at|ul))|survey|questionnaire|poll\b|feedback\s*(form|collect)|registration\s*form/i,
+  landing: /landing\s*page|hero\s*section|marketing\s*page|launch|coming soon|waitlist/i,
+  admin: /admin(?!ist)|management\s*(panel|system|dashboard)|back-?office|control panel/i,
+  api: /\bapi\b|endpoint|rest\s*(ful|api)|graphql|backend\s*(api|server)/i,
 };
 
 const FEATURE_PATTERNS: Record<string, RegExp> = {
@@ -203,12 +489,37 @@ function inferAppName(input: string): string {
     const m = input.match(pat);
     if (m && m[1]) return m[1].trim();
   }
+
+  const domain = detectDomain(input);
+  const DOMAIN_NAMES: Record<string, string> = {
+    fitness: 'FitTracker',
+    restaurant: 'FoodSpot',
+    recipe: 'RecipeHub',
+    finance: 'FinanceFlow',
+    realestate: 'PropertyFinder',
+    education: 'LearnHub',
+    healthcare: 'HealthConnect',
+    travel: 'TripPlanner',
+    petcare: 'PetPal',
+    inventory: 'StockManager',
+    music: 'MusicBox',
+    hr: 'TeamHub',
+  };
+  if (domain && DOMAIN_NAMES[domain]) return DOMAIN_NAMES[domain];
+
   const lower = input.toLowerCase();
   for (const [type] of Object.entries(APP_TYPE_PATTERNS)) {
     if (APP_TYPE_PATTERNS[type].test(lower)) {
       return capitalize(type) + ' App';
     }
   }
+
+  const subjectMatch = input.match(/\b(?:for|about|of)\s+(?:my\s+)?(\w+(?:\s+\w+)?)/i);
+  if (subjectMatch && subjectMatch[1]) {
+    const subject = subjectMatch[1].replace(/\b\w/g, c => c.toUpperCase());
+    return subject + ' App';
+  }
+
   return 'My App';
 }
 
@@ -245,39 +556,88 @@ function detectComplexity(input: string, pages: string[], features: string[]): '
 }
 
 export function analyzePrompt(input: string): ProjectRequirements {
-  const lower = input.toLowerCase();
+  const normalized = normalizePrompt(input);
+  const lower = normalized.toLowerCase();
+  const originalLower = input.toLowerCase();
+
+  const domain = detectDomain(input) || detectDomain(normalized);
+  const domainData = domain ? DOMAIN_ENRICHMENT[domain] : null;
 
   let appType = 'custom';
   for (const [type, pattern] of Object.entries(APP_TYPE_PATTERNS)) {
-    if (pattern.test(lower)) {
+    if (pattern.test(lower) || pattern.test(originalLower)) {
       appType = type;
       break;
     }
   }
 
+  if (appType === 'custom' && domainData) {
+    appType = domainData.appType;
+  }
+
+  if (appType === 'custom') {
+    const intentType = inferFromIntentPhrases(input) || inferFromIntentPhrases(normalized);
+    if (intentType) appType = intentType;
+  }
+
+  if (appType === 'custom') {
+    const hasNouns = /\b(app|site|page|tool|system|platform|website|webapp)\b/i.test(originalLower);
+    if (!hasNouns) {
+      appType = 'landing';
+    }
+  }
+
   const features: string[] = [];
   for (const [feat, pattern] of Object.entries(FEATURE_PATTERNS)) {
-    if (pattern.test(lower)) features.push(feat);
+    if (pattern.test(lower) || pattern.test(originalLower)) features.push(feat);
   }
 
-  if (features.length === 0 && appType !== 'custom') {
+  if (domainData) {
+    for (const feat of domainData.features) {
+      if (!features.includes(feat)) features.push(feat);
+    }
+  }
+
+  if (features.length === 0) {
     features.push('responsive');
+    if (appType !== 'landing' && appType !== 'calculator' && appType !== 'form') {
+      features.push('crud');
+    }
   }
 
-  let uiStyle: ProjectRequirements['uiStyle'] = 'modern';
+  if (!features.includes('responsive')) features.push('responsive');
+
+  let uiStyle: ProjectRequirements['uiStyle'] = domainData?.uiStyle || 'modern';
   for (const [style, pattern] of Object.entries(UI_STYLE_PATTERNS)) {
-    if (pattern.test(lower)) {
+    if (pattern.test(lower) || pattern.test(originalLower)) {
       uiStyle = style as ProjectRequirements['uiStyle'];
       break;
     }
   }
 
   const appName = inferAppName(input);
-  const pages = detectPages(input, appType);
-  const dataModels = detectDataModels(input, appType);
-  const hasAuth = features.includes('auth') || /auth|login|signup|register/i.test(lower);
-  const hasBackend = hasAuth || /api|backend|server|database|endpoint/i.test(lower);
-  const hasDatabase = hasBackend || /database|db|storage|persist/i.test(lower);
+
+  let pages: string[];
+  if (domainData && domainData.pages.length > 0) {
+    pages = domainData.pages;
+    const extraPages = detectPages(input, appType);
+    for (const p of extraPages) {
+      if (!pages.includes(p)) pages.push(p);
+    }
+  } else {
+    pages = detectPages(input, appType);
+  }
+
+  let dataModels: DataModel[];
+  if (domainData && domainData.dataModels.length > 0) {
+    dataModels = domainData.dataModels;
+  } else {
+    dataModels = detectDataModels(input, appType);
+  }
+
+  const hasAuth = features.includes('auth') || /auth|login|signup|register|sign.?in|account/i.test(originalLower);
+  const hasBackend = hasAuth || /api|backend|server|database|endpoint/i.test(originalLower);
+  const hasDatabase = hasBackend || /database|db|storage|persist|save/i.test(originalLower);
   const complexity = detectComplexity(input, pages, features);
 
   return {

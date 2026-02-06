@@ -7,7 +7,7 @@ interface GeneratedFile {
   path: string;
   content: string;
   language?: string;
-}
+}  
 
 interface LiveCodeRunnerProps {
   files: GeneratedFile[];
@@ -149,12 +149,13 @@ export function LiveCodeRunner({
       code = code.replace(/:\s*React\.\w+(<[^>]+>)?/g, '');
       code = code.replace(/:\s*(string|number|boolean|any|void|null|undefined|FC|FunctionComponent|ReactNode|ReactElement|JSX\.Element|HTMLAttributes|ComponentProps|CSSProperties|ChangeEvent|FormEvent|MouseEvent|KeyboardEvent)(\[\])?(\s*\|[^=]+)?/g, '');
       code = code.replace(/:\s*\{[^}]+\}(\s*\|[^=]+)?/g, '');
-      code = code.replace(/interface\s+\w+(\s+extends\s+\w+)?\s*\{[\s\S]*?\}/g, '');
+      code = code.replace(/interface\s+\w+(\s+extends\s+[\w.,\s<>]+)?\s*\{[\s\S]*?\}/g, '');
       code = code.replace(/type\s+\w+\s*=\s*[^;]+;/g, '');
-      code = code.replace(/\bas\s+\w+(\[\])?/g, '');
-      // Remove TypeScript generics in function calls: useState<Type>() → useState()
-      // Safe because function calls are never followed by ( in JSX
-      code = code.replace(/(\b\w+)\s*<[^<>]+>\s*(?=\()/g, '$1');
+      // Remove 'as Type' with support for generics: as Record<string, Type>, as Type[], as string
+      // Require type name to start with uppercase or be a primitive to avoid false positives in text
+      code = code.replace(/\bas\s+(?:[A-Z]\w*(?:<(?:[^<>]|<[^<>]*>)*>)?|string|number|boolean|any|unknown|never|void|null|undefined)(\[\])?/g, '');
+      // Remove TypeScript generics in function calls (supports nesting): useState<Record<string, Type>>() → useState()
+      code = code.replace(/(\b\w+)\s*<(?:[^<>]|<(?:[^<>]|<[^<>]*>)*>)*>\s*(?=\()/g, '$1');
       // Remove standalone generic type parameters
       code = code.replace(/<[A-Z]>/g, '');
       code = code.replace(/<[A-Z],\s*[A-Z]>/g, '');
@@ -173,15 +174,25 @@ export function LiveCodeRunner({
       code = code.replace(/(const|let|var)\s+(\w+)\s*:\s*[A-Z][\w.<>,|\s&\[\]]*\s*(?==)/g, '$1 $2 ');
       // Only strip type annotations with known TypeScript type suffixes to avoid breaking object properties like {icon: DollarSign}
       code = code.replace(/(\w+)\s*:\s*[A-Z]\w*(Type|Props|State|Interface|Options|Config|Params|Args|Response|Request|Handler|Error|Context|Ref|Data|Result|Info|Payload|Schema|Enum|Event|Element|Component|Service|Factory|Class|Module|Store|Reducer|Action|Dispatch|Middleware|Hook|Util|Helper|Manager|Controller|Decorator|Mixin|Observable|Subject|Subscriber|Observer|Iterator|Generator|Promise|Callback|Listener|Emitter|Stream|Buffer|Record|Map|Set|Tuple|Union|Intersection|Guard|Assertion|Predicate|Validator|Serializer|Deserializer|Transformer|Converter|Adapter|Wrapper|Proxy|Interceptor)s?(?=[,\)\s;])/g, '$1');
-      // Remove 'as const', 'satisfies', readonly, keyof patterns
+      // Remove 'as const', 'satisfies' (with generics support), readonly, keyof patterns
       code = code.replace(/\bas\s+const\b/g, '');
-      code = code.replace(/\bsatisfies\s+\w+/g, '');
+      code = code.replace(/\bsatisfies\s+\w+(?:<(?:[^<>]|<[^<>]*>)*>)?/g, '');
       code = code.replace(/\breadonly\s+/g, '');
       code = code.replace(/\bkeyof\s+typeof\s+\w+/g, '""');
       code = code.replace(/\bkeyof\s+\w+/g, '""');
       // Remove non-null assertions (!)
       code = code.replace(/(\w)!\./g, '$1.');
       code = code.replace(/(\w)!(?=[,;\)\]\s])/g, '$1');
+      
+      // Self-close void HTML elements that aren't self-closed (critical for JSX/Babel)
+      const voidElements = ['img', 'input', 'br', 'hr', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr'];
+      for (const el of voidElements) {
+        // Match <el> (bare) and <el attributes> (with attributes but no self-close)
+        code = code.replace(new RegExp('<' + el + '(\\s[^>]*[^/])?>(?!\\s*</' + el + '>)', 'gi'), (match) => {
+          if (match.endsWith('/>')) return match;
+          return match.slice(0, -1) + ' />';
+        });
+      }
       
       // Convert exports
       code = code.replace(/export\s+default\s+function\s+(\w+)/g, 'function $1');
@@ -963,16 +974,19 @@ export function LiveCodeRunner({
         fixed = fixed.replace(/;;+/g, ';');
         fixed = fixed.replace(/return\\s*\\(\\s*;/g, 'return (');
         fixed = fixed.replace(/(\\()\\s*;\\s*</g, '$1<');
-        // Strip remaining TypeScript generics in function calls: useState<Type>() → useState()
-        fixed = fixed.replace(/(\\b\\w+)\\s*<[^<>]+>\\s*(?=\\()/g, '$1');
+        // Strip remaining TypeScript generics (with nesting support): useState<Record<string, T>>() → useState()
+        fixed = fixed.replace(/(\\b\\w+)\\s*<(?:[^<>]|<(?:[^<>]|<[^<>]*>)*>)*>\\s*(?=\\()/g, '$1');
         // Strip remaining type annotations: (param: Type) → (param)
         fixed = fixed.replace(/(\\([\\w\\s,]*\\w)\\s*:\\s*[A-Z]\\w*\\s*(\\))/g, '$1$2');
         // Strip function return type annotations: ): Type { → ) {
         fixed = fixed.replace(/\\)\\s*:\\s*[A-Z][\\w.<>,|\\s&\\[\\]]*\\s*(?=\\{)/g, ') ');
         // Strip variable type annotations: const x: Type = → const x =
         fixed = fixed.replace(/(const|let|var)\\s+(\\w+)\\s*:\\s*[A-Z][\\w.<>,|\\s&\\[\\]]*\\s*(?==)/g, '$1 $2 ');
-        // Strip 'as Type' assertions with word boundary
-        fixed = fixed.replace(/\\bas\\s+\\w+(\\[\\])?/g, '');
+        // Strip 'as Type<Generic>' assertions (uppercase types + primitives only)
+        fixed = fixed.replace(/\\bas\\s+(?:[A-Z]\\w*(?:<(?:[^<>]|<[^<>]*>)*>)?|string|number|boolean|any|unknown|never|void|null|undefined)(\\[\\])?/g, '');
+        // Strip interface and type declarations
+        fixed = fixed.replace(/interface\\s+\\w+(\\s+extends\\s+[\\w.,\\s<>]+)?\\s*\\{[\\s\\S]*?\\}/g, '');
+        fixed = fixed.replace(/type\\s+\\w+\\s*=\\s*[^;]+;/g, '');
       }
       
       if (/Unexpected token/.test(errorMsg)) {
@@ -1011,10 +1025,14 @@ export function LiveCodeRunner({
           }
         });
         
+        // Self-close void elements: handles both bare (<br>) and with attributes (<img src="x">)
         var voidEls = ['img', 'input', 'br', 'hr', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr'];
         voidEls.forEach(function(el) {
-          var re = new RegExp('<' + el + '(\\\\b[^>]*[^/])>', 'gi');
-          fixed = fixed.replace(re, '<' + el + '$1 />');
+          var re = new RegExp('<' + el + '(\\\\s[^>]*[^/])?>(?!\\\\s*</' + el + '>)', 'gi');
+          fixed = fixed.replace(re, function(match) {
+            if (match.endsWith('/>')) return match;
+            return match.slice(0, -1) + ' />';
+          });
         });
       }
       
