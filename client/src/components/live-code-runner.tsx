@@ -128,7 +128,13 @@ export function LiveCodeRunner({
       code = code.replace(/<\/textarea>/gi, '</Textarea>');
       
       // Fix malformed self-closing + closing tag combos: <Tag ... /></Tag> → <Tag ... />
-      code = code.replace(/\/>\s*<\/\w+>/g, '/>');
+      // Only match when SAME tag name is both self-closed and has a closing tag
+      // e.g. <Input type="text" /></Input> → <Input type="text" />
+      // Does NOT match different tags: <ArrowRight /></Button> stays unchanged
+      code = code.replace(/<(\w+)\b([^>]*?)\/>\s*<\/\1>/g, '<$1$2/>');
+      
+      // Fix duplicate closing tags: </Button></Button> → </Button>
+      code = code.replace(/<\/(\w+)>\s*<\/\1>/g, '</$1>');
       
       // Remove all imports (single-line and multi-line)
       code = code.replace(/^import\s+[\s\S]*?from\s+['"][^'"]*['"];?\s*$/gm, '');

@@ -1,0 +1,631 @@
+C:\Users\Lenovo\Downloads\Auto-Coder>cd C:\Users\Lenovo\Downloads\Auto-Coder\Auto-Coder
+
+C:\Users\Lenovo\Downloads\Auto-Coder\Auto-Coder>npm install
+npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+added 561 packages, and audited 562 packages in 14s
+
+95 packages are looking for funding
+  run `npm fund` for details
+
+1 moderate severity vulnerability
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+
+C:\Users\Lenovo\Downloads\Auto-Coder\Auto-Coder>npm run electron:dev
+
+> rest-express@1.0.0 electron:dev
+> npm run build:electron && cross-env NODE_ENV=development npx electron dist-electron/main.js
+
+
+> rest-express@1.0.0 build:electron
+> tsx scripts/build-electron.ts
+
+Building Electron main process...
+Building Electron preload script...
+Electron build complete! Output in dist-electron/
+
+[2026-02-06T16:29:02.278Z] [INFO] [Logger] Logger initialized | {"logFile":"C:\\Users\\Lenovo\\AppData\\Roaming\\Electron\\logs\\autocoder-2026-02-06.log"}       
+[2026-02-06T16:29:02.307Z] [INFO] [App] Electron app ready | {"version":"40.2.1","platform":"win32","arch":"x64","nodeVersion":"v24.11.1"}
+[2026-02-06T16:29:02.308Z] [INFO] [App] Creating main window | {"isDev":true}
+[2026-02-06T16:29:02.351Z] [INFO] [App] Loading dev URL: http://localhost:5100
+(node:25560) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `electron --trace-deprecation ...` to show where the warning was created)   
+(electron) 'console-message' arguments are deprecated and will be removed. Please use Event<WebContentsConsoleMessageEventParams> object instead.
+[2026-02-06T16:29:03.104Z] [DEBUG] [Renderer] [vite] connecting... | {"line":733,"sourceId":"http://localhost:5100/@vite/client"}
+[2026-02-06T16:29:03.712Z] [DEBUG] [Renderer] [vite] connected. | {"line":827,"sourceId":"http://localhost:5100/@vite/client"}
+[2026-02-06T16:29:05.734Z] [INFO] [Renderer] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold | {"line":21609,"sourceId":"http://localhost:5100/@fs/C:/Users/Lenovo/Downloads/Auto-Coder/Auto-Coder/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=9c9d1c56"}
+[2026-02-06T16:29:05.762Z] [INFO] [App] Page loaded successfully
+[2026-02-06T16:29:05.859Z] [WARN] [Renderer] %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of       
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged. | {"line":2,"sourceId":"node:electron/js2c/sandbox_bundle"}
+[2026-02-06T16:29:43.756Z] [WARN] [Renderer] An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing. | {"line":0,"sourceId":"blob:http://localhost:5100/499af0e6-6264-4235-95ff-90851f120cb8"}
+[2026-02-06T16:29:44.046Z] [WARN] [Renderer] [Babel] Attempt 1/3 failed for App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":495,"sourceId":""}
+[2026-02-06T16:29:44.049Z] [WARN] [Renderer] [Babel] Attempt 2/3 failed for App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":495,"sourceId":""}
+[2026-02-06T16:29:44.050Z] [ERROR] [Renderer] [Babel] Quarantined App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":500,"sourceId":""}
+[2026-02-06T16:29:44.051Z] [INFO] [Renderer] [Babel] Quarantined code for App | {"line":501,"sourceId":""}
+[2026-02-06T16:29:44.051Z] [INFO] [Renderer]
+
+/* stripped */ function __stripped_Navbar(/* stripped */) {
+  const [open, setOpen] = useState(false);
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-gray-800/50 bg-gray-950/80 backdrop-blur-xl" role="navigation">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <span className="text-lg font-bold text-white">My App</span>
+        <div className="hidden items-center gap-6 md:flex">
+          <a href="#features" className="text-sm text-gray-400 hover:text-white">Features</a>
+          <a href="#pricing" className="text-sm text-gray-400 hover:text-white">Pricing</a>
+          <a href="#faq" className="text-sm text-gray-400 hover:text-white">FAQ</a>
+          <Button className="btn-primary text-sm">Get Started</Button>
+        </div>
+        <Button onClick={() => setOpen(!open)} className="md:hidden p-2 text-gray-400" aria-label="Menu">
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}      
+        </Button>
+      </div>
+      {open && (
+        <div className="border-t border-gray-800 px-4 py-3 md:hidden">
+          <a href="#features" className="block py-2 text-sm text-gray-400" onClick={() => setOpen(false)}>Features</a>
+          <a href="#pricing" className="block py-2 text-sm text-gray-400" onClick={() => setOpen(false)}>Pricing</a>
+          <a href="#faq" className="block py-2 text-sm text-gray-400" onClick={() => setOpen(false)}>FAQ</a>
+        </div>
+      )}
+    </nav>
+  );
+}
+
+function Hero() {
+  return (
+    <section className="relative overflow-hidden pt-32 pb-20 px-4 text-center">  
+      <div className="absolute inset-0 bg-gradient-to-b from-indigo-600/10 via-transparent to-transparent" />
+      <div className="relative mx-auto max-w-4xl">
+        <span className="badge mb-4 bg-indigo-500/20 text-indigo-400">Now in Public Beta</span>
+        <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
+          Build Faster.<br />Ship <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Smarter</span>.
+        </h1>
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
+          The modern platform that helps teams ship products 10x faster with intelligent automation, seamless collaboration, and powerful integrations.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <Button className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+          <Button className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+        </div>
+        <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+      </div>
+    </section>
+  );
+}
+
+function Features() {
+  const features = [
+    { icon: Zap, title: 'Lightning Fast', description: 'Optimized for speed with edge computing and intelligent caching. Load times under 100ms globally.' },     
+    { icon: Shield, title: 'Enterprise Security', description: 'SOC 2 compliant with end-to-end encryption, role-based access control, and audit logging.' },     
+    { icon: Globe, title: 'Global Scale', description: 'Deploy to 50+ regions worldwide with automatic scaling and zero-downtime deployments.' },
+  ];
+
+  return (
+    <section id="features" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">     
+      <h2 className="text-center text-3xl font-bold text-white">Everything You Need</h2>
+      <p className="mx-auto mt-3 max-w-xl text-center text-gray-500">Powerful features to help you build, deploy, and scale your applications with confidence.</p>
+      <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        {features.map((f) => (
+          <div key={f.title} className="card text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600/10">
+              <f.icon className="h-6 w-6 text-indigo-400" />
+            <h3 className="mt-4 text-lg font-semibold text-white">{f.title}</h3> 
+            <p className="mt-2 text-sm text-gray-500">{f.description}</p>        
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Pricing() {
+  const plans = [
+    { name: 'Starter', price: 0, period: 'Free forever', features: ['Up to 3 projects', '1 GB storage', 'Community support', 'Basic analytics'], cta: 'Get Started', popular: false },
+    { name: 'Pro', price: 29, period: '/month', features: ['Unlimited projects', '100 GB storage', 'Priority support', 'Advanced analytics', 'Custom domains', 'Team collaboration'], cta: 'Start Free Trial', popular: true },
+    { name: 'Enterprise', price: 99, period: '/month', features: ['Everything in Pro', 'Unlimited storage', 'Dedicated support', 'SSO & SAML', 'SLA guarantee', 'Custom integrations'], cta: 'Contact Sales', popular: false },
+  ];
+
+  return (
+    <section id="pricing" className="mx-auto max-w-5xl px-4 py-20 sm:px-6">      
+      <h2 className="text-center text-3xl font-bold text-white">Simple Pricing</h2>
+      <p className="mx-auto mt-3 max-w-xl text-center text-gray-500">Start free and scale as you grow. No hidden fees.</p>
+      <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        {plans.map((plan) => (
+          <div key={plan.name} className={`card flex flex-col ${plan.popular ? 'border-indigo-600 ring-1 ring-indigo-600' : ''}`}>
+            {plan.popular && <span className="badge mb-3 w-fit bg-indigo-600 text-white">Most Popular</span>}
+            <h3 className="text-lg font-bold text-white">{plan.name}</h3>        
+            <div className="mt-2">
+              <span className="text-4xl font-extrabold text-white">{plan.price === 0 ? 'Free' : `$${plan.price}`}</span>
+              {plan.price > 0 && <span className="text-gray-500">{plan.period}</span>}
+            </div>
+            <ul className="mt-6 flex-1 space-y-3">
+              {plan.features.map((f) => (
+                <li key={f} className="flex items-center gap-2 text-sm text-gray-400">
+                  <Check className="h-4 w-4 shrink-0 text-emerald-400" /> {f}    
+                </li>
+              ))}
+            </ul>
+            <Button className={`mt-6 w-full ${plan.popular ? 'btn-primary' : 'btn-secondary'}`}>{plan.cta}</Button></Button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FAQ() {
+  const [openIdx, setOpenIdx] = useState(null);
+  const faqs = [
+    { q: 'How does the free trial work?', a: 'You get full access to Pro features for 14 days. No credit card required. At the end of the trial, you can choose a plan or continue with the free Starter plan.' },
+    { q: 'Can I cancel my subscription anytime?', a: 'Yes, you can cancel your subscription at any time. Your account will remain active until the end of the current billing period.' },
+    { q: 'Do you offer discounts for startups?', a: 'Yes, we offer a 50% discount for qualifying startups. Contact our sales team to learn more about our startup program.' },
+    { q: 'What kind of support do you offer?', a: 'Starter plans have access to community support. Pro plans include priority email support with 24-hour response time. Enterprise plans get dedicated support with a named account manager.' },   
+  ];
+
+  return (
+    <section id="faq" className="mx-auto max-w-3xl px-4 py-20 sm:px-6">
+      <h2 className="text-center text-3xl font-bold text-white">Frequently Asked Questions</h2>
+      <div className="mt-10 space-y-3">
+        {faqs.map((faq, i) => (
+          <div key={i} className="card cursor-pointer" onClick={() => setOpenIdx(openIdx === i ? null : i)} role="button" aria-expanded={openIdx === i}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">{faq.q}</h3>      
+              {openIdx === i ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+            </div>
+            {openIdx === i && <p className="mt-3 text-sm text-gray-400">{faq.a}</p>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function App() {
+  return (
+    <div className="min-h-screen bg-gray-950">
+      <Navbar />
+      <main>
+        <Hero />
+        <Features />
+        <Pricing />
+        <FAQ />
+      <footer className="border-t border-gray-800 py-8 text-center text-sm text-gray-600">
+        My App. All rights reserved.
+      </footer>
+    </div>
+  );
+} | {"line":502,"sourceId":""}
+[2026-02-06T16:29:44.054Z] [INFO] [Renderer] console.groupEnd | {"line":503,"sourceId":""}
+[2026-02-06T16:29:44.054Z] [WARN] [Renderer] [Babel Isolation] 1 component(s) quarantined: | {"line":625,"sourceId":""}
+[2026-02-06T16:29:44.055Z] [WARN] [Renderer]   - App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":626,"sourceId":""}
+[2026-02-06T16:29:44.306Z] [WARN] [Renderer] An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing. | {"line":0,"sourceId":"blob:http://localhost:5100/92b67ddf-47f7-40e7-824f-86f6579d556e"}
+[2026-02-06T16:29:44.477Z] [WARN] [Renderer] [Babel] Attempt 1/3 failed for App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button type="button" className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button type="button" className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":495,"sourceId":""}
+[2026-02-06T16:29:44.480Z] [WARN] [Renderer] [Babel] Attempt 2/3 failed for App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button type="button" className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button type="button" className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":495,"sourceId":""}
+[2026-02-06T16:29:44.481Z] [ERROR] [Renderer] [Babel] Quarantined App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button type="button" className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button type="button" className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":500,"sourceId":""}
+[2026-02-06T16:29:44.481Z] [INFO] [Renderer] [Babel] Quarantined code for App | {"line":501,"sourceId":""}
+[2026-02-06T16:29:44.482Z] [INFO] [Renderer]
+
+/* stripped */ function __stripped_Navbar(/* stripped */) {
+  const [open, setOpen] = useState(false);
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-gray-800/50 bg-gray-950/80 backdrop-blur-xl" role="navigation">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <span className="text-lg font-bold text-white">My App</span>
+        <div className="hidden items-center gap-6 md:flex">
+          <a href="#features" className="text-sm text-gray-400 hover:text-white">Features</a>
+          <a href="#pricing" className="text-sm text-gray-400 hover:text-white">Pricing</a>
+          <a href="#faq" className="text-sm text-gray-400 hover:text-white">FAQ</a>
+          <Button type="button" className="btn-primary text-sm">Get Started</Button>
+        </div>
+        <Button type="button" onClick={() => setOpen(!open)} className="md:hidden p-2 text-gray-400" aria-label="Menu">
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}      
+        </Button>
+      </div>
+      {open && (
+        <div className="border-t border-gray-800 px-4 py-3 md:hidden">
+          <a href="#features" className="block py-2 text-sm text-gray-400" onClick={() => setOpen(false)}>Features</a>
+          <a href="#pricing" className="block py-2 text-sm text-gray-400" onClick={() => setOpen(false)}>Pricing</a>
+          <a href="#faq" className="block py-2 text-sm text-gray-400" onClick={() => setOpen(false)}>FAQ</a>
+        </div>
+      )}
+    </nav>
+  );
+}
+
+function Hero() {
+  return (
+    <section className="relative overflow-hidden pt-32 pb-20 px-4 text-center">  
+      <div className="absolute inset-0 bg-gradient-to-b from-indigo-600/10 via-transparent to-transparent" />
+      <div className="relative mx-auto max-w-4xl">
+        <span className="badge mb-4 bg-indigo-500/20 text-indigo-400">Now in Public Beta</span>
+        <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
+          Build Faster.<br />Ship <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Smarter</span>.
+        </h1>
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
+          The modern platform that helps teams ship products 10x faster with intelligent automation, seamless collaboration, and powerful integrations.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <Button type="button" className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+          <Button type="button" className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+        </div>
+        <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+      </div>
+    </section>
+  );
+}
+
+function Features() {
+  const features = [
+    { icon: Zap, title: 'Lightning Fast', description: 'Optimized for speed with edge computing and intelligent caching. Load times under 100ms globally.' },     
+    { icon: Shield, title: 'Enterprise Security', description: 'SOC 2 compliant with end-to-end encryption, role-based access control, and audit logging.' },     
+    { icon: Globe, title: 'Global Scale', description: 'Deploy to 50+ regions worldwide with automatic scaling and zero-downtime deployments.' },
+  ];
+
+  return (
+    <section id="features" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">     
+      <h2 className="text-center text-3xl font-bold text-white">Everything You Need</h2>
+      <p className="mx-auto mt-3 max-w-xl text-center text-gray-500">Powerful features to help you build, deploy, and scale your applications with confidence.</p>
+      <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        {features.map((f) => (
+          <div key={f.title} className="card text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600/10">
+              <f.icon className="h-6 w-6 text-indigo-400" />
+            <h3 className="mt-4 text-lg font-semibold text-white">{f.title}</h3> 
+            <p className="mt-2 text-sm text-gray-500">{f.description}</p>        
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Pricing() {
+  const plans = [
+    { name: 'Starter', price: 0, period: 'Free forever', features: ['Up to 3 projects', '1 GB storage', 'Community support', 'Basic analytics'], cta: 'Get Started', popular: false },
+    { name: 'Pro', price: 29, period: '/month', features: ['Unlimited projects', '100 GB storage', 'Priority support', 'Advanced analytics', 'Custom domains', 'Team collaboration'], cta: 'Start Free Trial', popular: true },
+    { name: 'Enterprise', price: 99, period: '/month', features: ['Everything in Pro', 'Unlimited storage', 'Dedicated support', 'SSO & SAML', 'SLA guarantee', 'Custom integrations'], cta: 'Contact Sales', popular: false },
+  ];
+
+  return (
+    <section id="pricing" className="mx-auto max-w-5xl px-4 py-20 sm:px-6">      
+      <h2 className="text-center text-3xl font-bold text-white">Simple Pricing</h2>
+      <p className="mx-auto mt-3 max-w-xl text-center text-gray-500">Start free and scale as you grow. No hidden fees.</p>
+      <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        {plans.map((plan) => (
+          <div key={plan.name} className={`card flex flex-col ${plan.popular ? 'border-indigo-600 ring-1 ring-indigo-600' : ''}`}>
+            {plan.popular && <span className="badge mb-3 w-fit bg-indigo-600 text-white">Most Popular</span>}
+            <h3 className="text-lg font-bold text-white">{plan.name}</h3>        
+            <div className="mt-2">
+              <span className="text-4xl font-extrabold text-white">{plan.price === 0 ? 'Free' : `$${plan.price}`}</span>
+              {plan.price > 0 && <span className="text-gray-500">{plan.period}</span>}
+            </div>
+            <ul className="mt-6 flex-1 space-y-3">
+              {plan.features.map((f) => (
+                <li key={f} className="flex items-center gap-2 text-sm text-gray-400">
+                  <Check className="h-4 w-4 shrink-0 text-emerald-400" /> {f}    
+                </li>
+              ))}
+            </ul>
+            <Button type="button" className={`mt-6 w-full ${plan.popular ? 'btn-primary' : 'btn-secondary'}`}>{plan.cta}</Button></Button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FAQ() {
+  const [openIdx, setOpenIdx] = useState(null);
+  const faqs = [
+    { q: 'How does the free trial work?', a: 'You get full access to Pro features for 14 days. No credit card required. At the end of the trial, you can choose a plan or continue with the free Starter plan.' },
+    { q: 'Can I cancel my subscription anytime?', a: 'Yes, you can cancel your subscription at any time. Your account will remain active until the end of the current billing period.' },
+    { q: 'Do you offer discounts for startups?', a: 'Yes, we offer a 50% discount for qualifying startups. Contact our sales team to learn more about our startup program.' },
+    { q: 'What kind of support do you offer?', a: 'Starter plans have access to community support. Pro plans include priority email support with 24-hour response time. Enterprise plans get dedicated support with a named account manager.' },   
+  ];
+
+  return (
+    <section id="faq" className="mx-auto max-w-3xl px-4 py-20 sm:px-6">
+      <h2 className="text-center text-3xl font-bold text-white">Frequently Asked Questions</h2>
+      <div className="mt-10 space-y-3">
+        {faqs.map((faq, i) => (
+          <div key={i} className="card cursor-pointer" onClick={() => setOpenIdx(openIdx === i ? null : i)} role="button" aria-expanded={openIdx === i}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">{faq.q}</h3>      
+              {openIdx === i ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+            </div>
+            {openIdx === i && <p className="mt-3 text-sm text-gray-400">{faq.a}</p>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function App() {
+  return (
+    <div className="min-h-screen bg-gray-950">
+      <Navbar />
+      <main>
+        <Hero />
+        <Features />
+        <Pricing />
+        <FAQ />
+      <footer className="border-t border-gray-800 py-8 text-center text-sm text-gray-600">
+        My App. All rights reserved.
+      </footer>
+    </div>
+  );
+} | {"line":502,"sourceId":""}
+[2026-02-06T16:29:44.484Z] [INFO] [Renderer] console.groupEnd | {"line":503,"sourceId":""}
+[2026-02-06T16:29:44.484Z] [WARN] [Renderer] [Babel Isolation] 1 component(s) quarantined: | {"line":625,"sourceId":""}
+[2026-02-06T16:29:44.485Z] [WARN] [Renderer]   - App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button type="button" className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button type="button" className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":626,"sourceId":""}
+[2026-02-06T16:30:24.595Z] [WARN] [Renderer] The resource https://w-corp-staticblitz.com/fetch.worker.b894c784.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. | {"line":0,"sourceId":"https://stackblitz.com/headless?version=1.6.1"}
+[2026-02-06T16:30:30.909Z] [WARN] [Renderer] The resource https://w-corp-staticblitz.com/fetch.worker.b894c784.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. | {"line":0,"sourceId":"https://stackblitz.com/headless?version=1.6.1"}
+[2026-02-06T16:30:35.703Z] [WARN] [Renderer] The resource https://w-corp-staticblitz.com/fetch.worker.b894c784.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. | {"line":0,"sourceId":"https://stackblitz.com/headless?version=1.6.1"}
+[2026-02-06T16:35:49.758Z] [WARN] [Renderer] An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing. | {"line":0,"sourceId":"blob:http://localhost:5100/b6945fc2-42e3-4cbf-ad95-8228db692561"}
+[2026-02-06T16:35:49.928Z] [WARN] [Renderer] [Babel] Attempt 1/3 failed for App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button type="button" className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button type="button" className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":495,"sourceId":""}
+[2026-02-06T16:35:49.931Z] [WARN] [Renderer] [Babel] Attempt 2/3 failed for App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button type="button" className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button type="button" className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":495,"sourceId":""}
+[2026-02-06T16:35:49.932Z] [ERROR] [Renderer] [Babel] Quarantined App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button type="button" className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button type="button" className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":500,"sourceId":""}
+[2026-02-06T16:35:49.932Z] [INFO] [Renderer] [Babel] Quarantined code for App | {"line":501,"sourceId":""}
+[2026-02-06T16:35:49.933Z] [INFO] [Renderer]
+
+/* stripped */ function __stripped_Navbar(/* stripped */) {
+  const [open, setOpen] = useState(false);
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-gray-800/50 bg-gray-950/80 backdrop-blur-xl" role="navigation">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <span className="text-lg font-bold text-white">My App</span>
+        <div className="hidden items-center gap-6 md:flex">
+          <a href="#features" className="text-sm text-gray-400 hover:text-white">Features</a>
+          <a href="#pricing" className="text-sm text-gray-400 hover:text-white">Pricing</a>
+          <a href="#faq" className="text-sm text-gray-400 hover:text-white">FAQ</a>
+          <Button type="button" className="btn-primary text-sm">Get Started</Button>
+        </div>
+        <Button type="button" onClick={() => setOpen(!open)} className="md:hidden p-2 text-gray-400" aria-label="Menu">
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}      
+        </Button>
+      </div>
+      {open && (
+        <div className="border-t border-gray-800 px-4 py-3 md:hidden">
+          <a href="#features" className="block py-2 text-sm text-gray-400" onClick={() => setOpen(false)}>Features</a>
+          <a href="#pricing" className="block py-2 text-sm text-gray-400" onClick={() => setOpen(false)}>Pricing</a>
+          <a href="#faq" className="block py-2 text-sm text-gray-400" onClick={() => setOpen(false)}>FAQ</a>
+        </div>
+      )}
+    </nav>
+  );
+}
+
+function Hero() {
+  return (
+    <section className="relative overflow-hidden pt-32 pb-20 px-4 text-center">  
+      <div className="absolute inset-0 bg-gradient-to-b from-indigo-600/10 via-transparent to-transparent" />
+      <div className="relative mx-auto max-w-4xl">
+        <span className="badge mb-4 bg-indigo-500/20 text-indigo-400">Now in Public Beta</span>
+        <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
+          Build Faster.<br />Ship <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Smarter</span>.
+        </h1>
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
+          The modern platform that helps teams ship products 10x faster with intelligent automation, seamless collaboration, and powerful integrations.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <Button type="button" className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+          <Button type="button" className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+        </div>
+        <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+      </div>
+    </section>
+  );
+}
+
+function Features() {
+  const features = [
+    { icon: Zap, title: 'Lightning Fast', description: 'Optimized for speed with edge computing and intelligent caching. Load times under 100ms globally.' },     
+    { icon: Shield, title: 'Enterprise Security', description: 'SOC 2 compliant with end-to-end encryption, role-based access control, and audit logging.' },     
+    { icon: Globe, title: 'Global Scale', description: 'Deploy to 50+ regions worldwide with automatic scaling and zero-downtime deployments.' },
+  ];
+
+  return (
+    <section id="features" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">     
+      <h2 className="text-center text-3xl font-bold text-white">Everything You Need</h2>
+      <p className="mx-auto mt-3 max-w-xl text-center text-gray-500">Powerful features to help you build, deploy, and scale your applications with confidence.</p>
+      <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        {features.map((f) => (
+          <div key={f.title} className="card text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600/10">
+              <f.icon className="h-6 w-6 text-indigo-400" />
+            <h3 className="mt-4 text-lg font-semibold text-white">{f.title}</h3> 
+            <p className="mt-2 text-sm text-gray-500">{f.description}</p>        
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Pricing() {
+  const plans = [
+    { name: 'Starter', price: 0, period: 'Free forever', features: ['Up to 3 projects', '1 GB storage', 'Community support', 'Basic analytics'], cta: 'Get Started', popular: false },
+    { name: 'Pro', price: 29, period: '/month', features: ['Unlimited projects', '100 GB storage', 'Priority support', 'Advanced analytics', 'Custom domains', 'Team collaboration'], cta: 'Start Free Trial', popular: true },
+    { name: 'Enterprise', price: 99, period: '/month', features: ['Everything in Pro', 'Unlimited storage', 'Dedicated support', 'SSO & SAML', 'SLA guarantee', 'Custom integrations'], cta: 'Contact Sales', popular: false },
+  ];
+
+  return (
+    <section id="pricing" className="mx-auto max-w-5xl px-4 py-20 sm:px-6">      
+      <h2 className="text-center text-3xl font-bold text-white">Simple Pricing</h2>
+      <p className="mx-auto mt-3 max-w-xl text-center text-gray-500">Start free and scale as you grow. No hidden fees.</p>
+      <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        {plans.map((plan) => (
+          <div key={plan.name} className={`card flex flex-col ${plan.popular ? 'border-indigo-600 ring-1 ring-indigo-600' : ''}`}>
+            {plan.popular && <span className="badge mb-3 w-fit bg-indigo-600 text-white">Most Popular</span>}
+            <h3 className="text-lg font-bold text-white">{plan.name}</h3>        
+            <div className="mt-2">
+              <span className="text-4xl font-extrabold text-white">{plan.price === 0 ? 'Free' : `$${plan.price}`}</span>
+              {plan.price > 0 && <span className="text-gray-500">{plan.period}</span>}
+            </div>
+            <ul className="mt-6 flex-1 space-y-3">
+              {plan.features.map((f) => (
+                <li key={f} className="flex items-center gap-2 text-sm text-gray-400">
+                  <Check className="h-4 w-4 shrink-0 text-emerald-400" /> {f}    
+                </li>
+              ))}
+            </ul>
+            <Button type="button" className={`mt-6 w-full ${plan.popular ? 'btn-primary' : 'btn-secondary'}`}>{plan.cta}</Button></Button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FAQ() {
+  const [openIdx, setOpenIdx] = useState(null);
+  const faqs = [
+    { q: 'How does the free trial work?', a: 'You get full access to Pro features for 14 days. No credit card required. At the end of the trial, you can choose a plan or continue with the free Starter plan.' },
+    { q: 'Can I cancel my subscription anytime?', a: 'Yes, you can cancel your subscription at any time. Your account will remain active until the end of the current billing period.' },
+    { q: 'Do you offer discounts for startups?', a: 'Yes, we offer a 50% discount for qualifying startups. Contact our sales team to learn more about our startup program.' },
+    { q: 'What kind of support do you offer?', a: 'Starter plans have access to community support. Pro plans include priority email support with 24-hour response time. Enterprise plans get dedicated support with a named account manager.' },   
+  ];
+
+  return (
+    <section id="faq" className="mx-auto max-w-3xl px-4 py-20 sm:px-6">
+      <h2 className="text-center text-3xl font-bold text-white">Frequently Asked Questions</h2>
+      <div className="mt-10 space-y-3">
+        {faqs.map((faq, i) => (
+          <div key={i} className="card cursor-pointer" onClick={() => setOpenIdx(openIdx === i ? null : i)} role="button" aria-expanded={openIdx === i}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">{faq.q}</h3>      
+              {openIdx === i ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+            </div>
+            {openIdx === i && <p className="mt-3 text-sm text-gray-400">{faq.a}</p>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function App() {
+  return (
+    <div className="min-h-screen bg-gray-950">
+      <Navbar />
+      <main>
+        <Hero />
+        <Features />
+        <Pricing />
+        <FAQ />
+      <footer className="border-t border-gray-800 py-8 text-center text-sm text-gray-600">
+        My App. All rights reserved.
+      </footer>
+    </div>
+  );
+} | {"line":502,"sourceId":""}
+[2026-02-06T16:35:49.936Z] [INFO] [Renderer] console.groupEnd | {"line":503,"sourceId":""}
+[2026-02-06T16:35:49.936Z] [WARN] [Renderer] [Babel Isolation] 1 component(s) quarantined: | {"line":625,"sourceId":""}
+[2026-02-06T16:35:49.937Z] [WARN] [Renderer]   - App: unknown: Expected corresponding JSX closing tag for <Button>. (45:8)
+
+  43 |           <Button type="button" className="btn-primary px-8 py-3 text-base">Start Free Trial <ArrowRight className="h-4 w-4" />
+  44 |           <Button type="button" className="btn-secondary px-8 py-3 text-base">Watch Demo</Button>
+> 45 |         </div>
+     |         ^
+  46 |         <p className="mt-4 text-sm text-gray-600">No credit card required. 14-day free trial.</p>
+  47 |       </div>
+  48 |     </section> | {"line":626,"sourceId":""}
