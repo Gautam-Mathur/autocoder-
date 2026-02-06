@@ -33,7 +33,6 @@ function createPackageJson(name: string, deps: Record<string, string> = {}): str
       ...deps
     },
     devDependencies: {
-      "@vitejs/plugin-react": "^4.2.1",
       vite: "^5.0.0"
     }
   }, null, 2);
@@ -57,12 +56,14 @@ function createFullStackPackageJson(name: string, deps: Record<string, string> =
   }, null, 2);
 }
 
-// Vite config for React
+// Vite config for React (uses esbuild JSX - lighter than @vitejs/plugin-react for WebContainer)
 const viteConfig = `import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  plugins: [react()],
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+  },
   server: {
     host: '0.0.0.0',
     port: 3000

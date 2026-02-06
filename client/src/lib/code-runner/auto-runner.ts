@@ -249,7 +249,6 @@ export function generatePackageJson(
         preview: 'vite preview'
       };
       basePackage.devDependencies = {
-        '@vitejs/plugin-react': '^4.2.1',
         'vite': '^5.0.0'
       };
       break;

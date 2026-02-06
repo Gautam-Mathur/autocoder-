@@ -38,16 +38,17 @@ const createSaaSPackageJson = (name: string, extraDeps: Record<string, string> =
     ...extraDeps
   },
   devDependencies: {
-    "@vitejs/plugin-react": "^4.2.1",
     vite: "^5.0.0"
   }
 }, null, 2);
 
 const viteConfig = `import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  plugins: [react()],
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

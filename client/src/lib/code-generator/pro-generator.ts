@@ -665,7 +665,6 @@ function genPackageJson(req: ProjectRequirements): string {
     'lucide-react': '^0.344.0',
   };
   const devDeps: Record<string, string> = {
-    '@vitejs/plugin-react': '^4.2.1',
     vite: '^5.1.0',
     tailwindcss: '^3.4.1',
     postcss: '^8.4.35',
@@ -703,10 +702,12 @@ function genPackageJson(req: ProjectRequirements): string {
 
 function genViteConfig(): string {
   return `import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  plugins: [react()],
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+  },
   server: {
     host: '0.0.0.0',
     port: 3000,

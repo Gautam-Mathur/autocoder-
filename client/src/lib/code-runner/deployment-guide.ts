@@ -719,7 +719,6 @@ export function generatePackageJson(
       });
       Object.assign(devDeps, {
         vite: "^5.0.0",
-        "@vitejs/plugin-react": "^4.0.0",
       });
       scripts = {
         dev: "vite",
