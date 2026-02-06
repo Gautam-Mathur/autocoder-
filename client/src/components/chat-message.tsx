@@ -1,6 +1,7 @@
-import { Bot, User } from "lucide-react";
+import { User, Terminal } from "lucide-react";
 import { parseCodeBlocks } from "@/components/code-block";
 import { ProjectSummary, parseProjectSummary, ProjectFileWithContent } from "@/components/project-summary";
+import { ThinkingSteps, type ThinkingStep } from "@/components/thinking-steps";
 import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
@@ -8,9 +9,10 @@ interface ChatMessageProps {
   content: string;
   isStreaming?: boolean;
   generatedFiles?: ProjectFileWithContent[];
+  thinkingSteps?: ThinkingStep[];
 }
 
-export function ChatMessage({ role, content, isStreaming, generatedFiles }: ChatMessageProps) {
+export function ChatMessage({ role, content, isStreaming, generatedFiles, thinkingSteps }: ChatMessageProps) {
   const isUser = role === "user";
 
   const renderAssistantContent = () => {
@@ -22,7 +24,7 @@ export function ChatMessage({ role, content, isStreaming, generatedFiles }: Chat
         : createDemoFiles();
 
       return (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <ProjectSummary
             projectName={projectInfo.name}
             blueprintType={projectInfo.type}
@@ -35,10 +37,10 @@ export function ChatMessage({ role, content, isStreaming, generatedFiles }: Chat
     }
     
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         {parseCodeBlocks(content)}
         {isStreaming && (
-          <span className="inline-block w-2 h-5 bg-primary animate-pulse rounded-sm" data-testid="streaming-indicator" />
+          <span className="inline-block w-1.5 h-4 bg-primary animate-pulse rounded-sm" data-testid="streaming-indicator" />
         )}
       </div>
     );
@@ -78,52 +80,59 @@ export default function App() {
   return (
     <div
       className={cn(
-        "flex gap-4 py-6",
+        "flex gap-3 py-3",
         isUser ? "justify-end" : "justify-start"
       )}
       data-testid={`message-${role}`}
     >
       {!isUser && (
         <div
-          className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center"
+          className="flex-shrink-0 w-7 h-7 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center glow-sm"
           data-testid="avatar-assistant"
         >
-          <Bot className="h-4 w-4 text-primary" />
+          <Terminal className="h-3.5 w-3.5 text-primary" />
         </div>
       )}
       
       <div className={cn(
-        "flex-1 min-w-0 max-w-[85%]",
+        "flex-1 min-w-0 max-w-[90%]",
         isUser && "flex flex-col items-end"
       )}>
         <div className={cn(
-          "text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider",
+          "text-[10px] font-medium text-muted-foreground mb-1 uppercase tracking-widest",
           isUser ? "text-right" : "text-left"
         )}>
-          {isUser ? "You" : "CodeAI"}
+          {isUser ? "YOU" : "AUTOCODER"}
         </div>
         
         <div className={cn(
-          "prose prose-sm dark:prose-invert max-w-none",
-          "leading-relaxed",
+          "prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed",
           isUser && "text-right"
         )}>
           {isUser ? (
-            <div className="inline-block bg-primary text-primary-foreground px-4 py-2.5 rounded-2xl rounded-br-md">
+            <div className="inline-block bg-primary/15 border border-primary/20 text-foreground px-3 py-2 rounded-md rounded-br-sm text-left">
               {content}
             </div>
           ) : (
-            renderAssistantContent()
+            <div className="bg-card/50 border border-border/50 rounded-md p-3">
+              {thinkingSteps && thinkingSteps.length > 0 && (
+                <ThinkingSteps
+                  steps={thinkingSteps}
+                  isActive={isStreaming && !content}
+                />
+              )}
+              {renderAssistantContent()}
+            </div>
           )}
         </div>
       </div>
 
       {isUser && (
         <div
-          className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+          className="flex-shrink-0 w-7 h-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center"
           data-testid="avatar-user"
         >
-          <User className="h-4 w-4" />
+          <User className="h-3.5 w-3.5" />
         </div>
       )}
     </div>

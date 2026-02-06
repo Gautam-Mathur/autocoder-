@@ -1011,7 +1011,7 @@ export default defineConfig({
     jsxImportSource: 'react',
   },
   server: {
-    port: 5173,
+    port: 5200,
     proxy: {
       '/api': 'http://localhost:3000'
     }

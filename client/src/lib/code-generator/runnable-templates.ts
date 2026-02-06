@@ -66,7 +66,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 3000
+    port: 5200
   }
 });
 `;
@@ -2472,7 +2472,7 @@ app.get('/api/stats', (req, res) => {
   res.json({ total, paid, pending, count: invoices.length, clientCount: clients.length });
 });
 
-app.listen(3000, () => console.log('Server running on port 3000'));`,
+app.listen(5200, () => console.log('Server running on port 5200'));`,
         language: "javascript"
       },
       {

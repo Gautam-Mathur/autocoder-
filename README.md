@@ -118,7 +118,9 @@ Each stage enriches the understanding:
 - esbuild-based build pipeline (`npm run build:electron`)
 - Windows compatibility: `cross-env` for env vars, conditional `reusePort`
 - Single command: `npm run electron:dev`
-- Default port 5100 for local development (avoids conflicts with port 5000)
+- Default port 5200 for generated projects and Electron local development (avoids conflicts with port 5000)
+- Auto-run enabled: generated projects start automatically, no manual "Run" button needed
+- Generated project Vite configs use esbuild JSX (`jsx: 'automatic'`, `jsxImportSource: 'react'`) for WebContainer compatibility
 
 ### Code Validator Fixes
 - Void element auto-fixer respects JSX curly braces (no more `=> />` corruption)
@@ -460,7 +462,7 @@ Generated Files --> IPC --> Main Process --> Local File System
                              |
                      npm run dev
                              |
-                     Preview at localhost:3000
+                     Preview at localhost:5200
 ```
 
 ---

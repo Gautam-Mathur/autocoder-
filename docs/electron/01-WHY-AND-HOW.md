@@ -815,11 +815,11 @@ When a user generates and runs code:
      ▼
 9. Main Process runs: spawn('npm', ['run', 'dev'], { cwd: projectPath })
      │
-     ├── Detects "localhost:3000" in output
+     ├── Detects "localhost:5200" in output
      ├── Sends 'runner:serverReady' with URL
      │
      ▼
-10. Renderer shows preview iframe pointing to localhost:3000
+10. Renderer shows preview iframe pointing to localhost:5200
 ```
 
 ### Security Model

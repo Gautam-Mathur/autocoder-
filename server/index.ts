@@ -96,7 +96,7 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  // For local development with Electron, set PORT=5100 if port 5000 is in use.
+  // For local development with Electron, set PORT=5200 if port 5000 is in use.
   const port = parseInt(process.env.PORT || "5000", 10);
   const isWindows = process.platform === 'win32';
   httpServer.listen(

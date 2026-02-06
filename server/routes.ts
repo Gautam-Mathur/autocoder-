@@ -44,7 +44,8 @@ import { createConversation as createConvState, processTurn, getConversation as 
 import { generateDeepProject, listBlueprints, listFeatures, getBlueprint, getFeature } from "./modules/deep-project-generator";
 
 // Pro Generator (client-side, produces clean JSX for preview)
-import { analyzePrompt as proAnalyzePrompt, generateProject as proGenerateProject, shouldUseProGenerator } from "../client/src/lib/code-generator/pro-generator";
+import { analyzePrompt as proAnalyzePrompt, generateProject as proGenerateProject, shouldUseProGenerator, analyzePromptWithThinking, generateProjectWithThinking } from "../client/src/lib/code-generator/pro-generator";
+import type { ThinkingStep } from "../client/src/lib/code-generator/pro-generator";
 import { validateGeneratedCode } from "../client/src/lib/code-generator/code-validator";
 
 // Preview Project Manager
@@ -705,13 +706,48 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
         const nameMatch = content.match(/(?:called?|named?|build|create|make)\s+["']?([A-Za-z][A-Za-z0-9_-]+)["']?/i);
         const projectName = nameMatch ? nameMatch[1] : 'GeneratedProject';
         
-        // Use Pro Generator for clean JSX output that works with live preview
-        const requirements = proAnalyzePrompt(content);
-        const proProject = proGenerateProject(requirements);
+        // Stream the response with thinking steps
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        
+        // Collect thinking steps and stream them live
+        const thinkingSteps: ThinkingStep[] = [];
+        const emitStep = (step: ThinkingStep) => {
+          step.timestamp = Date.now();
+          thinkingSteps.push(step);
+          res.write(`data: ${JSON.stringify({ type: 'thinking', step })}\n\n`);
+        };
+        
+        // Use Pro Generator with thinking callbacks for live reasoning display
+        const requirements = analyzePromptWithThinking(content, emitStep);
+        const proProject = generateProjectWithThinking(requirements, emitStep);
         
         // Validate and auto-fix the generated code
+        emitStep({
+          phase: 'validating',
+          label: 'Validating generated code',
+          detail: 'Running syntax checks and auto-fixing issues',
+        });
+        
         const validation = validateGeneratedCode(proProject.files.map(f => ({ path: f.path, content: f.content })));
         const filesToSave = validation.fixedFiles.length > 0 ? validation.fixedFiles : proProject.files;
+        
+        if (validation.errors.length > 0 || validation.warnings.length > 0) {
+          emitStep({
+            phase: 'validating',
+            label: `Fixed ${validation.errors.length} issues`,
+            detail: validation.errors.length > 0
+              ? `Auto-fixed: ${validation.errors.slice(0, 3).map(e => e.message).join('; ')}`
+              : 'All checks passed',
+          });
+        } else {
+          emitStep({
+            phase: 'validating',
+            label: 'All checks passed',
+            detail: `${filesToSave.length} files validated successfully`,
+          });
+        }
         
         // Clear old files before saving new ones to prevent accumulation
         await storage.deleteProjectFilesByConversation(conversationId);
@@ -751,20 +787,15 @@ Want changes? Just tell me what you'd like different!`;
 
         await storage.createMessage(conversationId, "assistant", responseContent);
         
-        // Stream the response like OpenAI does so frontend can handle it
-        res.setHeader("Content-Type", "text/event-stream");
-        res.setHeader("Cache-Control", "no-cache");
-        res.setHeader("Connection", "keep-alive");
-        
-        // Simulate streaming for smooth UX
+        // Stream the final content
         const chunks = responseContent.split(/(?<=\s)/);
         for (const chunk of chunks) {
           res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
           await new Promise(resolve => setTimeout(resolve, 10));
         }
         
-        // Send done signal and refresh files
-        res.write(`data: ${JSON.stringify({ done: true, deepProject: { name: projectName, totalFiles: filesToSave.length } })}\n\n`);
+        // Send done signal with thinking steps for persistence
+        res.write(`data: ${JSON.stringify({ done: true, thinkingSteps, deepProject: { name: projectName, totalFiles: filesToSave.length } })}\n\n`);
         res.end();
         return;
       }

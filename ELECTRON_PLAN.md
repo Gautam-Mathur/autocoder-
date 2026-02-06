@@ -537,7 +537,7 @@ The LocalRunner class is the core execution engine for the Electron app. It mana
 export class LocalRunner {
   private currentProcess: ChildProcess | null = null;
   private serverUrl: string | null = null;
-  private serverPort = 3000;
+  private serverPort = 5200;
 }
 ```
 
@@ -607,9 +607,9 @@ This method starts the project's dev server and detects when it's ready:
    ```typescript
    const urlPattern = /localhost:(\d+)|http:\/\/127\.0\.0\.1:(\d+)|http:\/\/0\.0\.0\.0:(\d+)/;
    ```
-   This catches URLs from Vite (`localhost:5173`), Express (`0.0.0.0:3000`), Next.js (`localhost:3000`), and other common dev server output formats.
+   This catches URLs from Vite (`localhost:5173`), Express (`0.0.0.0:5200`), Next.js (`localhost:5200`), and other common dev server output formats.
 
-4. **Timeout fallback**: If no URL is detected within 10 seconds, the server is assumed to be running on the configured port (`this.serverPort`, default 3000). This handles servers that don't print their URL to stdout.
+4. **Timeout fallback**: If no URL is detected within 10 seconds, the server is assumed to be running on the configured port (`this.serverPort`, default 5200). This handles servers that don't print their URL to stdout.
 
 5. **Environment setup**: Sets `PORT` environment variable and `FORCE_COLOR=1` for colored terminal output in the log stream.
 

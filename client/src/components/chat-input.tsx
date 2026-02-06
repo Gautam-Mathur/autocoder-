@@ -28,7 +28,6 @@ interface ChatInputProps {
   onFilesUploaded?: () => void;
 }
 
-// Parse GitHub URL to extract owner, repo, branch
 function parseGitHubUrl(url: string): { owner: string; repo: string; branch?: string } | null {
   try {
     const trimmed = url.trim();
@@ -50,7 +49,7 @@ function parseGitHubUrl(url: string): { owner: string; repo: string; branch?: st
   }
 }
 
-export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI...", conversationId, onFilesUploaded }: ChatInputProps) {
+export function ChatInput({ onSend, isLoading, placeholder = "Describe what you want to build...", conversationId, onFilesUploaded }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [githubDialogOpen, setGithubDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -69,7 +68,7 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
     }
   }, [message]);
 
@@ -112,7 +111,6 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
         headers["X-GitHub-Token"] = githubToken.trim();
       }
       
-      // Recursively fetch all files from the repository
       const allFilePaths: string[] = [];
       const skipDirs = ['node_modules', '.git', 'dist', 'build', '.next', '__pycache__', 'vendor', '.cache'];
       
@@ -122,17 +120,16 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
         if (!res.ok) {
           if (res.status === 404 && path === '') throw new Error("Repository not found. If private, add your GitHub token below.");
           if (res.status === 401 || res.status === 403) throw new Error("Access denied. Check your GitHub token.");
-          return; // Skip directories that fail
+          return;
         }
         
         const contents = await res.json();
         if (!Array.isArray(contents)) return;
         
         for (const item of contents) {
-          if (allFilePaths.length >= 100) return; // Limit total files
+          if (allFilePaths.length >= 100) return;
           
           if (item.type === 'file') {
-            // Skip large files and binary-looking files
             if (item.size && item.size > 500000) continue;
             const ext = item.name.split('.').pop()?.toLowerCase();
             const skipExts = ['png', 'jpg', 'jpeg', 'gif', 'ico', 'svg', 'woff', 'woff2', 'ttf', 'eot', 'mp3', 'mp4', 'zip', 'tar', 'gz'];
@@ -140,7 +137,6 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
             
             allFilePaths.push(item.path);
           } else if (item.type === 'dir') {
-            // Skip common non-code directories
             if (!skipDirs.includes(item.name)) {
               await fetchDir(item.path);
             }
@@ -156,7 +152,6 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
         return;
       }
       
-      // Import files
       const importRes = await fetch(`/api/conversations/${conversationId}/import-github`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -189,7 +184,7 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.size > 1024 * 1024) continue; // Skip files > 1MB
+      if (file.size > 1024 * 1024) continue;
       
       try {
         const content = await file.text();
@@ -209,9 +204,7 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
     
     const newFiles: { name: string; content: string }[] = [];
     let skippedCount = 0;
-    const totalFiles = files.length;
     
-    // Skip directories and binary file extensions
     const skipDirs = ['node_modules', '.git', '__pycache__', '.next', 'dist', 'build', '.cache', 'coverage', '.vscode', '.idea', 'vendor', '.nuxt', '.output', '.svelte-kit'];
     const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.mp3', '.mp4', '.wav', '.avi', '.mov', '.woff', '.woff2', '.ttf', '.eot', '.otf', '.zip', '.tar', '.gz', '.rar', '.7z', '.pdf', '.exe', '.dll', '.so', '.dylib', '.pyc', '.class', '.o', '.obj', '.lock'];
     
@@ -222,7 +215,6 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
       const path = file.webkitRelativePath || file.name;
       const pathLower = path.toLowerCase();
       
-      // Check if path contains any skip directory
       const shouldSkip = skipDirs.some(dir => 
         pathLower.includes(`/${dir}/`) || 
         pathLower.includes(`\\${dir}\\`) ||
@@ -231,19 +223,15 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
       );
       if (shouldSkip) { skippedCount++; continue; }
       
-      // Skip binary files
       if (binaryExtensions.some(ext => pathLower.endsWith(ext))) { skippedCount++; continue; }
       
-      // Skip hidden files except important config files
       const fileName = path.split('/').pop() || path;
       if (fileName.startsWith('.') && !fileName.match(/^\.(env|gitignore|eslintrc|prettierrc|babelrc|editorconfig)/)) { skippedCount++; continue; }
       
-      // Limit total files (2000 max for large enterprise codebases)
       if (newFiles.length >= 2000) { skippedCount++; continue; }
       
       try {
         const content = await file.text();
-        // Skip files that look binary (contain null bytes or too many non-printable chars)
         if (content.includes('\0') || /[\x00-\x08\x0E-\x1F]/.test(content.substring(0, 1000))) { skippedCount++; continue; }
         newFiles.push({ name: path, content });
       } catch (err) {
@@ -290,7 +278,6 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
 
   return (
     <>
-      {/* Hidden folder input - outside dialog for direct triggering */}
       <input
         type="file"
         ref={folderInputRef}
@@ -299,14 +286,13 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
         {...{ webkitdirectory: "", directory: "" } as any}
       />
       
-      <div className="relative flex items-end gap-2 p-3 rounded-2xl bg-card border border-border">
-        {/* Plus button for attachments */}
+      <div className="relative flex items-end gap-2 p-2 rounded-md bg-card border border-border glow-border">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               size="icon"
               variant="ghost"
-              className="flex-shrink-0 rounded-xl"
+              className="flex-shrink-0 rounded-md"
               data-testid="button-attachments"
             >
               <Plus className="h-4 w-4" />
@@ -348,7 +334,7 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isLoading}
-          className="flex-1 min-h-[24px] max-h-[200px] resize-none border-0 bg-transparent text-base leading-6 focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="flex-1 min-h-[24px] max-h-[160px] resize-none border-0 bg-transparent text-sm leading-5 focus-visible:ring-0 focus-visible:ring-offset-0"
           rows={1}
           data-testid="input-chat-message"
         />
@@ -356,7 +342,7 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
           size="icon"
           onClick={handleSubmit}
           disabled={!message.trim() || isLoading}
-          className="flex-shrink-0 rounded-xl"
+          className="flex-shrink-0 rounded-md"
           data-testid="button-send-message"
         >
           {isLoading ? (
@@ -367,7 +353,6 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
         </Button>
       </div>
 
-      {/* GitHub Import Dialog */}
       <Dialog open={githubDialogOpen} onOpenChange={setGithubDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -434,7 +419,6 @@ export function ChatInput({ onSend, isLoading, placeholder = "Message CodeAI..."
         </DialogContent>
       </Dialog>
 
-      {/* File Upload Dialog */}
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

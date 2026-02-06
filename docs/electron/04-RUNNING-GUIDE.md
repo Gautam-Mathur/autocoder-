@@ -102,11 +102,11 @@ npm run dev
 
 **Electron Mode (Desktop App):**
 ```bash
-# If port 5000 is already in use, run the server on 5100:
-PORT=5100 npm run dev
+# If port 5000 is already in use, run the server on 5200:
+PORT=5200 npm run dev
 # Then in another terminal:
 npm run electron:dev
-# Electron defaults to port 5100 for local dev
+# Electron defaults to port 5200 for local dev
 ```
 
 ### Step 4: Verify It Works
@@ -684,7 +684,7 @@ kill -9 <PID>     # macOS/Linux
 taskkill /PID <PID> /F   # Windows
 
 # Or change the port
-PORT=3000 npm run dev
+PORT=5200 npm run dev
 ```
 
 ---

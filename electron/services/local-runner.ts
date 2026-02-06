@@ -8,7 +8,7 @@ export type ProgressCallback = (percent: number, message: string) => void;
 export class LocalRunner {
   private currentProcess: ChildProcess | null = null;
   private serverUrl: string | null = null;
-  private serverPort = 3000;
+  private serverPort = 5200;
 
   async writeFiles(projectPath: string, files: Array<{ path: string; content: string }>): Promise<void> {
     for (const file of files) {

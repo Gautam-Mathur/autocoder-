@@ -796,7 +796,7 @@ The first install downloads many packages. Subsequent installs are faster becaus
 
 ### "Where can I find the preview URL?"
 
-When the development server starts, AutoCoder shows the URL in the console tab. It's typically `http://localhost:3000` or similar.
+When the development server starts, AutoCoder shows the URL in the console tab. It's typically `http://localhost:5200` or similar.
 
 ### "How do I stop the development server?"
 

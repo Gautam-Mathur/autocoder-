@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers, PanelRightClose, PanelRight } from "lucide-react";
+import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers, PanelRightClose, PanelRight, Activity, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,7 +31,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { DevGuide } from "@/components/dev-guide";
 import { PreviewPanel } from "@/components/preview-panel";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { generateCodeWithContext } from "@/lib/code-generator";
+import { generateCodeWithContext, generateCodeWithThinking } from "@/lib/code-generator";
 import type { Conversation, Message, ProjectFile } from "@shared/schema";
 
 // Extract code files from AI response and save to project
@@ -243,6 +243,8 @@ export default function Chat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [aiMode, setAiMode] = useState<"cloud" | "local">("cloud");
   const [showPreview, setShowPreview] = useState(true);
+  const [streamingThinkingSteps, setStreamingThinkingSteps] = useState<Array<{phase: string; label: string; detail: string; timestamp?: number}>>([]);
+  const [completedThinkingSteps, setCompletedThinkingSteps] = useState<Map<number, Array<{phase: string; label: string; detail: string; timestamp?: number}>>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Prevent CMD+1/CMD+2 from interfering with the app
@@ -338,6 +340,7 @@ export default function Chat() {
   const sendMessageToConversation = async (conversationId: number, content: string) => {
     setIsStreaming(true);
     setStreamingContent("");
+    setStreamingThinkingSteps([]);
 
     queryClient.setQueryData<ConversationWithMessages>(
       ["/api/conversations", conversationId],
@@ -386,6 +389,11 @@ export default function Chat() {
             try {
               const data = JSON.parse(line.slice(6));
               
+              if (data.type === 'thinking' && data.step) {
+                setStreamingThinkingSteps(prev => [...prev, data.step]);
+                continue;
+              }
+
               // Check if server wants us to use local engine
               if (data.useLocalEngine) {
                 setAiMode("local");
@@ -401,8 +409,11 @@ export default function Chat() {
                   console.error("Failed to fetch existing files:", e);
                 }
                 
-                // Generate response using local template engine with context
-                const localResponse = generateCodeWithContext(data.userMessage, existingFiles);
+                // Generate response using local template engine with thinking steps
+                const result = generateCodeWithThinking(data.userMessage, existingFiles, (step) => {
+                  setStreamingThinkingSteps(prev => [...prev, step]);
+                });
+                const localResponse = result.response;
                 
                 // Simulate streaming for smooth UX
                 for (let i = 0; i < localResponse.length; i += 5) {
@@ -425,8 +436,17 @@ export default function Chat() {
                 // Save code to project files
                 await saveCodeToProject(conversationId, localResponse);
                 
+                // Store thinking steps
+                if (result.thinkingSteps.length > 0) {
+                  setCompletedThinkingSteps(prev => {
+                    const updated = new Map(prev);
+                    updated.set(conversationId, result.thinkingSteps);
+                    return updated;
+                  });
+                }
                 setIsStreaming(false);
                 setStreamingContent("");
+                setStreamingThinkingSteps([]);
                 
                 // Refresh messages and files from server - files query triggers preview update
                 queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
@@ -443,8 +463,23 @@ export default function Chat() {
                 if (fullContent) {
                   await saveCodeToProject(conversationId, fullContent);
                 }
+                // Store thinking steps for this message
+                if (data.thinkingSteps && data.thinkingSteps.length > 0) {
+                  setCompletedThinkingSteps(prev => {
+                    const updated = new Map(prev);
+                    updated.set(conversationId, data.thinkingSteps);
+                    return updated;
+                  });
+                } else if (streamingThinkingSteps.length > 0) {
+                  setCompletedThinkingSteps(prev => {
+                    const updated = new Map(prev);
+                    updated.set(conversationId, [...streamingThinkingSteps]);
+                    return updated;
+                  });
+                }
                 setIsStreaming(false);
                 setStreamingContent("");
+                setStreamingThinkingSteps([]);
                 // Refresh messages and files - files query triggers preview update
                 queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
                 queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
@@ -468,9 +503,11 @@ export default function Chat() {
         console.error("Failed to fetch existing files:", e);
       }
       
-      // Fallback to local engine on any error - with context awareness
-      const localResponse = generateCodeWithContext(content, existingFiles);
-      setStreamingContent(localResponse);
+      // Fallback to local engine on any error - with thinking steps
+      const result = generateCodeWithThinking(content, existingFiles, (step) => {
+        setStreamingThinkingSteps(prev => [...prev, step]);
+      });
+      const localResponse = result.response;
       setAiMode("local");
       
       // Simulate streaming for smooth UX
@@ -494,8 +531,17 @@ export default function Chat() {
       // Save code to project files
       await saveCodeToProject(conversationId, localResponse);
       
+      // Store thinking steps
+      if (result.thinkingSteps.length > 0) {
+        setCompletedThinkingSteps(prev => {
+          const updated = new Map(prev);
+          updated.set(conversationId, result.thinkingSteps);
+          return updated;
+        });
+      }
       setIsStreaming(false);
       setStreamingContent("");
+      setStreamingThinkingSteps([]);
       
       // Refresh messages and files - files query triggers preview update
       queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
@@ -507,6 +553,8 @@ export default function Chat() {
     setActiveConversationId(null);
     setStreamingContent("");
     setIsStreaming(false);
+    setStreamingThinkingSteps([]);
+    setCompletedThinkingSteps(new Map());
     // Clear any cached conversation data to ensure fresh start
     queryClient.removeQueries({ queryKey: ["/api/conversations", null] });
   };
@@ -529,7 +577,7 @@ export default function Chat() {
 
   const messages = activeConversation?.messages || [];
   const displayMessages = [...messages];
-  if (isStreaming && streamingContent) {
+  if (isStreaming && (streamingContent || streamingThinkingSteps.length > 0)) {
     displayMessages.push({
       id: -1,
       conversationId: activeConversationId || 0,
@@ -540,7 +588,7 @@ export default function Chat() {
   }
 
   const sidebarStyle = {
-    "--sidebar-width": "18rem",
+    "--sidebar-width": "15rem",
     "--sidebar-width-icon": "3rem",
   } as React.CSSProperties;
 
@@ -548,11 +596,11 @@ export default function Chat() {
     <SidebarProvider style={sidebarStyle}>
       <div className="flex h-screen w-full bg-background">
         <Sidebar>
-          <SidebarHeader className="p-4 border-b border-sidebar-border">
+          <SidebarHeader className="p-3 border-b border-sidebar-border">
             <Button
               onClick={handleNewChat}
               disabled={createConversationMutation.isPending}
-              className="w-full justify-center gap-2 h-10 rounded-xl"
+              className="w-full justify-center gap-2 rounded-md"
               variant="default"
               data-testid="button-new-chat"
             >
@@ -566,7 +614,7 @@ export default function Chat() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {conversations.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm px-3" data-testid="text-no-conversations">
+                    <div className="text-center py-8 text-muted-foreground text-xs px-3" data-testid="text-no-conversations">
                       No conversations yet
                     </div>
                   ) : (
@@ -578,10 +626,10 @@ export default function Chat() {
                           className="w-full"
                           data-testid={`conversation-item-${conversation.id}`}
                         >
-                          <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                          <MessageSquare className="h-3.5 w-3.5 flex-shrink-0" />
                           <div className="min-w-0 flex-1">
-                            <div className="text-sm truncate">{conversation.title}</div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs truncate">{conversation.title}</div>
+                            <div className="text-[10px] text-muted-foreground">
                               {formatDate(conversation.createdAt)}
                             </div>
                           </div>
@@ -589,7 +637,7 @@ export default function Chat() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
-                              className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-sidebar-accent"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover-elevate"
                               onClick={(e) => e.stopPropagation()}
                               data-testid={`button-conversation-menu-${conversation.id}`}
                             >
@@ -618,17 +666,17 @@ export default function Chat() {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="p-4 border-t border-sidebar-border">
-            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground" data-testid="text-ai-status">
+          <SidebarFooter className="p-3 border-t border-sidebar-border">
+            <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider" data-testid="text-ai-status">
               {aiMode === "cloud" ? (
                 <>
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span>AI Ready</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-glow" />
+                  <span>Online</span>
                 </>
               ) : (
                 <>
                   <Cpu className="w-3 h-3 text-primary" />
-                  <span>AI Ready (Offline)</span>
+                  <span>Offline</span>
                 </>
               )}
             </div>
@@ -636,91 +684,115 @@ export default function Chat() {
         </Sidebar>
 
         <div className="flex-1 flex min-w-0">
-          <div className="flex-1 flex flex-col min-w-0">
-            <header className="h-14 border-b border-border bg-background/80 backdrop-blur-sm flex items-center justify-between px-4 gap-4 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <Link href="/">
-                <div className="flex items-center gap-2 cursor-pointer" data-testid="link-home">
-                  <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
-                    <Terminal className="h-4 w-4 text-primary-foreground" />
+          <div className="w-[35%] min-w-[280px] max-w-[420px] flex flex-col border-r border-border flex-shrink-0">
+            <header className="h-11 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-3 gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <Link href="/">
+                  <div className="flex items-center gap-1.5 cursor-pointer" data-testid="link-home">
+                    <div className="w-6 h-6 rounded-md bg-primary/15 border border-primary/30 flex items-center justify-center glow-sm">
+                      <Terminal className="h-3 w-3 text-primary" />
+                    </div>
+                    <span className="font-semibold text-sm hidden sm:inline glow-text">AutoCoder</span>
                   </div>
-                  <span className="font-semibold text-lg hidden sm:inline">CodeAI</span>
-                </div>
-              </Link>
-              {activeConversation?.projectName && (
-                <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground border-l border-border pl-3" data-testid="project-context-indicator">
-                  <Layers className="w-3.5 h-3.5 text-primary" />
-                  <span className="font-medium text-foreground">{activeConversation.projectName}</span>
-                  {activeConversation.featuresBuilt && activeConversation.featuresBuilt.length > 0 && (
-                    <Badge variant="secondary" className="text-xs" data-testid="badge-features-count">
-                      {activeConversation.featuresBuilt.length} features
-                    </Badge>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowPreview(!showPreview)}
-                className={showPreview ? 'text-primary' : ''}
-                data-testid="button-toggle-preview"
-              >
-                {showPreview ? <PanelRightClose className="h-4 w-4" /> : <PanelRight className="h-4 w-4" />}
-              </Button>
-              <DevGuide onSelectTemplate={handleSendMessage} />
-              <ThemeToggle />
-            </div>
-          </header>
-
-          <div className="flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-auto min-h-0">
-              {!activeConversationId && messages.length === 0 ? (
-                <EmptyState onSuggestionClick={handleSendMessage} />
-              ) : (
-                <ScrollArea className="h-full">
-                  <div className="max-w-3xl mx-auto p-4 space-y-4">
-                    {displayMessages.map((message, index) => (
-                      <ChatMessage
-                        key={message.id}
-                        role={message.role as "user" | "assistant"}
-                        content={message.content}
-                        isStreaming={isStreaming && index === displayMessages.length - 1 && message.role === "assistant"}
-                        generatedFiles={conversationFiles.map(f => ({ path: f.path, content: f.content }))}
-                      />
-                    ))}
-                    <div ref={messagesEndRef} />
+                </Link>
+                {activeConversation?.projectName && (
+                  <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground border-l border-border pl-2" data-testid="project-context-indicator">
+                    <Layers className="w-3 h-3 text-primary" />
+                    <span className="font-medium text-foreground text-xs truncate max-w-[100px]">{activeConversation.projectName}</span>
                   </div>
-                </ScrollArea>
-              )}
-            </div>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowPreview(!showPreview)}
+                  className={showPreview ? 'text-primary' : ''}
+                  data-testid="button-toggle-preview"
+                >
+                  {showPreview ? <PanelRightClose className="h-4 w-4" /> : <PanelRight className="h-4 w-4" />}
+                </Button>
+                <ThemeToggle />
+              </div>
+            </header>
 
-            <div className="p-4 pb-6 bg-gradient-to-t from-background via-background to-transparent flex-shrink-0 border-t border-border/50">
-              <div className="max-w-3xl mx-auto space-y-3">
-                <ChatInput
-                  onSend={handleSendMessage}
-                  isLoading={isStreaming}
-                  placeholder={activeConversationId ? "What would you like to change or add?" : "Tell me what app you'd like me to build..."}
-                  conversationId={activeConversationId}
-                  onFilesUploaded={() => {
-                    queryClient.invalidateQueries({ queryKey: ["/api/conversations", activeConversationId, "files"] });
-                  }}
-                />
-                <p className="text-xs text-center text-muted-foreground" data-testid="text-disclaimer">
-                  {aiMode === "cloud" 
-                    ? "Powered by GPT-4o"
-                    : "Local Code Engine"}
-                </p>
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-auto min-h-0">
+                {!activeConversationId && messages.length === 0 ? (
+                  <EmptyState onSuggestionClick={handleSendMessage} />
+                ) : (
+                  <ScrollArea className="h-full">
+                    <div className="p-3 space-y-1">
+                      {displayMessages.map((message, index) => (
+                        <ChatMessage
+                          key={message.id}
+                          role={message.role as "user" | "assistant"}
+                          content={message.content}
+                          isStreaming={isStreaming && index === displayMessages.length - 1 && message.role === "assistant"}
+                          generatedFiles={conversationFiles.map(f => ({ path: f.path, content: f.content }))}
+                          thinkingSteps={
+                            message.id === -1 && isStreaming
+                              ? streamingThinkingSteps
+                              : message.role === "assistant" && activeConversationId && index === displayMessages.length - 1
+                                ? completedThinkingSteps.get(activeConversationId)
+                                : undefined
+                          }
+                        />
+                      ))}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  </ScrollArea>
+                )}
+              </div>
+
+              <div className="p-3 pb-4 bg-gradient-to-t from-background via-background to-transparent flex-shrink-0 border-t border-border/30">
+                <div className="space-y-2">
+                  <ChatInput
+                    onSend={handleSendMessage}
+                    isLoading={isStreaming}
+                    placeholder={activeConversationId ? "What would you like to change?" : "Describe what you want to build..."}
+                    conversationId={activeConversationId}
+                    onFilesUploaded={() => {
+                      queryClient.invalidateQueries({ queryKey: ["/api/conversations", activeConversationId, "files"] });
+                    }}
+                  />
+                  <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Activity className="h-2.5 w-2.5 text-primary" />
+                      <span>{aiMode === "cloud" ? "GPT-4o" : "Local Engine"}</span>
+                    </div>
+                    {conversationFiles.length > 0 && (
+                      <>
+                        <span className="text-border">|</span>
+                        <div className="flex items-center gap-1">
+                          <Zap className="h-2.5 w-2.5 text-primary" />
+                          <span>{conversationFiles.length} files</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          </div>
           
-          {showPreview && (
-            <div className="w-[45%] min-w-[350px] max-w-[600px] border-l border-border flex-shrink-0 h-full">
+          {showPreview ? (
+            <div className="flex-1 min-w-[400px] h-full">
               <PreviewPanel conversationId={activeConversationId} onRequestFix={handleRequestFix} />
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-card/30 relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(var(--primary)/0.03)_0%,_transparent_70%)] pointer-events-none" />
+              <div className="text-center space-y-3 relative z-10">
+                <div className="w-12 h-12 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto glow-sm">
+                  <PanelRight className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-sm text-muted-foreground">Preview panel hidden</div>
+                <Button variant="outline" size="sm" onClick={() => setShowPreview(true)} data-testid="button-show-preview">
+                  Show Preview
+                </Button>
+              </div>
             </div>
           )}
         </div>

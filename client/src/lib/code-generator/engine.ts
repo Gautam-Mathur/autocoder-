@@ -29,7 +29,8 @@ import {
   handleAmbiguousRequest,
   decomposeProblem,
 } from "./code-brain";
-import { analyzePrompt, generateProject, formatProjectResponse, shouldUseProGenerator } from "./pro-generator";
+import { analyzePrompt, generateProject, formatProjectResponse, shouldUseProGenerator, analyzePromptWithThinking, generateProjectWithThinking } from "./pro-generator";
+import type { ThinkingStep, ThinkingCallback } from "./pro-generator";
 import { validateGeneratedCode } from "./code-validator";
 
 // Format runnable project as response with file blocks
@@ -227,6 +228,78 @@ export function generateCodeWithContext(input: string, existingFiles: ProjectFil
   
   // No existing files or not a modification request - generate new
   return generateCode(input);
+}
+
+export interface ThinkingGenerationResult {
+  response: string;
+  thinkingSteps: ThinkingStep[];
+}
+
+export function generateCodeWithThinking(
+  input: string,
+  existingFiles: ProjectFile[],
+  onStep?: ThinkingCallback
+): ThinkingGenerationResult {
+  const steps: ThinkingStep[] = [];
+  const emit = (step: ThinkingStep) => {
+    step.timestamp = Date.now();
+    steps.push(step);
+    onStep?.(step);
+  };
+
+  const htmlFile = existingFiles.find(f => f.path.endsWith(".html"));
+
+  if (htmlFile && isModificationRequest(input)) {
+    emit({
+      phase: 'understanding',
+      label: 'Modification request detected',
+      detail: 'Updating your existing project instead of creating new',
+    });
+    const response = generateCodeWithContext(input, existingFiles);
+    return { response, thinkingSteps: steps };
+  }
+
+  if (shouldUseProGenerator(input)) {
+    try {
+      const requirements = analyzePromptWithThinking(input, emit);
+      const project = generateProjectWithThinking(requirements, emit);
+
+      if (project.files.length > 0) {
+        emit({
+          phase: 'validating',
+          label: 'Validating generated code',
+          detail: 'Running syntax checks and auto-fixing issues',
+        });
+
+        const validation = validateGeneratedCode(project.files.map(f => ({ path: f.path, content: f.content })));
+        const fixedFiles = validation.fixedFiles.length > 0 ? validation.fixedFiles : project.files.map(f => ({ path: f.path, content: f.content }));
+        const validatedProject = {
+          ...project,
+          files: fixedFiles.map(f => {
+            const orig = project.files.find(o => o.path === f.path);
+            return { ...f, language: orig?.language || 'text' };
+          }),
+        };
+
+        emit({
+          phase: 'validating',
+          label: validation.errors.length > 0 ? `Fixed ${validation.errors.length} issues` : 'All checks passed',
+          detail: `${validatedProject.files.length} files ready`,
+        });
+
+        let response = formatProjectResponse(validatedProject);
+        if (validation.errors.length > 0) {
+          response += `\n\n**Validation:** ${validation.errors.length} issue${validation.errors.length > 1 ? 's' : ''} auto-fixed before delivery.`;
+        }
+        return { response, thinkingSteps: steps };
+      }
+    } catch (e) {
+      console.error('Pro generator with thinking failed, falling back:', e);
+    }
+  }
+
+  const response = generateCode(input);
+  return { response, thinkingSteps: steps };
 }
 
 // Synonym mappings for better matching

@@ -194,7 +194,7 @@ ls ~/AutoCoder/projects/hello-world-react/node_modules/
 
 **Expected Results:**
 - [ ] "Starting dev server..." message appears
-- [ ] Server URL is detected (e.g., localhost:3000)
+- [ ] Server URL is detected (e.g., localhost:5200)
 - [ ] "Dev server ready" message shows
 - [ ] No crash or error messages
 
@@ -336,7 +336,7 @@ ls ~/AutoCoder/projects/hello-world-react/node_modules/
 **Verification:**
 ```bash
 # After closing app
-lsof -i :3000  # Should show no process
+lsof -i :5200  # Should show no process
 ```
 
 ---
@@ -1744,7 +1744,7 @@ cat ~/AutoCoder/projects/<project-name>/package-lock.json | head -5
 Verify the development server starts and preview loads.
 
 - [ ] Dev server starts automatically after npm install
-- [ ] Server URL is detected (e.g., `http://localhost:3000`)
+- [ ] Server URL is detected (e.g., `http://localhost:5200`)
 - [ ] Preview panel loads the running application
 - [ ] Application renders correctly in the preview
 - [ ] Hot reload works (if applicable)
@@ -1780,7 +1780,7 @@ After completing the above steps, verify these Electron-specific behaviors:
 **Process Cleanup:**
 - [ ] Closing the Electron window kills all child processes (dev servers, npm)
 - [ ] No orphaned Node.js processes remain after close
-- [ ] Ports are released (verify with `lsof -i :3000`)
+- [ ] Ports are released (verify with `lsof -i :5200`)
 
 **IPC Communication:**
 - [ ] File write requests go through IPC (main process handles fs)
@@ -1815,7 +1815,7 @@ ps aux | grep electron
 ps aux | grep node
 
 # Check port usage
-lsof -i :3000
+lsof -i :5200
 lsof -i :5000
 ```
 

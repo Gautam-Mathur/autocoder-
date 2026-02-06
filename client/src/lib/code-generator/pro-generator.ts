@@ -36,6 +36,15 @@ export interface GeneratedProject {
   files: GeneratedFile[];
 }
 
+export interface ThinkingStep {
+  phase: 'understanding' | 'analyzing' | 'planning' | 'generating' | 'validating';
+  label: string;
+  detail: string;
+  timestamp?: number;
+}
+
+export type ThinkingCallback = (step: ThinkingStep) => void;
+
 // =============================================================================
 // UTILITY HELPERS
 // =============================================================================
@@ -710,7 +719,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 3000,
+    port: 5200,
   },
 });
 `;
@@ -3601,4 +3610,267 @@ export function shouldUseProGenerator(input: string): boolean {
     'saas', 'crm', 'cms', 'analytics', 'api',
   ];
   return codingSignals.some(signal => lower.includes(signal));
+}
+
+// =============================================================================
+// 5. Instrumented versions with thinking step callbacks
+// =============================================================================
+
+export function analyzePromptWithThinking(
+  input: string,
+  onStep: ThinkingCallback
+): ProjectRequirements {
+  onStep({
+    phase: 'understanding',
+    label: 'Reading your request',
+    detail: `Processing: "${input.length > 80 ? input.slice(0, 80) + '...' : input}"`,
+  });
+
+  const normalized = normalizePrompt(input);
+  const originalLower = input.toLowerCase();
+
+  if (normalized !== input.trim()) {
+    onStep({
+      phase: 'understanding',
+      label: 'Interpreting natural language',
+      detail: 'Correcting typos and understanding conversational phrasing',
+    });
+  }
+
+  const domain = detectDomain(input) || detectDomain(normalized);
+  const domainData = domain ? DOMAIN_ENRICHMENT[domain] : null;
+
+  if (domain) {
+    onStep({
+      phase: 'analyzing',
+      label: `Detected domain: ${domain}`,
+      detail: `Recognized this as a ${domain} application with specialized knowledge`,
+    });
+  }
+
+  const lower = normalized.toLowerCase();
+  let appType = 'custom';
+  for (const [type, pattern] of Object.entries(APP_TYPE_PATTERNS)) {
+    if (pattern.test(lower) || pattern.test(originalLower)) {
+      appType = type;
+      break;
+    }
+  }
+  if (appType === 'custom' && domainData) appType = domainData.appType;
+  if (appType === 'custom') {
+    const intentType = inferFromIntentPhrases(input) || inferFromIntentPhrases(normalized);
+    if (intentType) appType = intentType;
+  }
+  if (appType === 'custom') {
+    const hasNouns = /\b(app|site|page|tool|system|platform|website|webapp)\b/i.test(originalLower);
+    if (!hasNouns) appType = 'landing';
+  }
+
+  const appTypeLabels: Record<string, string> = {
+    dashboard: 'Dashboard / Analytics App',
+    ecommerce: 'E-Commerce Store',
+    blog: 'Blog / Content Platform',
+    portfolio: 'Portfolio / Showcase',
+    social: 'Social / Community App',
+    saas: 'SaaS Product',
+    todo: 'Task Manager',
+    chat: 'Chat / Messaging App',
+    crm: 'CRM / Sales Platform',
+    analytics: 'Data Analytics App',
+    booking: 'Booking / Scheduling App',
+    marketplace: 'Marketplace',
+    cms: 'Content Management System',
+    game: 'Interactive Game',
+    calculator: 'Calculator / Tool',
+    form: 'Form / Survey',
+    landing: 'Landing Page',
+    admin: 'Admin Panel',
+    api: 'API Dashboard',
+    custom: 'Custom Application',
+  };
+
+  onStep({
+    phase: 'analyzing',
+    label: `App type: ${appTypeLabels[appType] || appType}`,
+    detail: `Choosing the best architecture for a ${appType} application`,
+  });
+
+  const features: string[] = [];
+  for (const [feat, pattern] of Object.entries(FEATURE_PATTERNS)) {
+    if (pattern.test(lower) || pattern.test(originalLower)) features.push(feat);
+  }
+  if (domainData) {
+    for (const feat of domainData.features) {
+      if (!features.includes(feat)) features.push(feat);
+    }
+  }
+  if (features.length === 0) {
+    features.push('responsive');
+    if (appType !== 'landing' && appType !== 'calculator' && appType !== 'form') {
+      features.push('crud');
+    }
+  }
+  if (!features.includes('responsive')) features.push('responsive');
+
+  const featureLabels: Record<string, string> = {
+    auth: 'User Authentication',
+    search: 'Search',
+    filtering: 'Filtering & Sorting',
+    crud: 'Create/Read/Update/Delete',
+    'dark-mode': 'Dark Mode',
+    responsive: 'Responsive Layout',
+    notifications: 'Notifications',
+    'real-time': 'Real-Time Updates',
+    'file-upload': 'File Upload',
+    charts: 'Charts & Graphs',
+    export: 'Data Export',
+    pagination: 'Pagination',
+    sorting: 'Sorting',
+  };
+
+  onStep({
+    phase: 'analyzing',
+    label: `Features: ${features.map(f => featureLabels[f] || f).join(', ')}`,
+    detail: `Identified ${features.length} features to implement`,
+  });
+
+  let uiStyle: ProjectRequirements['uiStyle'] = domainData?.uiStyle || 'modern';
+  for (const [style, pattern] of Object.entries(UI_STYLE_PATTERNS)) {
+    if (pattern.test(lower) || pattern.test(originalLower)) {
+      uiStyle = style as ProjectRequirements['uiStyle'];
+      break;
+    }
+  }
+
+  const appName = inferAppName(input);
+
+  let pages: string[];
+  if (domainData && domainData.pages.length > 0) {
+    pages = domainData.pages;
+    const extraPages = detectPages(input, appType);
+    for (const p of extraPages) {
+      if (!pages.includes(p)) pages.push(p);
+    }
+  } else {
+    pages = detectPages(input, appType);
+  }
+
+  onStep({
+    phase: 'planning',
+    label: `Planning ${pages.length} pages`,
+    detail: pages.join(', '),
+  });
+
+  let dataModels: DataModel[];
+  if (domainData && domainData.dataModels.length > 0) {
+    dataModels = domainData.dataModels;
+  } else {
+    dataModels = detectDataModels(input, appType);
+  }
+
+  if (dataModels.length > 0) {
+    onStep({
+      phase: 'planning',
+      label: `Designing ${dataModels.length} data models`,
+      detail: dataModels.map(m => `${m.name} (${m.fields.length} fields)`).join(', '),
+    });
+  }
+
+  onStep({
+    phase: 'planning',
+    label: `UI style: ${uiStyle}`,
+    detail: `Applying ${uiStyle} design system with Tailwind CSS`,
+  });
+
+  const hasAuth = features.includes('auth') || /auth|login|signup|register|sign.?in|account/i.test(originalLower);
+  const hasBackend = hasAuth || /api|backend|server|database|endpoint/i.test(originalLower);
+  const hasDatabase = hasBackend || /database|db|storage|persist|save/i.test(originalLower);
+  const complexity = detectComplexity(input, pages, features);
+
+  return {
+    appType, appName, pages, features, dataModels,
+    uiStyle, hasBackend, hasAuth, hasDatabase, complexity,
+  };
+}
+
+export function generateProjectWithThinking(
+  requirements: ProjectRequirements,
+  onStep: ThinkingCallback
+): GeneratedProject {
+  onStep({
+    phase: 'generating',
+    label: 'Setting up project scaffold',
+    detail: 'Creating package.json, Vite config, Tailwind config, and entry files',
+  });
+
+  const baseFiles: GeneratedFile[] = [
+    { path: 'package.json', content: genPackageJson(requirements), language: 'json' },
+    { path: 'vite.config.js', content: genViteConfig(), language: 'javascript' },
+    { path: 'tailwind.config.js', content: genTailwindConfig(), language: 'javascript' },
+    { path: 'postcss.config.js', content: genPostcssConfig(), language: 'javascript' },
+    { path: 'index.html', content: genIndexHtml(requirements), language: 'html' },
+    { path: 'src/main.jsx', content: genMainJsx(), language: 'jsx' },
+    { path: 'src/index.css', content: genIndexCss(requirements), language: 'css' },
+  ];
+
+  onStep({
+    phase: 'generating',
+    label: `Building ${requirements.appType} components`,
+    detail: `Generating React components for ${requirements.pages.join(', ')}`,
+  });
+
+  let appFiles: GeneratedFile[];
+  switch (requirements.appType) {
+    case 'ecommerce':
+    case 'marketplace':
+      appFiles = generateEcommerceProject(requirements);
+      break;
+    case 'dashboard':
+    case 'admin':
+    case 'analytics':
+      appFiles = generateDashboardProject(requirements);
+      break;
+    case 'todo':
+    case 'crm':
+      appFiles = generateTodoProject(requirements);
+      break;
+    case 'blog':
+    case 'cms':
+      appFiles = generateBlogProject(requirements);
+      break;
+    case 'portfolio':
+      appFiles = generatePortfolioProject(requirements);
+      break;
+    case 'landing':
+    case 'saas':
+      appFiles = generateLandingProject(requirements);
+      break;
+    case 'chat':
+    case 'social':
+      appFiles = generateChatProject(requirements);
+      break;
+    default:
+      appFiles = generateGenericProject(requirements);
+      break;
+  }
+
+  const appFileOverrides = new Set(appFiles.map(f => f.path));
+  const merged = [
+    ...baseFiles.filter(f => !appFileOverrides.has(f.path)),
+    ...appFiles,
+  ];
+
+  onStep({
+    phase: 'generating',
+    label: `Created ${merged.length} files`,
+    detail: merged.filter(f => f.path.endsWith('.jsx')).map(f => f.path.split('/').pop()).join(', '),
+  });
+
+  const description = buildDescription(requirements);
+
+  return {
+    name: requirements.appName,
+    description,
+    files: merged,
+  };
 }

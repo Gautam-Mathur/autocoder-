@@ -1864,6 +1864,7 @@ ${combinedJs}
                 conversationId={conversationId} 
                 projectName={files[0]?.path?.split('/')[0] || 'Generated Project'}
                 height="100%"
+                autoStart={true}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -1878,7 +1879,7 @@ ${combinedJs}
                 files={files.map(f => ({ path: f.path, content: f.content, language: f.language }))}
                 projectName={files[0]?.path?.split('/')[0] || 'Generated Project'}
                 height="100%"
-                autoStart={false}
+                autoStart={true}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">

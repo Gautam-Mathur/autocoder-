@@ -38,7 +38,7 @@ function createWindow() {
   });
 
   if (isDev) {
-    const devPort = process.env.DEV_PORT || '5100';
+    const devPort = process.env.DEV_PORT || '5200';
     const devUrl = `http://localhost:${devPort}`;
     logger.info('App', `Loading dev URL: ${devUrl}`);
 
@@ -66,7 +66,7 @@ function createWindow() {
         mainWindow.loadURL(devUrl);
       } else {
         logger.error('App', `Dev server not available at ${devUrl} after 30 retries. Make sure to run "npm run dev" first.`);
-        mainWindow?.loadURL(`data:text/html,<html><body style="font-family:sans-serif;padding:40px;background:#1a1a2e;color:#e0e0e0"><h1>Could not connect to dev server</h1><p>Make sure the web server is running first:</p><pre style="background:#16213e;padding:16px;border-radius:8px">npm run dev</pre><p>Then restart Electron:</p><pre style="background:#16213e;padding:16px;border-radius:8px">npm run electron:dev</pre><p>Tried connecting to: <strong>${devUrl}</strong></p><p>You can change the port with: <code>DEV_PORT=3000 npm run electron:dev</code></p></body></html>`);
+        mainWindow?.loadURL(`data:text/html,<html><body style="font-family:sans-serif;padding:40px;background:#1a1a2e;color:#e0e0e0"><h1>Could not connect to dev server</h1><p>Make sure the web server is running first:</p><pre style="background:#16213e;padding:16px;border-radius:8px">npm run dev</pre><p>Then restart Electron:</p><pre style="background:#16213e;padding:16px;border-radius:8px">npm run electron:dev</pre><p>Tried connecting to: <strong>${devUrl}</strong></p><p>You can change the port with: <code>DEV_PORT=5200 npm run electron:dev</code></p></body></html>`);
       }
     });
 

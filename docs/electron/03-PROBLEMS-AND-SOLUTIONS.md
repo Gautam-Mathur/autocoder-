@@ -696,8 +696,8 @@ Error: listen EADDRINUSE: address already in use :::5000
 
 **Root Cause:** Port 5000 is increasingly used by system services and other tools.
 
-**Solution:** Electron defaults to port `5100`:
-- `electron/main.ts` line ~41: `const devPort = process.env.DEV_PORT || '5100'`
+**Solution:** Electron defaults to port `5200`:
+- `electron/main.ts` line ~41: `const devPort = process.env.DEV_PORT || '5200'`
 - Server reads `PORT` env var, defaults to 5000 on Replit
 - Users can override: `DEV_PORT=3000 npm run electron:dev`
 - Error page shows which port was tried and how to change it
@@ -740,7 +740,7 @@ const require = createRequire(import.meta.url);
 **Root Cause:** Electron launched immediately after build, but the web server needed 2-5 seconds to initialize.
 
 **Solution:** Polling connection check in `electron/main.ts`:
-1. Try connecting to `http://localhost:5100`
+1. Try connecting to `http://localhost:5200`
 2. Retry every 2 seconds, up to 15 attempts (30 seconds)
 3. On success, load URL in BrowserWindow
 4. On failure, show error page with instructions
@@ -1389,7 +1389,7 @@ for (const pattern of urlPatterns) {
 
 **Symptoms:**
 ```
-Error: listen EADDRINUSE: address already in use :::3000
+Error: listen EADDRINUSE: address already in use :::5200
 ```
 
 **Root Cause:** Previous process still running on port.
