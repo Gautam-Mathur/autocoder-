@@ -308,7 +308,7 @@ Key configuration choices:
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 if (isDev) {
-  const devUrl = 'http://localhost:5100';
+  const devUrl = 'http://localhost:5000';
   mainWindow.loadURL(devUrl);
   mainWindow.webContents.openDevTools();
 } else {
@@ -317,7 +317,7 @@ if (isDev) {
 }
 ```
 
-- **Dev mode** (`NODE_ENV=development` or `app.isPackaged === false`): Loads the Vite dev server at `http://localhost:5100` and automatically opens Chrome DevTools for debugging. The Vite server provides hot module replacement (HMR) so React changes appear instantly without restarting Electron.
+- **Dev mode** (`NODE_ENV=development` or `app.isPackaged === false`): Loads the Vite dev server at `http://localhost:5000` and automatically opens Chrome DevTools for debugging. The Vite server provides hot module replacement (HMR) so React changes appear instantly without restarting Electron.
 - **Production mode** (packaged app): Loads the pre-built `dist/index.html` file from disk. This is the output of `npm run build` which bundles the React frontend with Vite.
 
 ### Error Handling and Event Listeners
@@ -892,7 +892,7 @@ npm run electron:dev
 ## Dev Server Port
 
 - **Replit (web mode):** Port 5000 (default)
-- **Electron (dev mode):** Connects to localhost:5100
+- **Electron (dev mode):** Connects to localhost:5000
 - **Generated projects:** Port 3000 or next available
 
 ---

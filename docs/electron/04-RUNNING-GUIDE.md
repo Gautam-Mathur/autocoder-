@@ -102,8 +102,11 @@ npm run dev
 
 **Electron Mode (Desktop App):**
 ```bash
+# If port 5000 is already in use, run the server on 5100:
+PORT=5100 npm run dev
+# Then in another terminal:
 npm run electron:dev
-# Opens desktop window connected to http://localhost:5100
+# Electron defaults to port 5100 for local dev
 ```
 
 ### Step 4: Verify It Works
@@ -253,7 +256,7 @@ This command:
 1. Builds the Electron code with esbuild
 2. Starts the Express web server
 3. Launches the Electron window pointing to the dev server
-4. Dev URL: `http://localhost:5100`
+4. Dev URL: `http://localhost:5000`
 
 **What you see:**
 - A native desktop window opens at 1400x900 resolution
@@ -721,10 +724,10 @@ npm run dev
 
 **Solution:**
 ```bash
-# Make sure the web server is running on port 5100 first
+# Make sure the web server is running on port 5000 first
 npm run dev
 
-# Wait until you see "express serving on port 5100" in the console
+# Wait until you see "express serving on port 5000" in the console
 # Then start Electron in a separate terminal
 npm run build:electron
 cross-env NODE_ENV=development npx electron dist-electron/main.js

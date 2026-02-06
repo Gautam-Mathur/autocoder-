@@ -38,9 +38,38 @@ function createWindow() {
   });
 
   if (isDev) {
-    const devUrl = 'http://localhost:5100';
+    const devPort = process.env.DEV_PORT || '5100';
+    const devUrl = `http://localhost:${devPort}`;
     logger.info('App', `Loading dev URL: ${devUrl}`);
-    mainWindow.loadURL(devUrl);
+
+    const waitForServer = async (url: string, maxRetries = 30, interval = 1000): Promise<boolean> => {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const { net } = await import('electron');
+          await new Promise<void>((resolve, reject) => {
+            const request = net.request(url);
+            request.on('response', () => resolve());
+            request.on('error', () => reject());
+            request.end();
+          });
+          return true;
+        } catch {
+          logger.info('App', `Waiting for dev server... (attempt ${i + 1}/${maxRetries})`);
+          await new Promise(r => setTimeout(r, interval));
+        }
+      }
+      return false;
+    };
+
+    waitForServer(devUrl).then(async (ready) => {
+      if (ready && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.loadURL(devUrl);
+      } else {
+        logger.error('App', `Dev server not available at ${devUrl} after 30 retries. Make sure to run "npm run dev" first.`);
+        mainWindow?.loadURL(`data:text/html,<html><body style="font-family:sans-serif;padding:40px;background:#1a1a2e;color:#e0e0e0"><h1>Could not connect to dev server</h1><p>Make sure the web server is running first:</p><pre style="background:#16213e;padding:16px;border-radius:8px">npm run dev</pre><p>Then restart Electron:</p><pre style="background:#16213e;padding:16px;border-radius:8px">npm run electron:dev</pre><p>Tried connecting to: <strong>${devUrl}</strong></p><p>You can change the port with: <code>DEV_PORT=3000 npm run electron:dev</code></p></body></html>`);
+      }
+    });
+
     mainWindow.webContents.openDevTools();
   } else {
     const prodPath = path.join(__dirname, '../dist/index.html');
@@ -50,6 +79,9 @@ function createWindow() {
 
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
     logger.error('App', 'Failed to load URL', { errorCode, errorDescription, validatedURL });
+    if (isDev) {
+      logger.info('App', 'Tip: Make sure the dev server is running with "npm run dev" before starting Electron');
+    }
   });
 
   mainWindow.webContents.on('did-finish-load', () => {
