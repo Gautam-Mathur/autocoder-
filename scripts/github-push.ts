@@ -109,15 +109,74 @@ async function pushToGitHub() {
     }
   }
 
-  console.log('Gathering files...');
-  const files = getAllFiles(process.cwd());
-  console.log(`Found ${files.length} files`);
-
-  console.log('Uploading files...');
-  const treeItems: { path: string; mode: '100644'; type: 'blob'; sha: string }[] = [];
-  
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  console.log('Fetching remote tree...');
+  const { data: parentCommit } = await octokit.git.getCommit({
+    owner: OWNER,
+    repo: REPO,
+    commit_sha: parentSha
+  });
   
+  async function getRemoteTree(treeSha: string): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    const { data: tree } = await octokit.git.getTree({
+      owner: OWNER,
+      repo: REPO,
+      tree_sha: treeSha,
+      recursive: 'true'
+    });
+    for (const item of tree.tree) {
+      if (item.type === 'blob' && item.path && item.sha) {
+        map.set(item.path, item.sha);
+      }
+    }
+    return map;
+  }
+  
+  const remoteFiles = await getRemoteTree(parentCommit.tree.sha);
+  console.log(`Remote tree has ${remoteFiles.size} files`);
+
+  console.log('Gathering local files...');
+  const localFiles = getAllFiles(process.cwd());
+  console.log(`Found ${localFiles.length} local files`);
+
+  const crypto = await import('crypto');
+  function computeGitBlobSha(content: Buffer): string {
+    const header = `blob ${content.length}\0`;
+    const store = Buffer.concat([Buffer.from(header), content]);
+    return crypto.createHash('sha1').update(store).digest('hex');
+  }
+
+  const changedFiles: string[] = [];
+  const unchangedShas = new Map<string, string>();
+  for (const filePath of localFiles) {
+    const fullPath = path.join(process.cwd(), filePath);
+    const content = fs.readFileSync(fullPath);
+    const localSha = computeGitBlobSha(content);
+    const remoteSha = remoteFiles.get(filePath);
+    if (remoteSha === localSha) {
+      unchangedShas.set(filePath, remoteSha);
+    } else {
+      changedFiles.push(filePath);
+    }
+  }
+  
+  const deletedFiles = [...remoteFiles.keys()].filter(f => !localFiles.includes(f));
+  console.log(`Changed: ${changedFiles.length}, Unchanged: ${unchangedShas.size}, Deleted from remote: ${deletedFiles.length}`);
+
+  if (changedFiles.length === 0 && deletedFiles.length === 0) {
+    console.log('No changes to push!');
+    return;
+  }
+
+  console.log('Uploading changed files...');
+  const treeItems: { path: string; mode: '100644'; type: 'blob'; sha: string }[] = [];
+
+  for (const [fp, sha] of unchangedShas) {
+    treeItems.push({ path: fp, mode: '100644', type: 'blob', sha });
+  }
+
   async function uploadWithRetry(filePath: string, maxRetries = 5): Promise<string | null> {
     const fullPath = path.join(process.cwd(), filePath);
     const content = fs.readFileSync(fullPath);
@@ -145,29 +204,26 @@ async function pushToGitHub() {
     }
     return null;
   }
-  
+
   let uploaded = 0;
   let failed = 0;
-  const BATCH_SIZE = 5;
-  for (let i = 0; i < files.length; i += BATCH_SIZE) {
-    const batch = files.slice(i, i + BATCH_SIZE);
-    const results = await Promise.all(batch.map(f => uploadWithRetry(f).then(sha => ({ path: f, sha }))));
-    for (const { path: fp, sha } of results) {
-      if (sha) {
-        treeItems.push({ path: fp, mode: '100644', type: 'blob', sha });
-        uploaded++;
-      } else {
-        failed++;
-      }
+  for (const filePath of changedFiles) {
+    const sha = await uploadWithRetry(filePath);
+    if (sha) {
+      treeItems.push({ path: filePath, mode: '100644', type: 'blob', sha });
+      uploaded++;
+    } else {
+      failed++;
     }
-    if ((uploaded + failed) % 50 < BATCH_SIZE) {
-      console.log(`   Progress: ${uploaded} uploaded, ${failed} failed of ${files.length}...`);
+    if (uploaded % 20 === 0) {
+      console.log(`   Progress: ${uploaded}/${changedFiles.length} changed files uploaded...`);
     }
+    await delay(100);
   }
   
-  console.log(`Uploaded ${uploaded} files, ${failed} failed`);
+  console.log(`Uploaded ${uploaded} changed files, ${failed} failed`);
 
-  console.log('Creating tree (full replace — removes stale files)...');
+  console.log('Creating tree...');
   const { data: tree } = await octokit.git.createTree({
     owner: OWNER,
     repo: REPO,

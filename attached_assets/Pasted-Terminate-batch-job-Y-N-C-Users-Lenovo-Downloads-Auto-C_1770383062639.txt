@@ -1,0 +1,96 @@
+Terminate batch job (Y/N)? C:\Users\Lenovo\Downloads\Auto-Coder\Auto-Coder\node_modules\electron\dist\electron.exe exited with signal SIGINT
+Y
+
+C:\Users\Lenovo\Downloads\Auto-Coder\Auto-Coder>npm run electron:dev
+
+> rest-express@1.0.0 electron:dev
+> npm run build:electron && cross-env NODE_ENV=development npx electron dist-electron/main.js
+
+
+> rest-express@1.0.0 build:electron
+> tsx scripts/build-electron.ts
+
+Building Electron main process...
+Building Electron preload script...
+Electron build complete! Output in dist-electron/
+
+[2026-02-06T13:01:30.167Z] [INFO] [Logger] Logger initialized | {"logFile":"C:\\Users\\Lenovo\\AppData\\Roaming\\Electron\\logs\\autocoder-2026-02-06.log"}       
+[2026-02-06T13:01:30.201Z] [INFO] [App] Electron app ready | {"version":"40.2.1","platform":"win32","arch":"x64","nodeVersion":"v24.11.1"}
+[2026-02-06T13:01:30.202Z] [INFO] [App] Creating main window | {"isDev":true}
+[2026-02-06T13:01:30.257Z] [INFO] [App] Loading dev URL: http://localhost:5100
+(node:24620) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `electron --trace-deprecation ...` to show where the warning was created)   
+[2026-02-06T13:01:32.642Z] [INFO] [App] Waiting for dev server... (attempt 1/30)
+[2026-02-06T13:01:36.000Z] [INFO] [App] Waiting for dev server... (attempt 2/30)
+[2026-02-06T13:01:39.338Z] [INFO] [App] Waiting for dev server... (attempt 3/30)
+[2026-02-06T13:01:42.690Z] [INFO] [App] Waiting for dev server... (attempt 4/30)
+[2026-02-06T13:01:46.030Z] [INFO] [App] Waiting for dev server... (attempt 5/30)
+[2026-02-06T13:01:49.369Z] [INFO] [App] Waiting for dev server... (attempt 6/30)
+[2026-02-06T13:01:52.733Z] [INFO] [App] Waiting for dev server... (attempt 7/30)
+[2026-02-06T13:01:56.082Z] [INFO] [App] Waiting for dev server... (attempt 8/30)
+[2026-02-06T13:01:59.428Z] [INFO] [App] Waiting for dev server... (attempt 9/30)
+[2026-02-06T13:02:02.760Z] [INFO] [App] Waiting for dev server... (attempt 10/30)
+[2026-02-06T13:02:06.103Z] [INFO] [App] Waiting for dev server... (attempt 11/30)
+[2026-02-06T13:02:09.436Z] [INFO] [App] Waiting for dev server... (attempt 12/30)
+[2026-02-06T13:02:12.783Z] [INFO] [App] Waiting for dev server... (attempt 13/30)
+[2026-02-06T13:02:16.122Z] [INFO] [App] Waiting for dev server... (attempt 14/30)
+[2026-02-06T13:02:19.464Z] [INFO] [App] Waiting for dev server... (attempt 15/30)
+Terminate batch job (Y/N)? C:\Users\Lenovo\Downloads\Auto-Coder\Auto-Coder\node_modules\electron\dist\electron.exe exited with signal SIGINT
+Y 
+
+C:\Users\Lenovo\Downloads\Auto-Coder\Auto-Coder>npm run electron:dev
+
+> rest-express@1.0.0 electron:dev
+> npm run build:electron && cross-env NODE_ENV=development npx electron dist-electron/main.js
+
+
+> rest-express@1.0.0 build:electron
+> tsx scripts/build-electron.ts
+
+Building Electron main process...
+Building Electron preload script...
+Electron build complete! Output in dist-electron/
+
+[2026-02-06T13:03:05.832Z] [INFO] [Logger] Logger initialized | {"logFile":"C:\\Users\\Lenovo\\AppData\\Roaming\\Electron\\logs\\autocoder-2026-02-06.log"}       
+[2026-02-06T13:03:05.863Z] [INFO] [App] Electron app ready | {"version":"40.2.1","platform":"win32","arch":"x64","nodeVersion":"v24.11.1"}
+[2026-02-06T13:03:05.864Z] [INFO] [App] Creating main window | {"isDev":true}
+[2026-02-06T13:03:05.912Z] [INFO] [App] Loading dev URL: http://localhost:5100
+(node:10636) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `electron --trace-deprecation ...` to show where the warning was created)   
+(electron) 'console-message' arguments are deprecated and will be removed. Please use Event<WebContentsConsoleMessageEventParams> object instead.
+[2026-02-06T13:03:06.780Z] [DEBUG] [Renderer] [vite] connecting... | {"line":733,"sourceId":"http://localhost:5100/@vite/client"}
+[2026-02-06T13:03:07.477Z] [DEBUG] [Renderer] [vite] connected. | {"line":827,"sourceId":"http://localhost:5100/@vite/client"}
+[2026-02-06T13:03:09.435Z] [INFO] [Renderer] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold | {"line":21609,"sourceId":"http://localhost:5100/@fs/C:/Users/Lenovo/Downloads/Auto-Coder/Auto-Coder/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=d992cc9c"}
+[2026-02-06T13:03:09.462Z] [INFO] [App] Page loaded successfully
+[2026-02-06T13:03:09.590Z] [WARN] [Renderer] %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of       
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged. | {"line":2,"sourceId":"node:electron/js2c/sandbox_bundle"}
+[2026-02-06T13:03:46.662Z] [WARN] [Renderer] An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing. | {"line":0,"sourceId":"blob:http://localhost:5100/b48cb7f4-720b-4987-af19-db7a78cc0725"}
+[2026-02-06T13:03:46.836Z] [WARN] [Renderer] You are using the in-browser Babel transformer. Be sure to precompile your scripts for production - https://babeljs.io/docs/setup/ | {"line":3,"sourceId":"http://localhost:5100/api/preview-scripts/babel"}
+[2026-02-06T13:03:46.864Z] [ERROR] [Renderer] Babel transform failed: SyntaxError: /Inline Babel script: Expected corresponding JSX closing tag for <Routes>. (557:8)
+
+  555 |             <Route path="/" element={<HomePage />} />
+  556 |             <Route path="/about" element={<AboutPage />} />
+> 557 |         </main>
+      |         ^
+  558 |       </div>
+  559 |     </BrowserRouter>
+  560 |   ); | {"line":223,"sourceId":"blob:http://localhost:5100/b48cb7f4-720b-4987-af19-db7a78cc0725"}
+[2026-02-06T13:03:47.204Z] [WARN] [Renderer] An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing. | {"line":0,"sourceId":"blob:http://localhost:5100/a1c8a52e-4a87-4dad-999b-e457ed56d8d8"}
+[2026-02-06T13:03:47.226Z] [WARN] [Renderer] You are using the in-browser Babel transformer. Be sure to precompile your scripts for production - https://babeljs.io/docs/setup/ | {"line":3,"sourceId":"http://localhost:5100/api/preview-scripts/babel"}
+[2026-02-06T13:03:47.329Z] [WARN] [Renderer] You are using the in-browser Babel transformer. Be sure to precompile your scripts for production - https://babeljs.io/docs/setup/ | {"line":3,"sourceId":"http://localhost:5100/api/preview-scripts/babel"}
+[2026-02-06T13:03:47.343Z] [ERROR] [Renderer] Babel transform failed: SyntaxError: /Inline Babel script (2): Expected corresponding JSX closing tag for <link>. (501:12)
+
+  499 |             <link key={link.to} to={link.to} className={`text-sm font-medium transition-colors ${location.pathname === link.to ? 'text-indigo-400' : 'text-gray-400 hover:text-white'}`}>
+  500 |               {link.label}
+> 501 |             </Link>
+      |             ^
+  502 |           ))}
+  503 |         </div>
+  504 |         <Button type="button" onClick={() => setOpen(!open)} className="md:hidden p-2 text-gray-400 hover:text-white" aria-label="Toggle menu"> | {"line":223,"sourceId":"blob:http://localhost:5100/a1c8a52e-4a87-4dad-999b-e457ed56d8d8"}
+[2026-02-06T13:04:06.837Z] [WARN] [Renderer] The resource https://w-corp-staticblitz.com/fetch.worker.b894c784.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. | {"line":0,"sourceId":"https://stackblitz.com/headless?version=1.6.1"}

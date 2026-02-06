@@ -400,6 +400,7 @@ function checkVoidElements(
         i++;
       }
       if (isUnclosed && !isSelfClosed) {
+        if (tag === 'link' && isReactRouterLink(content, match.index)) continue;
         errors.push({
           file: filePath,
           line: getLineNumber(content, match.index),
@@ -563,6 +564,75 @@ function fixDuplicateSemicolons(content: string): string {
   return content.replace(/;;+/g, ';');
 }
 
+function isReactRouterLink(content: string, matchIndex: number): boolean {
+  let i = matchIndex + 5;
+  let depth = 0;
+  let tagContent = '';
+  while (i < content.length) {
+    const ch = content[i];
+    if (ch === '{') { depth++; i++; continue; }
+    if (ch === '}') { depth--; i++; continue; }
+    if (depth > 0) { tagContent += ch; i++; continue; }
+    if (ch === '/' && content[i + 1] === '>') break;
+    if (ch === '>') break;
+    tagContent += ch;
+    i++;
+  }
+  if (/\bto\s*=/.test(tagContent)) return true;
+  if (/\.\.\.\w/.test(tagContent)) return true;
+  if (content[i] === '>') {
+    const searchEnd = Math.min(content.length, i + 1000);
+    const afterTag = content.substring(i + 1, searchEnd);
+    const closeLinkIdx = afterTag.indexOf('</Link>');
+    const closeLinkLowerIdx = afterTag.indexOf('</link>');
+    const nextOpenLink = afterTag.indexOf('<link');
+    const nextOpenLinkUpper = afterTag.indexOf('<Link');
+    const closeIdx = closeLinkIdx !== -1 ? closeLinkIdx : closeLinkLowerIdx;
+    if (closeIdx !== -1) {
+      if (nextOpenLink === -1 || nextOpenLink > closeIdx) {
+        if (nextOpenLinkUpper === -1 || nextOpenLinkUpper > closeIdx) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function fixLinkCasing(content: string, filePath: string): string {
+  if (!isJsxFile(filePath)) return content;
+  let result = content;
+  const openRegex = /<link\b/g;
+  let m: RegExpExecArray | null;
+  const openPositions: number[] = [];
+  while ((m = openRegex.exec(result)) !== null) {
+    if (isInsideString(result, m.index) || isInsideComment(result, m.index)) continue;
+    if (!isReactRouterLink(result, m.index)) continue;
+    openPositions.push(m.index);
+  }
+  if (openPositions.length === 0) return result;
+
+  const allReplacements: { start: number; end: number; text: string }[] = [];
+  for (const pos of openPositions) {
+    allReplacements.push({ start: pos, end: pos + 5, text: '<Link' });
+    const tagEnd = result.indexOf('>', pos);
+    if (tagEnd === -1) continue;
+    const closeIdx = result.indexOf('</link>', tagEnd);
+    if (closeIdx !== -1) {
+      const nextOpen = result.indexOf('<link', tagEnd + 1);
+      if (nextOpen === -1 || nextOpen > closeIdx) {
+        allReplacements.push({ start: closeIdx, end: closeIdx + 7, text: '</Link>' });
+      }
+    }
+  }
+
+  allReplacements.sort((a, b) => b.start - a.start);
+  for (const r of allReplacements) {
+    result = result.slice(0, r.start) + r.text + result.slice(r.end);
+  }
+  return result;
+}
+
 function fixVoidElements(content: string, filePath: string): string {
   if (!isJsxFile(filePath)) return content;
   let result = content;
@@ -572,6 +642,7 @@ function fixVoidElements(content: string, filePath: string): string {
     const replacements: { start: number; end: number; replacement: string }[] = [];
     while ((tagMatch = openTagRegex.exec(result)) !== null) {
       if (isInsideString(result, tagMatch.index) || isInsideComment(result, tagMatch.index)) continue;
+      if (tag === 'link' && isReactRouterLink(result, tagMatch.index)) continue;
       let depth = 0;
       let i = tagMatch.index + tagMatch[0].length;
       let foundEnd = false;
@@ -657,6 +728,7 @@ function fixMissingDefaultExport(content: string, filePath: string): string {
 function fixUnclosedTags(content: string, filePath: string): string {
   if (!isJsxFile(filePath)) return content;
   let result = content;
+  const CONTAINER_TAGS_HANDLED = ['Routes', 'Switch', 'BrowserRouter', 'HashRouter', 'MemoryRouter'];
   const tagStartRegex = /<([a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)*)(?=[\s>\/])/g;
   let tagMatch: RegExpExecArray | null;
   const fixes: { index: number; tag: string }[] = [];
@@ -665,6 +737,7 @@ function fixUnclosedTags(content: string, filePath: string): string {
     const tag = tagMatch[1];
     const baseName = tag.split('.')[0].toLowerCase();
     if (VOID_ELEMENTS.includes(baseName)) continue;
+    if (CONTAINER_TAGS_HANDLED.includes(tag)) continue;
     if (isInsideString(content, tagMatch.index) || isInsideComment(content, tagMatch.index)) continue;
     let depth = 0;
     let i = tagMatch.index + tagMatch[0].length;
@@ -697,16 +770,67 @@ function fixUnclosedTags(content: string, filePath: string): string {
   return result;
 }
 
+function fixMissingClosingTags(content: string, filePath: string): string {
+  if (!isJsxFile(filePath)) return content;
+  let result = content;
+  const containerTags = ['Routes', 'Switch', 'BrowserRouter', 'HashRouter', 'MemoryRouter'];
+  for (const tag of containerTags) {
+    const openRegex = new RegExp(`<${tag}[\\s>/]`, 'g');
+    const closingTag = `</${tag}>`;
+    const openMatches = result.match(openRegex);
+    const closeMatches = result.match(new RegExp(closingTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'));
+    const openCount = openMatches ? openMatches.length : 0;
+    const closeCount = closeMatches ? closeMatches.length : 0;
+    if (openCount === 0 || openCount <= closeCount) continue;
+
+    const openIdxMatch = result.match(new RegExp(`<${tag}[\\s>/]`));
+    if (!openIdxMatch) continue;
+    const openIdx = openIdxMatch.index!;
+
+    let lastChildEnd = -1;
+    const routeCloseRegex = /<\/Route>/g;
+    let rm: RegExpExecArray | null;
+    while ((rm = routeCloseRegex.exec(result)) !== null) {
+      if (rm.index > openIdx) lastChildEnd = rm.index + rm[0].length;
+    }
+    if (lastChildEnd === -1) {
+      const selfCloseRegex = /<Route\b[^>]*\/>/g;
+      while ((rm = selfCloseRegex.exec(result)) !== null) {
+        if (rm.index > openIdx) lastChildEnd = rm.index + rm[0].length;
+      }
+    }
+
+    if (lastChildEnd !== -1) {
+      const lineEnd = result.indexOf('\n', lastChildEnd);
+      const insertPos = lineEnd !== -1 ? lineEnd + 1 : lastChildEnd;
+      const lineStart = result.lastIndexOf('\n', lastChildEnd - 1);
+      const currentIndent = result.substring(lineStart + 1, lastChildEnd).match(/^(\s*)/)?.[1] || '';
+      const parentIndent = currentIndent.length >= 2 ? currentIndent.slice(0, -2) : currentIndent;
+      result = result.substring(0, insertPos) + parentIndent + closingTag + '\n' + result.substring(insertPos);
+    } else {
+      const openTagEnd = result.indexOf('>', openIdx);
+      if (openTagEnd !== -1) {
+        const lineEnd = result.indexOf('\n', openTagEnd);
+        const insertPos = lineEnd !== -1 ? lineEnd + 1 : openTagEnd + 1;
+        result = result.substring(0, insertPos) + '      ' + closingTag + '\n' + result.substring(insertPos);
+      }
+    }
+  }
+  return result;
+}
+
 export function autoFixCode(content: string, filePath: string): string {
   let fixed = content;
   fixed = fixStraySemicolons(fixed);
   fixed = fixDuplicateSemicolons(fixed);
+  fixed = fixLinkCasing(fixed, filePath);
   fixed = fixVoidElements(fixed, filePath);
   fixed = fixClassToClassName(fixed, filePath);
   fixed = fixForToHtmlFor(fixed, filePath);
   fixed = fixReactImportTypos(fixed);
   fixed = fixMissingDefaultExport(fixed, filePath);
   fixed = fixUnclosedTags(fixed, filePath);
+  fixed = fixMissingClosingTags(fixed, filePath);
   return fixed;
 }
 
