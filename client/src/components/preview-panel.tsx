@@ -1192,6 +1192,7 @@ ${combinedJs}
                   projectName={files[0]?.path?.split('/')[0] || 'Generated Project'}
                   height="100%"
                   autoStart={true}
+                  conversationId={conversationId}
                 />
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
@@ -1439,6 +1440,7 @@ ${combinedJs}
                 projectName={files[0]?.path?.split('/')[0] || 'Generated Project'}
                 height="100%"
                 autoStart={true}
+                conversationId={conversationId}
               />
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">

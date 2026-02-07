@@ -44,8 +44,8 @@ autocoder/
 │   └── src/
 │       ├── lib/
 │       │   ├── code-generator/
-│       │   │   ├── pro-generator.ts     # Main code generator (3,243 lines)
-│       │   │   ├── code-validator.ts    # Auto-fix validation pipeline (758 lines)
+│       │   │   ├── pro-generator.ts     # Template code generator (3,624 lines)
+│       │   │   ├── code-validator.ts    # Auto-fix validation pipeline (955 lines)
 │       │   │   └── ...                  # Other generator modules
 │       │   └── code-runner/
 │       │       ├── webcontainer.ts      # WebContainer (browser fallback)
@@ -53,23 +53,23 @@ autocoder/
 │       │       └── runner-factory.ts    # Environment detection
 │       ├── components/
 │       │   ├── preview-panel.tsx        # Preview with LiveCodeRunner
-│       │   └── live-code-runner.tsx     # Browser-based Babel preview (1,079 lines)
+│       │   └── live-code-runner.tsx     # Browser-based Babel preview (1,263 lines)
 │       ├── pages/
 │       └── ...
 │
 ├── server/                          # Express backend
-│   ├── modules/                     # 34 intelligence modules
+│   ├── modules/                     # 41 intelligence modules
 │   │   ├── natural-language-understanding.ts
 │   │   ├── enhanced-intent-recognition.ts
 │   │   ├── advanced-code-generation.ts
 │   │   ├── deep-project-generator.ts
 │   │   ├── complete-code-intelligence.ts
 │   │   └── ...
-│   ├── storage.ts                   # Database layer (897 lines)
+│   ├── storage.ts                   # Database layer (901 lines)
 │   └── routes.ts                    # API endpoints
 │
 ├── shared/
-│   └── schema.ts                    # Drizzle ORM schema (262 lines, 16 tables)
+│   └── schema.ts                    # Drizzle ORM schema (266 lines, 16 tables)
 │
 ├── scripts/
 │   ├── build-electron.ts            # esbuild pipeline for Electron
@@ -307,9 +307,9 @@ export async function getRunner(): Promise<UnifiedRunner> {
 
 ## 4. Pro Generator Architecture
 
-**File:** `client/src/lib/code-generator/pro-generator.ts` (3,243 lines)
+**File:** `client/src/lib/code-generator/pro-generator.ts` (3,624 lines)
 
-The Pro Generator is the primary code generation engine. It takes a natural language prompt and produces a complete, runnable React+Vite+Tailwind project with multiple files. It is entirely self-contained with no imports from other generator modules.
+The Pro Generator is the client-side template-based code generation engine used as a fallback. It takes a natural language prompt and produces a complete, runnable React+Vite+Tailwind project with multiple files. The primary code generation path is now the server-side plan-driven generator (`server/modules/plan-driven-generator.ts`, 1,828 lines) which uses the deep understanding engine and domain knowledge to produce custom TypeScript projects from approved plans.
 
 ### 4.1 Exports
 
@@ -571,7 +571,7 @@ const EVENT_HANDLER_FIXES: Record<string, string> = {
 
 ## 6. LiveCodeRunner Architecture
 
-**File:** `client/src/components/live-code-runner.tsx` (1,079 lines)
+**File:** `client/src/components/live-code-runner.tsx` (1,263 lines)
 
 The LiveCodeRunner is a React component that provides instant in-browser preview of generated React projects without any build tools, bundlers, or servers. It transforms JSX/TSX files using inline Babel and renders them inside a sandboxed iframe via blob URLs.
 
@@ -686,9 +686,21 @@ Before Babel compilation, the runner applies several syntax fixes to generated c
 
 ## 7. Server Modules Reference
 
-**Directory:** `server/modules/` (34 modules)
+**Directory:** `server/modules/` (41 modules)
 
 All server-side intelligence is organized into focused modules. Each module exports pure functions (no side effects on import) and is consumed by `server/routes.ts`.
+
+### 7.0 Plan-Driven Pipeline (New)
+
+| Module | Lines | Description |
+|--------|-------|-------------|
+| **`deep-understanding-engine.ts`** | 662 | 5-level analysis pipeline: intent decomposition, multi-domain detection with blending, entity extraction with keyword inference, workflow detection, clarification management |
+| **`conversation-phase-handler.ts`** | 346 | 6-phase state machine (initial -> understanding -> clarifying -> planning -> approval -> generating -> complete) with deadlock recovery and 2-round clarification limit |
+| **`plan-generator.ts`** | 493 | Generates structured ProjectPlan objects from understanding data: tech stack, modules, data model, pages, API endpoints, workflows, user roles, file blueprints |
+| **`plan-driven-generator.ts`** | 1,828 | 36 generator functions producing complete React+Vite+TypeScript projects from approved plans with full backend, UI components, and domain-specific pages |
+| **`post-generation-validator.ts`** | 601 | Validates generated code: 50+ package dependency checks, implicit dependency detection, smart stub generation, runtime pattern validation |
+| **`domain-knowledge.ts`** | 1,383 | 14 industry domain profiles with entities, workflows, roles, pages, KPIs, and integration points |
+| **`vite-error-fixer.ts`** | 829 | Server-side auto-fix engine analyzing 11 error types from Vite build output and generating patches, stubs, and dependency fixes |
 
 ### 7.1 Natural Language Processing
 
@@ -785,7 +797,7 @@ All server-side intelligence is organized into focused modules. Each module expo
 
 ### 8.1 Schema
 
-**File:** `shared/schema.ts` (262 lines)
+**File:** `shared/schema.ts` (266 lines)
 
 The schema defines 16 database tables using Drizzle ORM with PostgreSQL:
 
@@ -820,7 +832,7 @@ export type Conversation = typeof conversations.$inferSelect;
 
 ### 8.2 Storage Interface
 
-**File:** `server/storage.ts` (897 lines)
+**File:** `server/storage.ts` (901 lines)
 
 The `IStorage` interface defines all CRUD operations used by the application. It abstracts the database layer so that the API routes in `server/routes.ts` never interact with the database directly.
 

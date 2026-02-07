@@ -138,15 +138,15 @@ const APP_TYPE_PATTERNS: Record<string, string[]> = {
   'saas': ['saas', 'subscription', 'multi-tenant', 'platform'],
 };
 
-export function analyzeRequest(userMessage: string, conversationContext?: string): UnderstandingResult {
+export function analyzeRequest(userMessage: string, conversationContext?: string, clarificationRound: number = 0): UnderstandingResult {
   const fullText = conversationContext ? `${conversationContext} ${userMessage}` : userMessage;
   const lower = fullText.toLowerCase();
 
   const level1 = decomposeIntent(lower, userMessage);
   const level2 = detectDomain(lower, level1);
-  const level3 = extractEntities(lower, level2);
+  const level3 = extractEntities(lower, level2, level1);
   const level4 = detectWorkflows(lower, level3, level2);
-  const level5 = generateClarifications(level1, level2, level3, level4, userMessage);
+  const level5 = generateClarifications(level1, level2, level3, level4, userMessage, clarificationRound);
 
   const confidence = calculateOverallConfidence(level1, level2, level3, level4);
   const readyForPlan = confidence >= 0.65 && !level5.needsClarification;
@@ -233,50 +233,98 @@ function decomposeIntent(lower: string, original: string): IntentDecomposition {
 function detectDomain(lower: string, intent: IntentDecomposition): DomainDetectionResult {
   const domainMatches = detectDomainFromText(lower);
 
-  const primaryDomain = domainMatches.length > 0 ? domainMatches[0].domain : null;
-  const secondaryDomains = domainMatches.slice(1, 3).map(m => m.domain);
-  const matchedKeywords = domainMatches.flatMap(m => m.matchedKeywords);
-  const confidence = domainMatches.length > 0 ? domainMatches[0].confidence : 0;
+  if (domainMatches.length === 0) {
+    return {
+      primaryDomain: null,
+      secondaryDomains: [],
+      confidence: 0,
+      matchedKeywords: [],
+      detectedModules: [],
+      suggestedModules: [],
+    };
+  }
+
+  let primaryDomain = domainMatches[0].domain;
+  let secondaryDomains = domainMatches.slice(1, 3).map(m => m.domain);
+  let matchedKeywords = domainMatches.flatMap(m => m.matchedKeywords);
+  let confidence = domainMatches[0].confidence;
+
+  if (domainMatches.length >= 2) {
+    const top = domainMatches[0];
+    const second = domainMatches[1];
+    if (Math.abs(top.confidence - second.confidence) <= 0.15) {
+      const secondaryModuleNames = second.domain.modules.map(m => m.name);
+      const primaryModuleNames = primaryDomain.modules.map(m => m.name);
+      const mergedModules = [...primaryDomain.modules];
+      for (const mod of second.domain.modules) {
+        if (!primaryModuleNames.includes(mod.name)) {
+          mergedModules.push(mod);
+        }
+      }
+      const primaryEntityNames = primaryDomain.entities.map(e => e.name);
+      const mergedEntities = [...primaryDomain.entities];
+      for (const ent of second.domain.entities) {
+        if (!primaryEntityNames.includes(ent.name)) {
+          mergedEntities.push(ent);
+        }
+      }
+      primaryDomain = {
+        ...primaryDomain,
+        modules: mergedModules,
+        entities: mergedEntities,
+      };
+      if (!secondaryDomains.find(d => d.id === second.domain.id)) {
+        secondaryDomains = [second.domain, ...secondaryDomains.filter(d => d.id !== second.domain.id)].slice(0, 3);
+      }
+    }
+  }
 
   let detectedModules: string[] = [];
   let suggestedModules: string[] = [];
 
-  if (primaryDomain) {
-    detectedModules = primaryDomain.modules
-      .filter(m => {
-        const modKeywords = [...m.entities.map(e => e.toLowerCase()), m.name.toLowerCase()];
-        return modKeywords.some(k => lower.includes(k));
-      })
-      .map(m => m.name);
+  detectedModules = primaryDomain.modules
+    .filter(m => {
+      const modKeywords = [...m.entities.map(e => e.toLowerCase()), m.name.toLowerCase()];
+      return modKeywords.some(k => lower.includes(k));
+    })
+    .map(m => m.name);
 
-    suggestedModules = primaryDomain.modules
-      .filter(m => !detectedModules.includes(m.name))
-      .map(m => m.name);
+  suggestedModules = primaryDomain.modules
+    .filter(m => !detectedModules.includes(m.name))
+    .map(m => m.name);
 
-    if (detectedModules.length === 0) {
-      if (intent.applicationType === 'erp' || lower.includes('full') || lower.includes('complete') || lower.includes('everything')) {
-        detectedModules = primaryDomain.modules.map(m => m.name);
-        suggestedModules = [];
-      } else {
-        const coreModules = primaryDomain.modules.filter(m =>
-          m.name.toLowerCase().includes('dashboard') ||
-          m.entities.length > 0
-        );
-        suggestedModules = coreModules.map(m => m.name);
-      }
+  if (detectedModules.length === 0) {
+    if (intent.applicationType === 'erp' || lower.includes('full') || lower.includes('complete') || lower.includes('everything')) {
+      detectedModules = primaryDomain.modules.map(m => m.name);
+      suggestedModules = [];
+    } else {
+      const coreModules = primaryDomain.modules.filter(m =>
+        m.name.toLowerCase().includes('dashboard') ||
+        m.entities.length > 0
+      );
+      suggestedModules = coreModules.map(m => m.name);
     }
   }
 
   return { primaryDomain, secondaryDomains, confidence, matchedKeywords, detectedModules, suggestedModules };
 }
 
-function extractEntities(lower: string, domainResult: DomainDetectionResult): EntityExtractionResult {
+function extractEntities(lower: string, domainResult: DomainDetectionResult, intent: IntentDecomposition): EntityExtractionResult {
   const mentionedEntities: string[] = [];
   for (const [entity, keywords] of Object.entries(ENTITY_KEYWORDS)) {
     if (keywords.some(k => lower.includes(k))) {
       mentionedEntities.push(entity);
     }
   }
+
+  const entityCaps: Record<string, number> = {
+    'small': 4,
+    'medium': 8,
+    'large': 12,
+    'enterprise': 12,
+    'unknown': 6,
+  };
+  const maxEntities = entityCaps[intent.scale] || 6;
 
   const inferredEntities: string[] = [];
   const domain = domainResult.primaryDomain;
@@ -292,6 +340,35 @@ function extractEntities(lower: string, domainResult: DomainDetectionResult): En
         inferredEntities.push(de.name);
       }
     }
+  } else {
+    const irrelevantForContext: Record<string, string[]> = {
+      'restaurant': ['vehicles', 'shipments', 'tenants', 'properties', 'patients', 'courses', 'students', 'deals', 'contracts'],
+      'school': ['vehicles', 'shipments', 'tenants', 'properties', 'patients', 'menu', 'deals', 'inventory'],
+      'hospital': ['vehicles', 'shipments', 'tenants', 'properties', 'menu', 'deals', 'students', 'courses', 'inventory'],
+      'hotel': ['vehicles', 'patients', 'courses', 'students', 'deals', 'shipments', 'contracts'],
+      'store': ['vehicles', 'patients', 'courses', 'students', 'tenants', 'properties', 'contracts', 'timesheets'],
+      'clinic': ['vehicles', 'shipments', 'tenants', 'properties', 'menu', 'deals', 'students', 'courses', 'inventory'],
+    };
+
+    let excludeEntities: string[] = [];
+    for (const [contextKey, excluded] of Object.entries(irrelevantForContext)) {
+      if (lower.includes(contextKey)) {
+        excludeEntities = [...excludeEntities, ...excluded];
+      }
+    }
+
+    for (const [entity, keywords] of Object.entries(ENTITY_KEYWORDS)) {
+      if (!mentionedEntities.includes(entity) && !excludeEntities.includes(entity)) {
+        const relevanceScore = keywords.filter(k => lower.includes(k)).length;
+        if (relevanceScore > 0) {
+          inferredEntities.push(entity);
+        }
+      }
+    }
+  }
+
+  if (inferredEntities.length > maxEntities) {
+    inferredEntities.splice(maxEntities);
   }
 
   const relationships: { from: string; to: string; type: string }[] = [];
@@ -326,7 +403,7 @@ function detectWorkflows(lower: string, entityResult: EntityExtractionResult, do
 
   const domain = domainResult.primaryDomain;
   const allEntityNames = [...entityResult.mentionedEntities, ...entityResult.inferredEntities];
-  const inferredWorkflows = domain ? buildWorkflowsForEntities(domain, allEntityNames.map(e => {
+  const inferredWorkflows: DomainWorkflow[] = domain ? buildWorkflowsForEntities(domain, allEntityNames.map(e => {
     const de = domain.entities.find(d => d.name.toLowerCase() === e.toLowerCase());
     return de ? de.name : e;
   })) : [];
@@ -347,6 +424,26 @@ function detectWorkflows(lower: string, entityResult: EntityExtractionResult, do
     }
   }
 
+  if (!domain && inferredWorkflows.length === 0) {
+    const statusEntities = ['orders', 'tasks', 'projects', 'invoices', 'appointments', 'leave', 'contracts', 'shipments', 'deals'];
+    for (const entityName of allEntityNames) {
+      if (statusEntities.includes(entityName.toLowerCase())) {
+        const capitalizedName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
+        inferredWorkflows.push({
+          name: `${capitalizedName} Status Tracking`,
+          entity: capitalizedName,
+          states: ['draft', 'active', 'completed', 'cancelled'],
+          transitions: [
+            { from: 'draft', to: 'active', action: 'Activate' },
+            { from: 'active', to: 'completed', action: 'Complete' },
+            { from: 'active', to: 'cancelled', action: 'Cancel' },
+          ],
+        });
+        approvalFlows.push(`${entityName}-approval`);
+      }
+    }
+  }
+
   return { mentionedWorkflows, inferredWorkflows, approvalFlows, statusTrackingNeeded };
 }
 
@@ -355,10 +452,36 @@ function generateClarifications(
   domain: DomainDetectionResult,
   entities: EntityExtractionResult,
   workflows: WorkflowDetectionResult,
-  originalMessage: string
+  originalMessage: string,
+  clarificationRound: number = 0
 ): ClarificationResult {
   const questions: ClarifyingQuestion[] = [];
   const assumptions: string[] = [];
+
+  if (clarificationRound >= 2) {
+    if (!domain.primaryDomain) {
+      assumptions.push('Assuming general-purpose business application (no specific industry detected)');
+    } else {
+      assumptions.push(`This is for the ${domain.primaryDomain.name} industry`);
+    }
+    if (intent.scale === 'unknown') {
+      assumptions.push('Scale: medium (default assumption)');
+    } else {
+      assumptions.push(`Scale: ${intent.scale}`);
+    }
+    if (domain.detectedModules.length > 0) {
+      assumptions.push(`Key modules: ${domain.detectedModules.join(', ')}`);
+    } else if (domain.suggestedModules.length > 0) {
+      assumptions.push(`Will include suggested modules: ${domain.suggestedModules.slice(0, 5).join(', ')}`);
+    }
+    if (entities.mentionedEntities.length > 0 || entities.inferredEntities.length > 0) {
+      const allEntities = [...entities.mentionedEntities, ...entities.inferredEntities];
+      assumptions.push(`Key data: ${allEntities.slice(0, 5).join(', ')}`);
+    } else {
+      assumptions.push('Will include standard data entities based on application type');
+    }
+    return { needsClarification: false, questions: [], assumptions };
+  }
 
   if (!domain.primaryDomain) {
     questions.push({

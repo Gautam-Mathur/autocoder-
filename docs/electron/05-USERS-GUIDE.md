@@ -147,20 +147,36 @@ After seeing the preview, you can request changes:
 
 Understanding what happens behind the scenes helps you write better prompts and get better results. Here is the full journey from your typed description to a live preview.
 
-### Step 1: The Pro Generator Analyzes Your Words
+### Plan-Driven Pipeline (Primary)
 
-When you type something like "Build me an online store for selling sneakers," the Pro Generator reads your description and breaks it down into actionable parts:
+When you describe what you want to build, AutoCoder now uses an intelligent plan-driven approach:
+
+1. **Deep Understanding** - The system analyzes your request using a 5-level pipeline: understanding your intent, detecting which industry domain you're in (14 supported), extracting relevant data entities, identifying workflows, and determining if it needs to ask clarifying questions.
+
+2. **Clarification (if needed)** - If your request is ambiguous, AutoCoder may ask 1-2 clarifying questions. It won't ask more than 2 rounds - after that, it proceeds with its best assumptions.
+
+3. **Plan Generation** - Before writing any code, AutoCoder generates a comprehensive plan showing: the technology stack, all modules/features, the data model with entities and fields, all pages and their layouts, API endpoints, workflows, and user roles.
+
+4. **Your Approval** - You get to review the plan. You can approve it, request modifications ("add a billing module"), or reject it and start over.
+
+5. **Code Generation** - Once approved, AutoCoder generates a complete, runnable React+Vite+TypeScript project with a full backend, including database schema, API routes, and domain-specific pages.
+
+6. **Auto-Validation** - All generated code is automatically validated for missing imports, dependencies, and common issues. Problems are fixed before you see the result.
+
+7. **Auto-Fix Loop** - When the project runs in preview, any runtime errors are automatically detected and fixed (up to 3 attempts).
+
+### Template Pipeline (Fallback)
+
+For simpler requests, AutoCoder may use the template-based Pro Generator:
 
 - **What type of app** is this? (e-commerce, dashboard, blog, etc.)
 - **What features** did the user mention? (shopping cart, search, checkout, etc.)
 - **What pages** should this app have? (home, product listing, product detail, cart, etc.)
 - **What components** are needed? (navbar, footer, product cards, forms, etc.)
 
-The Pro Generator does not use AI models for this step. Instead, it uses a sophisticated pattern-matching engine with built-in knowledge of web application architecture.
+### App Type Recognition (20 Categories)
 
-### Step 2: App Type Recognition (19 Categories)
-
-AutoCoder recognizes **19 distinct types of applications**, each with its own set of recommended pages, components, and features:
+AutoCoder recognizes **20 distinct types of applications**, each with its own set of recommended pages, components, and features:
 
 | Category | What It Detects |
 |----------|----------------|

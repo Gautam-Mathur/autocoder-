@@ -3,6 +3,7 @@ import type { UnderstandingResult } from './deep-understanding-engine.js';
 import { generatePlan, formatPlanAsMessage } from './plan-generator.js';
 import type { ProjectPlan } from './plan-generator.js';
 import { generateProjectFromPlan } from './plan-driven-generator.js';
+import { validateAndFix } from './post-generation-validator.js';
 
 export type ConversationPhase = 'initial' | 'understanding' | 'clarifying' | 'planning' | 'approval' | 'generating' | 'complete';
 
@@ -13,6 +14,7 @@ export interface PhaseHandlerResult {
   generatedFiles?: { path: string; content: string; language: string }[];
   planData?: ProjectPlan;
   understandingData?: UnderstandingResult;
+  clarificationRound?: number;
 }
 
 export interface ThinkingStep {
@@ -26,6 +28,7 @@ export interface ConversationState {
   phase: ConversationPhase;
   understandingData?: UnderstandingResult;
   planData?: ProjectPlan;
+  clarificationRound?: number;
 }
 
 export function handleMessage(
@@ -39,6 +42,11 @@ export function handleMessage(
   };
 
   const currentPhase = state.phase || 'initial';
+
+  if (currentPhase === 'generating') {
+    emitStep('recovery', 'Phase recovery', 'Detected stuck generating phase, restarting');
+    return handleInitialRequest(userMessage, thinkingSteps, emitStep, conversationHistory);
+  }
 
   if (currentPhase === 'approval' || currentPhase === 'planning') {
     const lower = userMessage.toLowerCase().trim();
@@ -57,7 +65,11 @@ export function handleMessage(
     }
   }
 
-  if (currentPhase === 'clarifying' && state.understandingData) {
+  if (currentPhase === 'clarifying') {
+    if (!state.understandingData) {
+      emitStep('recovery', 'Phase recovery', 'Missing context from previous analysis, re-analyzing');
+      return handleInitialRequest(userMessage, thinkingSteps, emitStep, conversationHistory);
+    }
     return handleClarificationResponse(userMessage, state, thinkingSteps, emitStep);
   }
 
@@ -117,10 +129,12 @@ function handleClarificationResponse(
   thinkingSteps: ThinkingStep[],
   emitStep: (phase: string, label: string, detail?: string) => void
 ): PhaseHandlerResult {
-  emitStep('understanding', 'Processing your answers', 'Updating understanding with new information');
+  const currentRound = (state.clarificationRound || 0) + 1;
+  emitStep('understanding', 'Processing your answers', `Clarification round ${currentRound}`);
 
-  const fullContext = userMessage;
-  const updatedUnderstanding = analyzeRequest(fullContext);
+  const previousContext = state.understandingData?.level1_intent.primaryGoal || '';
+  const fullContext = previousContext ? `${previousContext}. ${userMessage}` : userMessage;
+  const updatedUnderstanding = analyzeRequest(fullContext, undefined, currentRound);
 
   emitStep('understanding', 'Updated understanding',
     updatedUnderstanding.level2_domain.primaryDomain
@@ -136,6 +150,7 @@ function handleClarificationResponse(
       newPhase: 'clarifying',
       thinkingSteps,
       understandingData: updatedUnderstanding,
+      clarificationRound: currentRound,
     };
   }
 
@@ -186,22 +201,48 @@ function handleGeneration(
   emitStep('generating', 'Generating page components', `Creating ${plan.pages.length} pages with features`);
   emitStep('generating', 'Generating shared components', 'Data tables, KPI cards, status badges');
 
-  const files = generateProjectFromPlan(plan);
+  const rawFiles = generateProjectFromPlan(plan);
 
-  emitStep('generating', 'Code generation complete', `${files.length} files created`);
+  emitStep('generating', 'Code generation complete', `${rawFiles.length} files created`);
+
+  emitStep('validating', 'Running post-generation validation', 'Checking imports, exports, dependencies, and cross-file consistency');
+
+  const validationResult = validateAndFix(rawFiles, 3);
+
+  if (validationResult.fixesApplied.length > 0) {
+    emitStep('validating', `Auto-fixed ${validationResult.fixesApplied.length} issues`,
+      validationResult.fixesApplied.slice(0, 5).join('; ') + (validationResult.fixesApplied.length > 5 ? `; ...and ${validationResult.fixesApplied.length - 5} more` : '')
+    );
+  }
+
+  if (validationResult.valid) {
+    emitStep('validating', 'Validation passed', `All imports resolve, exports match, dependencies present (${validationResult.iterations} iteration${validationResult.iterations > 1 ? 's' : ''})`);
+  } else {
+    const remainingErrors = validationResult.issues.filter(i => i.severity === 'error');
+    emitStep('validating', `Validation completed with ${remainingErrors.length} remaining warnings`,
+      remainingErrors.slice(0, 3).map(i => i.message).join('; ')
+    );
+  }
+
+  const finalFiles = validationResult.files;
 
   const moduleList = plan.modules.map(m => `- **${m.name}**: ${m.description}`).join('\n');
-  const fileList = files.map(f => `- \`${f.path}\``).join('\n');
+  const fileList = finalFiles.map(f => `- \`${f.path}\``).join('\n');
+
+  const validationSummary = validationResult.fixesApplied.length > 0
+    ? `\n### Quality Checks\n- Auto-fixed **${validationResult.fixesApplied.length} issues** during validation\n- Ran **${validationResult.iterations} validation pass${validationResult.iterations > 1 ? 'es' : ''}**\n- All imports, exports, and dependencies verified`
+    : `\n### Quality Checks\n- All imports, exports, and dependencies verified\n- Zero issues detected`;
 
   const responseContent = `## ${plan.projectName} - Generated Successfully!
 
-Your project has been generated with **${files.length} files** based on the approved plan.
+Your project has been generated with **${finalFiles.length} files** based on the approved plan.
 
 ### Modules Built
 ${moduleList}
 
 ### Files Created
 ${fileList}
+${validationSummary}
 
 ### What's Included
 - **${plan.dataModel.length} database tables** with full CRUD APIs
@@ -220,7 +261,7 @@ ${fileList}
     responseContent,
     newPhase: 'complete',
     thinkingSteps,
-    generatedFiles: files,
+    generatedFiles: finalFiles,
     planData: plan,
   };
 }

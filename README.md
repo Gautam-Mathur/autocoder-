@@ -1,11 +1,11 @@
 # AutoCoder - AI-Powered Code Generation Platform
 
-A comprehensive, intelligent code generation platform that produces production-ready, full-stack React applications. Features 7 advanced AI-like capabilities operating 100% locally with zero external API dependencies. Supports both web deployment on Replit and local Electron desktop app for Windows/Mac/Linux.
+A comprehensive, intelligent code generation platform that produces production-ready, full-stack React+Vite+TypeScript applications from natural language descriptions. Features a plan-driven generation pipeline with deep domain understanding across 14 industries, closed-loop auto-debugging, and comprehensive whitebox security scanning. Supports both web deployment on Replit and local Electron desktop app for Windows/Mac/Linux.
 
 ![AutoCoder Preview](https://img.shields.io/badge/AI-Powered-8b5cf6?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Lines of Code](https://img.shields.io/badge/Lines-92K+-blue?style=for-the-badge)
+![Lines of Code](https://img.shields.io/badge/Lines-372K+-blue?style=for-the-badge)
 
 ---
 
@@ -13,93 +13,207 @@ A comprehensive, intelligent code generation platform that produces production-r
 
 | Metric | Value |
 |--------|-------|
-| **Total Lines of Code** | 92,000+ |
-| **Source Files** | 400+ |
-| **AI Intelligence Modules** | 34 server-side modules |
-| **Code Generator** | Pro Generator (3,600+ lines, 15-20 clean JSX files per project) |
-| **Preview Engine** | LiveCodeRunner (browser-based Babel, instant preview) |
-| **SaaS Templates** | 10+ complete stacks |
-| **Runnable Templates** | 20+ instant projects |
-| **Code Patterns** | 500+ |
-| **Error Pattern Recognizers** | 10+ |
-| **App Type Patterns** | 20 categories |
-| **Domain Profiles** | 12 industry-specific enrichment profiles |
-| **Intent Phrase Patterns** | 12 action-verb-based app type inference |
-| **Typo Corrections** | 205+ common misspellings auto-corrected |
-| **Synonym Mappings** | 17+ conversational expansions |
-| **Conversational Strips** | 5 filler-removal patterns |
-| **UI Components** | 70 React components |
+| **Total Lines of Code** | 372,575+ |
+| **Source Files** | 28,046 |
+| **Server Modules** | 41 intelligence modules |
+| **React Components** | 71 frontend components |
+| **Domain Knowledge Profiles** | 14 industry domains |
+| **Plan-Driven Generator** | 1,828 lines, 36 generator functions |
+| **Deep Understanding Engine** | 662 lines, 5-level analysis pipeline |
+| **Post-Generation Validator** | 601 lines, 50+ dependency packages |
+| **Conversation Phase Handler** | 346 lines, 6-phase state machine |
+| **Plan Generator** | 493 lines, structured ProjectPlan output |
+| **Vite Error Fixer** | 829 lines, 11 error type analyzers |
+| **Pro Generator (Client)** | 3,624 lines, template-based fallback |
+| **Code Validator (Client)** | 955 lines, 15 checks + 8 auto-fixes |
+| **LiveCodeRunner** | 1,263 lines, browser-based preview |
+| **Auto-Run Preview** | 641 lines, closed-loop error detection |
+| **Domain Knowledge Base** | 1,383 lines across 14 industries |
 | **Electron Files** | 5 (desktop app support) |
+| **Documentation Files** | 7 guides in docs/electron/ |
 
 ---
 
 ## What's New (Feb 2026)
 
-### Contextual Understanding Engine (NEW)
-The chatbot now understands casual, conversational, non-technical user input without requiring prompt engineering expertise.
+### Plan-Driven Code Generation Pipeline (Major Upgrade)
+
+AutoCoder has been upgraded from template-based generation to a fully intelligent, plan-driven system. The platform now deeply understands user requests, generates a detailed written plan for approval, and produces truly custom, production-ready, runnable React+Vite+TypeScript projects.
+
+**Multi-Phase Conversation Flow:**
+```
+User Request -> Deep Understanding -> [Clarification (max 2 rounds)] -> Plan Generation
+     -> User Approval -> Code Generation -> Post-Validation -> Auto-Fix
+```
+
+**Key Features:**
+- **Deep Understanding Engine** - 5-level analysis: intent decomposition, multi-domain detection (top 2 blended if within 0.15 confidence), entity extraction with keyword inference, workflow detection, and clarification loops
+- **14 Industry Domain Profiles** - Each with entities, workflows, roles, pages, KPIs, and integration points
+- **Plan-First Approach** - Generates and presents a comprehensive ProjectPlan (tech stack, modules, data model, pages, API endpoints, workflows, user roles, file blueprints) for user review before any code is written
+- **Natural Language Approval** - Users can approve, modify, or reject plans using natural language
+- **Conversation Phase Management** - 6-phase state machine (initial -> understanding -> clarifying -> planning -> approval -> generating -> complete) with deadlock recovery
+- **2-Round Clarification Limit** - Auto-proceeds with best assumptions after 2 rounds to prevent infinite loops
+- **Phase Recovery** - Detects stuck conversations (generating without plan, clarifying without data) and restarts gracefully
+
+### 14 Industry Domain Profiles
+
+Each domain provides specialized entities, workflows, roles, pages, KPIs, and common integrations:
+
+| Domain | ID | Key Entities | Workflows |
+|--------|----|-------------|-----------|
+| Consulting | `consulting` | Project, Milestone, Task, Timesheet, Client, Contract, Invoice | Project lifecycle, timesheet approval, billing |
+| Manufacturing | `manufacturing` | Product, WorkOrder, Material, QualityCheck, Machine | Production pipeline, quality control |
+| Healthcare | `healthcare` | Patient, Appointment, MedicalRecord, Doctor, Prescription | Patient flow, appointment scheduling |
+| Retail | `retail` | Product, Order, Customer, Inventory, Promotion | Order fulfillment, inventory management |
+| Education | `education` | Course, Lesson, Student, Assignment, Grade | Course enrollment, grading workflow |
+| Real Estate | `realestate` | Property, Listing, Agent, Client, Transaction | Listing lifecycle, transaction pipeline |
+| HR | `hr` | Employee, LeaveRequest, Department, Performance, Payroll | Leave approval, performance review |
+| Restaurant | `restaurant` | MenuItem, Order, Table, Reservation, Staff | Order processing, table management |
+| Fitness | `fitness` | Workout, Exercise, Member, Class, Trainer | Class booking, membership management |
+| Logistics | `logistics` | Shipment, Route, Vehicle, Warehouse, Driver | Shipment tracking, route optimization |
+| Finance | `finance` | Transaction, Budget, Account, Invoice, Report | Budget approval, reconciliation |
+| Project Management | `project-management` | Project, Task, Sprint, Team, Milestone | Sprint planning, task workflow |
+| CRM | `crm` | Contact, Lead, Deal, Pipeline, Activity | Lead qualification, deal pipeline |
+| Inventory | `inventory` | Item, Warehouse, StockMovement, Supplier, PurchaseOrder | Stock replenishment, order fulfillment |
+
+### Deep Understanding Engine
+
+The 5-level analysis pipeline processes every user request:
+
+1. **Intent Decomposition** - Extracts core intent, scope, complexity from natural language
+2. **Domain Detection** - Matches against 14 industry profiles with confidence scoring; blends top 2 domains if within 0.15 confidence; falls back to generic if no domain matches
+3. **Entity Extraction** - Domain-aware entity detection with keyword-based inference; context filtering to avoid irrelevant entities; entity caps (small=4, medium=8, large=12)
+4. **Workflow Detection** - Identifies state machines, approval flows, and business processes from the domain
+5. **Clarification Management** - Generates targeted questions when confidence is low; max 2 rounds with auto-proceed
+
+### Plan-Driven Code Generator (36 Functions)
+
+Generates complete, runnable React+Vite+TypeScript projects from approved plans:
+
+**Configuration Files:**
+- `package.json` with all required dependencies
+- `tsconfig.json` and `tsconfig.node.json`
+- `vite.config.ts` with React plugin
+- `tailwind.config.js` with custom theming
+- `postcss.config.js`
+
+**Application Core:**
+- `index.html` entry point
+- `src/main.tsx` with React 18 createRoot + QueryClientProvider
+- `src/App.tsx` with routing setup
+- `src/index.css` with Tailwind directives and custom theme
+
+**UI Components (10 Generated):**
+- Button, Card, Input, Badge, Toaster (base components)
+- Dialog, Select, Label, Textarea, Tabs (form/layout components)
+
+**Backend:**
+- `shared/schema.ts` - Drizzle ORM schema with all entities
+- `server/db.ts` - Database connection setup
+- `server/storage.ts` - IStorage interface with CRUD operations
+- `server/routes.ts` - Express API endpoints
+- `server/index.ts` - Server entry point
+
+**Page Types:**
+- **Dashboard** - KPI cards, charts, recent activity, overview
+- **List Pages** - Data tables with create dialogs (form fields per entity), delete mutations with trash icons, status filter dropdowns, search
+- **Detail Pages** - Full entity display with edit/delete functionality
+- **Generic Pages** - Flexible layout for settings, profiles, etc.
+
+**Shared Components:**
+- DataTable - Reusable data table component
+- KpiCard - Metrics display card
+- StatusBadge - Dynamic status indicator
+
+### Post-Generation Validator
+
+Automatically validates all generated code after generation:
+
+- **50+ Package Dependencies** - Validates imports against known package registry with versions
+- **Implicit Dependency Detection** - Pattern-based detection for Recharts JSX, date-fns usage, framer-motion, react-hook-form, zodResolver
+- **Smart Stub Generator** - Creates context-aware stubs: React components with JSX for `.tsx`, proper hook stubs, type exports, function exports
+- **Runtime Pattern Validation** - Detects missing QueryClientProvider, duplicate `export default`, empty component returns
+- **Cross-File Import Validation** - Ensures all imports reference files that exist in the generated project
+- **Case-Insensitive Fallback** - Handles minor casing mismatches in exports
+
+### Vite Error Auto-Fix (Closed-Loop Debugging)
+
+**Client-Side Error Detection (`auto-run-preview.tsx`):**
+- Monitors WebContainer preview via `postMessage` and regex pattern matching
+- Detects 10+ error patterns from Vite build output
+- Posts error details to backend auto-fix endpoint
+- Applies returned fixes (patches, stubs, dependency additions)
+- Refreshes preview automatically
+- Max 3 retry attempts with UI badge indicators
+
+**Server-Side Error Analysis (`vite-error-fixer.ts`, 11 Error Types):**
+
+| Error Type | What It Fixes |
+|------------|---------------|
+| `missing_import` | Adds missing import statements |
+| `missing_module` | Installs missing npm packages |
+| `missing_file` | Creates stub files for missing references |
+| `export_mismatch` | Fixes named/default export mismatches |
+| `syntax` | Corrects common syntax errors |
+| `reference_error` | Resolves undefined variable references |
+| `jsx_error` | Fixes JSX-specific issues |
+| `css_error` | Corrects CSS/Tailwind errors |
+| `hook_violation` | Fixes React hook rule violations |
+| `config` | Repairs Vite/TypeScript configuration issues |
+| `dependency_conflict` | Resolves version conflicts |
+
+### Conversation Phase Handler
+
+6-phase state machine managing the full conversation lifecycle:
+
+```
+initial -> understanding -> clarifying -> planning -> approval -> generating -> complete
+```
+
+**Phase Recovery Mechanisms:**
+- `generating` phase without plan data -> restart to `initial`
+- `clarifying` phase without understanding data -> restart to `initial`
+- Corrupted phase state -> graceful recovery with user notification
+- 2-round clarification limit -> auto-proceed with best assumptions
+
+### Contextual Understanding Engine (Client-Side)
+
+The chatbot understands casual, conversational, non-technical user input without requiring prompt engineering expertise.
 
 **Typo Tolerance (205+ corrections):**
 - Handles common misspellings across all domains: "resturant", "recipies", "exersise", "fittness", "buisness", "budgit", "expences", "hosptial", "employes", "inventry", "playist", "ecomerce", "websit", and 190+ more
 - Applied as the first step in normalization, before any domain detection runs
-- Dictionary-based correction at word boundaries for speed and reliability
-
-**12 Industry Domain Profiles:**
-Each domain automatically provides specialized data models, pages, features, and UI styling:
-
-| Domain | App Name | Data Models | UI Style |
-|--------|----------|-------------|----------|
-| Fitness | FitTracker | Workout, Exercise | Bold |
-| Restaurant | FoodSpot | MenuItem, Order | Modern |
-| Recipe | RecipeHub | Recipe | Playful |
-| Finance | FinanceFlow | Transaction, Budget | Corporate |
-| Real Estate | PropManager | Property | Corporate |
-| Education | LearnHub | Course, Lesson | Modern |
-| Healthcare | HealthConnect | Doctor, Appointment | Minimal |
-| Travel | TravelPlanner | Destination, Trip | Playful |
-| Pet Care | PetPal | Pet, Appointment | Playful |
-| Inventory | StockManager | Item | Corporate |
-| Music | MusicBox | Song, Playlist | Bold |
-| HR | TeamHub | Employee, LeaveRequest | Corporate |
 
 **Conversational Input Understanding:**
 - Strips filler: "hey", "can you", "I want to", "help me make", "build me a"
 - Expands vague language: "keep track of" -> "track manage dashboard", "something for" -> "app to"
 - 12 intent phrase patterns: "track" -> dashboard, "sell" -> ecommerce, "share" -> social, "book" -> booking
-- Domain-aware app naming: "gym tracker" -> FitTracker, "recipe sharing" -> RecipeHub
+- Domain-aware app naming
 
-**Example prompts that now work perfectly:**
+**Example prompts that work perfectly:**
 ```
 "i wanna track my gym workouts"           -> FitTracker dashboard with Workout/Exercise models
 "help me share recipies with frends"      -> RecipeHub social app with Recipe model
 "something for my small bakery"           -> FoodSpot ecommerce with MenuItem/Order models
 "keep track of my expences and budgit"    -> FinanceFlow dashboard with Transaction/Budget models
 "can you make a thing to manage employes" -> TeamHub admin with Employee/LeaveRequest models
-"build a websit for my resturant"         -> FoodSpot ecommerce with MenuItem/Order models
-"i need to organize my pets vet visits"   -> PetPal dashboard with Pet/Appointment models
+"build a consulting firm management app"  -> Full consulting platform with projects, timesheets, clients, billing
 ```
 
-### Prompt Analysis Pipeline
-The `analyzePrompt` function now runs a 6-stage pipeline:
+### Prompt Analysis Pipeline (Client-Side)
+The `analyzePrompt` function runs a 6-stage pipeline:
 
 ```
 User Input -> Typo Correction -> Conversational Stripping -> Synonym Expansion
      -> Domain Detection -> Intent Inference -> App Type Pattern Matching
 ```
 
-Each stage enriches the understanding:
-1. **Typo Correction** - 205+ misspelling fixes
-2. **Conversational Stripping** - Remove filler phrases
-3. **Synonym Expansion** - Expand vague language into specific terms
-4. **Domain Detection** - Match against 12 industry profiles (with plural handling)
-5. **Intent Inference** - 12 action-verb patterns for app type
-6. **Pattern Matching** - 20 app type regex patterns with false-positive guards
-
-### Pro Generator
-- Replaced deep-project-generator with **Pro Generator** for all code paths
-- Produces **15-20 clean JSX files** per project (instead of 149 TypeScript files)
+### Pro Generator (Client-Side Template Fallback)
+- **3,624 lines** of pure template-based code generation (zero API dependencies)
+- Produces **15-20 clean JSX files** per project
 - Compatible with browser-based Babel preview (LiveCodeRunner)
 - Automatic validation pipeline via `code-validator.ts`
-- **3,600+ lines** of pure template-based code generation (zero API dependencies)
+- Used as fallback when plan-driven pipeline is not active
 
 ### LiveCodeRunner (Browser Preview)
 - Instant in-browser preview using Babel transpilation
@@ -118,62 +232,63 @@ Each stage enriches the understanding:
 - esbuild-based build pipeline (`npm run build:electron`)
 - Windows compatibility: `cross-env` for env vars, conditional `reusePort`
 - Single command: `npm run electron:dev`
-- Default port 5200 for generated projects and Electron local development (avoids conflicts with port 5000)
-- Auto-run enabled: generated projects start automatically, no manual "Run" button needed
-- Generated project Vite configs use esbuild JSX (`jsx: 'automatic'`, `jsxImportSource: 'react'`) for WebContainer compatibility
+- Default port 5200 for generated projects and Electron local development
+- Auto-run enabled: generated projects start automatically
+- Generated project Vite configs use esbuild JSX for WebContainer compatibility
 
 ### Code Validator Fixes
 - Void element auto-fixer respects JSX curly braces (no more `=> />` corruption)
 - Dot-notation components (e.g., `TasksContext.Provider`) handled correctly
 - Default export check skips entry/context/provider files
 - React Router `<Link>` vs HTML `<link>` detection
-- Missing container closing tags auto-inserted (`</Routes>`, `</BrowserRouter>`, etc.)
+- Missing container closing tags auto-inserted
 
 ---
 
-## 7 Advanced AI-Like Capabilities
+## Intelligence Capabilities
 
-All intelligence operates 100% locally with zero external API dependencies.
-
-### 1. Natural Language Understanding (NLU)
-- **Contextual Understanding Engine** - 6-stage pipeline: typo correction -> filler stripping -> synonym expansion -> domain detection -> intent inference -> pattern matching
-- **205+ Typo Corrections** - Handles misspellings like "resturant", "recipies", "exersise", "buisness"
-- **12 Industry Domain Profiles** - Fitness, restaurant, recipe, finance, real estate, education, healthcare, travel, pet care, inventory, music, HR
-- **17+ Synonym Mappings** - "keep track of" = "track manage dashboard", "something for" = "app to"
-- **12 Intent Phrase Patterns** - Action-verb-based app type inference ("track" -> dashboard, "sell" -> ecommerce)
+### 1. Deep Understanding & Domain Intelligence
+- **Deep Understanding Engine** - 5-level analysis pipeline with domain knowledge integration
+- **14 Industry Domain Profiles** - Complete entity/workflow/role definitions per industry
+- **Multi-Domain Blending** - Merges top 2 domains when confidence is close
+- **Keyword-Based Entity Inference** - Falls back to keyword matching when no domain matches
+- **Entity Caps** - Prevents over-generation: small=4, medium=8, large=12 entities
+- **Contextual Understanding** - 205+ typo corrections, 17+ synonym mappings, 12 intent patterns
 - **20 App Type Categories** - Dashboard, ecommerce, blog, portfolio, social, SaaS, todo, chat, CRM, analytics, booking, marketplace, CMS, game, calculator, form, landing, admin, API
-- **Conversational Filler Removal** - Strips "hey", "can you", "I want to", "help me make"
-- **Ambiguity Handling** - Asks clarifying questions when requests are unclear
 - **Confidence Scoring** - Rates understanding from 0-1 for each request
+- **Ambiguity Resolution** - Max 2 clarification rounds with auto-proceed
 
-### 2. Reasoning Engine
-- **Problem Decomposition** - Breaks complex tasks into manageable subtasks
-- **Dependency Analysis** - Identifies what must be built first
-- **Conflict Detection** - Spots incompatible requirements
-- **Effort Estimation** - Calculates complexity scores (1-10)
+### 2. Plan Generation & Approval
+- **Comprehensive Project Plans** - Tech stack, modules, data model, pages, APIs, workflows, roles
+- **Plan Visualization** - Structured plan presented to user before code generation
+- **Natural Language Modification** - Users can adjust plans conversationally
+- **Phase State Machine** - 6-phase lifecycle with deadlock recovery
 
-### 3. Context Memory
-- **Conversation History** - Tracks last 100 messages per session
-- **Component Tracking** - Remembers all built components with aliases
-- **Alias Resolution** - "the button" -> ButtonComponent
-- **User Preference Extraction** - Learns coding style preferences
+### 3. Code Generation
+- **Plan-Driven Generator** - 36 generator functions producing custom TypeScript projects
+- **Pro Generator (Fallback)** - 3,624-line template engine for 19 app types
+- **Post-Generation Validation** - 50+ package checks, implicit dependency detection, smart stubs
+- **Runtime Pattern Validation** - Missing providers, duplicate exports, empty components
 
-### 4. Error Analysis & Self-Correction
-- **10+ Error Pattern Recognizers** (MODULE_NOT_FOUND, TYPE_ERROR, SYNTAX_ERROR, REACT_HOOKS_ERROR, etc.)
+### 4. Error Analysis & Auto-Fix
+- **Vite Error Fixer** - 11 error type analyzers with fix generation
+- **Closed-Loop Auto-Debugging** - Client detects errors -> backend analyzes -> fixes applied -> preview refreshes (3 retries)
+- **Code Validator** - 15 checks + 8 auto-fix functions
 - **Root Cause Analysis** - Traces errors to their source
-- **Auto-Fix Generation** - Provides confidence-scored fixes
 
-### 5. Code Understanding
+### 5. Code Understanding & Memory
 - **Structure Parsing** - Extracts imports, exports, hooks, state, props
 - **Code Modification** - Safely edits existing code
-- **Refactoring Support** - Extract components, add types, optimize performance
+- **Conversation History** - Tracks last 100 messages per session
+- **Component Tracking** - Remembers all built components with aliases
+- **User Preference Extraction** - Learns coding style preferences
 
-### 6. Creative Problem Solving
-- **Novel Solution Generation** - Multiple approaches per problem
-- **Pattern Combination** - Merges known patterns creatively
-- **Pros/Cons Analysis** - Evaluates each solution
+### 6. Security & Testing
+- **VAPT Dashboard** - Comprehensive vulnerability assessment and penetration testing
+- **Whitebox Security Scanning** - Code-level vulnerability detection
+- **Test Generation** - Automated test creation for generated code
 
-### 7. Explanation Generation
+### 7. Explanation & Teaching
 - **Code Explanations** - Line-by-line understanding
 - **Concept Teaching** - Explains programming concepts
 - **Best Practices** - Teaches industry standards
@@ -190,31 +305,38 @@ All intelligence operates 100% locally with zero external API dependencies.
 |  +-------------------------------------------------------------+   |
 |  |                   FRONTEND (React + TypeScript)              |   |
 |  |  +-------------+ +-------------+ +-----------------------+  |   |
-|  |  |   Chat UI   | |  Preview    | |  VS Code-like IDE     |  |   |
-|  |  |  + Input    | |  Panel      | |  + Terminal           |  |   |
+|  |  |   Chat UI   | |  Preview    | |  VAPT Dashboard       |  |   |
+|  |  |  + Input    | |  Panel      | |  + Security Scans     |  |   |
 |  |  +-------------+ +-------------+ +-----------------------+  |   |
 |  |  +-----------------------------------------------------------+  |
-|  |  |  Pro Generator --> Code Validator --> LiveCodeRunner        |  |
-|  |  |  (15-20 JSX)      (auto-fix)         (Babel preview)       |  |
+|  |  |  Plan-Driven Pipeline:                                      |  |
+|  |  |  Understanding -> Plan -> Approval -> Generation -> Validate |  |
+|  |  +-----------------------------------------------------------+  |
+|  |  |  Fallback: Pro Generator -> Code Validator -> LiveCodeRunner |  |
 |  |  +-----------------------------------------------------------+  |
 |  +-------------------------------------------------------------+   |
 |                                                                     |
 |  +-------------------------------------------------------------+   |
 |  |                   BACKEND (Express + Node.js)                |   |
 |  |  +-----------------------------------------------------------+  |
-|  |  |  Server Modules (34)                                        |  |
-|  |  |  * Pro Generator integration   * Complete Intelligence     |  |
-|  |  |  * VAPT Security Scanner       * Context Memory            |  |
+|  |  |  Intelligence Modules (41)                                  |  |
+|  |  |  * Deep Understanding Engine  * Plan Generator              |  |
+|  |  |  * Plan-Driven Code Generator * Post-Generation Validator   |  |
+|  |  |  * Conversation Phase Handler * Vite Error Fixer            |  |
+|  |  |  * Domain Knowledge (14)      * VAPT Security Scanner       |  |
 |  |  +-----------------------------------------------------------+  |
 |  |  +-----------------------------------------------------------+  |
 |  |  |  API Routes                                                |  |
-|  |  |  * Conversations  * Messages  * Code Generation            |  |
-|  |  |  * VAPT Scanning  * GitHub Push                            |  |
+|  |  |  * Conversations  * Messages  * Plan Generation             |  |
+|  |  |  * Code Generation  * Auto-Fix  * VAPT  * GitHub Push       |  |
 |  |  +-----------------------------------------------------------+  |
 |  +-------------------------------------------------------------+   |
 |                                                                     |
 |  +-------------------------------------------------------------+   |
 |  |  DATABASE (PostgreSQL + Drizzle ORM, optional in-memory)     |   |
+|  |  * conversations, messages, projectFiles, projectPlans        |   |
+|  |  * intelRecords, generationLogs, testResults, securityScans   |   |
+|  |  * VAPT tables (assets, vulnerabilities, scans, schedules)    |   |
 |  +-------------------------------------------------------------+   |
 +-------------------------------------------------------------------+
 ```
@@ -247,16 +369,20 @@ All intelligence operates 100% locally with zero external API dependencies.
 ### Code Generation & Preview
 | Technology | Purpose |
 |------------|---------|
-| Pro Generator | Multi-file React project generation (15-20 JSX files) |
+| Plan-Driven Generator | Custom TypeScript project generation from approved plans |
+| Deep Understanding Engine | 5-level NLU with domain knowledge |
+| Post-Generation Validator | Auto-validation with 50+ dependency checks |
+| Vite Error Fixer | Closed-loop auto-debugging (11 error types) |
+| Pro Generator | Template-based fallback (15-20 JSX files) |
 | Code Validator | Auto-fix void elements, exports, JSX returns |
 | LiveCodeRunner | Browser-based Babel preview (instant, no npm install) |
+| WebContainer | In-browser Node.js runtime for full project preview |
 | Electron | Desktop app (native file system, no limits) |
-| WebContainer | In-browser Node.js fallback |
 
 ### Database
 | Technology | Purpose |
 |------------|---------|
-| PostgreSQL | Primary Database |
+| PostgreSQL | Primary Database (Neon-backed on Replit) |
 | In-Memory | Fallback Storage (when DATABASE_URL not set) |
 
 ---
@@ -270,8 +396,8 @@ AutoCoder supports three running modes:
 npm run dev
 ```
 - Runs Express + Vite on port 5000
-- Uses LiveCodeRunner for instant browser-based preview
-- No file system limitations for preview (Babel-based)
+- Uses WebContainer for full project preview with auto-run
+- LiveCodeRunner as fallback for instant Babel-based preview
 - Best for cloud development on Replit
 
 ### 2. Electron Development Mode (Local Windows/Mac/Linux)
@@ -304,31 +430,41 @@ npx electron-builder
 autocoder/
 ├── client/                          # Frontend Application
 │   └── src/
-│       ├── components/              # React Components
+│       ├── components/              # 71 React Components
 │       │   ├── ui/                  # shadcn/ui components
 │       │   ├── chat-*.tsx           # Chat interface
-│       │   ├── preview-panel.tsx    # Code preview + LiveCodeRunner
-│       │   └── live-code-runner.tsx # Browser-based Babel preview engine
+│       │   ├── preview-panel.tsx    # Code preview + preview engines
+│       │   ├── live-code-runner.tsx # Browser-based Babel preview engine
+│       │   └── auto-run-preview.tsx # WebContainer preview with auto-fix
 │       ├── lib/
-│       │   ├── code-generator/      # Code Generation Engine
-│       │   │   ├── pro-generator.ts     # Main generator (15-20 JSX files)
-│       │   │   ├── code-validator.ts    # Auto-fix validation pipeline
+│       │   ├── code-generator/      # Client-Side Code Generation
+│       │   │   ├── pro-generator.ts     # Template generator (3,624 lines)
+│       │   │   ├── code-validator.ts    # Auto-fix validation (955 lines)
 │       │   │   ├── engine.ts            # Legacy engine
 │       │   │   ├── saas-templates.ts    # SaaS templates
 │       │   │   └── runnable-templates.ts # Runnable project templates
 │       │   └── code-runner/         # Code Execution
 │       │       ├── electron-runner.ts   # Electron IPC wrapper
 │       │       ├── runner-factory.ts    # Auto-detect environment
-│       │       └── webcontainer.ts      # WebContainer fallback
+│       │       └── webcontainer.ts      # WebContainer runtime
 │       └── pages/                   # App Pages (landing, chat, vapt)
 │
 ├── server/                          # Backend Application
-│   ├── modules/                     # 34 Server Modules
-│   │   ├── complete-code-intelligence.ts  # Pattern intelligence
-│   │   ├── deep-project-generator.ts      # Legacy generator
+│   ├── modules/                     # 41 Intelligence Modules
+│   │   ├── deep-understanding-engine.ts    # 5-level NLU (662 lines)
+│   │   ├── conversation-phase-handler.ts   # 6-phase state machine (346 lines)
+│   │   ├── plan-generator.ts               # ProjectPlan creation (493 lines)
+│   │   ├── plan-driven-generator.ts        # Code from plans (1,828 lines)
+│   │   ├── post-generation-validator.ts    # Auto-validation (601 lines)
+│   │   ├── domain-knowledge.ts             # 14 industry domains (1,383 lines)
+│   │   ├── vite-error-fixer.ts             # Auto-fix engine (829 lines)
+│   │   ├── complete-code-intelligence.ts   # Pattern intelligence
 │   │   └── ...more modules
-│   ├── routes.ts                    # API Endpoints (uses Pro Generator)
+│   ├── routes.ts                    # API Endpoints
 │   └── storage.ts                   # Database Operations (IStorage interface)
+│
+├── shared/
+│   └── schema.ts                    # Database Schema (Drizzle, 266 lines)
 │
 ├── electron/                        # Electron Desktop App
 │   ├── main.ts                      # Main process (ESM)
@@ -341,17 +477,14 @@ autocoder/
 │       └── logger.ts                # File-based logging with rotation
 │
 ├── scripts/
-│   ├── github-push.ts               # GitHub push (Replit connector, full tree replace)
+│   ├── github-push.ts               # GitHub push (Replit connector)
 │   └── build-electron.ts            # esbuild pipeline for Electron
 │
 ├── dist-electron/                   # Compiled Electron output
-│   ├── main.js                      # esbuild output (ESM with createRequire banner)
+│   ├── main.js                      # esbuild output (ESM)
 │   └── preload.js                   # esbuild output (CJS)
 │
-├── shared/
-│   └── schema.ts                    # Database Schema (Drizzle pgTable)
-│
-├── docs/electron/                   # Electron documentation (6 guides)
+├── docs/electron/                   # Electron documentation (7 guides)
 ├── electron-builder.json            # Desktop build config
 └── package.json                     # All npm scripts
 ```
@@ -409,15 +542,28 @@ npm run electron:dev
 ### Zero Configuration Required
 - **No API keys needed** - All intelligence is local
 - **No database required** - Uses in-memory storage by default
-- **Works offline** - Pattern-based generation
+- **Works offline** - Pattern-based and plan-driven generation
 
 ---
 
 ## Usage Examples
 
-### Generate a Landing Page
+### Generate with Plan-Driven Pipeline
 ```
-"Create a modern landing page for a fintech startup with hero, features, pricing, and testimonials"
+"Build a consulting firm management platform with project tracking, timesheets, and client billing"
+```
+The system will:
+1. Analyze intent and detect the consulting domain
+2. Extract relevant entities (Project, Milestone, Task, Timesheet, Client, Contract, Invoice)
+3. Ask 0-2 clarifying questions
+4. Generate a comprehensive plan showing all modules, pages, APIs, and data models
+5. Wait for your approval
+6. Generate a complete, runnable React+Vite+TypeScript project
+7. Validate all code and fix any issues automatically
+
+### Generate a Dashboard
+```
+"Create a modern analytics dashboard with real-time metrics, charts, and data filtering"
 ```
 
 ### Build a Full SaaS
@@ -439,7 +585,32 @@ npm run electron:dev
 
 ## How It Works
 
-### Code Generation Flow (Pro Generator)
+### Plan-Driven Generation Flow (Primary)
+
+```
+User Request --> Deep Understanding Engine --> Domain Detection --> Entity Extraction
+     |                                              |
+"Build a consulting     Matches 'consulting'    Extracts: Project, Task,
+ management platform"   domain profile          Client, Timesheet, Invoice
+     |                                              |
+     v                                              v
+Clarification (0-2 rounds) --> Plan Generator --> ProjectPlan
+     |                              |
+"Do you need billing?"      {techStack, modules, dataModel,
+                             pages, endpoints, workflows, roles}
+     |                              |
+     v                              v
+User Approval --> Plan-Driven Generator --> Post-Generation Validator
+     |                    |                         |
+"Looks good,         36 generator functions    50+ dependency checks,
+ generate it"        produce complete project   smart stubs, runtime
+                                                pattern validation
+     |                                              |
+     v                                              v
+WebContainer Preview --> Auto-Fix Loop (max 3) --> Complete Project
+```
+
+### Template-Based Generation Flow (Fallback)
 
 ```
 User Request --> NLU Parser --> Pro Generator --> Code Validator --> LiveCodeRunner
@@ -455,7 +626,7 @@ User Request --> NLU Parser --> Pro Generator --> Code Validator --> LiveCodeRun
 Generated Files --> IPC --> Main Process --> Local File System
      |                          |
 [package.json]          fs.writeFileSync()
-[src/App.jsx]                |
+[src/App.tsx]                |
 [src/...]              ~/AutoCoder/projects/my-app/
                              |
                      npm install (real npm)
@@ -467,106 +638,73 @@ Generated Files --> IPC --> Main Process --> Local File System
 
 ---
 
-## Pro Generator Pipeline (Deep Dive)
+## Plan-Driven Generator Pipeline (Deep Dive)
 
-The Pro Generator (`client/src/lib/code-generator/pro-generator.ts`) is a **3,600+ line** pure template-based code generation engine that converts natural language prompts into complete, multi-file React+Vite+Tailwind projects. It operates entirely without external API calls.
+The Plan-Driven Generator (`server/modules/plan-driven-generator.ts`) is a **1,828-line** code generation engine that converts approved `ProjectPlan` objects into complete, runnable React+Vite+TypeScript projects with full backend.
+
+### `generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[]`
+
+Produces an array of `GeneratedFile` objects. Each file has `path` and `content` fields. The generator creates a complete, runnable project:
+
+**36 Generator Functions:**
+
+| Category | Functions | Output |
+|----------|-----------|--------|
+| Config | `generatePackageJson`, `generateViteConfig`, `generateTailwindConfig`, `generatePostcssConfig`, `generateTsConfig`, `generateTsConfigNode` | Build configuration |
+| Entry | `generateIndexHtml`, `generateMainTsx`, `generateAppTsx`, `generateIndexCss` | Application entry points |
+| UI Components | `generateUiButton`, `generateUiCard`, `generateUiInput`, `generateUiBadge`, `generateUiToaster`, `generateUiDialog`, `generateUiSelect`, `generateUiLabel`, `generateUiTextarea`, `generateUiTabs` | 10 reusable UI components |
+| Utilities | `generateLibUtils`, `generateLibQueryClient`, `generateHookUseToast` | Shared utilities |
+| Backend | `generateSchema`, `generateDb`, `generateStorageInterface`, `generateRoutes` | Full server with Drizzle ORM |
+| Pages | `generatePageComponent`, `generateDashboardPage`, `generateListPage`, `generateDetailPage`, `generateGenericPage` | Domain-specific pages |
+| Shared | `generateDataTable`, `generateKpiCard`, `generateStatusBadge` | Reusable display components |
+
+### Page Generation Details
+
+**List Pages Include:**
+- Data table with all entity fields
+- Create dialog with form fields (Label + Input per field)
+- Delete mutation with trash icon and queryClient invalidation
+- Status filter dropdown when entity has status field
+- Search/filter functionality
+
+**Detail Pages Include:**
+- Full entity field display
+- Edit functionality
+- Delete with confirmation
+- Related entity links
+
+**Dashboard Pages Include:**
+- KPI cards with domain-relevant metrics
+- Charts (when recharts is available)
+- Recent activity feed
+- Quick action buttons
+
+---
+
+## Pro Generator Pipeline (Deep Dive - Client Fallback)
+
+The Pro Generator (`client/src/lib/code-generator/pro-generator.ts`) is a **3,624-line** pure template-based code generation engine that converts natural language prompts into complete, multi-file React+Vite+Tailwind projects. It operates entirely without external API calls.
 
 ### `analyzePrompt(prompt: string): ProjectRequirements`
 
 Parses natural language input through a **6-stage pipeline** to extract structured project requirements:
 
 1. **Typo Correction** (205+ entries) - Fixes common misspellings before any matching
-2. **Conversational Stripping** (5 patterns) - Removes filler phrases like "hey", "can you", "I want to"
+2. **Conversational Stripping** (5 patterns) - Removes filler phrases
 3. **Synonym Expansion** (17+ mappings) - Expands vague language into specific terms
 4. **Domain Detection** (12 industry profiles) - Matches against fitness, restaurant, recipe, finance, real estate, education, healthcare, travel, pet care, inventory, music, HR
-5. **Intent Inference** (12 action-verb patterns) - "track" -> dashboard, "sell" -> ecommerce, "share" -> social
+5. **Intent Inference** (12 action-verb patterns) - "track" -> dashboard, "sell" -> ecommerce
 6. **App Type Pattern Matching** (20 categories) - Final regex-based classification
-
-**App Type Detection (20 patterns):**
-
-| Pattern Key | Regex Matches |
-|-------------|---------------|
-| `dashboard` | dashboard, admin panel, analytics view, overview, metrics, kpi |
-| `ecommerce` | e-commerce, shop, store, product, cart, checkout, buy, sell, marketplace, retail |
-| `blog` | blog, article, post, news, magazine, journal, writing, publication |
-| `portfolio` | portfolio, resume, cv, personal site, showcase, gallery |
-| `social` | social, feed, timeline, profile, follow, friend, community, network |
-| `saas` | saas, subscription, pricing, plan, tier, billing, platform, service |
-| `todo` | todo, task, kanban, checklist, planner, organizer |
-| `chat` | chat, message, conversation, inbox, dm, real-time, websocket |
-| `crm` | crm, customer, contact, lead, pipeline, deal, sales |
-| `analytics` | analytics, report, chart, graph, data viz, visualization, insight |
-| `booking` | booking, appointment, schedule, calendar, reservation, event |
-| `marketplace` | marketplace, listing, seller, buyer, auction, classified |
-| `cms` | cms, content management, editor, publish, page builder |
-| `game` | game, quiz, puzzle, trivia, score, leaderboard, play |
-| `calculator` | calculator, converter, compute, math, formula, unit |
-| `form` | form, survey, questionnaire, poll, feedback, registration |
-| `landing` | landing, hero, marketing, launch, coming soon, waitlist |
-| `admin` | admin, management, back-office, control panel, settings |
-| `api` | api, endpoint, rest, graphql, backend, server |
-
-**Feature Extraction:** Detects features from the prompt including `auth`, `search`, `filtering`, `crud`, `dark-mode`, `responsive`, `notifications`, `real-time`, `file-upload`, `charts`, `export`, `pagination`, and `sorting`.
-
-**UI Style Detection:** Classifies UI style as one of:
-- `modern` (default) - Clean gradients, rounded corners, shadows
-- `minimal` - Whitespace-heavy, flat, sparse
-- `bold` - Vibrant colors, gradients, neon accents
-- `corporate` - Professional, formal, enterprise styling
-- `playful` - Fun, whimsical, creative, quirky
-
-**Page Inference:** Uses the `PAGE_SUGGESTIONS` map to infer appropriate pages based on detected app type. For example, a `dashboard` app gets `['Dashboard', 'Analytics', 'Settings', 'Profile']`, while an `ecommerce` app gets `['Home', 'Products', 'Cart', 'Checkout', 'Orders']`.
-
-**Data Model Detection:** Extracts data models (entities and their fields) from the prompt text by recognizing nouns and domain-specific terms.
 
 ### `generateProject(requirements: ProjectRequirements): GeneratedProject`
 
-Produces a `GeneratedProject` object containing a `files` array. Each file has `path`, `content`, and `language` fields. The generator creates a complete, runnable React+Vite project:
-
-**Generated File Structure:**
-
-| File | Description |
-|------|-------------|
-| `package.json` | Conditional dependencies: always includes `react`, `react-dom`, `react-router-dom`; conditionally adds `recharts` (charts), `date-fns` (booking/calendar), `lucide-react` (icons) |
-| `vite.config.js` | Standard Vite config with React plugin |
-| `tailwind.config.js` | Tailwind configuration with custom color theme based on UI style |
-| `postcss.config.js` | PostCSS with Tailwind and autoprefixer |
-| `index.html` | HTML entry point with Vite script tag |
-| `src/main.jsx` | React 18 `createRoot` entry point |
-| `src/index.css` | Tailwind directives + custom styles matching UI style |
-| `src/App.jsx` | Root component with React Router if multi-page, otherwise single-page layout |
-| `src/pages/*.jsx` | Page components (e.g., `Dashboard.jsx`, `Products.jsx`, `Settings.jsx`) |
-| `src/components/*.jsx` | Reusable UI components: `Navbar`, `Footer`, `Card`, `Button`, `Modal`, `Sidebar`, etc. |
-| `src/utils/*.js` | Utility functions (formatters, validators, helpers) |
-
-**Specialized Generators:** The engine includes dedicated generator functions per app type that produce domain-specific components and logic:
-- `generateEcommerceProject()` - Product cards, cart system, checkout flow, order management
-- `generateDashboardProject()` - Chart widgets, KPI cards, data tables, sidebar navigation
-- `generateBlogProject()` - Article lists, post detail, markdown rendering, categories
-- `generateTodoProject()` - Task lists, drag-and-drop, filters, priority levels
-- `generateChatProject()` - Message bubbles, conversation list, input with send
-- `generateSaasProject()` - Pricing tables, feature comparison, subscription management
-- `generatePortfolioProject()` - Project showcase, skills grid, contact form, hero section
-- `generateLandingProject()` - Hero with CTA, features grid, testimonials, pricing, footer
-- And more for each of the 19 app types
-
-### `formatProjectResponse(project: GeneratedProject): string`
-
-Formats the `GeneratedProject` into markdown with file markers (`--- FILE: path ---`) that the chat interface parses to display individual files with syntax highlighting and copy buttons.
-
-### `shouldUseProGenerator(input: string): boolean`
-
-Gate function that returns `true` for any input containing coding signals such as:
-- Action words: `build`, `create`, `make`, `generate`, `design`, `develop`, `code`
-- Target words: `app`, `website`, `dashboard`, `page`, `component`, `project`, `site`
-
-Returns `false` for inputs matching `TRIVIAL_PATTERNS` (greetings, general questions, explanations) to route those to the conversational AI instead.
+Produces 15-20 clean JSX files including package.json, Vite config, Tailwind config, HTML entry, React components, pages, and utilities.
 
 ---
 
 ## Code Validator Pipeline (Deep Dive)
 
-The Code Validator (`client/src/lib/code-generator/code-validator.ts`) is a **758-line** validation and auto-fix engine that ensures generated code is syntactically correct and follows React best practices. It runs automatically after the Pro Generator produces files.
+The Code Validator (`client/src/lib/code-generator/code-validator.ts`) is a **955-line** validation and auto-fix engine that ensures generated code is syntactically correct and follows React best practices.
 
 ### 15 Validation Checks
 
@@ -574,135 +712,52 @@ The Code Validator (`client/src/lib/code-generator/code-validator.ts`) is a **75
 |----------------|-----------------|
 | `checkBalancedBrackets` | Unmatched `(`, `)`, `{`, `}`, `[`, `]` with line number reporting |
 | `checkBalancedQuotes` | Unclosed string literals (`'`, `"`, `` ` ``) |
-| `checkStraySemicolons` | Semicolons in invalid positions (after `return (`, inside JSX, after `=>`) |
-| `checkEmptyImports` | Import statements with no specifiers (`import {} from '...'`) |
-| `checkUndefinedNaNInJsx` | Literal `undefined` or `NaN` rendered in JSX output |
-| `checkDefaultExport` | Missing `export default` in component files (skips entry/context/provider files) |
-| `checkComponentReturnsJsx` | React components that don't return JSX (missing return statement) |
-| `checkDuplicateDeclarations` | Multiple `const`/`let`/`function` declarations with the same name in the same scope |
-| `checkVoidElements` | HTML void elements (`<br>`, `<img>`, `<input>`, `<hr>`) not self-closed in JSX |
-| `checkClassVsClassName` | Usage of HTML `class=` instead of React's `className=` |
-| `checkHtmlFor` | Usage of HTML `for=` instead of React's `htmlFor=` on `<label>` elements |
-| `checkEventHandlerCasing` | Lowercase event handlers (`onclick`) instead of React camelCase (`onClick`) |
-| `checkKeyInMap` | Missing `key` prop in `.map()` rendered JSX elements |
-| `checkCrossFileImports` | Import paths that reference files not present in the generated project |
-| `checkPackageJson` | Validates that `package.json` has required fields and valid JSON structure |
+| `checkStraySemicolons` | Semicolons in invalid positions |
+| `checkEmptyImports` | Import statements with no specifiers |
+| `checkUndefinedNaNInJsx` | Literal `undefined` or `NaN` rendered in JSX |
+| `checkDefaultExport` | Missing `export default` (skips entry/context/provider files) |
+| `checkComponentReturnsJsx` | React components that don't return JSX |
+| `checkDuplicateDeclarations` | Multiple declarations with the same name |
+| `checkVoidElements` | HTML void elements not self-closed in JSX |
+| `checkClassVsClassName` | `class=` instead of `className=` |
+| `checkHtmlFor` | `for=` instead of `htmlFor=` |
+| `checkEventHandlerCasing` | Lowercase event handlers instead of camelCase |
+| `checkKeyInMap` | Missing `key` prop in `.map()` rendered JSX |
+| `checkCrossFileImports` | Imports referencing non-existent files |
+| `checkPackageJson` | Valid JSON structure and required fields |
 
 ### 8 Auto-Fix Functions
 
 | Fix Function | What It Corrects |
 |--------------|------------------|
-| `fixStraySemicolons` | Removes semicolons after `return (`, inside JSX expressions, between `=>` and `{` |
+| `fixStraySemicolons` | Removes semicolons after `return (`, inside JSX, between `=>` and `{` |
 | `fixDuplicateSemicolons` | Collapses `;;` or `;;;` into single `;` |
-| `fixVoidElements` | Self-closes void HTML elements (`<br>` to `<br />`, `<img ...>` to `<img ... />`) using a **depth-tracking JSX parser** |
-| `fixClassToClassName` | Replaces `class=` with `className=` in JSX (avoids strings/comments) |
+| `fixVoidElements` | Self-closes void HTML elements using depth-tracking JSX parser |
+| `fixClassToClassName` | Replaces `class=` with `className=` in JSX |
 | `fixForToHtmlFor` | Replaces `for=` with `htmlFor=` on label elements |
-| `fixReactImportTypos` | Corrects misspelled React hook imports using 13 typo mappings |
-| `fixMissingDefaultExport` | Adds `export default ComponentName;` to files missing a default export |
-| `fixUnclosedTags` | Closes unclosed JSX tags by appending closing tags |
-
-### Depth-Tracking Void Element Parser
-
-The `fixVoidElements` function uses a special depth-tracking parser that monitors curly brace depth (`{}`) to distinguish between JSX context and JavaScript expression context. This prevents corrupting arrow functions:
-
-```
-Without depth tracking:  onClick={() =>  ...}  becomes  onClick={() = />  ...}   (BROKEN)
-With depth tracking:     onClick={() => ...}   remains  onClick={() => ...}       (CORRECT)
-```
-
-The parser increments depth on `{` and decrements on `}`. Void element self-closing is only applied when the parser is at JSX depth (depth 0), not inside JavaScript expressions.
-
-### Typo Correction Maps
-
-**13 REACT_IMPORT_TYPOS mappings:**
-`usestate` -> `useState`, `useeffect` -> `useEffect`, `usecontext` -> `useContext`, `usereducer` -> `useReducer`, `usecallback` -> `useCallback`, `usememo` -> `useMemo`, `useref` -> `useRef`, `uselayouteffect` -> `useLayoutEffect`, `useimperativehandle` -> `useImperativeHandle`, `usedebugvalue` -> `useDebugValue`, `useid` -> `useId`, `createcontext` -> `createContext`, `forwardref` -> `forwardRef`
-
-**22 EVENT_HANDLER_FIXES mappings:**
-`onclick` -> `onClick`, `onchange` -> `onChange`, `onsubmit` -> `onSubmit`, `oninput` -> `onInput`, `onfocus` -> `onFocus`, `onblur` -> `onBlur`, `onkeydown` -> `onKeyDown`, `onkeyup` -> `onKeyUp`, `onkeypress` -> `onKeyPress`, `onmousedown` -> `onMouseDown`, `onmouseup` -> `onMouseUp`, `onmouseover` -> `onMouseOver`, `onmouseout` -> `onMouseOut`, `onmouseenter` -> `onMouseEnter`, `onmouseleave` -> `onMouseLeave`, `ondoubleclick` -> `onDoubleClick`, `onscroll` -> `onScroll`, `ontouchstart` -> `onTouchStart`, `ontouchend` -> `onTouchEnd`, `ontouchmove` -> `onTouchMove`, `ondragstart` -> `onDragStart`, `ondrop` -> `onDrop`
+| `fixReactImportTypos` | Corrects misspelled React hook imports (13 typo mappings) |
+| `fixMissingDefaultExport` | Adds `export default ComponentName;` |
+| `fixUnclosedTags` | Closes unclosed JSX tags |
 
 ---
 
 ## LiveCodeRunner Technical Details (Deep Dive)
 
-The LiveCodeRunner (`client/src/components/live-code-runner.tsx`) is a **1,079-line** browser-based preview engine that renders generated React projects instantly without any npm install or build step.
+The LiveCodeRunner (`client/src/components/live-code-runner.tsx`) is a **1,263-line** browser-based preview engine that renders generated React projects instantly without any npm install or build step.
 
-### Backend File Filtering
-
-Before rendering, the LiveCodeRunner filters out non-renderable files using **15 backend path patterns**:
-
-```
-/server/i, /controllers?/i, /middleware/i, /models?/i, /routes?/i,
-/services?/i, /validators?/i, /e2e/i, /tests?/i, /spec/i,
-/__tests__/i, /prisma/i, /db/i, /migrations?/i, /scripts?/i
-```
-
-Files matching these patterns, as well as `.config.js`, `.config.ts`, `.test.`, and `.spec.` files, are excluded from preview rendering.
-
-### TypeScript Stripping
-
-Since the browser-based Babel setup targets plain JSX, TypeScript annotations must be removed. The LiveCodeRunner applies regex-based stripping for:
-
-| Pattern | What It Removes |
-|---------|-----------------|
-| Type annotations | `: string`, `: number`, `: boolean`, `: void`, `: any` |
-| Interface/type declarations | `interface Foo { ... }`, `type Bar = ...` |
-| Generic parameters | `<T>`, `<Props>`, `<React.FC<Props>>` |
-| `as` assertions | `value as string`, `obj as const` |
-| `satisfies` keyword | `config satisfies Schema` |
-| `readonly` modifier | `readonly items: string[]` |
-| `keyof` operator | `keyof typeof obj` |
-| Import type statements | `import type { Foo } from '...'` |
-
-### Import Mocking System
-
-The LiveCodeRunner mocks external dependencies so generated code can render without actual npm packages installed:
-
-**205+ Mocked UI Components:**
-All common UI library components are mocked as simple `div`/`span` wrappers that render their children. Includes: `Button`, `Card`, `CardHeader`, `CardContent`, `CardFooter`, `Dialog`, `DialogTrigger`, `DialogContent`, `Input`, `Label`, `Select`, `SelectTrigger`, `SelectContent`, `SelectItem`, `Textarea`, `Badge`, `Avatar`, `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`, `Accordion`, `Alert`, `Checkbox`, `Switch`, `Slider`, `Progress`, `Tooltip`, `Popover`, `DropdownMenu`, `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableCell`, and many more.
-
-**60+ Mocked Lucide Icons:**
-Common icons are mocked as inline SVG elements: `Search`, `Menu`, `X`, `ChevronDown`, `ChevronRight`, `Plus`, `Minus`, `Edit`, `Trash`, `Save`, `Download`, `Upload`, `Settings`, `User`, `Home`, `Mail`, `Phone`, `Calendar`, `Clock`, `Star`, `Heart`, `Bell`, `Filter`, `ArrowLeft`, `ArrowRight`, `Check`, `AlertCircle`, `Info`, `Eye`, `EyeOff`, `Lock`, `Unlock`, `Globe`, `Link`, `ExternalLink`, `Copy`, `Clipboard`, `Share`, `Send`, `RefreshCw`, `MoreVertical`, `MoreHorizontal`, `ChevronUp`, `ChevronLeft`, `LogOut`, `LogIn`, `ShoppingCart`, `CreditCard`, `DollarSign`, `BarChart`, `PieChart`, `TrendingUp`, `Activity`, `Zap`, `Award`, `BookOpen`, `Layers`, `Layout`, `Grid`, `List`, and more.
-
-**React Router Mocking (v5/v6):**
-Complete mock implementations for both React Router versions:
-- Components: `BrowserRouter`, `HashRouter`, `Routes`, `Route`, `Link`, `NavLink`, `Navigate`, `Outlet`
-- Hooks: `useNavigate` (returns no-op function), `useParams` (returns empty object), `useLocation` (returns mock location), `useSearchParams`, `useMatch`
-
-### Embedded Tailwind CSS Subset
-
-The preview HTML includes an embedded subset of **~500 Tailwind CSS utility classes** compiled directly into a `<style>` tag. This covers the most commonly used utilities:
-- Layout: `flex`, `grid`, `block`, `inline`, `hidden`, `relative`, `absolute`, `fixed`, `sticky`
-- Spacing: `p-*`, `m-*`, `px-*`, `py-*`, `mx-*`, `my-*`, `gap-*` (0 through 16, plus auto)
-- Sizing: `w-*`, `h-*`, `min-w-*`, `min-h-*`, `max-w-*`, `max-h-*`
-- Typography: `text-xs` through `text-6xl`, `font-normal/medium/semibold/bold`, `text-left/center/right`
-- Colors: `text-{color}-{shade}`, `bg-{color}-{shade}`, `border-{color}-{shade}` for common color palettes
-- Borders: `rounded-*`, `border`, `border-*`, `ring-*`
-- Effects: `shadow-*`, `opacity-*`, `transition-*`
-- Responsive: `sm:`, `md:`, `lg:`, `xl:` prefixes for common utilities
-
-### Babel Transpilation via CDN
-
-The LiveCodeRunner loads `@babel/standalone` from a CDN to transpile JSX in the browser:
-
-```
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-```
-
-All component code is concatenated, wrapped in a module system, and transpiled with the `react` preset. The transpiled JavaScript is then injected into the preview HTML.
-
-### Blob URL Rendering
-
-The final preview HTML (including styles, mocked dependencies, transpiled components, and the React mount point) is converted to a `Blob` with `text/html` MIME type. A Blob URL is created via `URL.createObjectURL()` and set as the `src` of an `<iframe>`. This approach:
-- Bypasses COEP (Cross-Origin-Embedder-Policy) restrictions
-- Bypasses COI (Cross-Origin-Isolation) restrictions
-- Avoids `srcdoc` limitations in some browsers
-- Allows clean URL revocation via `URL.revokeObjectURL()` on unmount
+### Key Features
+- **Backend File Filtering** - 15 backend path patterns excluded from preview
+- **TypeScript Stripping** - Removes type annotations, interfaces, generics, `as` assertions
+- **Import Mocking System** - 205+ mocked UI components, 60+ mocked Lucide icons, React Router v5/v6
+- **Embedded Tailwind CSS** - ~500 utility classes compiled into preview
+- **Babel Transpilation** - `@babel/standalone` from CDN for browser JSX
+- **Blob URL Rendering** - Bypasses COEP/COI restrictions
 
 ---
 
 ## Database Schema Reference
 
-All tables are defined in `shared/schema.ts` using Drizzle ORM's `pgTable` syntax. The database is PostgreSQL (Neon-backed on Replit) with an optional in-memory fallback.
+All tables are defined in `shared/schema.ts` (266 lines) using Drizzle ORM's `pgTable` syntax. The database is PostgreSQL (Neon-backed on Replit) with an optional in-memory fallback.
 
 ### Core Tables
 
@@ -725,9 +780,9 @@ All tables are defined in `shared/schema.ts` using Drizzle ORM's `pgTable` synta
 | `featuresBuilt` | `text[]` | nullable |
 | `projectSummary` | `text` | nullable |
 | `lastCodeGenerated` | `text` | nullable |
-| `projectType` | `text` | nullable (landing, dashboard, webapp, etc.) |
-| `complexity` | `text` | nullable (simple, moderate, complex) |
-| `designStyle` | `text` | nullable (minimal, modern, corporate, etc.) |
+| `projectType` | `text` | nullable |
+| `complexity` | `text` | nullable |
+| `designStyle` | `text` | nullable |
 | `colorPreferences` | `text[]` | nullable |
 | `planGenerated` | `boolean` | default `false` |
 | `securityScore` | `integer` | nullable |
@@ -762,10 +817,10 @@ All tables are defined in `shared/schema.ts` using Drizzle ORM's `pgTable` synta
 | `id` | `serial` | PRIMARY KEY |
 | `conversationId` | `integer` | NOT NULL, FK -> `conversations.id` (CASCADE) |
 | `summary` | `text` | NOT NULL |
-| `techStack` | `jsonb` | nullable, array of `{ category, technology, justification }` |
+| `techStack` | `jsonb` | nullable |
 | `architecture` | `text` | nullable |
 | `folderStructure` | `text` | nullable |
-| `designDecisions` | `jsonb` | nullable, array of `{ decision, rationale }` |
+| `designDecisions` | `jsonb` | nullable |
 | `securityConsiderations` | `text[]` | nullable |
 | `createdAt` | `timestamp` | NOT NULL, default `CURRENT_TIMESTAMP` |
 
@@ -778,8 +833,8 @@ All tables are defined in `shared/schema.ts` using Drizzle ORM's `pgTable` synta
 | `category` | `text` | NOT NULL |
 | `key` | `text` | NOT NULL |
 | `value` | `text` | NOT NULL |
-| `confidence` | `integer` | default `100` (0-100 scale) |
-| `source` | `text` | default `inferred` (explicit, inferred, learned) |
+| `confidence` | `integer` | default `100` (0-100) |
+| `source` | `text` | default `inferred` |
 | `usageCount` | `integer` | default `0` |
 | `createdAt` | `timestamp` | NOT NULL, default `CURRENT_TIMESTAMP` |
 
@@ -793,7 +848,7 @@ All tables are defined in `shared/schema.ts` using Drizzle ORM's `pgTable` synta
 | `failed` | `integer` | default `0` |
 | `skipped` | `integer` | default `0` |
 | `coverage` | `integer` | nullable (percentage) |
-| `details` | `jsonb` | nullable, array of `{ testId, testName, status, error? }` |
+| `details` | `jsonb` | nullable |
 | `createdAt` | `timestamp` | NOT NULL, default `CURRENT_TIMESTAMP` |
 
 #### `securityScans`
@@ -803,7 +858,7 @@ All tables are defined in `shared/schema.ts` using Drizzle ORM's `pgTable` synta
 | `conversationId` | `integer` | NOT NULL, FK -> `conversations.id` (CASCADE) |
 | `score` | `integer` | NOT NULL (0-100) |
 | `grade` | `text` | NOT NULL (A, B, C, D, F) |
-| `issues` | `jsonb` | nullable, array of `{ severity, type, description, file?, line? }` |
+| `issues` | `jsonb` | nullable |
 | `passedChecks` | `text[]` | nullable |
 | `createdAt` | `timestamp` | NOT NULL, default `CURRENT_TIMESTAMP` |
 
@@ -820,7 +875,7 @@ All tables are defined in `shared/schema.ts` using Drizzle ORM's `pgTable` synta
 | `assumptions` | `text[]` | nullable |
 | `createdAt` | `timestamp` | NOT NULL, default `CURRENT_TIMESTAMP` |
 
-### VAPT (Vulnerability Assessment & Penetration Testing) Tables
+### VAPT Tables
 
 #### `vaptAssets`
 Tracks assets under security assessment (web apps, APIs, servers, etc.).
@@ -850,107 +905,97 @@ All API endpoints are defined in `server/routes.ts`. The server runs on Express.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/conversations` | List all conversations (ordered by creation date) |
-| `POST` | `/api/conversations` | Create a new conversation (`{ title }`) |
-| `GET` | `/api/conversations/:id` | Get a single conversation with all messages |
-| `DELETE` | `/api/conversations/:id` | Delete a conversation and all associated data (cascades) |
-| `POST` | `/api/conversations/:id/messages` | Add a user message to a conversation |
-| `POST` | `/api/conversations/:id/assistant-message` | Add an assistant response to a conversation |
-| `PUT` | `/api/conversations/:id/context` | Update project context (projectName, techStack, features, summary, etc.) |
+| `GET` | `/api/conversations` | List all conversations |
+| `POST` | `/api/conversations` | Create a new conversation |
+| `GET` | `/api/conversations/:id` | Get conversation with messages |
+| `DELETE` | `/api/conversations/:id` | Delete conversation (cascades) |
+| `POST` | `/api/conversations/:id/messages` | Add user message |
+| `POST` | `/api/conversations/:id/assistant-message` | Add assistant response |
+| `PUT` | `/api/conversations/:id/context` | Update project context |
 
 ### Project Files
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/conversations/:id/files` | Get all files for a conversation/project |
-| `POST` | `/api/conversations/:id/files` | Save a single file (`{ path, content, language }`) |
-| `DELETE` | `/api/conversations/:id/files` | Delete all files for a conversation |
-| `PUT` | `/api/files/:id` | Update a specific file's content |
-| `DELETE` | `/api/files/:id` | Delete a specific file |
-| `POST` | `/api/conversations/:id/files/bulk` | Bulk save multiple files at once |
+| `GET` | `/api/conversations/:id/files` | Get all project files |
+| `POST` | `/api/conversations/:id/files` | Save a file |
+| `DELETE` | `/api/conversations/:id/files` | Delete all files |
+| `PUT` | `/api/files/:id` | Update a file |
+| `DELETE` | `/api/files/:id` | Delete a file |
+| `POST` | `/api/conversations/:id/files/bulk` | Bulk save files |
 
 ### AI / Code Generation
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/ai/understand` | Process natural language input through NLU + Pro Generator pipeline |
-| `POST` | `/api/ai/edit` | Edit existing generated code based on instructions |
+| `POST` | `/api/ai/understand` | Process input through NLU pipeline |
+| `POST` | `/api/ai/edit` | Edit existing generated code |
 | `POST` | `/api/ai/fix` | Auto-fix errors in generated code |
-| `GET` | `/api/ai/status` | Get AI engine status and capabilities |
-| `POST` | `/api/ai/plan` | Generate a project architecture plan |
-| `POST` | `/api/ai/deep/generate` | Deep project generation (full-stack) |
-| `POST` | `/api/ai/deep/generate-refined` | Refined generation with additional context |
+| `GET` | `/api/ai/status` | Get AI engine status |
+| `POST` | `/api/ai/plan` | Generate a project plan |
+| `POST` | `/api/ai/deep/generate` | Deep project generation |
+| `POST` | `/api/ai/deep/generate-refined` | Refined generation with context |
+| `POST` | `/api/conversations/:id/auto-fix` | Auto-fix runtime errors from preview |
 
 ### GitHub Integration
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/github/repos` | List authenticated user's GitHub repositories |
-| `GET` | `/api/github/repos/:owner/:repo/contents` | Browse repository file contents |
-| `POST` | `/api/github/push` | Push current project files to a GitHub repository |
+| `GET` | `/api/github/repos` | List user's GitHub repositories |
+| `GET` | `/api/github/repos/:owner/:repo/contents` | Browse repository contents |
+| `POST` | `/api/github/push` | Push project to GitHub |
 
 ### Preview System
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/preview/prepare/:id` | Prepare preview environment for a conversation's project |
-| `POST` | `/api/preview/start/:id` | Start the preview dev server |
-| `POST` | `/api/preview/stop` | Stop the running preview server |
-| `GET` | `/api/preview/status` | Get current preview server status |
+| `POST` | `/api/preview/prepare/:id` | Prepare preview environment |
+| `POST` | `/api/preview/start/:id` | Start preview dev server |
+| `POST` | `/api/preview/stop` | Stop preview server |
+| `GET` | `/api/preview/status` | Get preview status |
 
 ### Testing & Security
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/conversations/:id/test` | Run automated tests on generated code |
-| `POST` | `/api/conversations/:id/security-scan` | Run security vulnerability scan on generated code |
+| `POST` | `/api/conversations/:id/test` | Run automated tests |
+| `POST` | `/api/conversations/:id/security-scan` | Run security scan |
 
-### VAPT (Vulnerability Assessment & Penetration Testing)
+### VAPT
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/vapt/dashboard` | Get VAPT dashboard summary (stats, recent scans, top vulnerabilities) |
-| `GET` | `/api/vapt/assets` | List all tracked assets |
-| `POST` | `/api/vapt/assets` | Register a new asset for scanning |
-| `GET` | `/api/vapt/assets/:id` | Get asset details |
-| `PUT` | `/api/vapt/assets/:id` | Update an asset |
-| `DELETE` | `/api/vapt/assets/:id` | Remove an asset |
-| `GET` | `/api/vapt/vulnerabilities` | List all discovered vulnerabilities |
-| `POST` | `/api/vapt/vulnerabilities` | Record a new vulnerability |
-| `GET` | `/api/vapt/vulnerabilities/:id` | Get vulnerability details |
-| `PUT` | `/api/vapt/vulnerabilities/:id` | Update vulnerability status/details |
-| `DELETE` | `/api/vapt/vulnerabilities/:id` | Remove a vulnerability record |
-| `GET` | `/api/vapt/scans` | List all scan records |
-| `POST` | `/api/vapt/scans` | Initiate a new scan |
+| `GET` | `/api/vapt/dashboard` | VAPT dashboard summary |
+| `GET/POST` | `/api/vapt/assets` | List/register assets |
+| `GET/PUT/DELETE` | `/api/vapt/assets/:id` | Manage asset |
+| `GET/POST` | `/api/vapt/vulnerabilities` | List/record vulnerabilities |
+| `GET/PUT/DELETE` | `/api/vapt/vulnerabilities/:id` | Manage vulnerability |
+| `GET/POST` | `/api/vapt/scans` | List/initiate scans |
 | `GET` | `/api/vapt/scans/:id` | Get scan results |
-| `GET` | `/api/vapt/schedules` | List scan schedules |
-| `POST` | `/api/vapt/schedules` | Create a recurring scan schedule |
-| `PUT` | `/api/vapt/schedules/:id` | Update a schedule |
-| `DELETE` | `/api/vapt/schedules/:id` | Remove a schedule |
-| `GET` | `/api/vapt/team` | List VAPT team members |
-| `POST` | `/api/vapt/team` | Add a team member |
-| `PUT` | `/api/vapt/team/:id` | Update team member role |
-| `DELETE` | `/api/vapt/team/:id` | Remove a team member |
-| `GET` | `/api/vapt/audit-logs` | Get audit trail of all VAPT actions |
+| `GET/POST` | `/api/vapt/schedules` | List/create schedules |
+| `PUT/DELETE` | `/api/vapt/schedules/:id` | Manage schedule |
+| `GET/POST` | `/api/vapt/team` | List/add team members |
+| `PUT/DELETE` | `/api/vapt/team/:id` | Manage team member |
+| `GET` | `/api/vapt/audit-logs` | Get audit trail |
 
 ---
 
 ## esbuild Pipeline Detail
 
-The Electron build uses esbuild for fast, cross-platform compilation. The build script is at `scripts/build-electron.ts` (40 lines).
+The Electron build uses esbuild for fast, cross-platform compilation. The build script is at `scripts/build-electron.ts`.
 
 ### main.ts Compilation
 
 ```javascript
 esbuild.build({
   entryPoints: ['electron/main.ts'],
-  bundle: true,           // Bundle all imports into single file
-  platform: 'node',       // Target Node.js APIs
-  target: 'node18',       // Node 18 syntax level
-  format: 'esm',          // Output as ES Modules
+  bundle: true,
+  platform: 'node',
+  target: 'node18',
+  format: 'esm',
   outfile: 'dist-electron/main.js',
-  external: ['electron'], // Don't bundle Electron itself
-  sourcemap: true,        // Generate source maps for debugging
+  external: ['electron'],
+  sourcemap: true,
   banner: {
     js: `import { createRequire } from 'module';
          const require = createRequire(import.meta.url);`,
@@ -958,139 +1003,33 @@ esbuild.build({
 });
 ```
 
-The `banner` adds a `createRequire` shim because the output is ESM format but some dependencies may use `require()`. This allows CommonJS `require()` calls to work inside an ESM context.
-
 ### preload.ts Compilation
 
 ```javascript
 esbuild.build({
   entryPoints: ['electron/preload.ts'],
-  bundle: true,           // Bundle all imports
-  platform: 'node',       // Target Node.js APIs
-  target: 'node18',       // Node 18 syntax level
-  format: 'cjs',          // Output as CommonJS (required by Electron preload)
+  bundle: true,
+  platform: 'node',
+  target: 'node18',
+  format: 'cjs',
   outfile: 'dist-electron/preload.js',
-  external: ['electron'], // Don't bundle Electron
+  external: ['electron'],
   sourcemap: true,
 });
 ```
 
-The preload script **must** be CommonJS format because Electron's preload sandbox requires it. The main process uses ESM while the preload uses CJS - this dual-format setup is handled cleanly by having separate esbuild configurations.
-
-### Output
-
-Both compiled files land in `dist-electron/`:
-- `dist-electron/main.js` - ESM bundle with createRequire shim
-- `dist-electron/main.js.map` - Source map
-- `dist-electron/preload.js` - CJS bundle
-- `dist-electron/preload.js.map` - Source map
-
 ---
 
-## GitHub Push System Detail
+## Contributing
 
-The GitHub push system (`scripts/github-push.ts`) provides a complete, reliable method to push the entire workspace to a GitHub repository using the Octokit REST API.
-
-### Authentication Flow
-
-1. Reads Replit connector credentials from `REPLIT_CONNECTORS_HOSTNAME`
-2. Fetches OAuth token via Replit's connector API (`/api/v2/connection?include_secrets=true&connector_names=github`)
-3. Checks token expiry (`expires_at`) before each operation
-4. **Auto-refreshes** expired tokens by re-fetching from the connector (never caches stale credentials)
-5. Creates an authenticated `Octokit` instance with the fresh token
-
-### Push Pipeline
-
-The push follows the Git data API flow (low-level tree manipulation, not the contents API):
-
-```
-1. getRef(heads/main)         -> Get current commit SHA
-2. For each file:
-   createBlob(content)        -> Upload file content, get blob SHA
-3. createTree(blobs[])        -> Create new tree from all blob SHAs (NO base_tree)
-4. createCommit(tree, parent) -> Create commit pointing to new tree
-5. updateRef(heads/main)      -> Fast-forward branch to new commit
-```
-
-### Full Tree Replacement
-
-The `createTree` call intentionally omits the `base_tree` parameter. This means the new tree contains **only** the files being pushed. Any files that existed in the previous commit but are no longer in the workspace are automatically removed. This prevents stale file accumulation that would occur with incremental tree updates.
-
-### Parallel Batch Upload
-
-Files are uploaded in parallel batches to maximize throughput while respecting GitHub API rate limits:
-
-- **`BATCH_SIZE = 5`** - 5 files uploaded concurrently per batch
-- **5 retries** per file with exponential backoff
-- Retry on status codes: `403` (rate limit), `429` (too many requests), `502` (bad gateway), `503` (service unavailable)
-- Backoff formula: `attempt * 3000ms` (3s, 6s, 9s, 12s, 15s)
-- Failed files after all retries are logged as warnings but don't block the push
-- Binary files are encoded as `base64`, text files as `utf-8`
-
-### File Collection
-
-The `getAllFiles()` function recursively walks the workspace directory, excluding:
-- `.git`, `node_modules`, `.cache`, `.config`, `.upm`, `.replit`, `replit.nix`, `replit.md`, `.local`
-- Symbolic links (to avoid infinite loops)
-
----
-
-## GitHub Integration
-
-AutoCoder includes a built-in GitHub push system:
-
-- Uses **Replit's GitHub connector** for secure OAuth token management
-- **Full tree replacement** - pushes exactly what's in the workspace, no stale files
-- **Parallel batch uploads** with retry logic (handles rate limits)
-- **Auto token refresh** - never caches stale credentials
-- Run with: `npx tsx scripts/github-push.ts`
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-| Issue | Solution |
-|-------|----------|
-| Preview not loading | Check if dev server is running, check console for errors |
-| Files not appearing | Check `~/AutoCoder/projects/` directory (Electron mode) |
-| npm install timeout | Check internet connection, retry |
-| Windows EBUSY error | Close VS Code, delete node_modules, run `npm install` again |
-| Windows ENOTSUP (reusePort) | Already fixed - server auto-detects Windows |
-
-### Debug Mode
-
-```bash
-# Run with verbose logging
-DEBUG=* npm run electron:dev
-```
-
----
-
-## Windows-Specific Notes
-
-- Uses `cross-env` for all npm scripts (no Unix-only syntax)
-- Server conditionally skips `reusePort` on Windows (prevents ENOTSUP error)
-- Electron build uses esbuild (fast, cross-platform)
-- Run Electron directly: `npm run electron:dev`
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
 ## License
 
-MIT License - feel free to use this for personal or commercial projects.
-
-## Author
-
-Created by [Gautam Mathur](https://github.com/Gautam-Mathur)
-
----
-
-<p align="center">
-  <strong>92,000+ lines of code</strong> | <strong>400+ files</strong> | <strong>34 intelligence modules</strong> | <strong>205+ typo corrections</strong> | <strong>12 domain profiles</strong> | <strong>100% Local</strong>
-</p>
-
-<p align="center">
-  Built with passion using Replit Agent
-</p>
+This project is licensed under the MIT License.

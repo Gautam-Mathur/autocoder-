@@ -72,11 +72,11 @@ AutoCoder now has two solutions to the WebContainer limitations:
 
 ## Part 1.5: LiveCodeRunner Deep Dive
 
-LiveCodeRunner is a 1,079-line React component (`client/src/components/live-code-runner.tsx`) that provides instant, zero-install previews of generated React projects directly in the browser. It achieves this by simulating an entire frontend build pipeline using regex-based transforms, mocked imports, embedded CSS, and in-browser Babel transpilation. This section explains every stage of its pipeline in detail.
+LiveCodeRunner is a 1,263-line React component (`client/src/components/live-code-runner.tsx`) that provides instant, zero-install previews of generated React projects directly in the browser. It achieves this by simulating an entire frontend build pipeline using regex-based transforms, mocked imports, embedded CSS, and in-browser Babel transpilation. This section explains every stage of its pipeline in detail.
 
 ### 1.5.1 File Filtering Pipeline
 
-When the Pro Generator produces 15-20 files for a project, LiveCodeRunner must determine which files are relevant for a browser preview. Not all files can or should be rendered — backend code, test files, configuration, and database schemas must be excluded.
+When the code generation pipeline (plan-driven generator or Pro Generator fallback) produces files for a project, LiveCodeRunner must determine which files are relevant for a browser preview. Not all files can or should be rendered — backend code, test files, configuration, and database schemas must be excluded.
 
 #### Backend File Detection
 

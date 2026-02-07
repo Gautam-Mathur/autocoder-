@@ -19,10 +19,11 @@ This guide is for QA testers who need to verify the AutoCoder Electron applicati
 9. [Test Automation Guidelines](#9-test-automation-guidelines)
 10. [Regression Test Checklist](#10-regression-test-checklist)
 11. [LiveCodeRunner Test Suite](#11-livecoderunner-test-suite)
-12. [Pro Generator Validation Test Suite](#12-pro-generator-validation-test-suite)
-13. [Code Validator Test Suite](#13-code-validator-test-suite)
-14. [Web Mode Testing Procedures](#14-web-mode-testing-procedures)
-15. [Electron Mode Testing Procedures](#15-electron-mode-testing-procedures)
+12. [Plan-Driven Pipeline Test Suite](#12-plan-driven-pipeline-test-suite)
+13. [Pro Generator Validation Test Suite (Fallback)](#13-pro-generator-validation-test-suite-fallback)
+14. [Code Validator Test Suite](#14-code-validator-test-suite)
+15. [Web Mode Testing Procedures](#15-web-mode-testing-procedures)
+16. [Electron Mode Testing Procedures](#16-electron-mode-testing-procedures)
 
 ---
 
@@ -1029,9 +1030,146 @@ export default function App() {
 
 ---
 
-## 12. Pro Generator Validation Test Suite
+## 12. Plan-Driven Pipeline Test Suite
 
-The Pro Generator (`client/src/lib/code-generator/pro-generator.ts`) analyzes user prompts and generates complete multi-file React+Vite projects. These tests validate prompt analysis accuracy and output quality.
+The plan-driven pipeline is the primary code generation system. These tests validate the full flow from understanding to code generation.
+
+---
+
+### TC-PD-001: Domain Detection
+
+**Objective:** Verify domain detection correctly identifies industry domains.
+
+**Input:**
+```
+"Build a consulting firm management platform"
+```
+
+**Expected Results:**
+- [ ] Domain detected as `consulting`
+- [ ] Entities include: Project, Milestone, Task, Timesheet, Client, Contract
+- [ ] Workflows include project lifecycle, timesheet approval
+- [ ] Confidence score > 0.7
+
+---
+
+### TC-PD-002: Multi-Domain Blending
+
+**Objective:** Verify two close domains are blended when within 0.15 confidence.
+
+**Input:**
+```
+"Build an HR system with project tracking"
+```
+
+**Expected Results:**
+- [ ] Both `hr` and `project-management` domains detected
+- [ ] Entities from both domains are included
+- [ ] No duplicate entities
+
+---
+
+### TC-PD-003: Clarification Limit
+
+**Objective:** Verify max 2 clarification rounds with auto-proceed.
+
+**Input:**
+```
+"Build an app"
+```
+
+**Steps:**
+1. Submit the vague prompt
+2. Respond vaguely to the first clarification
+3. Respond vaguely to the second clarification
+4. Verify system proceeds to planning without asking a third time
+
+**Expected Results:**
+- [ ] At most 2 clarification questions asked
+- [ ] System auto-proceeds with best assumptions
+- [ ] Plan is generated successfully
+
+---
+
+### TC-PD-004: Plan Approval Flow
+
+**Objective:** Verify plan approval and modification.
+
+**Input:**
+```
+"Build a restaurant management system"
+```
+
+**Steps:**
+1. Submit the prompt
+2. Wait for plan generation
+3. Request modification: "Add a delivery tracking module"
+4. Approve the modified plan
+5. Wait for code generation
+
+**Expected Results:**
+- [ ] Plan includes restaurant-domain entities (MenuItem, Order, Table, Reservation)
+- [ ] Modified plan includes delivery tracking
+- [ ] Generated code includes all planned pages and entities
+- [ ] Code passes post-generation validation
+
+---
+
+### TC-PD-005: Phase Recovery
+
+**Objective:** Verify stuck conversation recovery.
+
+**Steps:**
+1. Start a conversation that reaches the "generating" phase
+2. Simulate a phase stuck without plan data
+3. Verify the system recovers gracefully
+
+**Expected Results:**
+- [ ] System detects stuck state
+- [ ] Conversation restarts to initial phase
+- [ ] User is notified of recovery
+- [ ] No infinite loops
+
+---
+
+### TC-PD-006: Post-Generation Validation
+
+**Objective:** Verify all generated code passes validation.
+
+**Steps:**
+1. Generate a project using the plan-driven pipeline
+2. Check for missing imports, dependencies, and runtime patterns
+
+**Expected Results:**
+- [ ] All imports reference existing files
+- [ ] All dependencies are listed in package.json
+- [ ] No missing QueryClientProvider
+- [ ] No duplicate export defaults
+- [ ] Smart stubs created for any missing files
+
+---
+
+### TC-PD-007: Auto-Fix Loop
+
+**Objective:** Verify runtime errors are auto-detected and fixed.
+
+**Steps:**
+1. Generate a project with a deliberate runtime error
+2. Run in WebContainer preview
+3. Observe auto-fix behavior
+
+**Expected Results:**
+- [ ] Error detected via postMessage or regex patterns
+- [ ] Error posted to backend auto-fix endpoint
+- [ ] Fix applied to project files
+- [ ] Preview refreshed automatically
+- [ ] Auto-fix badge shows status (up to 3 retries)
+
+---
+
+## 13. Pro Generator Validation Test Suite (Fallback)
+
+The Pro Generator (`client/src/lib/code-generator/pro-generator.ts`, 3,624 lines) is the template-based fallback engine. These tests validate prompt analysis accuracy and output quality.
 
 ---
 
@@ -1234,7 +1372,7 @@ for (const file of componentFiles) {
 
 ---
 
-## 13. Code Validator Test Suite
+## 14. Code Validator Test Suite
 
 The Code Validator (`client/src/lib/code-generator/code-validator.ts`) checks and auto-fixes common issues in generated JSX/TSX code. These tests verify detection accuracy and auto-fix correctness.
 
@@ -1501,7 +1639,7 @@ export default function App() {
 
 ---
 
-## 14. Web Mode Testing Procedures
+## 15. Web Mode Testing Procedures
 
 These procedures verify the full user workflow when running AutoCoder as a web application (non-Electron mode).
 
@@ -1629,7 +1767,7 @@ Try the "Push to GitHub" feature (requires GITHUB_TOKEN secret).
 
 ---
 
-## 15. Electron Mode Testing Procedures
+## 16. Electron Mode Testing Procedures
 
 These procedures verify the full user workflow when running AutoCoder as an Electron desktop application.
 

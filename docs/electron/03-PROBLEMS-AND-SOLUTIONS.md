@@ -61,7 +61,7 @@ These are real problems that were discovered and fixed during AutoCoder developm
 
 **Root Cause:** The deep project generator was designed for full-stack server-side projects with TypeScript. It generated controllers, middleware, models, routes, services, validators, tests — far more than needed for a browser-preview React app.
 
-**Solution:** Built the **Pro Generator** (`client/src/lib/code-generator/pro-generator.ts`) — a 3,600+ line pure template-based engine that produces 15-20 clean JSX files per project. All three code generation endpoints were unified to use it:
+**Solution:** Built the **Pro Generator** (`client/src/lib/code-generator/pro-generator.ts`) — a 3,624-line pure template-based engine that produces 15-20 clean JSX files per project (now used as fallback; the primary path is the plan-driven generator on the server). All three code generation endpoints were unified to use it:
 - `/api/ai/understand` (chat handler)
 - `/api/ai/deep/generate`
 - `/api/ai/deep/generate-refined`
@@ -106,7 +106,7 @@ src/pages/*.jsx, src/components/*.jsx, src/utils/*.js
 **Solution:** Multi-layered detection system:
 - **20 app type regex patterns** with broad keyword sets (ecommerce matches "shop", "store", "product", "cart", "buy", "sell", "marketplace", "retail")
 - **12 intent phrase patterns** that infer app type from action verbs ("sell" -> ecommerce, "track" -> dashboard, "book" -> booking, "share" -> social)
-- **12 domain profiles** providing industry-specific enrichment when keywords like "gym", "restaurant", "recipe" are detected
+- **14 domain profiles** providing industry-specific enrichment when keywords like "gym", "restaurant", "consulting", "healthcare" are detected
 
 **Prevention:** New app types should be added to all three layers: regex patterns, intent phrases, and domain profiles.
 
@@ -432,7 +432,7 @@ Also excludes `.config.js`, `.config.ts`, `.test.`, `.spec.` files.
 
 **Root Cause:** Domain detection used exact word matching. A single typo made the keyword invisible to the matcher.
 
-**Solution:** Dictionary-based typo correction with 205+ entries across all 12 domains, applied as the first step before any matching:
+**Solution:** Dictionary-based typo correction with 205+ entries across all 14 domains, applied as the first step before any matching:
 
 | Domain | Example Corrections |
 |--------|-------------------|
@@ -488,7 +488,7 @@ Also excludes `.config.js`, `.config.ts`, `.test.`, `.spec.` files.
 
 **Root Cause:** App type detection and domain enrichment were separate, disconnected systems. Detecting "dashboard" didn't trigger any fitness-specific customization.
 
-**Solution:** **Domain enrichment overrides generic results.** Each of the 12 domain profiles provides:
+**Solution:** **Domain enrichment overrides generic results.** Each of the 14 domain profiles provides:
 
 | Override | Example (Fitness) |
 |----------|------------------|

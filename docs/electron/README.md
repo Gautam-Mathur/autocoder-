@@ -2,6 +2,18 @@
 
 Complete documentation for the AutoCoder Electron desktop application.
 
+## Platform Statistics (Feb 2026)
+
+| Metric | Value |
+|--------|-------|
+| **Total Lines of Code** | 372,575+ |
+| **Source Files** | 28,046 |
+| **Server Modules** | 41 intelligence modules |
+| **React Components** | 71 frontend components |
+| **Domain Knowledge Profiles** | 14 industry domains |
+| **Code Generation** | Plan-driven (1,828 lines) + Template fallback (3,624 lines) |
+| **Electron Files** | 5 (main, preload, services) |
+
 ## Documentation Index
 
 | Document | Description | Audience |
@@ -49,9 +61,9 @@ AutoCoder uses **esbuild** to compile Electron files (not `tsc`):
 |  |      MAIN PROCESS       |    |     RENDERER PROCESS         |  |
 |  |                         |    |                              |  |
 |  |  * Local Runner Service |<-->|  * React Frontend            |  |
-|  |  * File System I/O      |IPC |  * Pro Generator             |  |
-|  |  * npm Operations       |    |  * LiveCodeRunner            |  |
-|  |  * Dev Server Manager   |    |  * Preview Panel             |  |
+|  |  * File System I/O      |IPC |  * Plan-Driven Pipeline      |  |
+|  |  * npm Operations       |    |  * Pro Generator (fallback)  |  |
+|  |  * Dev Server Manager   |    |  * LiveCodeRunner            |  |
 |  +-------------------------+    +------------------------------+  |
 |                                                                    |
 |                    +----------------------+                        |
@@ -59,6 +71,13 @@ AutoCoder uses **esbuild** to compile Electron files (not `tsc`):
 |                    +----------------------+                        |
 +------------------------------------------------------------------+
 ```
+
+## Code Generation Modes
+
+| Mode | Engine | Output | Preview |
+|------|--------|--------|---------|
+| **Plan-Driven** (Primary) | Deep Understanding + Plan Generator + Plan-Driven Generator | Complete React+Vite+TypeScript project with backend | WebContainer with auto-fix |
+| **Template** (Fallback) | Pro Generator (3,624 lines) | 15-20 JSX files | LiveCodeRunner (Babel) |
 
 ## Key Benefits Over WebContainer
 

@@ -16,7 +16,25 @@ export function generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[] {
   files.push(generateTailwindConfig());
   files.push(generatePostcssConfig());
 
+  files.push(generateLibUtils());
+  files.push(generateLibQueryClient());
+  files.push(generateHookUseToast());
+
+  files.push(generateUiButton());
+  files.push(generateUiCard());
+  files.push(generateUiInput());
+  files.push(generateUiBadge());
+  files.push(generateUiToaster());
+  files.push(generateUiDialog());
+  files.push(generateUiSelect());
+  files.push(generateUiLabel());
+  files.push(generateUiTextarea());
+  files.push(generateUiTabs());
+  files.push(generateTsConfig());
+  files.push(generateTsConfigNode());
+
   files.push(generateSchema(plan));
+  files.push(generateDb());
   files.push(generateStorageInterface(plan));
   files.push(generateRoutes(plan));
   files.push(generateAppTsx(plan));
@@ -41,13 +59,22 @@ function generatePackageJson(plan: ProjectPlan): GeneratedFile {
   const deps: Record<string, string> = {
     'react': '^18.3.1',
     'react-dom': '^18.3.1',
+    'wouter': '^3.0.0',
+    '@tanstack/react-query': '^5.0.0',
     'lucide-react': '^0.344.0',
-    'react-router-dom': '^6.22.0',
     'recharts': '^2.12.0',
     'date-fns': '^3.3.1',
+    'clsx': '^2.1.0',
+    'tailwind-merge': '^2.2.0',
+    'express': '^4.18.0',
+    'drizzle-orm': '^0.29.0',
+    'drizzle-zod': '^0.5.0',
+    '@neondatabase/serverless': '^0.7.0',
+    'zod': '^3.22.0',
   };
   const devDeps: Record<string, string> = {
     'vite': '^5.1.0',
+    '@vitejs/plugin-react': '^4.2.0',
     'tailwindcss': '^3.4.1',
     'postcss': '^8.4.35',
     'autoprefixer': '^10.4.17',
@@ -98,13 +125,11 @@ createRoot(document.getElementById("root")!).render(<App />);
 
 function generateViteConfig(): GeneratedFile {
   const content = `import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  esbuild: {
-    jsx: 'automatic',
-    jsxImportSource: 'react',
-  },
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -129,7 +154,48 @@ export default {
   ],
   darkMode: 'class',
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+    },
   },
   plugins: [],
 };
@@ -146,6 +212,536 @@ function generatePostcssConfig(): GeneratedFile {
 };
 `;
   return { path: 'postcss.config.js', content, language: 'javascript' };
+}
+
+function generateLibUtils(): GeneratedFile {
+  const content = `import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+`;
+  return { path: 'src/lib/utils.ts', content, language: 'typescript' };
+}
+
+function generateLibQueryClient(): GeneratedFile {
+  const content = `import { QueryClient } from "@tanstack/react-query";
+
+export async function apiRequest(method: string, url: string, body?: any) {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || res.statusText);
+  }
+  return res;
+}
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      queryFn: async ({ queryKey }) => {
+        const res = await fetch(queryKey[0] as string);
+        if (!res.ok) {
+          throw new Error(\`\${res.status}: \${res.statusText}\`);
+        }
+        return res.json();
+      },
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+      retry: false,
+    },
+  },
+});
+`;
+  return { path: 'src/lib/queryClient.ts', content, language: 'typescript' };
+}
+
+function generateHookUseToast(): GeneratedFile {
+  const content = `import { useState, useCallback } from "react";
+
+type ToastVariant = "default" | "destructive";
+
+interface Toast {
+  id: string;
+  title?: string;
+  description?: string;
+  variant?: ToastVariant;
+}
+
+let toastCount = 0;
+let listeners: Array<(toasts: Toast[]) => void> = [];
+let memoryToasts: Toast[] = [];
+
+function dispatch(toasts: Toast[]) {
+  memoryToasts = toasts;
+  listeners.forEach((l) => l(toasts));
+}
+
+export function useToast() {
+  const [toasts, setToasts] = useState<Toast[]>(memoryToasts);
+
+  useState(() => {
+    listeners.push(setToasts);
+    return () => {
+      listeners = listeners.filter((l) => l !== setToasts);
+    };
+  });
+
+  const toast = useCallback(
+    ({ title, description, variant }: Omit<Toast, "id">) => {
+      const id = String(++toastCount);
+      const newToast: Toast = { id, title, description, variant };
+      dispatch([...memoryToasts, newToast]);
+      setTimeout(() => {
+        dispatch(memoryToasts.filter((t) => t.id !== id));
+      }, 4000);
+    },
+    []
+  );
+
+  const dismiss = useCallback((id: string) => {
+    dispatch(memoryToasts.filter((t) => t.id !== id));
+  }, []);
+
+  return { toasts, toast, dismiss };
+}
+
+export type { Toast };
+`;
+  return { path: 'src/hooks/use-toast.ts', content, language: 'typescript' };
+}
+
+function generateUiButton(): GeneratedFile {
+  const content = `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  size?: "default" | "sm" | "lg" | "icon";
+}
+
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = "default", size = "default", ...props }, ref) => {
+    const variants: Record<string, string> = {
+      default: "bg-blue-600 text-white hover:bg-blue-700",
+      destructive: "bg-red-600 text-white hover:bg-red-700",
+      outline: "border border-gray-300 bg-transparent hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800",
+      secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700",
+      ghost: "hover:bg-gray-100 dark:hover:bg-gray-800",
+      link: "text-blue-600 underline-offset-4 hover:underline",
+    };
+    const sizes: Record<string, string> = {
+      default: "h-9 px-4 py-2",
+      sm: "h-8 px-3 text-sm",
+      lg: "h-10 px-6",
+      icon: "h-9 w-9",
+    };
+
+    return (
+      <button
+        ref={ref}
+        className={cn(
+          "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50",
+          variants[variant],
+          sizes[size],
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+Button.displayName = "Button";
+
+export { Button };
+`;
+  return { path: 'src/components/ui/button.tsx', content, language: 'tsx' };
+}
+
+function generateUiCard(): GeneratedFile {
+  const content = `import { cn } from "@/lib/utils";
+
+function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}
+      {...props}
+    />
+  );
+}
+
+function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />;
+}
+
+function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h3 className={cn("font-semibold leading-none tracking-tight", className)} {...props} />;
+}
+
+function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={cn("text-sm text-gray-500 dark:text-gray-400", className)} {...props} />;
+}
+
+function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("p-6 pt-0", className)} {...props} />;
+}
+
+function CardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("flex items-center p-6 pt-0", className)} {...props} />;
+}
+
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+`;
+  return { path: 'src/components/ui/card.tsx', content, language: 'tsx' };
+}
+
+function generateUiInput(): GeneratedFile {
+  const content = `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+
+const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        className={cn(
+          "flex h-9 w-full rounded-md border border-gray-300 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:placeholder:text-gray-500",
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
+Input.displayName = "Input";
+
+export { Input };
+`;
+  return { path: 'src/components/ui/input.tsx', content, language: 'tsx' };
+}
+
+function generateUiBadge(): GeneratedFile {
+  const content = `import { cn } from "@/lib/utils";
+
+interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "secondary" | "destructive" | "outline";
+}
+
+function Badge({ className, variant = "default", ...props }: BadgeProps) {
+  const variants: Record<string, string> = {
+    default: "bg-blue-600 text-white",
+    secondary: "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100",
+    destructive: "bg-red-600 text-white",
+    outline: "border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300",
+  };
+
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors whitespace-nowrap",
+        variants[variant],
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+export { Badge };
+`;
+  return { path: 'src/components/ui/badge.tsx', content, language: 'tsx' };
+}
+
+function generateUiToaster(): GeneratedFile {
+  const content = `import { useToast } from "@/hooks/use-toast";
+
+export function Toaster() {
+  const { toasts, dismiss } = useToast();
+
+  if (toasts.length === 0) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className={
+            "rounded-lg border p-4 shadow-lg transition-all " +
+            (toast.variant === "destructive"
+              ? "bg-red-600 text-white border-red-700"
+              : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700")
+          }
+          role="alert"
+        >
+          {toast.title && <div className="font-semibold text-sm">{toast.title}</div>}
+          {toast.description && <div className="text-sm mt-1 opacity-90">{toast.description}</div>}
+          <button
+            onClick={() => dismiss(toast.id)}
+            className="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100"
+          >
+            x
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+`;
+  return { path: 'src/components/ui/toaster.tsx', content, language: 'tsx' };
+}
+
+function generateUiDialog(): GeneratedFile {
+  const content = `import { useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
+
+interface DialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
+}
+
+function Dialog({ open, onOpenChange, children }: DialogProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div ref={overlayRef} className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
+      <div className="relative z-50 w-full max-w-lg mx-4">{children}</div>
+    </div>
+  );
+}
+
+function DialogContent({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("bg-background rounded-lg border shadow-lg p-6", className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("flex flex-col space-y-1.5 mb-4", className)} {...props} />;
+}
+
+function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h2 className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />;
+}
+
+function DialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
+}
+
+function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("flex justify-end gap-2 mt-4", className)} {...props} />;
+}
+
+export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter };
+`;
+  return { path: 'src/components/ui/dialog.tsx', content, language: 'tsx' };
+}
+
+function generateUiSelect(): GeneratedFile {
+  const content = `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {}
+
+const Select = forwardRef<HTMLSelectElement, SelectProps>(
+  ({ className, children, ...props }, ref) => {
+    return (
+      <select
+        ref={ref}
+        className={cn(
+          "flex h-9 w-full rounded-md border border-gray-300 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </select>
+    );
+  }
+);
+Select.displayName = "Select";
+
+function SelectOption({ className, ...props }: React.OptionHTMLAttributes<HTMLOptionElement>) {
+  return <option className={cn("", className)} {...props} />;
+}
+
+export { Select, SelectOption };
+`;
+  return { path: 'src/components/ui/select.tsx', content, language: 'tsx' };
+}
+
+function generateUiLabel(): GeneratedFile {
+  const content = `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+const Label = forwardRef<HTMLLabelElement, React.LabelHTMLAttributes<HTMLLabelElement>>(
+  ({ className, ...props }, ref) => {
+    return (
+      <label
+        ref={ref}
+        className={cn("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70", className)}
+        {...props}
+      />
+    );
+  }
+);
+Label.displayName = "Label";
+
+export { Label };
+`;
+  return { path: 'src/components/ui/label.tsx', content, language: 'tsx' };
+}
+
+function generateUiTextarea(): GeneratedFile {
+  const content = `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
+  ({ className, ...props }, ref) => {
+    return (
+      <textarea
+        ref={ref}
+        className={cn(
+          "flex min-h-[80px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600",
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+);
+Textarea.displayName = "Textarea";
+
+export { Textarea };
+`;
+  return { path: 'src/components/ui/textarea.tsx', content, language: 'tsx' };
+}
+
+function generateUiTabs(): GeneratedFile {
+  const content = `import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+interface TabsProps {
+  defaultValue: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+interface TabsContextValue {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+let tabsContext: TabsContextValue = { value: "", onChange: () => {} };
+
+function Tabs({ defaultValue, children, className }: TabsProps) {
+  const [value, setValue] = useState(defaultValue);
+  tabsContext = { value, onChange: setValue };
+  return <div className={cn("", className)}>{children}</div>;
+}
+
+function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+function TabsTrigger({ value, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { value: string }) {
+  const isActive = tabsContext.value === value;
+  return (
+    <button
+      className={cn(
+        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
+        isActive ? "bg-background text-foreground shadow-sm" : "hover:bg-background/50",
+        className
+      )}
+      onClick={() => tabsContext.onChange(value)}
+      {...props}
+    />
+  );
+}
+
+function TabsContent({ value, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { value: string }) {
+  if (tabsContext.value !== value) return null;
+  return <div className={cn("mt-2", className)} {...props} />;
+}
+
+export { Tabs, TabsList, TabsTrigger, TabsContent };
+`;
+  return { path: 'src/components/ui/tabs.tsx', content, language: 'tsx' };
+}
+
+function generateTsConfig(): GeneratedFile {
+  const content = JSON.stringify({
+    compilerOptions: {
+      target: "ES2020",
+      useDefineForClassFields: true,
+      lib: ["ES2020", "DOM", "DOM.Iterable"],
+      module: "ESNext",
+      skipLibCheck: true,
+      moduleResolution: "bundler",
+      allowImportingTsExtensions: true,
+      resolveJsonModule: true,
+      isolatedModules: true,
+      noEmit: true,
+      jsx: "react-jsx",
+      strict: false,
+      noUnusedLocals: false,
+      noUnusedParameters: false,
+      noFallthroughCasesInSwitch: true,
+      baseUrl: ".",
+      paths: {
+        "@/*": ["./src/*"],
+        "@shared/*": ["./shared/*"],
+      },
+    },
+    include: ["src", "shared"],
+    references: [{ path: "./tsconfig.node.json" }],
+  }, null, 2);
+  return { path: 'tsconfig.json', content, language: 'json' };
+}
+
+function generateTsConfigNode(): GeneratedFile {
+  const content = JSON.stringify({
+    compilerOptions: {
+      composite: true,
+      skipLibCheck: true,
+      module: "ESNext",
+      moduleResolution: "bundler",
+      allowSyntheticDefaultImports: true,
+    },
+    include: ["vite.config.ts"],
+  }, null, 2);
+  return { path: 'tsconfig.node.json', content, language: 'json' };
 }
 
 function generateSchema(plan: ProjectPlan): GeneratedFile {
@@ -218,6 +814,17 @@ export type ${entity.name} = typeof ${varName}s.$inferSelect;`);
     content: `${imports}\n${tables.join('\n\n')}\n\n${schemas.join('\n\n')}\n`,
     language: 'typescript',
   };
+}
+
+function generateDb(): GeneratedFile {
+  const content = `import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool } from "@neondatabase/serverless";
+import * as schema from "@shared/schema";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle(pool, { schema });
+`;
+  return { path: 'server/db.ts', content, language: 'typescript' };
 }
 
 function generateStorageInterface(plan: ProjectPlan): GeneratedFile {
@@ -687,6 +1294,7 @@ function generateListPage(page: PlannedPage, plan: ProjectPlan): GeneratedFile['
   const varName = toCamelCase(entityName);
 
   const displayFields = entity?.fields.filter(f => f.name !== 'id' && f.name !== 'createdAt').slice(0, 5) || [];
+  const editableFields = entity?.fields.filter(f => f.name !== 'id' && f.name !== 'createdAt') || [];
   const statusField = entity?.fields.find(f => f.name === 'status');
   const nameField = entity?.fields.find(f => ['name', 'title', 'firstName', 'companyName', 'orderNumber', 'trackingNumber', 'sku', 'code'].includes(f.name));
 
@@ -698,24 +1306,132 @@ function generateListPage(page: PlannedPage, plan: ProjectPlan): GeneratedFile['
     return `                  <td className="p-3 text-sm">{item.${f.name}}</td>`;
   }).join('\n');
 
+  const formStates = editableFields.map(f => {
+    const setter = `set${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
+    if (f.type === 'integer' || f.type === 'number' || f.type === 'real' || f.type.includes('decimal')) {
+      return `  const [form${f.name.charAt(0).toUpperCase() + f.name.slice(1)}, ${setter}] = useState(0);`;
+    }
+    if (f.type === 'boolean') {
+      return `  const [form${f.name.charAt(0).toUpperCase() + f.name.slice(1)}, ${setter}] = useState(false);`;
+    }
+    return `  const [form${f.name.charAt(0).toUpperCase() + f.name.slice(1)}, ${setter}] = useState("");`;
+  }).join('\n');
+
+  const resetFormFields = editableFields.map(f => {
+    const setter = `set${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
+    if (f.type === 'integer' || f.type === 'number' || f.type === 'real' || f.type.includes('decimal')) {
+      return `      ${setter}(0);`;
+    }
+    if (f.type === 'boolean') {
+      return `      ${setter}(false);`;
+    }
+    return `      ${setter}("");`;
+  }).join('\n');
+
+  const formBody = editableFields.map(f => {
+    return `    ${f.name}: form${f.name.charAt(0).toUpperCase() + f.name.slice(1)},`;
+  }).join('\n');
+
+  const dialogFields = editableFields.map(f => {
+    const stateVar = `form${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
+    const setter = `set${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
+    if (f.type === 'integer' || f.type === 'number' || f.type === 'real' || f.type.includes('decimal')) {
+      return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <Input id="${f.name}" type="number" value={${stateVar}} onChange={(e) => ${setter}(Number(e.target.value))} data-testid="input-${toKebabCase(f.name)}" />
+              </div>`;
+    }
+    if (f.type === 'boolean') {
+      return `              <div className="flex items-center gap-2">
+                <input id="${f.name}" type="checkbox" checked={${stateVar}} onChange={(e) => ${setter}(e.target.checked)} data-testid="input-${toKebabCase(f.name)}" />
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+              </div>`;
+    }
+    return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <Input id="${f.name}" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />
+              </div>`;
+  }).join('\n');
+
+  const statusFilterLine = statusField ? `  const [statusFilter, setStatusFilter] = useState("all");` : '';
+
+  const statusFilterJSX = statusField ? `
+        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-40" data-testid="select-status-filter">
+          <SelectOption value="all">All Statuses</SelectOption>
+          <SelectOption value="active">Active</SelectOption>
+          <SelectOption value="pending">Pending</SelectOption>
+          <SelectOption value="completed">Completed</SelectOption>
+          <SelectOption value="cancelled">Cancelled</SelectOption>
+          <SelectOption value="draft">Draft</SelectOption>
+          <SelectOption value="in-progress">In Progress</SelectOption>
+        </Select>` : '';
+
+  const statusFilterLogic = statusField
+    ? `  const filtered = items.filter((item: any) => {
+    const matchesSearch = JSON.stringify(item).toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });`
+    : `  const filtered = items.filter((item: any) =>
+    JSON.stringify(item).toLowerCase().includes(search.toLowerCase())
+  );`;
+
   return `import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectOption } from "@/components/ui/select";
+import { Plus, Search, Trash2 } from "lucide-react";
 import StatusBadge from "@/components/status-badge";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ${page.componentName}() {
   const [search, setSearch] = useState("");
-  const { toast } = useToast();
+  const [showCreate, setShowCreate] = useState(false);
+${statusFilterLine ? statusFilterLine + '\n' : ''}  const { toast } = useToast();
+${formStates}
   const { data: items = [], isLoading } = useQuery({ queryKey: ["${endpoint}"] });
 
-  const filtered = items.filter((item: any) =>
-    JSON.stringify(item).toLowerCase().includes(search.toLowerCase())
-  );
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "${endpoint}", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["${endpoint}"] });
+      setShowCreate(false);
+${resetFormFields}
+      toast({ title: "${entityName} created", description: "The ${entityName.toLowerCase()} has been created successfully." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", \`${endpoint}/\${id}\`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["${endpoint}"] });
+      toast({ title: "${entityName} deleted", description: "The ${entityName.toLowerCase()} has been deleted." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+${statusFilterLogic}
+
+  const handleCreate = () => {
+    createMutation.mutate({
+${formBody}
+    });
+  };
 
   return (
     <div className="p-6 space-y-4" data-testid="page-${toKebabCase(entityName)}-list">
@@ -724,7 +1440,7 @@ export default function ${page.componentName}() {
           <h1 className="text-2xl font-bold" data-testid="text-page-title">${page.name}</h1>
           <p className="text-muted-foreground">${page.description}</p>
         </div>
-        <Button data-testid="button-add-${toKebabCase(entityName)}">
+        <Button onClick={() => setShowCreate(true)} data-testid="button-add-${toKebabCase(entityName)}">
           <Plus className="h-4 w-4 mr-2" />
           Add ${entityName}
         </Button>
@@ -740,7 +1456,7 @@ export default function ${page.componentName}() {
             className="pl-9"
             data-testid="input-search"
           />
-        </div>
+        </div>${statusFilterJSX}
       </div>
 
       <Card>
@@ -757,12 +1473,23 @@ export default function ${page.componentName}() {
                 <thead className="border-b">
                   <tr>
 ${tableHeaders}
+                    <th className="text-right p-3 text-sm font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {filtered.map((item: any) => (
                     <tr key={item.id} className="hover-elevate cursor-pointer" data-testid={\`row-${toKebabCase(entityName)}-\${item.id}\`}>
 ${tableRows}
+                      <td className="p-3 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(item.id); }}
+                          data-testid={\`button-delete-\${item.id}\`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -771,6 +1498,23 @@ ${tableRows}
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create ${entityName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+${dialogFields}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreate(false)} data-testid="button-cancel-create">Cancel</Button>
+            <Button onClick={handleCreate} disabled={createMutation.isPending} data-testid="button-confirm-create">
+              {createMutation.isPending ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -782,6 +1526,7 @@ function generateDetailPage(page: PlannedPage, plan: ProjectPlan): GeneratedFile
   const endpoint = `/api/${toKebabCase(entityName)}s`;
   const entity = plan.dataModel.find(e => e.name === entityName);
   const displayFields = entity?.fields.filter(f => f.name !== 'id' && f.name !== 'createdAt').slice(0, 8) || [];
+  const listPath = page.path.split('/:')[0];
 
   const fieldRows = displayFields.map(f => {
     return `              <div>
@@ -790,20 +1535,38 @@ function generateDetailPage(page: PlannedPage, plan: ProjectPlan): GeneratedFile
               </div>`;
   }).join('\n');
 
-  return `import { useQuery } from "@tanstack/react-query";
-import { useRoute, Link } from "wouter";
+  return `import { useQuery, useMutation } from "@tanstack/react-query";
+import { useRoute, Link, useLocation } from "wouter";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import StatusBadge from "@/components/status-badge";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ${page.componentName}() {
   const [, params] = useRoute("${page.path}");
   const id = params?.id;
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
 
   const { data: item, isLoading } = useQuery({
     queryKey: ["${endpoint}", id],
     enabled: !!id,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", \`${endpoint}/\${id}\`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["${endpoint}"] });
+      toast({ title: "${entityName} deleted", description: "The ${entityName.toLowerCase()} has been deleted." });
+      navigate("${listPath}");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
   });
 
   if (isLoading) {
@@ -817,12 +1580,21 @@ export default function ${page.componentName}() {
   return (
     <div className="p-6 space-y-6" data-testid="page-${toKebabCase(entityName)}-detail">
       <div className="flex items-center gap-4">
-        <Link href="${page.path.split('/:')[0]}">
+        <Link href="${listPath}">
           <Button variant="ghost" size="icon" data-testid="button-back">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold" data-testid="text-page-title">${page.name}</h1>
+        <h1 className="text-2xl font-bold flex-1" data-testid="text-page-title">${page.name}</h1>
+        <Button
+          variant="destructive"
+          onClick={() => deleteMutation.mutate()}
+          disabled={deleteMutation.isPending}
+          data-testid="button-delete-${toKebabCase(entityName)}"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          {deleteMutation.isPending ? "Deleting..." : "Delete"}
+        </Button>
       </div>
 
       <Card>
