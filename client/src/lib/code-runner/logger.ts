@@ -183,3 +183,93 @@ class RunnerLogger {
 
 export const runnerLog = new RunnerLogger();
 export type { RunnerLogEntry, LogLevel as RunnerLogLevel, LogListener };
+
+const ANSI_RE = /\x1B(?:\[[0-9;]*[A-Za-z]|\(B)/g;
+const SPINNER_RE = /^[|/\-\\⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]$/;
+
+export type NpmLineCallback = (cleanLine: string, level: 'success' | 'warn' | 'error' | 'info' | 'debug') => void;
+
+export class NpmOutputParser {
+  private buffer = '';
+  private seen = new Set<string>();
+  private onLine?: NpmLineCallback;
+
+  constructor(onLine?: NpmLineCallback) {
+    this.onLine = onLine;
+  }
+
+  private clean(raw: string): string {
+    return raw.replace(ANSI_RE, '').replace(/\r/g, '');
+  }
+
+  private isNoise(line: string): boolean {
+    if (!line || SPINNER_RE.test(line)) return true;
+    if (line.length <= 2 && !/\w{2}/.test(line)) return true;
+    if (/^npm warn using --force/.test(line)) return true;
+    return false;
+  }
+
+  private emit(line: string, level: 'success' | 'warn' | 'error' | 'info' | 'debug'): void {
+    switch (level) {
+      case 'success': runnerLog.success('NPM', line); break;
+      case 'warn': runnerLog.warn('NPM', line); break;
+      case 'error': runnerLog.error('NPM', line); break;
+      case 'info': runnerLog.info('NPM', line); break;
+      case 'debug': runnerLog.debug('NPM', line); break;
+    }
+    this.onLine?.(line, level);
+  }
+
+  feed(chunk: string): void {
+    this.buffer += this.clean(chunk);
+    const parts = this.buffer.split('\n');
+    this.buffer = parts.pop() || '';
+
+    for (const raw of parts) {
+      const line = raw.trim();
+      if (this.isNoise(line)) continue;
+      if (this.seen.has(line)) continue;
+      this.seen.add(line);
+
+      if (/added \d+ package/i.test(line)) {
+        this.emit(line, 'success');
+      } else if (/npm warn/i.test(line) || /WARN/i.test(line)) {
+        this.emit(line, 'warn');
+      } else if (/npm error/i.test(line) || /ERR!/i.test(line) || /ERESOLVE|E404|ENOENT|ETARGET/i.test(line)) {
+        this.emit(line, 'error');
+      } else if (/http fetch (GET|POST)/i.test(line)) {
+        const m = line.match(/http fetch (GET|POST)\s+\d+\s+(\S+)/i);
+        if (m) {
+          const pkg = m[2].replace(/^https?:\/\/registry\.npmjs\.org\//, '');
+          this.emit(`${m[1]} ${pkg}`, 'debug');
+        } else {
+          this.emit(line, 'debug');
+        }
+      } else if (/^npm http/i.test(line)) {
+        this.emit(line, 'debug');
+      } else if (/resolving|idealTree|reify/i.test(line)) {
+        continue;
+      } else if (line.length > 3) {
+        this.emit(line, 'info');
+      }
+    }
+  }
+
+  flush(): void {
+    if (this.buffer.trim()) {
+      const line = this.buffer.trim();
+      if (!this.isNoise(line) && !this.seen.has(line)) {
+        this.seen.add(line);
+        if (/added \d+ package/i.test(line)) {
+          this.emit(line, 'success');
+        } else if (/ERR|error/i.test(line)) {
+          this.emit(line, 'error');
+        } else if (line.length > 3) {
+          this.emit(line, 'info');
+        }
+      }
+    }
+    this.buffer = '';
+    this.seen.clear();
+  }
+}

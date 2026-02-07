@@ -182,7 +182,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Fix TypeScript type errors in routes.ts and storage.ts: language inference, Drizzle JSON column casts',
+      message: 'Clean npm console output: NpmOutputParser strips ANSI/spinners, shows meaningful package info',
       tree: newTree.sha,
       parents: [latestSha]
     });

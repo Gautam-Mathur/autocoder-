@@ -1,5 +1,5 @@
 import { WebContainer, FileSystemTree } from '@webcontainer/api';
-import { runnerLog } from './logger';
+import { runnerLog, NpmOutputParser } from './logger';
 
 let webcontainerInstance: WebContainer | null = null;
 let bootPromise: Promise<WebContainer> | null = null;
@@ -154,37 +154,29 @@ export default defineConfig({ plugins: [react()] });
         '--prefer-offline',
         '--no-audit',
         '--no-fund',
-        '--loglevel=error',
+        '--loglevel=http',
         '--fetch-retries=2',
         '--fetch-timeout=30000'
       ]);
       runnerLog.info('NPM', 'Spawned npm install for pre-warm', {
-        flags: '--prefer-offline --no-audit --no-fund --loglevel=error'
+        flags: '--prefer-offline --no-audit --no-fund --loglevel=http'
       });
 
       let installOutput = '';
+      const prewarmParser = new NpmOutputParser((line, level) => {
+        if (level === 'success') notifyPreWarm('installing', line);
+      });
       installProcess.output.pipeTo(
         new WritableStream({
           write(data) {
             installOutput += data;
-            const trimmed = data.trim();
-            if (trimmed) {
-              if (trimmed.includes('added')) {
-                runnerLog.success('NPM', trimmed);
-                notifyPreWarm('installing', trimmed);
-              } else if (trimmed.includes('WARN') || trimmed.includes('warn')) {
-                runnerLog.warn('NPM', trimmed);
-              } else if (trimmed.includes('ERR') || trimmed.includes('error')) {
-                runnerLog.error('NPM', trimmed);
-              } else {
-                runnerLog.debug('NPM', trimmed);
-              }
-            }
+            prewarmParser.feed(data);
           },
         })
       );
 
       const exitCode = await installProcess.exit;
+      prewarmParser.flush();
       const npmTime = runnerLog.endTimer('prewarm-npm');
 
       if (exitCode === 0) {
@@ -355,16 +347,19 @@ export async function installDependencies(
     
     runnerLog.info('NPM', `Install attempt ${attempt}/${maxRetries}`, {
       timeout: `${Math.round(timeoutMs / 1000)}s`,
-      flags: '--prefer-offline --no-audit --no-fund --loglevel=error'
+      flags: '--prefer-offline --no-audit --no-fund --loglevel=http'
     });
-    onOutput?.(`\n📦 npm install attempt ${attempt}/${maxRetries}...\n`);
+    onOutput?.(`\n--- npm install attempt ${attempt}/${maxRetries}...\n`);
     
     runnerLog.startTimer(`npm-attempt-${attempt}`);
+    const installParser = new NpmOutputParser((line, level) => {
+      if (level !== 'debug') onOutput?.(line + '\n');
+    });
     const result = await new Promise<RunResult>(async (resolve) => {
       const timeoutId = setTimeout(() => {
         timedOut = true;
         runnerLog.warn('NPM', `Attempt ${attempt} timed out after ${Math.round(timeoutMs / 1000)}s`);
-        onOutput?.(`\n⚠️ Attempt ${attempt} timed out after ${Math.round(timeoutMs/1000)}s\n`);
+        onOutput?.(`\nAttempt ${attempt} timed out after ${Math.round(timeoutMs/1000)}s\n`);
         resolve({
           success: false,
           output: [...output],
@@ -379,7 +374,7 @@ export async function installDependencies(
           '--prefer-offline',
           '--no-audit',
           '--no-fund',
-          '--loglevel=error',
+          '--loglevel=http',
           '--fetch-retries=2',
           '--fetch-timeout=30000'
         ]);
@@ -389,22 +384,13 @@ export async function installDependencies(
             write(data) {
               output.push(data);
               allOutput.push(data);
-              onOutput?.(data);
-              const trimmed = data.trim();
-              if (trimmed) {
-                if (trimmed.includes('added')) {
-                  runnerLog.success('NPM', trimmed);
-                } else if (trimmed.includes('WARN') || trimmed.includes('warn')) {
-                  runnerLog.warn('NPM', trimmed);
-                } else if (trimmed.includes('ERR') || trimmed.includes('error')) {
-                  runnerLog.error('NPM', trimmed);
-                }
-              }
+              installParser.feed(data);
             },
           })
         );
         
         const exitCode = await process.exit;
+        installParser.flush();
         clearTimeout(timeoutId);
         
         resolve({
@@ -479,25 +465,29 @@ export async function installDependencies(
       
       try {
         runnerLog.info('NPM', 'Trying --ignore-scripts fallback');
+        const fallbackParser = new NpmOutputParser((line, level) => {
+          if (level !== 'debug') onOutput?.(line + '\n');
+        });
         const process = await container.spawn('npm', [
           'install',
           '--prefer-offline',
           '--no-audit',
           '--no-fund',
           '--ignore-scripts',
-          '--loglevel=error'
+          '--loglevel=http'
         ]);
         
         process.output.pipeTo(
           new WritableStream({
             write(data) {
               allOutput.push(data);
-              onOutput?.(data);
+              fallbackParser.feed(data);
             },
           })
         );
         
         const exitCode = await process.exit;
+        fallbackParser.flush();
         clearTimeout(timeoutId);
         
         resolve({
@@ -573,7 +563,7 @@ export async function runNpmInstall(
     '--prefer-offline',
     '--no-audit',
     '--no-fund',
-    '--loglevel=error',
+    '--loglevel=http',
     '--fetch-retries=1',
     '--fetch-timeout=15000'
   ];
@@ -597,28 +587,22 @@ export async function runNpmInstall(
     }, timeoutMs);
     
     try {
+      const pkgParser = new NpmOutputParser((line, level) => {
+        if (level !== 'debug') onOutput?.(line + '\n');
+      });
       const process = await container.spawn('npm', args);
       
       process.output.pipeTo(
         new WritableStream({
           write(data) {
             output.push(data);
-            onOutput?.(data);
-            const trimmed = data.trim();
-            if (trimmed && (trimmed.includes('added') || trimmed.includes('WARN') || trimmed.includes('ERR'))) {
-              if (trimmed.includes('added')) {
-                runnerLog.success('NPM', trimmed);
-              } else if (trimmed.includes('WARN')) {
-                runnerLog.warn('NPM', trimmed);
-              } else {
-                runnerLog.error('NPM', trimmed);
-              }
-            }
+            pkgParser.feed(data);
           },
         })
       );
       
       const exitCode = await process.exit;
+      pkgParser.flush();
       clearTimeout(timeoutId);
       
       const timerKey = `npm-pkg-${pkgList.slice(0, 30)}`;
