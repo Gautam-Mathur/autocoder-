@@ -14,6 +14,7 @@ import {
   setPackageJsonHash,
   getPreWarmStatus,
   getPreWarmedPackages,
+  awaitPreWarm,
   type FileSystemTree,
   type RunResult
 } from './webcontainer';
@@ -573,7 +574,25 @@ export default {
       
       const shouldSkipInstall = hasExistingModules && !pkgChanged && !options.forceInstall && !useBatchedInstall;
       
-      const isPreWarmed = getPreWarmStatus() === 'ready' && hasExistingModules;
+      let isPreWarmed = getPreWarmStatus() === 'ready' && hasExistingModules;
+      
+      if (!isPreWarmed && !shouldSkipInstall && !useBatchedInstall) {
+        const pwStatus = getPreWarmStatus();
+        if (pwStatus === 'booting' || pwStatus === 'installing') {
+          updateState({ status: 'installing', progress: 45, message: 'Waiting for pre-installed packages...' });
+          log('⏳ Pre-warm in progress, waiting for it to finish...');
+          const preWarmSucceeded = await awaitPreWarm(120000);
+          if (preWarmSucceeded) {
+            const nowHasModules = await hasNodeModules();
+            isPreWarmed = nowHasModules;
+            if (isPreWarmed) {
+              log('✅ Pre-warm finished, using pre-installed packages');
+            }
+          } else {
+            log('⚠️ Pre-warm did not finish in time, running full install...');
+          }
+        }
+      }
       
       runnerLog.info('Pipeline', 'Dependency install decision', {
         hasExistingModules,

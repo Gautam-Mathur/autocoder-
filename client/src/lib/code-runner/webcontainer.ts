@@ -96,6 +96,32 @@ export function getPreWarmedPackages(): { deps: Record<string, string>; devDeps:
   return { deps: { ...CORE_PACKAGES }, devDeps: { ...CORE_DEV_PACKAGES } };
 }
 
+export async function awaitPreWarm(timeoutMs: number = 120000): Promise<boolean> {
+  if (preWarmStatus === 'ready') return true;
+  if (preWarmStatus === 'failed' || preWarmStatus === 'idle') return false;
+  if (!preWarmPromise) return false;
+
+  runnerLog.info('PreWarm', `Awaiting pre-warm completion (status: ${preWarmStatus}, timeout: ${Math.round(timeoutMs / 1000)}s)...`);
+  runnerLog.startTimer('await-prewarm');
+
+  try {
+    const result = await Promise.race([
+      preWarmPromise,
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), timeoutMs)),
+    ]);
+    const ms = runnerLog.endTimer('await-prewarm');
+    if (result) {
+      runnerLog.success('PreWarm', `Pre-warm completed while waiting`, undefined, ms);
+    } else {
+      runnerLog.warn('PreWarm', `Pre-warm did not complete in time (${Math.round(timeoutMs / 1000)}s)`);
+    }
+    return result;
+  } catch {
+    runnerLog.warn('PreWarm', 'Pre-warm promise rejected while waiting');
+    return false;
+  }
+}
+
 export async function preWarmWebContainer(): Promise<boolean> {
   if (preWarmStatus === 'ready') {
     runnerLog.debug('PreWarm', 'Already warmed, skipping');

@@ -182,7 +182,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Speed up code running: expand pre-warm packages, add fast-glob fix for PostCSS/Tailwind',
+      message: 'Fix pre-warm race condition: auto-runner now waits for pre-warm before installing',
       tree: newTree.sha,
       parents: [latestSha]
     });
