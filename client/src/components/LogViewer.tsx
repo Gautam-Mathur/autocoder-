@@ -67,6 +67,18 @@ const categoryColors: Record<string, string> = {
   FAILSAFE: "text-cyan-300",
   "MEMORY-MGR": "text-cyan-300",
   VAPT: "text-yellow-300",
+  WebContainer: "text-violet-400",
+  PreWarm: "text-sky-400",
+  NPM: "text-orange-400",
+  DevServer: "text-emerald-400",
+  FileSystem: "text-stone-400",
+  Pipeline: "text-violet-400",
+  AutoRunner: "text-sky-300",
+  CodeGen: "text-fuchsia-400",
+  Validator: "text-lime-400",
+  ErrorFix: "text-rose-400",
+  Process: "text-stone-300",
+  Cache: "text-sky-400",
 };
 
 function formatTimestamp(timestamp: string): string {

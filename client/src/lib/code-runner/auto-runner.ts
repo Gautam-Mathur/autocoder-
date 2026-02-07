@@ -17,6 +17,7 @@ import {
   type FileSystemTree,
   type RunResult
 } from './webcontainer';
+import { runnerLog } from './logger';
 
 export type RunnerStatus = 
   | 'idle'
@@ -323,16 +324,26 @@ export async function autoRunProject(
   };
   
   try {
-    // Check WebContainer support
+    runnerLog.separator(`AUTO-RUN: ${projectName}`);
+    runnerLog.startTimer('auto-run-total');
+    
     if (!isWebContainerSupported()) {
+      runnerLog.error('AutoRunner', 'WebContainer not supported in this browser');
       throw new Error('WebContainer not supported in this browser. Please use Chrome or Edge.');
     }
+    runnerLog.success('AutoRunner', 'WebContainer support confirmed');
     
-    // Step 1: Detect project type
     updateState({ status: 'generating', progress: 10, message: 'Analyzing project...' });
     log('🔍 Analyzing project structure...');
     
     const projectType = detectProjectType(files);
+    runnerLog.info('Pipeline', `Project analysis complete`, {
+      type: projectType.type,
+      typescript: projectType.useTypeScript,
+      entryFile: projectType.entryFile || 'default',
+      devCommand: projectType.devCommand,
+      totalFiles: files.length,
+    });
     log(`📦 Detected project type: ${projectType.type}`);
     
     // Step 2: Ensure package.json exists with all dependencies
@@ -340,10 +351,20 @@ export async function autoRunProject(
     const hasPackageJson = files.some(f => f.path === 'package.json');
     
     if (!hasPackageJson && projectType.type !== 'static') {
+      runnerLog.info('Pipeline', 'No package.json found, generating one');
       log('📝 Generating package.json with dependencies...');
       log(`   TypeScript: ${projectType.useTypeScript ? 'Yes' : 'No'}, Entry: ${projectType.entryFile || 'default'}`);
       const packageJson = generatePackageJson(projectName, files, projectType.type, projectType.useTypeScript, projectType.entryFile);
       projectFiles.push({ path: 'package.json', content: packageJson });
+      try {
+        const parsed = JSON.parse(packageJson);
+        const depCount = Object.keys(parsed.dependencies || {}).length;
+        const devDepCount = Object.keys(parsed.devDependencies || {}).length;
+        runnerLog.success('Pipeline', `Generated package.json: ${depCount} deps, ${devDepCount} devDeps`, {
+          dependencies: Object.keys(parsed.dependencies || {}).join(', '),
+          devDependencies: Object.keys(parsed.devDependencies || {}).join(', '),
+        });
+      } catch {}
     } else if (hasPackageJson) {
       // Enhance existing package.json with missing dependencies (with optimization)
       const existingPkg = files.find(f => f.path === 'package.json');
@@ -367,9 +388,16 @@ export async function autoRunProject(
               ? { ...f, content: JSON.stringify(pkg, null, 2) }
               : f
           );
+          const depCount = Object.keys(finalDeps).length;
+          const devDepCount = Object.keys(finalDevDeps).length;
+          runnerLog.success('Pipeline', `Enhanced package.json: ${depCount} deps, ${devDepCount} devDeps`);
           log('✅ Enhanced package.json with detected dependencies');
-          if (warning) log(`   ${warning}`);
+          if (warning) {
+            runnerLog.warn('Pipeline', warning);
+            log(`   ${warning}`);
+          }
         } catch (e) {
+          runnerLog.warn('Pipeline', `Could not parse existing package.json: ${e}`);
           log('⚠️ Could not parse existing package.json');
         }
       }
@@ -383,6 +411,7 @@ export async function autoRunProject(
       f.content.includes("from 'tailwind")
     );
     if (usesTailwind && projectType.type === 'vite') {
+      runnerLog.info('Pipeline', 'Tailwind CSS detected, adding config files');
       log('🎨 Tailwind CSS detected, adding configs and dependencies...');
       if (!files.some(f => f.path === 'tailwind.config.js')) {
         projectFiles.push({
@@ -433,6 +462,8 @@ export default {
     
     // Step 3: Mount files to WebContainer
     updateState({ status: 'mounting', progress: 30, message: 'Setting up project files...' });
+    runnerLog.separator('MOUNTING FILES');
+    runnerLog.info('Pipeline', `Mounting ${projectFiles.length} project files`);
     log('📁 Mounting project files...');
     
     // Separate package.json to write it directly (avoids mount truncation issues)
@@ -535,6 +566,7 @@ export default {
     
     // Step 4: Install dependencies (with caching or batched install)
     if (projectType.type !== 'static') {
+      runnerLog.separator('DEPENDENCY INSTALL');
       const pkgFile = projectFiles.find(f => f.path === 'package.json');
       const pkgChanged = pkgFile ? setPackageJsonHash(pkgFile.content) : true;
       const hasExistingModules = await hasNodeModules();
@@ -543,11 +575,23 @@ export default {
       
       const isPreWarmed = getPreWarmStatus() === 'ready' && hasExistingModules;
       
+      runnerLog.info('Pipeline', 'Dependency install decision', {
+        hasExistingModules,
+        pkgChanged,
+        forceInstall: options.forceInstall || false,
+        useBatchedInstall,
+        isPreWarmed,
+        preWarmStatus: getPreWarmStatus(),
+        decision: shouldSkipInstall ? 'SKIP (cached)' : isPreWarmed ? 'PRE-WARM (install extras only)' : useBatchedInstall ? 'BATCHED' : 'FULL INSTALL',
+      });
+      
       if (shouldSkipInstall) {
+        runnerLog.success('Pipeline', 'Skipping npm install - dependencies cached and unchanged');
         log('⚡ Dependencies cached, skipping npm install');
         updateState({ progress: 70, message: 'Using cached dependencies' });
       } else if (isPreWarmed && !useBatchedInstall) {
         updateState({ status: 'installing', progress: 50, message: 'Using pre-installed packages...' });
+        runnerLog.info('Pipeline', 'Using pre-warmed packages, checking for extras...');
         log('⚡ Core packages pre-installed, checking for extras...');
 
         const { deps: preWarmedDeps, devDeps: preWarmedDevDeps } = getPreWarmedPackages();
@@ -560,6 +604,13 @@ export default {
           const extraDeps = Object.keys(projectDeps).filter(d => !preWarmedDeps[d]);
           const extraDevDeps = Object.keys(projectDevDeps).filter(d => !preWarmedDevDeps[d]);
 
+          runnerLog.info('Pipeline', `Pre-warm diff: ${extraDeps.length} extra deps, ${extraDevDeps.length} extra devDeps`, {
+            extraDeps: extraDeps.join(', ') || '(none)',
+            extraDevDeps: extraDevDeps.join(', ') || '(none)',
+            cachedDeps: Object.keys(preWarmedDeps).length,
+            cachedDevDeps: Object.keys(preWarmedDevDeps).length,
+          });
+
           if (extraDeps.length > 0 || extraDevDeps.length > 0) {
             log(`📦 Installing ${extraDeps.length + extraDevDeps.length} extra packages...`);
             updateState({ progress: 55, message: `Installing ${extraDeps.length + extraDevDeps.length} extra packages...` });
@@ -567,33 +618,38 @@ export default {
             if (extraDeps.length > 0) {
               const result = await runNpmInstall(extraDeps, false, (out) => log(out));
               if (!result.success) {
+                runnerLog.warn('Pipeline', 'Some extra dependency packages failed');
                 log('⚠️ Some extra packages failed, continuing...');
               }
             }
             if (extraDevDeps.length > 0) {
               const result = await runNpmInstall(extraDevDeps, true, (out) => log(out));
               if (!result.success) {
+                runnerLog.warn('Pipeline', 'Some extra devDependency packages failed');
                 log('⚠️ Some extra dev packages failed, continuing...');
               }
             }
+            runnerLog.success('Pipeline', 'Extra packages installed');
             log('✅ Extra packages installed');
           } else {
+            runnerLog.success('Pipeline', 'All packages already pre-installed, no extras needed');
             log('✅ All packages already pre-installed');
           }
-        } catch {
+        } catch (e) {
+          runnerLog.warn('Pipeline', `Could not diff packages: ${e}, falling back to full install`);
           log('⚠️ Could not diff packages, running full install...');
           await installDependencies((output) => log(output));
         }
 
         updateState({ progress: 70, message: 'Dependencies ready' });
       } else if (useBatchedInstall) {
-        // Batched install for large package.json files
         updateState({ status: 'installing', progress: 50, message: 'Installing packages in batches...' });
         
         const allDeps = Object.entries(pendingDeps);
         const allDevDeps = Object.entries(pendingDevDeps);
-        const BATCH_SIZE = 10; // Install 10 packages at a time
+        const BATCH_SIZE = 10;
         
+        runnerLog.info('Pipeline', `Batched install: ${allDeps.length} deps + ${allDevDeps.length} devDeps in batches of ${BATCH_SIZE}`);
         log(`📦 Installing ${allDeps.length} dependencies in batches...`);
         
         // Install regular dependencies in batches
@@ -673,6 +729,8 @@ export default {
         updateState({ progress: 70, message: 'Dependencies installed' });
       } else {
         updateState({ status: 'installing', progress: 50, message: 'Installing npm packages...' });
+        const reason = hasExistingModules ? 'Dependencies changed, reinstalling' : 'Fresh install';
+        runnerLog.info('Pipeline', `Full npm install: ${reason}`);
         log(hasExistingModules ? '📦 Dependencies changed, reinstalling...' : '📦 Running npm install...');
         
         const installResult = await installDependencies((output) => {
@@ -680,9 +738,14 @@ export default {
         });
         
         if (!installResult.success) {
+          runnerLog.warn('Pipeline', 'npm install had issues, attempting to proceed', {
+            exitCode: installResult.exitCode,
+            errorCount: installResult.errors.length,
+          });
           log('⚠️ npm install had issues, attempting to proceed anyway...');
           updateState({ progress: 70, message: 'Install incomplete, trying to start...' });
         } else {
+          runnerLog.success('Pipeline', 'Full npm install completed');
           log('✅ Dependencies installed');
           updateState({ progress: 70, message: 'Dependencies installed' });
         }
@@ -690,7 +753,9 @@ export default {
     }
     
     // Step 5: Start dev server
+    runnerLog.separator('DEV SERVER');
     updateState({ status: 'starting', progress: 80, message: 'Starting development server...' });
+    runnerLog.info('Pipeline', 'Starting dev server...');
     log('🚀 Starting development server...');
     
     const { url } = await startDevServer(
@@ -701,6 +766,8 @@ export default {
       }
     );
     
+    const totalMs = runnerLog.endTimer('auto-run-total');
+    
     updateState({ 
       status: 'running', 
       progress: 100, 
@@ -708,12 +775,26 @@ export default {
       previewUrl: url 
     });
     
+    runnerLog.success('AutoRunner', `Project "${projectName}" running at ${url}`, {
+      totalTime: `${totalMs}ms`,
+      totalFiles: files.length,
+      projectType: projectType.type,
+      url,
+    }, totalMs);
+    runnerLog.separator('AUTO-RUN COMPLETE');
     log(`🎉 Application running at ${url}`);
     
     return { success: true, previewUrl: url, error: null };
     
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const totalMs = runnerLog.endTimer('auto-run-total');
+    runnerLog.error('AutoRunner', `Pipeline failed for "${projectName}": ${errorMessage}`, {
+      totalTime: `${totalMs}ms`,
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+      stack: error instanceof Error ? error.stack?.split('\n').slice(0, 3).join(' | ') : undefined,
+    });
+    runnerLog.separator('AUTO-RUN FAILED');
     updateState({ status: 'error', error: errorMessage, message: 'Error occurred' });
     callbacks.onError?.(errorMessage);
     log(`❌ Error: ${errorMessage}`);
@@ -722,14 +803,14 @@ export default {
   }
 }
 
-// Quick run - simplified version for common cases
 export async function quickRun(
   files: { path: string; content: string }[],
   onProgress?: (message: string, progress: number) => void
 ): Promise<string | null> {
+  runnerLog.info('AutoRunner', `Quick run: ${files.length} files`);
   const result = await autoRunProject(files, 'quick-project', {
     onStatusChange: (state) => onProgress?.(state.message, state.progress),
-    onLog: (log) => console.log('[AutoRunner]', log)
+    onLog: () => {}
   });
   
   return result.previewUrl;

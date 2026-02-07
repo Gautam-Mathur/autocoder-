@@ -182,7 +182,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Add pre-warm status logging and visual indicator on chat page',
+      message: 'Comprehensive logging upgrade: color-coded RunnerLogger, full pipeline instrumentation, 12 new categories',
       tree: newTree.sha,
       parents: [latestSha]
     });

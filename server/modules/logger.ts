@@ -60,6 +60,18 @@ const CATEGORY_COLORS: Record<string, string> = {
   "MEMORY-MGR": CYAN,
   VAPT: YELLOW,
   System: CYAN,
+  WebContainer: MAGENTA,
+  PreWarm: BLUE,
+  NPM: YELLOW,
+  DevServer: GREEN,
+  FileSystem: GRAY,
+  Pipeline: MAGENTA,
+  AutoRunner: CYAN,
+  CodeGen: MAGENTA,
+  Validator: GREEN,
+  ErrorFix: RED,
+  Process: WHITE,
+  Cache: BLUE,
 };
 
 class Logger {
