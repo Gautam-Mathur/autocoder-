@@ -250,6 +250,8 @@ export default function Chat() {
   const [showPreview, setShowPreview] = useState(true);
   const [streamingThinkingSteps, setStreamingThinkingSteps] = useState<ThinkingStep[]>([]);
   const [completedThinkingSteps, setCompletedThinkingSteps] = useState<Map<number, ThinkingStep[]>>(new Map());
+  const [conversationPhase, setConversationPhase] = useState<string>("initial");
+  const [approvalMessageId, setApprovalMessageId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Prevent CMD+1/CMD+2 from interfering with the app
@@ -304,6 +306,21 @@ export default function Chat() {
       }
     }
   }, [activeConversation?.messages, activeConversationId]);
+
+  useEffect(() => {
+    if (activeConversation) {
+      const phase = (activeConversation as any).conversationPhase || 'initial';
+      setConversationPhase(phase);
+      if ((phase === 'approval' || phase === 'planning') && activeConversation.messages?.length > 0) {
+        const lastAssistant = [...activeConversation.messages].reverse().find((m: any) => m.role === 'assistant');
+        if (lastAssistant) {
+          setApprovalMessageId(lastAssistant.id);
+        }
+      } else {
+        setApprovalMessageId(null);
+      }
+    }
+  }, [activeConversation]);
 
   const createConversationMutation = useMutation({
     mutationFn: async (title: string) => {
@@ -485,8 +502,17 @@ export default function Chat() {
               }
               if (data.done) {
                 // Save code to project files
-                if (fullContent) {
+                if (fullContent && !data.phase) {
                   await saveCodeToProject(conversationId, fullContent);
+                }
+                // Track conversation phase and approval state
+                if (data.phase) {
+                  setConversationPhase(data.phase);
+                  if (data.showApproval && data.messageId) {
+                    setApprovalMessageId(data.messageId);
+                  } else {
+                    setApprovalMessageId(null);
+                  }
                 }
                 // Store thinking steps for this message
                 if (data.thinkingSteps && data.thinkingSteps.length > 0) {
@@ -765,6 +791,8 @@ export default function Chat() {
                                 ? completedThinkingSteps.get(activeConversationId) as ThinkingStep[] | undefined
                                 : undefined
                           }
+                          showApproval={message.id === approvalMessageId}
+                          onSendMessage={handleSendMessage}
                         />
                       ))}
                       <div ref={messagesEndRef} />

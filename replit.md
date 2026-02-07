@@ -27,12 +27,31 @@ Preferred communication style: Simple, everyday language.
 - **Production**: Serves static files from `dist/public`
 - **Security**: COOP/COEP headers for WebContainer isolation
 
-### Intelligence Modules
-The backend features 34 intelligence modules including:
-- **NLU & Intent Recognition**: For understanding natural language prompts.
-- **Code Generation**: Advanced capabilities for generating complete projects.
-- **Reasoning & Planning**: For structuring the development process.
-- **Memory & Context**: To maintain conversational and project context.
+### Plan-Driven Code Generation (NEW)
+The system uses a multi-phase intelligent approach instead of keyword-matching templates:
+
+1. **Domain Knowledge Library** (`server/modules/domain-knowledge.ts`): 15+ industry domains (consulting, manufacturing, healthcare, retail, education, real estate, HR, restaurant, fitness, logistics, finance, project management, CRM, inventory) with modules, entities, relationships, workflows, roles, KPIs, and page definitions.
+
+2. **Deep Understanding Engine** (`server/modules/deep-understanding-engine.ts`): 5-level analysis:
+   - Level 1: Intent Decomposition
+   - Level 2: Domain Detection (with confidence scoring)
+   - Level 3: Entity Extraction (mentioned + inferred)
+   - Level 4: Workflow Detection
+   - Level 5: Clarification questions (if needed)
+
+3. **Plan Generator** (`server/modules/plan-generator.ts`): Produces comprehensive plans with tech stack, modules breakdown, complete data model with relationships, all pages with features, all API endpoints, workflow state machines, user roles, file-level blueprints, and KPIs.
+
+4. **Plan-Driven Code Generator** (`server/modules/plan-driven-generator.ts`): Takes approved plans and generates truly custom files - domain-specific components, API routes, database schemas, pages with real features (search, filter, status badges), and shared components.
+
+5. **Conversation Phase Handler** (`server/modules/conversation-phase-handler.ts`): Manages the 3-phase conversation flow:
+   - **Phase 1 (Understanding)**: Deep analysis → clarifying questions if needed
+   - **Phase 2 (Planning)**: Detailed plan shown to user for approval
+   - **Phase 3 (Generation)**: Custom code generated after user approval
+
+   Conversation phases tracked in DB: `initial → understanding → clarifying → planning → approval → generating → complete`
+
+### Other Intelligence Modules
+The backend features additional intelligence modules including:
 - **Code Analysis**: Live analysis, explanation, and validation of generated code.
 - **Debugging**: Continuous debugging engines with Vite Error Auto-Fix (closed-loop: error capture → analysis → fix → retry up to 3x).
 - **Vite Error Fixer** (`server/modules/vite-error-fixer.ts`): Parses 10+ error types (missing imports, modules, files, syntax, exports, references, JSX, CSS, hooks, dependencies), generates fixes (patch files, create stubs, add deps, fix paths), exposed via `POST /api/conversations/:id/auto-fix`.

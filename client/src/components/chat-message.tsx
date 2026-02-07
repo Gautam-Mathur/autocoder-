@@ -1,7 +1,8 @@
-import { User, Terminal } from "lucide-react";
+import { User, Terminal, Check, RefreshCw } from "lucide-react";
 import { parseCodeBlocks } from "@/components/code-block";
 import { ProjectSummary, parseProjectSummary, ProjectFileWithContent } from "@/components/project-summary";
 import { ThinkingSteps, type ThinkingStep } from "@/components/thinking-steps";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
@@ -10,10 +11,14 @@ interface ChatMessageProps {
   isStreaming?: boolean;
   generatedFiles?: ProjectFileWithContent[];
   thinkingSteps?: ThinkingStep[];
+  showApproval?: boolean;
+  onSendMessage?: (message: string) => void;
 }
 
-export function ChatMessage({ role, content, isStreaming, generatedFiles, thinkingSteps }: ChatMessageProps) {
+export function ChatMessage({ role, content, isStreaming, generatedFiles, thinkingSteps, showApproval, onSendMessage }: ChatMessageProps) {
   const isUser = role === "user";
+
+  const showApprovalButtons = !!showApproval && !isStreaming;
 
   const renderAssistantContent = () => {
     const { hasProject, projectInfo, remainingContent } = parseProjectSummary(content);
@@ -41,6 +46,27 @@ export function ChatMessage({ role, content, isStreaming, generatedFiles, thinki
         {parseCodeBlocks(content)}
         {isStreaming && (
           <span className="inline-block w-1.5 h-4 bg-primary animate-pulse rounded-sm" data-testid="streaming-indicator" />
+        )}
+        {showApprovalButtons && onSendMessage && (
+          <div className="flex items-center gap-2 pt-3 border-t border-border/50 mt-3">
+            <Button
+              onClick={() => onSendMessage("approve")}
+              className="gap-2"
+              data-testid="button-approve-plan"
+            >
+              <Check className="h-4 w-4" />
+              Approve & Generate
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => onSendMessage("I'd like to make some changes to the plan")}
+              className="gap-2"
+              data-testid="button-modify-plan"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Request Changes
+            </Button>
+          </div>
         )}
       </div>
     );

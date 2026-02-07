@@ -54,6 +54,9 @@ import { validateGeneratedCode, autoFixCode as clientAutoFixCode } from "../clie
 // Preview Project Manager
 import { preparePreviewProject, startPreviewServer, stopPreviewServer, getPreviewStatus, cleanupOldProjects } from "./modules/preview-project-manager";
 
+// Plan-Driven Conversation Handler
+import { handleMessage as handlePhaseMessage, isProjectCreationRequest, type ConversationState } from "./modules/conversation-phase-handler";
+
 // Extract project context from conversation content
 function extractProjectContext(
   allContent: string,
@@ -591,215 +594,89 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
 `;
       }
 
-      // Deep project detection - catches both precise and conversational requests
-      const projectCreationPatterns = [
-        /\b(build|create|make|generate|develop|design)\b.*\b(app|application|website|site|platform|project|system|tool|portal|page)\b/i,
-        /\b(app|application|website|site|platform|project|system|tool|portal)\b.*\b(for|that|with|to)\b/i,
-        /\b(saas|e-commerce|ecommerce|dashboard|cms|blog|social|chat|api|store|shop)\b/i,
-        /\b(landing page|web app|webapp|frontend|backend|fullstack|full-stack)\b/i,
-        /\b(todo|task|note|calendar|booking|reservation|inventory|crm|erp)\b.*\b(app|system|manager)\b/i,
-        // Conversational patterns - non-technical users
-        /\b(i\s+want|i\s+need|i'd\s+like|i\s+wanna)\b.*\b(track|manage|organize|sell|book|share|show|display|log|monitor)\b/i,
-        /\b(make\s+me|build\s+me|create\s+me|give\s+me)\b/i,
-        /\b(help\s+me)\b.*\b(build|create|make|start|set\s*up|launch)\b/i,
-        /\b(something|place|spot|way|thing)\s+(to|for|where|that)\s+/i,
-        /\bfor\s+my\s+(business|company|startup|clients?|customers?|team|shop|store|restaurant|bakery|salon|clinic|gym|school|studio)\b/i,
-        // Domain-specific keywords that imply app creation
-        /\b(gym|workout|fitness|recipe|cooking|restaurant|bakery|budget|expense|property|real\s*estate|doctor|patient|travel|trip|pet|inventory|playlist|employee|payroll)\b.*\b(app|track|manage|system|tool|website|site|platform|page)\b/i,
-        /\b(track|manage|organize|monitor)\b.*\b(gym|workout|fitness|recipe|expense|budget|property|booking|inventory|employee|student|patient|pet)\b/i,
-        // Short vague requests that still indicate wanting an app
-        /\b(build|create|make|generate)\b.*\b(gym|workout|fitness|recipe|cooking|restaurant|bakery|budget|expense|finance|property|doctor|travel|pet|inventory|music|playlist|employee)\b/i,
-      ];
-      
-      // Exclusion patterns - simple requests that don't need full projects
-      const simpleRequestPatterns = [
-        /^(explain|what is|how does|why|tell me|describe|help me understand)/i,
-        /\b(fix|debug|error|bug|issue|problem)\b/i,
-        /\b(modify|change|update|edit|add|remove)\b.*\b(the|this|my)\b.*\b(button|color|text|font|style|css|code|function|component)\b/i,
-        /^(hi|hello|hey|thanks|thank you|ok|okay)\s*[.!?]?\s*$/i,
-      ];
-      
-      const isProjectRequest = projectCreationPatterns.some(p => p.test(content));
-      const isSimpleRequest = simpleRequestPatterns.some(p => p.test(content));
-      const isDeepProjectRequest = isProjectRequest && !isSimpleRequest;
-      
-      if (isDeepProjectRequest) {
-        // Detect which blueprint to use - comprehensive mapping
-        const blueprintMap: Record<string, string> = {
-          // SaaS patterns
-          'saas': 'saas-platform',
-          'subscription': 'saas-platform',
-          'billing': 'saas-platform',
-          'membership': 'saas-platform',
-          // E-commerce patterns
-          'e-commerce': 'ecommerce',
-          'ecommerce': 'ecommerce',
-          'store': 'ecommerce',
-          'shop': 'ecommerce',
-          'marketplace': 'ecommerce',
-          'cart': 'ecommerce',
-          'checkout': 'ecommerce',
-          'product': 'ecommerce',
-          // Social patterns
-          'social': 'social-platform',
-          'community': 'social-platform',
-          'forum': 'social-platform',
-          'network': 'social-platform',
-          'feed': 'social-platform',
-          // Dashboard patterns
-          'dashboard': 'dashboard-app',
-          'analytics': 'dashboard-app',
-          'metrics': 'dashboard-app',
-          'reporting': 'dashboard-app',
-          'admin': 'dashboard-app',
-          'panel': 'dashboard-app',
-          // CMS patterns
-          'cms': 'cms',
-          'blog': 'cms',
-          'content': 'cms',
-          'articles': 'cms',
-          'publishing': 'cms',
-          'news': 'cms',
-          // AI patterns
-          'ai': 'ai-assistant',
-          'chat': 'ai-assistant',
-          'assistant': 'ai-assistant',
-          'bot': 'ai-assistant',
-          'gpt': 'ai-assistant',
-          'llm': 'ai-assistant',
-          // API patterns
-          'api': 'api-server',
-          'backend': 'api-server',
-          'rest': 'api-server',
-          'graphql': 'api-server',
-          // Other
-          'monorepo': 'monorepo',
-          'cli': 'cli-tool',
-          'command': 'cli-tool',
-          // Common app types -> fullstack
-          'todo': 'fullstack-react-express',
-          'task': 'fullstack-react-express',
-          'note': 'fullstack-react-express',
-          'calendar': 'fullstack-react-express',
-          'booking': 'fullstack-react-express',
-          'reservation': 'fullstack-react-express',
-          'inventory': 'fullstack-react-express',
-          'crm': 'fullstack-react-express',
-          'erp': 'fullstack-react-express',
-          'tracker': 'fullstack-react-express',
-          'manager': 'fullstack-react-express',
-          'planner': 'fullstack-react-express',
-          'portfolio': 'fullstack-react-express',
-          'landing': 'fullstack-react-express',
-          'website': 'fullstack-react-express',
-          'webapp': 'fullstack-react-express',
-          'app': 'fullstack-react-express',
+      // Plan-Driven Project Detection & Phase-Aware Handling
+      const currentPhase = (conversation as any).conversationPhase || 'initial';
+      const isDeepProjectRequest = isProjectCreationRequest(content);
+      const isInActivePhase = ['understanding', 'clarifying', 'planning', 'approval', 'generating'].includes(currentPhase);
+
+      if (isDeepProjectRequest || isInActivePhase) {
+        const convState: ConversationState = {
+          phase: currentPhase as any,
+          understandingData: (conversation as any).understandingData as any,
+          planData: (conversation as any).projectPlanData as any,
         };
-        
-        let blueprint = 'fullstack-react-express';
-        const lower = content.toLowerCase();
-        for (const [keyword, bp] of Object.entries(blueprintMap)) {
-          if (lower.includes(keyword)) {
-            blueprint = bp;
-            break;
-          }
-        }
-        
-        // Extract project name from request
-        const nameMatch = content.match(/(?:called?|named?|build|create|make)\s+["']?([A-Za-z][A-Za-z0-9_-]+)["']?/i);
-        const projectName = nameMatch ? nameMatch[1] : 'GeneratedProject';
-        
+
         // Stream the response with thinking steps
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
-        
-        // Collect thinking steps and stream them live
-        const thinkingSteps: ThinkingStep[] = [];
-        const emitStep = (step: ThinkingStep) => {
-          step.timestamp = Date.now();
-          thinkingSteps.push(step);
+
+        const conversationHistory = existingFiles.length > 0
+          ? existingFiles.map((f: any) => f.content).join(' ').slice(0, 500)
+          : '';
+
+        const result = handlePhaseMessage(content, convState, conversationHistory);
+
+        // Stream thinking steps live
+        for (const step of result.thinkingSteps) {
           res.write(`data: ${JSON.stringify({ type: 'thinking', step })}\n\n`);
-        };
-        
-        // Use Pro Generator with thinking callbacks for live reasoning display
-        const requirements = analyzePromptWithThinking(content, emitStep);
-        const proProject = generateProjectWithThinking(requirements, emitStep, content);
-        
-        // Validate and auto-fix the generated code
-        emitStep({
-          phase: 'validating',
-          label: 'Validating generated code',
-          detail: 'Running syntax checks and auto-fixing issues',
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        // If files were generated, validate, auto-fix, and save them
+        if (result.generatedFiles && result.generatedFiles.length > 0) {
+          const validation = validateGeneratedCode(
+            result.generatedFiles.map(f => ({ path: f.path, content: f.content }))
+          );
+          const filesToSave = validation.fixedFiles.length > 0
+            ? validation.fixedFiles
+            : result.generatedFiles;
+
+          await storage.deleteProjectFilesByConversation(conversationId);
+          for (const file of filesToSave) {
+            const fixedContent = clientAutoFixCode(file.content, file.path);
+            await storage.upsertProjectFile(conversationId, file.path, fixedContent, file.language || 'text');
+          }
+        }
+
+        // Update conversation phase and plan data
+        await storage.updateProjectContext(conversationId, {
+          conversationPhase: result.newPhase,
+          ...(result.planData ? { projectPlanData: result.planData as any } : {}),
+          ...(result.understandingData ? { understandingData: result.understandingData as any } : {}),
+          ...(result.planData ? {
+            projectName: result.planData.projectName,
+            planGenerated: true,
+          } : {}),
         });
-        
-        const validation = validateGeneratedCode(proProject.files.map(f => ({ path: f.path, content: f.content })));
-        const filesToSave = validation.fixedFiles.length > 0 ? validation.fixedFiles : proProject.files;
-        
-        if (validation.errors.length > 0 || validation.warnings.length > 0) {
-          emitStep({
-            phase: 'validating',
-            label: `Fixed ${validation.errors.length} issues`,
-            detail: validation.errors.length > 0
-              ? `Auto-fixed: ${validation.errors.slice(0, 3).map(e => e.message).join('; ')}`
-              : 'All checks passed',
-          });
-        } else {
-          emitStep({
-            phase: 'validating',
-            label: 'All checks passed',
-            detail: `${filesToSave.length} files validated successfully`,
-          });
-        }
-        
-        // Clear old files before saving new ones to prevent accumulation
-        await storage.deleteProjectFilesByConversation(conversationId);
-        
-        // Save all files to storage (apply autoFixCode for safety)
-        for (const file of filesToSave) {
-          const ext = file.path.split('.').pop() || 'txt';
-          const langMap: Record<string, string> = {
-            ts: 'typescript', tsx: 'tsx', js: 'javascript', jsx: 'jsx',
-            css: 'css', html: 'html', json: 'json', md: 'markdown',
-            py: 'python', go: 'go', rs: 'rust', sql: 'sql'
-          };
-          const language = langMap[ext] || ext;
-          const fixedContent = clientAutoFixCode(file.content, file.path);
-          await storage.upsertProjectFile(conversationId, file.path, fixedContent, language);
-        }
-        
-        const featureList = requirements.features || [];
-        
-        // Create assistant response
-        const responseContent = `**Project: ${projectName}**
 
-Files generated and ready for download. Use "View Code" tab to see generated files.
+        const savedMessage = await storage.createMessage(conversationId, "assistant", result.responseContent, result.thinkingSteps);
 
----
-
-**Tech Stack:** React, Vite, Tailwind CSS, React Router
-
-**Files Created:** ${filesToSave.length} files
-
-${featureList.length > 0 ? `**Features:**\n${featureList.map((f: string) => `- ${f}`).join('\n')}` : ''}
-
----
-
-Click "Preview" to see your app running live, or browse the files to view the code.
-
-Want changes? Just tell me what you'd like different!`;
-
-        const savedMessage = await storage.createMessage(conversationId, "assistant", responseContent, thinkingSteps);
-        
-        // Stream the final content
-        const chunks = responseContent.split(/(?<=\s)/);
+        // Stream the response content
+        const chunks = result.responseContent.split(/(?<=\s)/);
         for (const chunk of chunks) {
           res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
           await new Promise(resolve => setTimeout(resolve, 10));
         }
-        
-        // Send done signal with thinking steps and message ID for persistence
-        res.write(`data: ${JSON.stringify({ done: true, thinkingSteps, messageId: savedMessage.id, deepProject: { name: projectName, totalFiles: filesToSave.length } })}\n\n`);
+
+        // Send done signal
+        const donePayload: any = {
+          done: true,
+          thinkingSteps: result.thinkingSteps,
+          messageId: savedMessage.id,
+          phase: result.newPhase,
+        };
+        if (result.generatedFiles) {
+          donePayload.deepProject = {
+            name: result.planData?.projectName || 'Generated Project',
+            totalFiles: result.generatedFiles.length,
+          };
+        }
+        if (result.newPhase === 'approval') {
+          donePayload.showApproval = true;
+        }
+
+        res.write(`data: ${JSON.stringify(donePayload)}\n\n`);
         res.end();
         return;
       }

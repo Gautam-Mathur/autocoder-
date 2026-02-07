@@ -37,6 +37,9 @@ export const conversations = pgTable("conversations", {
   securityScore: integer("security_score"),
   testsPassed: integer("tests_passed"),
   testsFailed: integer("tests_failed"),
+  conversationPhase: text("conversation_phase").default("initial"),
+  projectPlanData: jsonb("project_plan_data"),
+  understandingData: jsonb("understanding_data"),
 });
 
 export const messages = pgTable("messages", {

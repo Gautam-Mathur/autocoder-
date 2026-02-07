@@ -182,7 +182,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Add Vite Error Auto-Fix system with closed-loop debugging, 35+ security checks, and production-ready code generation',
+      message: 'Add plan-driven code generation with infrastructure files, approval UI, and domain knowledge for 15+ industries',
       tree: newTree.sha,
       parents: [latestSha]
     });

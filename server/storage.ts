@@ -32,6 +32,9 @@ export interface ProjectContext {
   securityScore?: number | null;
   testsPassed?: number | null;
   testsFailed?: number | null;
+  conversationPhase?: string | null;
+  projectPlanData?: any;
+  understandingData?: any;
 }
 
 export interface IStorage {
@@ -131,7 +134,8 @@ export class MemStorage implements IStorage {
       projectName: null, projectDescription: null, techStack: null, featuresBuilt: null,
       projectSummary: null, lastCodeGenerated: null, projectType: null, complexity: null,
       designStyle: null, colorPreferences: null, planGenerated: null, securityScore: null,
-      testsPassed: null, testsFailed: null
+      testsPassed: null, testsFailed: null,
+      conversationPhase: 'initial', projectPlanData: null, understandingData: null
     };
     this.conversations.set(id, conversation);
     this.messages.set(id, []);
