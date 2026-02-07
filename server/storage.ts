@@ -246,10 +246,10 @@ export class MemStorage implements IStorage {
       id, 
       conversationId: plan.conversationId,
       summary: plan.summary,
-      techStack: plan.techStack || null,
+      techStack: (plan.techStack || null) as ProjectPlan['techStack'],
       architecture: plan.architecture || null,
       folderStructure: plan.folderStructure || null,
-      designDecisions: plan.designDecisions || null,
+      designDecisions: (plan.designDecisions || null) as ProjectPlan['designDecisions'],
       securityConsiderations: plan.securityConsiderations || null,
       createdAt: new Date()
     };
@@ -306,7 +306,7 @@ export class MemStorage implements IStorage {
       failed: result.failed ?? 0,
       skipped: result.skipped ?? 0,
       coverage: result.coverage ?? null,
-      details: result.details || null,
+      details: (result.details || null) as TestResult['details'],
       createdAt: new Date()
     };
     const results = this.tests.get(result.conversationId) || [];
@@ -326,7 +326,7 @@ export class MemStorage implements IStorage {
       conversationId: scan.conversationId,
       score: scan.score,
       grade: scan.grade,
-      issues: scan.issues || null,
+      issues: (scan.issues || null) as SecurityScan['issues'],
       passedChecks: scan.passedChecks || null,
       createdAt: new Date()
     };

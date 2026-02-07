@@ -57,6 +57,15 @@ import { preparePreviewProject, startPreviewServer, stopPreviewServer, getPrevie
 // Plan-Driven Conversation Handler
 import { handleMessage as handlePhaseMessage, isProjectCreationRequest, type ConversationState } from "./modules/conversation-phase-handler";
 
+function inferLanguageFromPath(filePath: string): string {
+  const ext = filePath.split('.').pop()?.toLowerCase() || '';
+  const map: Record<string, string> = {
+    tsx: 'tsx', ts: 'typescript', jsx: 'jsx', js: 'javascript',
+    json: 'json', html: 'html', css: 'css', md: 'markdown', svg: 'svg',
+  };
+  return map[ext] || 'text';
+}
+
 // Extract project context from conversation content
 function extractProjectContext(
   allContent: string,
@@ -635,7 +644,8 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
           await storage.deleteProjectFilesByConversation(conversationId);
           for (const file of filesToSave) {
             const fixedContent = clientAutoFixCode(file.content, file.path);
-            await storage.upsertProjectFile(conversationId, file.path, fixedContent, file.language || 'text');
+            const lang = ('language' in file && typeof file.language === 'string') ? file.language : inferLanguageFromPath(file.path);
+            await storage.upsertProjectFile(conversationId, file.path, fixedContent, lang);
           }
         }
 

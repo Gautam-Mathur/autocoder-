@@ -182,7 +182,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Electron logger upgrade: ANSI colors, timers, success level, full instrumentation of local-runner and electron-runner',
+      message: 'Fix TypeScript type errors in routes.ts and storage.ts: language inference, Drizzle JSON column casts',
       tree: newTree.sha,
       parents: [latestSha]
     });
