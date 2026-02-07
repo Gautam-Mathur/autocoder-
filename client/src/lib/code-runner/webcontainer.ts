@@ -7,6 +7,7 @@ let lastPackageJsonHash: string | null = null;
 let preWarmPromise: Promise<boolean> | null = null;
 let preWarmStatus: 'idle' | 'booting' | 'installing' | 'ready' | 'failed' = 'idle';
 let preWarmListeners: Array<(status: string, message: string) => void> = [];
+let preWarmProcess: { kill: () => void } | null = null;
 
 const CORE_PACKAGES: Record<string, string> = {
   'react': '^18.3.1',
@@ -179,17 +180,20 @@ export default defineConfig({ plugins: [react()] });
       runnerLog.debug('FileSystem', 'Wrote pre-warm vite.config.ts');
 
       runnerLog.startTimer('prewarm-npm');
+      const PREWARM_TIMEOUT = 180000;
       const installProcess = await container.spawn('npm', [
         'install',
         '--prefer-offline',
         '--no-audit',
         '--no-fund',
-        '--loglevel=http',
+        '--loglevel=error',
         '--fetch-retries=2',
         '--fetch-timeout=30000'
       ]);
+      preWarmProcess = installProcess;
       runnerLog.info('NPM', 'Spawned npm install for pre-warm', {
-        flags: '--prefer-offline --no-audit --no-fund --loglevel=http'
+        flags: '--prefer-offline --no-audit --no-fund --loglevel=error',
+        timeout: `${PREWARM_TIMEOUT / 1000}s`,
       });
 
       let installOutput = '';
@@ -205,7 +209,15 @@ export default defineConfig({ plugins: [react()] });
         })
       );
 
-      const exitCode = await installProcess.exit;
+      const exitCode = await Promise.race([
+        installProcess.exit,
+        new Promise<number>((resolve) => setTimeout(() => {
+          runnerLog.warn('PreWarm', `npm install timed out after ${PREWARM_TIMEOUT / 1000}s, killing process`);
+          try { installProcess.kill(); } catch {}
+          resolve(-1);
+        }, PREWARM_TIMEOUT)),
+      ]);
+      preWarmProcess = null;
       prewarmParser.flush();
       const npmTime = runnerLog.endTimer('prewarm-npm');
 
@@ -367,6 +379,14 @@ export async function installDependencies(
   const allOutput: string[] = [];
   const allErrors: string[] = [];
   
+  if (preWarmProcess) {
+    runnerLog.warn('NPM', 'Killing stalled pre-warm npm process before main install');
+    try { preWarmProcess.kill(); } catch {}
+    preWarmProcess = null;
+    preWarmStatus = 'failed';
+    await new Promise(r => setTimeout(r, 500));
+  }
+
   runnerLog.separator('NPM INSTALL');
   runnerLog.startTimer('npm-install-total');
   
@@ -383,7 +403,7 @@ export async function installDependencies(
     
     runnerLog.startTimer(`npm-attempt-${attempt}`);
     const installParser = new NpmOutputParser((line, level) => {
-      onOutput?.(line + '\n');
+      if (level !== 'debug') onOutput?.(line + '\n');
     });
     const result = await new Promise<RunResult>(async (resolve) => {
       const timeoutId = setTimeout(() => {
@@ -498,7 +518,7 @@ export async function installDependencies(
       try {
         runnerLog.info('NPM', 'Trying --ignore-scripts fallback');
         const fallbackParser = new NpmOutputParser((line, level) => {
-          onOutput?.(line + '\n');
+          if (level !== 'debug') onOutput?.(line + '\n');
         });
         const process = await container.spawn('npm', [
           'install',
@@ -620,7 +640,7 @@ export async function runNpmInstall(
     
     try {
       const pkgParser = new NpmOutputParser((line, level) => {
-        onOutput?.(line + '\n');
+        if (level !== 'debug') onOutput?.(line + '\n');
       });
       const process = await container.spawn('npm', args);
       

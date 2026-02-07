@@ -286,16 +286,14 @@ export class NpmOutputParser {
             this._progress.packages.push(pkg);
           }
           const statusOk = statusCode.startsWith('2') || statusCode === '304';
-          if (statusOk) {
-            this.emitLine(`📦 ${pkg} (${this._progress.fetched} downloaded)`, 'info');
-          } else {
+          if (!statusOk) {
             this.emitLine(`⚠ ${pkg} HTTP ${statusCode}`, 'warn');
+          } else if (this._progress.fetched % 10 === 0 || this._progress.fetched <= 3) {
+            this.emitLine(`📦 ${this._progress.fetched} packages downloaded...`, 'info');
           }
-        } else {
-          this.emitLine(line, 'info');
         }
       } else if (/^npm http/i.test(line)) {
-        this.emitLine(line, 'info');
+        // silently track, don't emit noise
       } else if (/idealTree/i.test(line)) {
         if (this._progress.phase !== 'resolving') {
           this._progress.phase = 'resolving';
