@@ -4,28 +4,34 @@
 AutoCoder is an AI-powered, full-stack code generation platform that translates natural language descriptions into production-ready, multi-file React+Vite+TypeScript applications. It features a plan-driven generation pipeline with deep domain understanding across 14 industries, a chat-based interface, and advanced locally-operated AI intelligence modules. The platform supports both cloud AI and an offline local template engine, running as a web application with an optional Electron desktop mode for native file system access. Its core mission is to democratize full-stack application development by making it accessible through natural language.
 
 ## Recent Changes (Feb 2026)
-- Zero-config deployment: Server-side plan-driven pipeline now handles ALL requests when no cloud AI key is set, replacing client-side template engine fallback with full 6-phase conversation flow (deep understanding, clarification, planning, approval, generation)
-- Upgraded from template-based to plan-driven code generation pipeline
-- Added 14 industry domain profiles (consulting, manufacturing, healthcare, retail, education, real estate, HR, restaurant, fitness, logistics, finance, project management, CRM, inventory)
-- Implemented Deep Understanding Engine with 5-level analysis, multi-domain blending, keyword-based entity inference
-- Added 6-phase conversation state machine with deadlock recovery and 2-round clarification limit
-- Plan-Driven Generator: 36 functions producing complete React+Vite+TypeScript projects from approved plans
+- **Advanced AI Intelligence Layer (2,683 lines across 4 new modules)**:
+  - Contextual Reasoning Engine (949 lines): Semantic entity relationship discovery, computed field inference (fullName, lineTotal, duration), UI pattern detection (kanban, timeline, calendar), validation rule generation, business logic analysis
+  - Domain Synthesis Engine (642 lines): Fuzzy multi-domain matching with confidence scoring, dynamic domain synthesis from unrecognized descriptions, entity/workflow extraction via NLP patterns, original-text-aware keyword matching with module prioritization
+  - Adaptive Clarification Engine (598 lines): Complexity-driven question depth, information gap tracking with answeredMap from prior rounds, priority-based question ordering, smart stop conditions based on readiness scoring
+  - Generation Learning Engine (494 lines): Pattern storage from successful generations, outcome recording with actual conversation IDs and generation duration, user preference tracking, learned pattern application for improving future generations
+- All 4 intelligence modules fully integrated into plan-driven pipeline:
+  - Contextual reasoning enriches plans with relationships, computed fields, UI patterns, and validation rules via `enrichPlanWithReasoning()`
+  - Learning engine records outcomes with real conversationId and measured generation duration
+  - Adaptive clarification tracks answered topics across rounds to avoid redundant questions
+  - Domain synthesis receives original text for better matching and prioritizes detected vs suggested modules
+- Database schema includes 3 learning tables (generation_patterns, generation_outcomes, user_preferences)
+- Zero-config deployment: Server-side plan-driven pipeline handles ALL requests without cloud AI keys
+- 14 industry domain profiles with deep entity/workflow/role definitions
+- Deep Understanding Engine with 5-level analysis, multi-domain blending, keyword-based entity inference
+- 6-phase conversation state machine with deadlock recovery and 2-round clarification limit
+- Plan-Driven Generator: 36 functions producing complete React+Vite+TypeScript projects
 - Post-Generation Validator: 50+ package checks, implicit dependency detection, smart stub generation
 - Vite Error Auto-Fix: 11 error type analyzers with closed-loop debugging (3 retries)
-- Added 7 new UI component generators (Dialog, Select, Label, Textarea, Tabs, tsconfig.json, tsconfig.node.json)
-- Enhanced list pages with create dialogs, delete mutations, status filters
-- Updated all documentation with accurate statistics
-- Comprehensive logging upgrade: client-side RunnerLogger with color-coded CSS console output, 12 new log categories (WebContainer, PreWarm, NPM, DevServer, FileSystem, Pipeline, AutoRunner, CodeGen, Validator, ErrorFix, Process, Cache), full instrumentation of WebContainer boot/pre-warm/npm install/mount/dev server/teardown and auto-runner pipeline phases with pass/fail reasons and timing
-- Electron logger upgrade: ANSI color-coded output matching client RunnerLogger, timer support, success level, separator/group methods, all 12+ categories; local-runner.ts fully instrumented with structured logging for writeFiles/npmInstall/devServer; electron-runner.ts uses runnerLog for all operations
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
 ## Platform Statistics
-- Total Lines of Code: 372,575+
-- Source Files: 28,046
-- Server Modules: 41
+- Total Lines of Code: 375,000+
+- Source Files: 28,050+
+- Server Modules: 45
 - React Components: 71
+- AI Intelligence Modules: 4 (contextual reasoning, domain synthesis, adaptive clarification, generation learning)
 - Domain Knowledge Profiles: 14 industries
 - Documentation Files: 7 guides in docs/electron/
 
@@ -45,7 +51,7 @@ Preferred communication style: Simple, everyday language.
 - **Language**: TypeScript (ESM modules)
 - **API Pattern**: RESTful endpoints
 - **Security**: COOP/COEP headers for WebContainer isolation
-- **Server Modules**: 41 intelligence modules in server/modules/
+- **Server Modules**: 45 intelligence modules in server/modules/
 
 ### Plan-Driven Code Generation Pipeline
 The system uses a multi-phase intelligent approach:
@@ -64,6 +70,12 @@ The system uses a multi-phase intelligent approach:
 - **Pro Generator** (3,624 lines): Template-based engine for 19+ app types producing 15-20 JSX files
 - **Code Validator** (955 lines): 15 checks + 8 auto-fixes for generated code
 - **LiveCodeRunner** (1,263 lines): Browser-based Babel preview with mocked dependencies
+
+### AI Intelligence Layer (New)
+- **Contextual Reasoning Engine** (949 lines): Semantic analysis of entity relationships (parent-child, ownership, many-to-many), computed field inference (fullName from firstName+lastName, lineTotal from quantity*price), UI pattern detection (kanban boards, timelines, calendars), validation rule generation, business logic discovery. Outputs are applied to plans via `enrichPlanWithReasoning()`.
+- **Domain Synthesis Engine** (642 lines): Goes beyond the 14 fixed domains - dynamically synthesizes domain profiles from unrecognized descriptions using NLP pattern matching. Fuzzy domain matching with confidence scoring, multi-domain blending, entity/workflow extraction from natural language, original-text-aware keyword matching with module prioritization (detected vs suggested).
+- **Adaptive Clarification Engine** (598 lines): Replaces static clarification with complexity-driven question depth. Tracks information gaps via answeredMap populated from prior conversation rounds. Priority-based question ordering, smart stop conditions based on readiness scoring, prevents redundant questions across clarification rounds.
+- **Generation Learning Engine** (494 lines): Records generation patterns and outcomes to PostgreSQL learning tables (generation_patterns, generation_outcomes, user_preferences). Tracks actual conversationId and measured generation duration. Applies learned patterns to improve future generations based on historical success rates.
 
 ### Other Intelligence Modules
 - **Code Analysis**: Live analysis, explanation, and validation.
@@ -86,8 +98,12 @@ The system uses a multi-phase intelligent approach:
 - **Features**: Live preview with auto-fix, zip export, test generation and execution.
 
 ## Key Files
+- `server/modules/contextual-reasoning-engine.ts` - Semantic entity analysis & plan enrichment (949 lines)
+- `server/modules/domain-synthesis-engine.ts` - Dynamic domain synthesis & fuzzy matching (642 lines)
+- `server/modules/adaptive-clarification-engine.ts` - Smart gap-aware clarification (598 lines)
+- `server/modules/generation-learning-engine.ts` - Pattern learning & outcome tracking (494 lines)
 - `server/modules/deep-understanding-engine.ts` - 5-level NLU pipeline (662 lines)
-- `server/modules/conversation-phase-handler.ts` - 6-phase state machine (346 lines)
+- `server/modules/conversation-phase-handler.ts` - 6-phase state machine with reasoning enrichment (346 lines)
 - `server/modules/plan-generator.ts` - ProjectPlan creation (493 lines)
 - `server/modules/plan-driven-generator.ts` - Code from plans (1,828 lines, 36 functions)
 - `server/modules/post-generation-validator.ts` - Auto-validation (601 lines)
@@ -98,7 +114,7 @@ The system uses a multi-phase intelligent approach:
 - `client/src/components/live-code-runner.tsx` - Babel preview (1,263 lines)
 - `client/src/components/auto-run-preview.tsx` - WebContainer preview (641 lines)
 - `server/routes.ts` - API endpoints
-- `shared/schema.ts` - Database schema (266 lines)
+- `shared/schema.ts` - Database schema (266 lines, 19 tables including 3 learning tables)
 
 ## External Dependencies
 
