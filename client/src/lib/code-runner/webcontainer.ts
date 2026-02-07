@@ -239,9 +239,17 @@ export async function getWebContainer(): Promise<WebContainer> {
     return bootPromise;
   }
   
-  runnerLog.info('WebContainer', 'Booting WebContainer...', { coep: 'credentialless' });
+  const isIsolated = typeof window !== 'undefined' && window.crossOriginIsolated;
+  runnerLog.info('WebContainer', 'Booting WebContainer...', { 
+    coep: 'require-corp',
+    crossOriginIsolated: isIsolated,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 80) : 'unknown',
+  });
+  if (!isIsolated) {
+    runnerLog.warn('WebContainer', 'crossOriginIsolated is FALSE - SharedArrayBuffer may not be available. Check server COOP/COEP headers.');
+  }
   runnerLog.startTimer('wc-boot');
-  bootPromise = WebContainer.boot({ coep: 'credentialless' });
+  bootPromise = WebContainer.boot();
   webcontainerInstance = await bootPromise;
   const bootMs = runnerLog.endTimer('wc-boot');
   runnerLog.success('WebContainer', 'WebContainer booted successfully', undefined, bootMs);
