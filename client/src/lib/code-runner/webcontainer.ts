@@ -173,7 +173,7 @@ export async function getWebContainer(): Promise<WebContainer> {
     return bootPromise;
   }
   
-  bootPromise = WebContainer.boot();
+  bootPromise = WebContainer.boot({ coep: 'credentialless' });
   webcontainerInstance = await bootPromise;
   return webcontainerInstance;
 }

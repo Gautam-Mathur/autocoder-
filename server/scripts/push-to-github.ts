@@ -182,7 +182,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Optimize WebContainer pre-warming and smart dependency detection in plan-driven generator',
+      message: 'Fix COEP header: use credentialless for WebContainer npm fetch compatibility',
       tree: newTree.sha,
       parents: [latestSha]
     });
