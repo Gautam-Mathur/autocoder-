@@ -264,3 +264,53 @@ export type VaptAuditLog = typeof vaptAuditLogs.$inferSelect;
 export type InsertVaptAuditLog = z.infer<typeof insertVaptAuditLogSchema>;
 export type VaptTeamMember = typeof vaptTeamMembers.$inferSelect;
 export type InsertVaptTeamMember = z.infer<typeof insertVaptTeamMemberSchema>;
+
+export const generationPatterns = pgTable("generation_patterns", {
+  id: serial("id").primaryKey(),
+  patternType: text("pattern_type").notNull(),
+  domainId: text("domain_id"),
+  entityType: text("entity_type"),
+  patternKey: text("pattern_key").notNull(),
+  patternValue: jsonb("pattern_value").$type<Record<string, any>>().notNull(),
+  successCount: integer("success_count").default(0),
+  failureCount: integer("failure_count").default(0),
+  lastUsed: timestamp("last_used").default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const generationOutcomes = pgTable("generation_outcomes", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").references(() => conversations.id, { onDelete: "cascade" }),
+  projectDescription: text("project_description").notNull(),
+  domainId: text("domain_id"),
+  entityCount: integer("entity_count").default(0),
+  fileCount: integer("file_count").default(0),
+  wasModified: boolean("was_modified").default(false),
+  modifications: jsonb("modifications").$type<{ file: string; type: string; description: string }[]>(),
+  userSatisfaction: integer("user_satisfaction"),
+  errorCount: integer("error_count").default(0),
+  autoFixCount: integer("auto_fix_count").default(0),
+  generationTimeMs: integer("generation_time_ms"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  preferenceKey: text("preference_key").notNull(),
+  preferenceValue: text("preference_value").notNull(),
+  category: text("category").notNull(),
+  frequency: integer("frequency").default(1),
+  lastSeen: timestamp("last_seen").default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertGenerationPatternSchema = createInsertSchema(generationPatterns).omit({ id: true, createdAt: true });
+export const insertGenerationOutcomeSchema = createInsertSchema(generationOutcomes).omit({ id: true, createdAt: true });
+export const insertUserPreferenceSchema = createInsertSchema(userPreferences).omit({ id: true, createdAt: true });
+
+export type GenerationPattern = typeof generationPatterns.$inferSelect;
+export type InsertGenerationPattern = z.infer<typeof insertGenerationPatternSchema>;
+export type GenerationOutcome = typeof generationOutcomes.$inferSelect;
+export type InsertGenerationOutcome = z.infer<typeof insertGenerationOutcomeSchema>;
+export type UserPreference = typeof userPreferences.$inferSelect;
+export type InsertUserPreference = z.infer<typeof insertUserPreferenceSchema>;

@@ -1,5 +1,7 @@
 import { detectDomainFromText, getAllDomains, getDomain, buildEntitiesForModules, buildPagesForModules, buildWorkflowsForEntities } from './domain-knowledge.js';
 import type { IndustryDomain, DomainEntity, DomainModule, DomainWorkflow, UserRole } from './domain-knowledge.js';
+import { synthesizeDomain, extractEntitiesFromText as nlpExtractEntities, isDomainSynthesized } from './domain-synthesis-engine.js';
+import { assessComplexity, identifyInformationGaps, generateClarificationQuestions, shouldAskMoreQuestions, calculateReadinessScore, formatClarificationMessage, type ClarificationState } from './adaptive-clarification-engine.js';
 
 export interface UnderstandingResult {
   level1_intent: IntentDecomposition;
@@ -234,6 +236,18 @@ function detectDomain(lower: string, intent: IntentDecomposition): DomainDetecti
   const domainMatches = detectDomainFromText(lower);
 
   if (domainMatches.length === 0) {
+    const synthesized = synthesizeDomain(lower);
+    if (synthesized) {
+      const synModules = synthesized.modules.map(m => m.name);
+      return {
+        primaryDomain: synthesized,
+        secondaryDomains: [],
+        confidence: isDomainSynthesized(synthesized) ? 0.5 : 0.4,
+        matchedKeywords: [],
+        detectedModules: synModules,
+        suggestedModules: [],
+      };
+    }
     return {
       primaryDomain: null,
       secondaryDomains: [],
@@ -455,12 +469,24 @@ function generateClarifications(
   originalMessage: string,
   clarificationRound: number = 0
 ): ClarificationResult {
-  const questions: ClarifyingQuestion[] = [];
   const assumptions: string[] = [];
 
-  if (clarificationRound >= 2) {
+  const nlpExtracted = nlpExtractEntities(originalMessage.toLowerCase());
+
+  const detectedDomains = domain.primaryDomain
+    ? [{ confidence: domain.confidence, name: domain.primaryDomain.name }]
+    : [];
+
+  const complexity = assessComplexity(originalMessage, nlpExtracted, detectedDomains);
+
+  if (clarificationRound >= complexity.maxRounds) {
     if (!domain.primaryDomain) {
-      assumptions.push('Assuming general-purpose business application (no specific industry detected)');
+      const synthesized = synthesizeDomain(originalMessage);
+      if (synthesized) {
+        assumptions.push(`Detected custom domain: ${synthesized.name}`);
+      } else {
+        assumptions.push('Assuming general-purpose business application');
+      }
     } else {
       assumptions.push(`This is for the ${domain.primaryDomain.name} industry`);
     }
@@ -474,70 +500,64 @@ function generateClarifications(
     } else if (domain.suggestedModules.length > 0) {
       assumptions.push(`Will include suggested modules: ${domain.suggestedModules.slice(0, 5).join(', ')}`);
     }
-    if (entities.mentionedEntities.length > 0 || entities.inferredEntities.length > 0) {
-      const allEntities = [...entities.mentionedEntities, ...entities.inferredEntities];
+    const allEntities = [...entities.mentionedEntities, ...entities.inferredEntities];
+    if (allEntities.length > 0) {
       assumptions.push(`Key data: ${allEntities.slice(0, 5).join(', ')}`);
+    } else if (nlpExtracted.entities.length > 0) {
+      assumptions.push(`Inferred data: ${nlpExtracted.entities.map(e => e.name).slice(0, 5).join(', ')}`);
     } else {
       assumptions.push('Will include standard data entities based on application type');
     }
     return { needsClarification: false, questions: [], assumptions };
   }
 
-  if (!domain.primaryDomain) {
-    questions.push({
-      id: 'domain',
-      question: 'What industry or type of business is this for?',
-      why: 'Different industries need very different features and data models',
-      options: getAllDomains().slice(0, 8).map(d => d.name),
-      priority: 'critical',
-    });
-  } else {
-    assumptions.push(`This is for the ${domain.primaryDomain.name} industry`);
+  const answeredMap = new Map<string, string>();
+  const gaps = identifyInformationGaps(originalMessage, nlpExtracted, complexity);
+  const readiness = calculateReadinessScore(nlpExtracted, gaps, answeredMap);
+
+  if (readiness >= 0.85) {
+    if (domain.primaryDomain) {
+      assumptions.push(`This is for the ${domain.primaryDomain.name} industry`);
+    }
+    if (intent.scale !== 'unknown') {
+      assumptions.push(`Scale: ${intent.scale}`);
+    }
+    const allEntities = [...entities.mentionedEntities, ...entities.inferredEntities];
+    if (allEntities.length > 0) {
+      assumptions.push(`Key data: ${allEntities.slice(0, 5).join(', ')}`);
+    }
+    return { needsClarification: false, questions: [], assumptions };
   }
 
-  if (intent.scale === 'unknown' && originalMessage.split(' ').length < 15) {
-    questions.push({
-      id: 'scale',
-      question: 'How big is the team or organization that will use this?',
-      why: 'This determines how many features and how complex the system should be',
-      options: ['Just me / 1-5 people', 'Small team (5-20)', 'Medium company (20-100)', 'Large organization (100+)'],
-      priority: 'important',
-    });
-  } else if (intent.scale !== 'unknown') {
+  const adaptiveQuestions = generateClarificationQuestions(gaps, complexity, nlpExtracted, answeredMap);
+
+  const questions: ClarifyingQuestion[] = adaptiveQuestions.map((aq, i) => ({
+    id: aq.id,
+    question: aq.question,
+    why: aq.context,
+    options: aq.options,
+    defaultAnswer: aq.defaultAnswer,
+    priority: aq.impact === 'critical' ? 'critical' as const :
+              aq.impact === 'high' ? 'important' as const : 'nice-to-have' as const,
+  }));
+
+  if (complexity.level === 'trivial' && clarificationRound >= 1) {
+    if (domain.primaryDomain) assumptions.push(`This is for the ${domain.primaryDomain.name} industry`);
+    if (intent.scale !== 'unknown') assumptions.push(`Scale: ${intent.scale}`);
+    return { needsClarification: false, questions: [], assumptions };
+  }
+
+  if (domain.primaryDomain) {
+    assumptions.push(`Industry: ${domain.primaryDomain.name} (${Math.round(domain.confidence * 100)}% confidence)`);
+  }
+  if (intent.scale !== 'unknown') {
     assumptions.push(`Scale: ${intent.scale}`);
   }
-
-  if (domain.primaryDomain && domain.detectedModules.length === 0 && domain.suggestedModules.length > 3) {
-    questions.push({
-      id: 'modules',
-      question: `Which areas are most important to you? I can include all of these, or focus on a few:`,
-      why: 'Focusing on what matters most ensures the core features are solid',
-      options: domain.suggestedModules,
-      priority: 'important',
-    });
-  } else if (domain.detectedModules.length > 0) {
-    assumptions.push(`Key modules: ${domain.detectedModules.join(', ')}`);
+  if (domain.detectedModules.length > 0) {
+    assumptions.push(`Detected modules: ${domain.detectedModules.join(', ')}`);
   }
-
-  if (entities.mentionedEntities.length === 0 && entities.inferredEntities.length === 0 && !domain.primaryDomain) {
-    questions.push({
-      id: 'entities',
-      question: 'What are the main things you need to track or manage?',
-      why: 'This defines the core data in your system',
-      options: ['People/Employees', 'Products/Inventory', 'Orders/Sales', 'Projects/Tasks', 'Customers/Clients', 'Other'],
-      priority: 'critical',
-    });
-  } else if (entities.inferredEntities.length > 0) {
+  if (entities.inferredEntities.length > 0) {
     assumptions.push(`Key data: ${entities.inferredEntities.slice(0, 5).join(', ')}`);
-  }
-
-  if (originalMessage.split(' ').length < 8 && !domain.primaryDomain) {
-    questions.push({
-      id: 'details',
-      question: 'Can you describe in a bit more detail what you want this system to do? What problems should it solve?',
-      why: 'More detail helps me build exactly what you need instead of guessing',
-      priority: 'critical',
-    });
   }
 
   const criticalCount = questions.filter(q => q.priority === 'critical').length;

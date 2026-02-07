@@ -1,9 +1,11 @@
 import { analyzeRequest, formatUnderstandingResponse, processAnswer } from './deep-understanding-engine.js';
 import type { UnderstandingResult } from './deep-understanding-engine.js';
 import { generatePlan, formatPlanAsMessage } from './plan-generator.js';
-import type { ProjectPlan } from './plan-generator.js';
+import type { ProjectPlan, PlannedEntity } from './plan-generator.js';
 import { generateProjectFromPlan } from './plan-driven-generator.js';
 import { validateAndFix } from './post-generation-validator.js';
+import { analyzeSemantics, type ReasoningResult, type EntityRelationship, type ComputedField } from './contextual-reasoning-engine.js';
+import { learningEngine } from './generation-learning-engine.js';
 
 export type ConversationPhase = 'initial' | 'understanding' | 'clarifying' | 'planning' | 'approval' | 'generating' | 'complete';
 
@@ -29,6 +31,8 @@ export interface ConversationState {
   understandingData?: UnderstandingResult;
   planData?: ProjectPlan;
   clarificationRound?: number;
+  conversationId?: number;
+  generationStartTime?: number;
 }
 
 export function handleMessage(
@@ -164,7 +168,24 @@ function generatePlanFromUnderstanding(
 ): PhaseHandlerResult {
   emitStep('planning', 'Generating detailed project plan', 'Creating architecture, data model, and page blueprints');
 
-  const plan = generatePlan(understanding);
+  let plan = generatePlan(understanding);
+
+  emitStep('planning', 'Applying learned patterns', 'Enhancing plan with successful patterns from previous generations');
+  plan = learningEngine.applyLearnedPatterns(plan);
+
+  emitStep('planning', 'Running contextual analysis', 'Analyzing entity relationships, field semantics, and business rules');
+  const reasoning = analyzeSemantics(plan);
+
+  plan = enrichPlanWithReasoning(plan, reasoning);
+
+  const relationshipCount = reasoning.relationships.length;
+  const computedFieldCount = reasoning.computedFields.length;
+  const businessRuleCount = reasoning.businessRules.length;
+  const uiPatternCount = reasoning.uiPatterns.length;
+
+  emitStep('planning', 'Contextual reasoning applied',
+    `Enriched plan with ${relationshipCount} entity relationships, ${computedFieldCount} computed fields, ${businessRuleCount} business rules, ${uiPatternCount} UI patterns`
+  );
 
   emitStep('planning', 'Plan complete',
     `${plan.modules.length} modules, ${plan.pages.length} pages, ${plan.dataModel.length} data tables, ${plan.apiEndpoints.length} API endpoints`
@@ -195,6 +216,7 @@ function handleGeneration(
     };
   }
 
+  const generationStartTime = Date.now();
   emitStep('generating', 'Plan approved - starting code generation', `Building ${plan.projectName}`);
   emitStep('generating', 'Generating database schema', `Creating ${plan.dataModel.length} tables with relationships`);
   emitStep('generating', 'Generating API routes', `Building ${plan.apiEndpoints.length} endpoints with validation`);
@@ -225,6 +247,22 @@ function handleGeneration(
   }
 
   const finalFiles = validationResult.files;
+
+  const generationDurationMs = Date.now() - generationStartTime;
+  try {
+    learningEngine.recordOutcome({
+      conversationId: state.conversationId || 0,
+      projectDescription: plan.overview || plan.projectName,
+      domainId: state.understandingData?.level2_domain?.primaryDomain?.id,
+      plan,
+      generatedFiles: finalFiles.map(f => ({ path: f.path, content: f.content })),
+      errors: validationResult.issues.filter(i => i.severity === 'error').map(i => i.message),
+      autoFixes: validationResult.fixesApplied,
+      userModifications: [],
+      generationTimeMs: generationDurationMs,
+    });
+  } catch (e) {
+  }
 
   const moduleList = plan.modules.map(m => `- **${m.name}**: ${m.description}`).join('\n');
   const fileList = finalFiles.map(f => `- \`${f.path}\``).join('\n');
@@ -314,6 +352,62 @@ function handlePostGeneration(
     newPhase: 'complete',
     thinkingSteps,
   };
+}
+
+function enrichPlanWithReasoning(plan: ProjectPlan, reasoning: ReasoningResult): ProjectPlan {
+  const enriched = { ...plan, dataModel: plan.dataModel.map(e => ({ ...e, fields: [...e.fields], relationships: [...e.relationships] })) };
+
+  for (const rel of reasoning.relationships) {
+    const entity = enriched.dataModel.find(e => e.name === rel.from);
+    if (entity) {
+      const existingRel = entity.relationships.find(r => r.entity === rel.to);
+      if (!existingRel) {
+        entity.relationships.push({
+          entity: rel.to,
+          type: rel.cardinality === '1:N' ? 'one-to-many' : rel.cardinality === 'N:1' ? 'many-to-one' : rel.type,
+          field: rel.fromField,
+        });
+      }
+    }
+  }
+
+  for (const computed of reasoning.computedFields) {
+    const entity = enriched.dataModel.find(e => e.name === computed.entityName);
+    if (entity && !entity.fields.find(f => f.name === computed.fieldName)) {
+      entity.fields.push({
+        name: computed.fieldName,
+        type: 'text',
+        required: false,
+        description: `Computed: ${computed.description}`,
+      });
+    }
+  }
+
+  for (const uiPattern of reasoning.uiPatterns) {
+    const page = enriched.pages.find(p =>
+      p.dataNeeded.includes(uiPattern.entityName) ||
+      p.name.toLowerCase().includes(uiPattern.entityName.toLowerCase())
+    );
+    if (page) {
+      const featureLabel = `${uiPattern.pattern} view`;
+      if (!page.features.includes(featureLabel)) {
+        page.features.push(featureLabel);
+      }
+    }
+  }
+
+  for (const rule of reasoning.businessRules) {
+    if (rule.type === 'validation') {
+      const endpoint = enriched.apiEndpoints.find(ep =>
+        ep.entity === rule.entityName && (ep.method === 'POST' || ep.method === 'PATCH')
+      );
+      if (endpoint && endpoint.description && !endpoint.description.includes('validation')) {
+        endpoint.description += ` (with ${rule.ruleName} validation)`;
+      }
+    }
+  }
+
+  return enriched;
 }
 
 export function isProjectCreationRequest(content: string): boolean {
