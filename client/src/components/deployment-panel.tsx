@@ -14,22 +14,31 @@ import {
   ChevronRight,
   Database,
   Shield,
-  Package
+  Package,
+  Download,
+  Loader2
 } from "lucide-react";
+import { SiGithub } from "react-icons/si";
 import { 
   DeploymentGuide, 
   ProjectAnalysis, 
   analyzeProject, 
   generateDeploymentGuides 
 } from "@/lib/code-runner/deployment-guide";
+import { downloadProjectAsZip } from "@/lib/code-runner/zip-export";
+import { apiRequest } from "@/lib/queryClient";
 
 interface DeploymentPanelProps {
   files: { path: string; content: string }[];
+  conversationId?: number;
 }
 
-export function DeploymentPanel({ files }: DeploymentPanelProps) {
+export function DeploymentPanel({ files, conversationId }: DeploymentPanelProps) {
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<string>("Vercel");
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isPushingGithub, setIsPushingGithub] = useState(false);
+  const [githubResult, setGithubResult] = useState<{ success: boolean; url?: string; error?: string } | null>(null);
 
   const analysis = analyzeProject(files);
   const guides = generateDeploymentGuides(analysis);
@@ -54,12 +63,42 @@ export function DeploymentPanel({ files }: DeploymentPanelProps) {
 
   const selectedGuide = guides.find(g => g.platform === selectedPlatform) || guides[0];
 
+  const handleDownloadZip = async () => {
+    setIsDownloading(true);
+    try {
+      const projectName = analysis.framework || analysis.type || "project";
+      await downloadProjectAsZip(
+        files.map(f => ({ path: f.path, content: f.content })),
+        projectName
+      );
+    } catch (error) {
+      console.error("Download failed:", error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handlePushToGithub = async () => {
+    if (!conversationId) return;
+    setIsPushingGithub(true);
+    setGithubResult(null);
+    try {
+      const res = await apiRequest("POST", `/api/conversations/${conversationId}/github-push`);
+      const data = await res.json();
+      setGithubResult({ success: true, url: data.url });
+    } catch (error: any) {
+      setGithubResult({ success: false, error: error.message || "Failed to push to GitHub" });
+    } finally {
+      setIsPushingGithub(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="p-4 border-b space-y-3">
+        <div className="flex items-center gap-2">
           <Rocket className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold">Deployment Guide</h2>
+          <h2 className="font-semibold">Publish & Deploy</h2>
         </div>
         
         <div className="flex flex-wrap gap-2">
@@ -83,6 +122,49 @@ export function DeploymentPanel({ files }: DeploymentPanelProps) {
             </Badge>
           )}
         </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="default"
+            className="gap-2"
+            onClick={handleDownloadZip}
+            disabled={isDownloading || files.length === 0}
+            data-testid="button-download-zip"
+          >
+            {isDownloading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Download ZIP
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={handlePushToGithub}
+            disabled={isPushingGithub || !conversationId || files.length === 0}
+            data-testid="button-push-github"
+          >
+            {isPushingGithub ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <SiGithub className="h-4 w-4" />
+            )}
+            Push to GitHub
+          </Button>
+        </div>
+
+        {githubResult && (
+          <div className={`text-xs p-2 rounded ${githubResult.success ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+            {githubResult.success ? (
+              <a href={githubResult.url} target="_blank" rel="noopener noreferrer" className="underline" data-testid="link-github-repo">
+                Pushed successfully! View on GitHub
+              </a>
+            ) : (
+              <span>{githubResult.error}</span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex border-b gap-1 p-1">

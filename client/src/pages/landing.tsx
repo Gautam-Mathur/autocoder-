@@ -7,50 +7,53 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const features = [
   {
     icon: Code2,
-    title: "Code Generation",
-    description: "Generate HTML, CSS, JavaScript, and React code. Landing pages, forms, components, and more.",
+    title: "Full-Stack Generation",
+    description: "Generate complete React + Vite projects with 15-20 files. Frontend, backend, and configuration - all production-ready.",
   },
   {
     icon: Zap,
-    title: "Instant & Free",
-    description: "Works immediately with no setup. No API keys, no downloads, no configuration.",
+    title: "Live Preview",
+    description: "See your generated app running instantly in the browser. Edit code and watch changes in real-time.",
   },
   {
     icon: Shield,
-    title: "Built-in Engine",
-    description: "Local code templates that work anywhere. Download and run on your own machine.",
+    title: "Security Analysis",
+    description: "Built-in VAPT dashboard scans your code for vulnerabilities. Get security scores and fix suggestions automatically.",
   },
   {
     icon: Globe,
-    title: "Web Development",
-    description: "Optimized for frontend and web development. React, vanilla JS, CSS layouts, and more.",
+    title: "Deploy Anywhere",
+    description: "Download as ZIP or push directly to GitHub. Your generated projects are ready for production deployment.",
   },
   {
     icon: MessageSquare,
-    title: "Chat Interface",
-    description: "Natural conversation flow. Describe what you need in plain English.",
+    title: "AI Chat Interface",
+    description: "Describe your app in plain English. The AI reasons through your requirements and generates domain-specific code.",
   },
   {
     icon: Wrench,
-    title: "Ready Templates",
-    description: "Pre-built patterns for common web tasks. Forms, modals, cards, navigation, and more.",
+    title: "Built-in IDE & Debugger",
+    description: "Full VSCode-style editor with syntax highlighting, auto-fix engine, and integrated terminal.",
   },
 ];
 
-const codeExample = `// Ask CodeAI anything
-> "Write a debounce function in TypeScript"
+const codeExample = `> "Build a task management app with 
+   drag-and-drop, user auth, and dark mode"
 
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func(...args), wait);
-  };
-}`;
+// AutoCoder generates 15-20 files:
+src/
+  App.tsx          // Main app with routing
+  components/
+    TaskBoard.tsx  // Drag & drop board
+    AuthForm.tsx   // Login / register
+    ThemeToggle.tsx // Dark mode switch
+  hooks/
+    useTasks.ts    // Task CRUD logic
+  api/
+    server.ts      // Express backend
+    db.ts          // Database setup
+  styles/
+    globals.css    // Tailwind config`;
 
 export default function Landing() {
   return (
@@ -61,7 +64,7 @@ export default function Landing() {
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <Terminal className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-lg">CodeAI</span>
+            <span className="font-semibold text-lg">AutoCoder</span>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -83,13 +86,13 @@ export default function Landing() {
               <div className="space-y-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium" data-testid="badge-free">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Free - No API Key Required
+                  AI-Powered Full-Stack Generator
                 </div>
                 <h1 className="text-4xl lg:text-5xl font-bold leading-tight" data-testid="text-hero-title">
-                  Code Generator, <span className="text-primary">Works Anywhere</span>
+                  Describe Your App, <span className="text-primary">Get Production Code</span>
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-lg" data-testid="text-hero-subtitle">
-                  Generate web code instantly with built-in templates. No API keys, no downloads, no setup. Works online and offline - download and run locally.
+                  Transform natural language into complete, multi-file React + Vite applications. Live preview, built-in IDE, security scanning, and one-click deployment.
                 </p>
                 <div className="flex flex-wrap items-center gap-3">
                   <Link href="/chat">
@@ -99,18 +102,18 @@ export default function Landing() {
                     </Button>
                   </Link>
                 </div>
-                <div className="flex items-center gap-6 pt-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-6 pt-4 text-sm text-muted-foreground flex-wrap">
                   <div className="flex items-center gap-2" data-testid="text-no-setup">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
-                    Zero setup
+                    15-20 files per project
                   </div>
                   <div className="flex items-center gap-2" data-testid="text-no-api">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
-                    No API keys
+                    Browser-based preview
                   </div>
                   <div className="flex items-center gap-2" data-testid="text-instant">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
-                    Instant responses
+                    One-click deploy
                   </div>
                 </div>
               </div>
@@ -122,7 +125,7 @@ export default function Landing() {
                       <div className="w-3 h-3 rounded-full bg-yellow-500" />
                       <div className="w-3 h-3 rounded-full bg-green-500" />
                     </div>
-                    <span className="text-xs text-muted-foreground font-mono ml-2">CodeAI</span>
+                    <span className="text-xs text-muted-foreground font-mono ml-2">AutoCoder</span>
                   </div>
                   <pre className="p-4 overflow-x-auto text-sm">
                     <code className="font-mono">{codeExample}</code>
@@ -136,9 +139,9 @@ export default function Landing() {
         <section className="py-20 bg-muted/30" data-testid="section-features">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4" data-testid="text-features-title">Everything You Need</h2>
+              <h2 className="text-3xl font-bold mb-4" data-testid="text-features-title">Everything You Need to Ship</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto" data-testid="text-features-subtitle">
-                Powerful AI coding assistance with zero friction. Just ask and get code.
+                From idea to deployable app. AutoCoder handles the entire development pipeline.
               </p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -168,27 +171,27 @@ export default function Landing() {
                 <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground text-lg font-bold flex items-center justify-center mx-auto mb-4">
                   1
                 </div>
-                <h3 className="font-semibold mb-2">Open CodeAI</h3>
+                <h3 className="font-semibold mb-2">Describe Your App</h3>
                 <p className="text-sm text-muted-foreground">
-                  Click "Start Coding" - that's it. No sign-up, no API keys.
+                  Tell AutoCoder what you want to build in plain English.
                 </p>
               </div>
               <div className="text-center" data-testid="step-2">
                 <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground text-lg font-bold flex items-center justify-center mx-auto mb-4">
                   2
                 </div>
-                <h3 className="font-semibold mb-2">Describe What You Need</h3>
+                <h3 className="font-semibold mb-2">AI Generates Your Project</h3>
                 <p className="text-sm text-muted-foreground">
-                  Tell the AI what code you want in plain English.
+                  Watch as AutoCoder creates a complete multi-file application with live preview.
                 </p>
               </div>
               <div className="text-center" data-testid="step-3">
                 <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground text-lg font-bold flex items-center justify-center mx-auto mb-4">
                   3
                 </div>
-                <h3 className="font-semibold mb-2">Get Working Code</h3>
+                <h3 className="font-semibold mb-2">Edit, Test & Deploy</h3>
                 <p className="text-sm text-muted-foreground">
-                  Copy the generated code into your project and use it.
+                  Use the built-in IDE to refine your code, then download or push to GitHub.
                 </p>
               </div>
             </div>
@@ -197,9 +200,9 @@ export default function Landing() {
 
         <section className="py-20 bg-primary/5" data-testid="section-cta">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold mb-4" data-testid="text-cta-title">Ready to Code?</h2>
+            <h2 className="text-3xl font-bold mb-4" data-testid="text-cta-title">Ready to Build?</h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto" data-testid="text-cta-subtitle">
-              Start generating code with AI right now. It's free and works instantly.
+              Describe your next project and get a complete, deployable application in minutes.
             </p>
             <Link href="/chat">
               <Button size="lg" className="gap-2" data-testid="button-start-coding-cta">
@@ -218,10 +221,10 @@ export default function Landing() {
               <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
                 <Terminal className="h-3 w-3 text-primary-foreground" />
               </div>
-              <span className="font-medium">CodeAI</span>
+              <span className="font-medium">AutoCoder</span>
             </div>
             <p className="text-sm text-muted-foreground" data-testid="text-footer">
-              Free AI coding assistant. No API keys required.
+              AI-powered full-stack code generation platform.
             </p>
           </div>
         </div>

@@ -15,6 +15,7 @@ import {
   Download, 
   RefreshCw,
   CheckCircle,
+  AlertCircle,
   XCircle,
   AlertTriangle,
   Info,
@@ -46,11 +47,22 @@ interface ProjectStats {
   createdAt?: string;
 }
 
+interface SecurityCheck {
+  id: string;
+  name: string;
+  category: string;
+  status: 'passed' | 'failed' | 'warning' | 'info';
+  detail?: string;
+  cweId?: string;
+}
+
 interface SecurityScanResult {
   score: number;
   grade: string;
-  issues: { severity: string; category: string; title: string; recommendation: string }[];
+  issues: { severity: string; category: string; title: string; recommendation: string; cweId?: string; location?: string }[];
   passedChecks: string[];
+  checks: SecurityCheck[];
+  totalChecks: number;
   report: string;
   recommendations: string[];
 }
@@ -75,6 +87,7 @@ interface TransparencyResult {
   report: string;
   assumptions: { assumption: string; reasoning: string; category: string }[];
   logs: { action: string; targetFile: string; description: string }[];
+  thinkingSteps: { title: string; content: string; duration?: number }[];
   fileCount: number;
 }
 
@@ -278,52 +291,95 @@ export function IntelligencePanel({ conversationId }: IntelligencePanelProps) {
                 Run Security Scan
               </Button>
 
-              {securityMutation.data && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${getSecurityGradeColor(securityMutation.data.grade)}`}>
-                      {securityMutation.data.grade}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Score: {securityMutation.data.score}/100</p>
-                      <p className="text-xs text-muted-foreground">
-                        {securityMutation.data.issues?.length || 0} issues found
-                      </p>
-                    </div>
-                  </div>
+              {securityMutation.data && (() => {
+                const data = securityMutation.data;
+                const checks = data.checks || [];
+                const passedCount = checks.filter((c: SecurityCheck) => c.status === 'passed').length;
+                const warnCount = checks.filter((c: SecurityCheck) => c.status === 'warning').length;
+                const categories = checks.reduce((acc: Record<string, SecurityCheck[]>, c: SecurityCheck) => {
+                  if (!acc[c.category]) acc[c.category] = [];
+                  acc[c.category].push(c);
+                  return acc;
+                }, {} as Record<string, SecurityCheck[]>);
 
-                  {securityMutation.data.issues?.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium">Issues</p>
-                      {securityMutation.data.issues.slice(0, 5).map((issue: any, i: number) => (
-                        <div key={i} className="p-2 rounded bg-muted/50 text-xs">
-                          <div className="flex items-center gap-1">
-                            {issue.severity === 'critical' || issue.severity === 'high' ? (
-                              <XCircle className="h-3 w-3 text-red-500" />
-                            ) : (
-                              <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                return (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${getSecurityGradeColor(data.grade)}`}>
+                        {data.grade}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium" data-testid="text-security-score">Score: {data.score}/100</p>
+                        <p className="text-xs text-muted-foreground">
+                          {checks.length} checks | {passedCount} passed | {warnCount} warnings
+                        </p>
+                      </div>
+                    </div>
+
+                    {data.issues?.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 text-amber-500" />
+                          Vulnerabilities ({data.issues.length})
+                        </p>
+                        {data.issues.map((issue: any, i: number) => (
+                          <div key={i} className="p-2 rounded bg-muted/50 text-xs" data-testid={`security-issue-${i}`}>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {issue.severity === 'critical' || issue.severity === 'high' ? (
+                                <XCircle className="h-3 w-3 text-red-500 shrink-0" />
+                              ) : (
+                                <AlertTriangle className="h-3 w-3 text-yellow-500 shrink-0" />
+                              )}
+                              <span className="font-medium">{issue.title}</span>
+                              {issue.cweId && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0">{issue.cweId}</Badge>
+                              )}
+                            </div>
+                            <p className="text-muted-foreground mt-1">{issue.recommendation}</p>
+                            {issue.location && (
+                              <p className="text-muted-foreground/70 mt-0.5 italic">{issue.location}</p>
                             )}
-                            <span className="font-medium">{issue.title}</span>
                           </div>
-                          <p className="text-muted-foreground mt-1">{issue.recommendation}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
 
-                  {securityMutation.data.passedChecks?.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium">Passed Checks</p>
-                      {securityMutation.data.passedChecks.map((check: string, i: number) => (
-                        <div key={i} className="flex items-center gap-1 text-xs text-green-600">
-                          <CheckCircle className="h-3 w-3" />
-                          {check}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
+                    {checks.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium flex items-center gap-1">
+                          <Shield className="h-3 w-3 text-blue-500" />
+                          Whitebox Analysis ({checks.length} checks)
+                        </p>
+                        {Object.entries(categories).map(([cat, catChecks]) => (
+                          <div key={cat} className="space-y-1">
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
+                            {(catChecks as SecurityCheck[]).map((check: SecurityCheck) => (
+                              <div key={check.id} className="flex items-start gap-1 text-xs" data-testid={`check-${check.id}`}>
+                                {check.status === 'passed' ? (
+                                  <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
+                                ) : (
+                                  <AlertCircle className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
+                                )}
+                                <div>
+                                  <span className={check.status === 'passed' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}>
+                                    {check.name}
+                                  </span>
+                                  {check.cweId && (
+                                    <span className="text-muted-foreground/60 ml-1 text-[10px]">[{check.cweId}]</span>
+                                  )}
+                                  {check.detail && (
+                                    <p className="text-muted-foreground/70 text-[10px]">{check.detail}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {stats?.securityScore && !securityMutation.data && (
                 <div className="text-center py-4">
@@ -351,45 +407,157 @@ export function IntelligencePanel({ conversationId }: IntelligencePanelProps) {
                 Run Tests
               </Button>
 
-              {testMutation.data && (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="p-2 rounded bg-green-50 dark:bg-green-950">
-                      <p className="text-xs text-green-600 dark:text-green-400">Passed</p>
-                      <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                        {testMutation.data.totalPassed}
-                      </p>
-                    </div>
-                    <div className="p-2 rounded bg-red-50 dark:bg-red-950">
-                      <p className="text-xs text-red-600 dark:text-red-400">Failed</p>
-                      <p className="text-lg font-bold text-red-700 dark:text-red-300">
-                        {testMutation.data.totalFailed}
-                      </p>
-                    </div>
-                  </div>
+              {testMutation.data && (() => {
+                const allDetails: any[] = [];
+                testMutation.data.fileResults?.forEach((r: any) => {
+                  r.details?.forEach((d: any) => allDetails.push({ ...d, file: r.file }));
+                });
+                const secTests = allDetails.filter((d: any) => d.testName?.startsWith('[SEC]'));
+                const funcTests = allDetails.filter((d: any) => !d.testName?.startsWith('[SEC]'));
+                const secPassed = secTests.filter((d: any) => d.status === 'passed').length;
+                const secFailed = secTests.filter((d: any) => d.status === 'failed').length;
+                const funcPassed = funcTests.filter((d: any) => d.status === 'passed').length;
+                const funcFailed = funcTests.filter((d: any) => d.status === 'failed').length;
 
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span>Build Status</span>
-                      <span className={testMutation.data.buildValid ? "text-green-600" : "text-red-600"}>
-                        {testMutation.data.buildValid ? "Valid" : "Invalid"}
-                      </span>
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded bg-green-50 dark:bg-green-950">
+                        <p className="text-xs text-green-600 dark:text-green-400">Passed</p>
+                        <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                          {testMutation.data.totalPassed}
+                        </p>
+                      </div>
+                      <div className="p-2 rounded bg-red-50 dark:bg-red-950">
+                        <p className="text-xs text-red-600 dark:text-red-400">Failed</p>
+                        <p className="text-lg font-bold text-red-700 dark:text-red-300">
+                          {testMutation.data.totalFailed}
+                        </p>
+                      </div>
                     </div>
-                    <Progress 
-                      value={testMutation.data.totalPassed / (testMutation.data.totalPassed + testMutation.data.totalFailed) * 100 || 0} 
-                    />
-                  </div>
 
-                  {testMutation.data.buildErrors?.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/30">
+                        <div className="flex items-center gap-1 mb-0.5">
+                          <Shield className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                          <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Security</p>
+                        </div>
+                        <p className="text-sm font-bold text-amber-800 dark:text-amber-200">{secPassed}/{secPassed + secFailed}</p>
+                      </div>
+                      <div className="p-2 rounded border border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/30">
+                        <div className="flex items-center gap-1 mb-0.5">
+                          <TestTube className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                          <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Functional</p>
+                        </div>
+                        <p className="text-sm font-bold text-blue-800 dark:text-blue-200">{funcPassed}/{funcPassed + funcFailed}</p>
+                      </div>
+                    </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-red-600">Build Errors</p>
-                      {testMutation.data.buildErrors.map((error: string, i: number) => (
-                        <p key={i} className="text-xs text-red-500">{error}</p>
-                      ))}
+                      <div className="flex justify-between text-xs">
+                        <span>Build Status</span>
+                        <span className={testMutation.data.buildValid ? "text-green-600" : "text-red-600"}>
+                          {testMutation.data.buildValid ? "Valid" : "Invalid"}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={testMutation.data.totalPassed / (testMutation.data.totalPassed + testMutation.data.totalFailed) * 100 || 0} 
+                      />
                     </div>
-                  )}
-                </>
-              )}
+
+                    {testMutation.data.buildErrors?.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-red-600">Build Errors</p>
+                        {testMutation.data.buildErrors.map((error: string, i: number) => (
+                          <p key={i} className="text-xs text-red-500">{error}</p>
+                        ))}
+                      </div>
+                    )}
+
+                    {secFailed > 0 && (
+                      <div className="space-y-1 p-2 rounded border border-red-500/30 bg-red-50/50 dark:bg-red-950/30">
+                        <div className="flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 text-red-500" />
+                          <p className="text-xs font-bold text-red-600 dark:text-red-400">Security Vulnerabilities Found</p>
+                        </div>
+                        {secTests.filter((d: any) => d.status === 'failed').map((d: any, i: number) => (
+                          <div key={i} className="flex items-start gap-1 py-0.5">
+                            <XCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="text-xs text-red-600 dark:text-red-400">{d.testName?.replace('[SEC] ', '')}</span>
+                              <span className="text-xs text-muted-foreground ml-1">({d.file})</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {testMutation.data.fileResults?.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium">Results by File</p>
+                        {testMutation.data.fileResults.map((result: any, i: number) => {
+                          const fileSecTests = result.details?.filter((d: any) => d.testName?.startsWith('[SEC]')) || [];
+                          const fileFuncTests = result.details?.filter((d: any) => !d.testName?.startsWith('[SEC]')) || [];
+                          return (
+                            <div key={i} className="text-xs p-2 rounded bg-muted/50">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="font-mono truncate">{result.file}</span>
+                                <div className="flex gap-1 shrink-0">
+                                  {result.passed > 0 && <Badge variant="outline" className="text-xs text-green-600">{result.passed}</Badge>}
+                                  {result.failed > 0 && <Badge variant="destructive" className="text-xs">{result.failed}</Badge>}
+                                </div>
+                              </div>
+                              {fileFuncTests.length > 0 && (
+                                <div className="mb-1">
+                                  {fileFuncTests.map((detail: any, j: number) => {
+                                    const isPassed = detail.status === 'passed';
+                                    return (
+                                      <div key={`func-${j}`} className="flex items-start gap-1 py-0.5">
+                                        {isPassed ? (
+                                          <CheckCircle className="h-3 w-3 text-green-500 shrink-0 mt-0.5" />
+                                        ) : (
+                                          <AlertCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                                        )}
+                                        <span className={isPassed ? "text-muted-foreground" : "text-red-600 dark:text-red-400"}>
+                                          {detail.testName || `Test ${j + 1}`}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {fileSecTests.length > 0 && (
+                                <div className="border-t border-border/50 pt-1 mt-1">
+                                  <div className="flex items-center gap-1 mb-0.5">
+                                    <Shield className="h-2.5 w-2.5 text-amber-500" />
+                                    <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                      Security ({fileSecTests.filter((d: any) => d.status === 'passed').length}/{fileSecTests.length})
+                                    </span>
+                                  </div>
+                                  {fileSecTests.filter((d: any) => d.status === 'failed').map((detail: any, j: number) => (
+                                    <div key={`sec-${j}`} className="flex items-start gap-1 py-0.5">
+                                      <XCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                                      <span className="text-red-600 dark:text-red-400">
+                                        {detail.testName?.replace('[SEC] ', '')}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {fileSecTests.every((d: any) => d.status === 'passed') && (
+                                    <div className="flex items-center gap-1 py-0.5">
+                                      <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
+                                      <span className="text-muted-foreground">All checks passed</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {((stats?.testsPassed ?? 0) > 0 || (stats?.testsFailed ?? 0) > 0) && !testMutation.data && (
                 <div className="text-center py-4">
@@ -471,6 +639,26 @@ export function IntelligencePanel({ conversationId }: IntelligencePanelProps) {
                     <p className="text-xs font-medium">Files Generated: {transparency.fileCount}</p>
                   </div>
 
+                  {transparency.thinkingSteps?.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium flex items-center gap-1">
+                        <Brain className="h-3 w-3" />
+                        AI Reasoning Steps ({transparency.thinkingSteps.length})
+                      </p>
+                      {transparency.thinkingSteps.map((step: any, i: number) => (
+                        <div key={i} className="text-xs p-2 rounded bg-muted/50 border border-border/50">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium">{step.title || `Step ${i + 1}`}</p>
+                            {step.duration && (
+                              <span className="text-muted-foreground shrink-0">{step.duration}ms</span>
+                            )}
+                          </div>
+                          <p className="text-muted-foreground mt-1 whitespace-pre-wrap">{step.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {transparency.assumptions?.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-xs font-medium">Assumptions Made</p>
@@ -486,12 +674,22 @@ export function IntelligencePanel({ conversationId }: IntelligencePanelProps) {
                   {transparency.logs?.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-xs font-medium">Generation History</p>
-                      {transparency.logs.slice(0, 5).map((log: any, i: number) => (
+                      {transparency.logs.map((log: any, i: number) => (
                         <div key={i} className="text-xs p-1 rounded bg-muted/50 flex items-center gap-1">
                           <Badge variant="outline" className="text-xs">{log.action}</Badge>
                           <span className="truncate">{log.targetFile}</span>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {(!transparency.thinkingSteps || transparency.thinkingSteps.length === 0) && 
+                   (!transparency.assumptions || transparency.assumptions.length === 0) && 
+                   (!transparency.logs || transparency.logs.length === 0) && (
+                    <div className="text-center py-4 text-muted-foreground">
+                      <Brain className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs">No AI reasoning data yet.</p>
+                      <p className="text-xs mt-1">Generate a project to see the AI's thinking process here.</p>
                     </div>
                   )}
                 </>

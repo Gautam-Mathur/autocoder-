@@ -34,7 +34,8 @@ The backend features 34 intelligence modules including:
 - **Reasoning & Planning**: For structuring the development process.
 - **Memory & Context**: To maintain conversational and project context.
 - **Code Analysis**: Live analysis, explanation, and validation of generated code.
-- **Debugging**: Continuous debugging engines.
+- **Debugging**: Continuous debugging engines with Vite Error Auto-Fix (closed-loop: error capture → analysis → fix → retry up to 3x).
+- **Vite Error Fixer** (`server/modules/vite-error-fixer.ts`): Parses 10+ error types (missing imports, modules, files, syntax, exports, references, JSX, CSS, hooks, dependencies), generates fixes (patch files, create stubs, add deps, fix paths), exposed via `POST /api/conversations/:id/auto-fix`.
 - **Security & Testing**: Modules for vulnerability assessment, penetration testing (VAPT) and test generation.
 - **Preview & Export**: Manages live project previews and export functionalities.
 - **Knowledge Base**: Stores framework patterns and multi-language templates.

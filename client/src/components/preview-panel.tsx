@@ -1,15 +1,12 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles, Brain, Rocket, TestTube, Play, Terminal, Download, HelpCircle, Cloud, Package } from "lucide-react";
+import { Eye, Code, Maximize2, Minimize2, ExternalLink, RefreshCw, Monitor, Smartphone, Tablet, ChevronRight, ChevronDown, Folder, FolderOpen, FileCode, Bug, AlertCircle, CheckCircle2, Lightbulb, BookOpen, Wrench, Zap, Sparkles, Brain, Rocket, TestTube, Play, Terminal, Download, HelpCircle, Shield, XCircle, AlertTriangle } from "lucide-react";
 import { downloadProjectAsZip } from "@/lib/code-runner/zip-export";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { IntelligencePanel } from "@/components/IntelligencePanel";
 import { DeploymentPanel } from "@/components/deployment-panel";
 import { ErrorFixerPanel } from "@/components/error-fixer-panel";
 import { VSCodeIDE } from "@/components/vscode-ide";
-import { LiveCodeRunner } from "@/components/live-code-runner";
-import { VitePreview } from "@/components/vite-preview";
-import { ExecutionStatus } from "@/components/execution-status";
 import { AutoRunPreview } from "@/components/auto-run-preview";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +15,6 @@ import { SiHtml5, SiCss3, SiJavascript, SiTypescript, SiReact, SiPython } from "
 import type { ProjectFile } from "@shared/schema";
 import { checkErrors, recordCodeChange, getDebugStats, CodeError, quickTestAndFix, tryFixRuntimeError } from "@/lib/code-generator/engine";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { generateTests, runInlineTests, GeneratedTest, TestResult } from "@/lib/code-runner/test-generator";
 
 interface AutoFixLog {
   timestamp: number;
@@ -275,47 +271,8 @@ function AutoTestSection({
   );
 }
 
-function RunTabContent({ files }: { files: ProjectFile[] }) {
-  const [executionUrl, setExecutionUrl] = useState<string | null>(null);
-
-  return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="shrink-0 p-3">
-        <ExecutionStatus 
-          files={files.map(f => ({ path: f.path, content: f.content }))} 
-          onUrlChange={(url) => {
-            if (url && url !== 'blob://preview') {
-              setExecutionUrl(url);
-            } else {
-              setExecutionUrl(null);
-            }
-          }}
-        />
-      </div>
-      {executionUrl ? (
-        <div className="flex-1 overflow-hidden border-t border-border">
-          <iframe
-            src={executionUrl}
-            className="w-full h-full border-0"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-            allow="cross-origin-isolated"
-            title="WebContainer Preview"
-            data-testid="iframe-execution-preview"
-          />
-        </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
-          <p>Click "Run" above to start the project. The preview will appear here.</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps) {
-  const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug" | "intel" | "deploy" | "test" | "ide" | "execution" | "devserver" | "autorun">("preview");
-  const [testResults, setTestResults] = useState<TestResult[]>([]);
-  const [generatedTests, setGeneratedTests] = useState<GeneratedTest[]>([]);
+  const [activeTab, setActiveTab] = useState<"preview" | "code" | "debug" | "intel" | "deploy" | "test" | "ide">("preview");
   const [activeFile, setActiveFile] = useState<string>("index.html");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop");
@@ -327,6 +284,8 @@ export function PreviewPanel({ conversationId, onRequestFix }: PreviewPanelProps
   const [autoFixLogs, setAutoFixLogs] = useState<AutoFixLog[]>([]);
   const [fixedFileHashes, setFixedFileHashes] = useState<Set<string>>(new Set());
   const [isAutoFixing, setIsAutoFixing] = useState(false);
+  const [isRunningTests, setIsRunningTests] = useState(false);
+  const [serverTestResults, setServerTestResults] = useState<any>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const { data: files = [] } = useQuery<ProjectFile[]>({
@@ -1403,57 +1362,6 @@ ${combinedJs}
               <p className="text-xs">Edit code directly like a pro (advanced)</p>
             </TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setActiveTab("execution")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "execution" ? "bg-background shadow-sm bg-green-500/10" : "text-muted-foreground hover:text-foreground"
-                }`}
-                data-testid="tab-execution"
-              >
-                <Cloud className="w-3 h-3" />
-                Run
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-[200px]">
-              <p className="text-xs">Run your project with WebContainer or cloud sandbox</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setActiveTab("devserver")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "devserver" ? "bg-background shadow-sm bg-purple-500/10" : "text-muted-foreground hover:text-foreground"
-                }`}
-                data-testid="tab-devserver"
-              >
-                <Terminal className="w-3 h-3" />
-                Vite
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-[200px]">
-              <p className="text-xs">Run with real Vite dev server on port 6000 - full bundling &amp; hot reload</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setActiveTab("autorun")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "autorun" ? "bg-background shadow-sm bg-green-500/10" : "text-muted-foreground hover:text-foreground"
-                }`}
-                data-testid="tab-autorun"
-              >
-                <Package className="w-3 h-3" />
-                Auto Run
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-[200px]">
-              <p className="text-xs">Auto npm install &amp; npm run dev - one click to run your project</p>
-            </TooltipContent>
-          </Tooltip>
         </div>
         <div className="flex items-center gap-1">
           {files.length > 0 && (
@@ -1734,6 +1642,7 @@ ${combinedJs}
                         ...codeErrors.map(e => `${e.type}: ${e.message}`)
                       ]}
                       code={files.find(f => f.path === activeFile)?.content || files.map(f => f.content).join("\n\n")}
+                      conversationId={conversationId}
                       onApplyFix={(fixedCode) => {
                         const targetFile = files.find(f => f.path === activeFile) || files[0];
                         if (targetFile) {
@@ -1748,6 +1657,11 @@ ${combinedJs}
                             }
                           );
                         }
+                      }}
+                      onAutoFixComplete={() => {
+                        setRuntimeErrors([]);
+                        setCodeErrors([]);
+                        setRefreshKey(k => k + 1);
                       }}
                     />
                   </div>
@@ -1778,67 +1692,197 @@ ${combinedJs}
                 </h3>
                 <Button
                   size="sm"
-                  onClick={() => {
-                    const allCode = files.map(f => f.content).join("\n");
-                    const results = runInlineTests(allCode);
-                    setTestResults(results);
-                    
-                    const mainFile = files.find(f => f.path.endsWith(".js") || f.path.endsWith(".ts") || f.path.endsWith(".tsx"));
-                    if (mainFile) {
-                      const tests = generateTests(mainFile.content, mainFile.path);
-                      setGeneratedTests(tests);
+                  onClick={async () => {
+                    if (!conversationId) return;
+                    setIsRunningTests(true);
+                    try {
+                      const res = await apiRequest("POST", `/api/conversations/${conversationId}/test`);
+                      const data = await res.json();
+                      setServerTestResults(data);
+                    } catch (error) {
+                      console.error('Test run failed:', error);
+                    } finally {
+                      setIsRunningTests(false);
                     }
                   }}
+                  disabled={isRunningTests || !conversationId}
                   className="gap-1"
                   data-testid="button-run-tests"
                 >
-                  <Play className="h-3.5 w-3.5" />
-                  Run Tests
+                  {isRunningTests ? (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      Running...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-3.5 w-3.5" />
+                      Run Tests
+                    </>
+                  )}
                 </Button>
               </div>
               
-              {testResults.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">Quick Checks</h4>
-                  {testResults.map((result, i) => (
-                    <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                      {result.passed ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <AlertCircle className="h-4 w-4 text-destructive" />
-                      )}
-                      <span className="text-sm font-medium">{result.name}</span>
-                      {!result.passed && result.error && (
-                        <span className="text-xs text-muted-foreground">- {result.error}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {generatedTests.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">Generated Test Cases</h4>
-                  {generatedTests.map((test, i) => (
-                    <div key={i} className="p-3 rounded-md border bg-muted/30">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline" className="text-xs">{test.type}</Badge>
-                        <span className="text-sm font-medium">{test.name}</span>
+              {serverTestResults && (() => {
+                const allDetails: any[] = [];
+                serverTestResults.fileResults?.forEach((r: any) => {
+                  r.details?.forEach((d: any) => allDetails.push({ ...d, file: r.file }));
+                });
+                const secTests = allDetails.filter((d: any) => d.testName?.startsWith('[SEC]'));
+                const funcTests = allDetails.filter((d: any) => !d.testName?.startsWith('[SEC]'));
+                const secPassed = secTests.filter((d: any) => d.status === 'passed').length;
+                const secFailed = secTests.filter((d: any) => d.status === 'failed').length;
+                const funcPassed = funcTests.filter((d: any) => d.status === 'passed').length;
+                const funcFailed = funcTests.filter((d: any) => d.status === 'failed').length;
+
+                return (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">{serverTestResults.totalPassed}</div>
+                        <div className="text-xs text-muted-foreground">Passed</div>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-2">{test.description}</p>
-                      <pre className="text-xs font-mono bg-background p-2 rounded overflow-x-auto">
-                        {test.code.trim()}
-                      </pre>
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
+                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">{serverTestResults.totalFailed}</div>
+                        <div className="text-xs text-muted-foreground">Failed</div>
+                      </div>
+                      <div className={`${serverTestResults.buildValid ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'} border rounded-lg p-3 text-center`}>
+                        <div className="text-2xl font-bold">{serverTestResults.buildValid ? <CheckCircle2 className="w-6 h-6 mx-auto text-green-500" /> : <AlertCircle className="w-6 h-6 mx-auto text-red-500" />}</div>
+                        <div className="text-xs text-muted-foreground">Build</div>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="border border-amber-500/30 bg-amber-500/5 rounded-lg p-3">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Shield className="h-4 w-4 text-amber-500" />
+                          <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Security</span>
+                        </div>
+                        <div className="text-xl font-bold text-amber-700 dark:text-amber-300">{secPassed}/{secPassed + secFailed}</div>
+                        <div className="text-xs text-muted-foreground">checks passed</div>
+                      </div>
+                      <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-3">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <TestTube className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Functional</span>
+                        </div>
+                        <div className="text-xl font-bold text-blue-700 dark:text-blue-300">{funcPassed}/{funcPassed + funcFailed}</div>
+                        <div className="text-xs text-muted-foreground">tests passed</div>
+                      </div>
+                    </div>
+
+                    {secFailed > 0 && (
+                      <div className="border border-red-500/30 bg-red-500/5 rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <span className="text-sm font-bold text-red-600 dark:text-red-400">Security Vulnerabilities Found</span>
+                        </div>
+                        {secTests.filter((d: any) => d.status === 'failed').map((d: any, i: number) => (
+                          <div key={i} className="flex items-start gap-2 text-xs">
+                            <XCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="text-red-600 dark:text-red-400">{d.testName?.replace('[SEC] ', '')}</span>
+                              <span className="text-muted-foreground ml-1">({d.file})</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {serverTestResults.buildErrors?.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-red-600 dark:text-red-400">Build Errors</h4>
+                        {serverTestResults.buildErrors.map((error: string, i: number) => (
+                          <div key={i} className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-xs text-red-600 dark:text-red-400">
+                            {error}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {serverTestResults.fileResults?.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Test Results by File</h4>
+                        {serverTestResults.fileResults.map((result: any, i: number) => {
+                          const fileSecTests = result.details?.filter((d: any) => d.testName?.startsWith('[SEC]')) || [];
+                          const fileFuncTests = result.details?.filter((d: any) => !d.testName?.startsWith('[SEC]')) || [];
+                          return (
+                            <div key={i} className="bg-card border rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-mono text-muted-foreground">{result.file}</span>
+                                <div className="flex gap-2">
+                                  <Badge variant="outline" className="text-xs text-green-600">{result.passed} passed</Badge>
+                                  {result.failed > 0 && <Badge variant="destructive" className="text-xs">{result.failed} failed</Badge>}
+                                </div>
+                              </div>
+                              {fileFuncTests.length > 0 && (
+                                <div className="space-y-1 mb-2">
+                                  <div className="flex items-center gap-1 mb-1">
+                                    <TestTube className="h-3 w-3 text-blue-500" />
+                                    <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                                      Functional ({fileFuncTests.filter((d: any) => d.status === 'passed').length}/{fileFuncTests.length})
+                                    </span>
+                                  </div>
+                                  {fileFuncTests.map((detail: any, j: number) => {
+                                    const isPassed = detail.status === 'passed' || detail.passed === true;
+                                    return (
+                                      <div key={`func-${j}`} className="flex items-start gap-2 text-xs">
+                                        {isPassed ? (
+                                          <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0 mt-0.5" />
+                                        ) : (
+                                          <AlertCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                                        )}
+                                        <div>
+                                          <span className={isPassed ? "text-muted-foreground" : "text-red-600 dark:text-red-400"}>
+                                            {detail.testName || detail.name || detail.description || `Test ${j + 1}`}
+                                          </span>
+                                          {!isPassed && detail.error && (
+                                            <p className="text-muted-foreground mt-0.5">{detail.error}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {fileSecTests.length > 0 && (
+                                <div className="border-t border-border/50 pt-2 mt-1">
+                                  <div className="flex items-center gap-1 mb-1">
+                                    <Shield className="h-3 w-3 text-amber-500" />
+                                    <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                      Security ({fileSecTests.filter((d: any) => d.status === 'passed').length}/{fileSecTests.length})
+                                    </span>
+                                  </div>
+                                  {fileSecTests.filter((d: any) => d.status === 'failed').map((detail: any, j: number) => (
+                                    <div key={`sec-${j}`} className="flex items-start gap-2 text-xs">
+                                      <XCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                                      <span className="text-red-600 dark:text-red-400">
+                                        {detail.testName?.replace('[SEC] ', '')}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {fileSecTests.every((d: any) => d.status === 'passed') && (
+                                    <div className="flex items-center gap-1 py-0.5 text-xs">
+                                      <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                                      <span className="text-muted-foreground">All checks passed</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               
-              {testResults.length === 0 && generatedTests.length === 0 && (
+              {!serverTestResults && !isRunningTests && (
                 <div className="text-center py-8 text-muted-foreground">
                   <TestTube className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Click "Run Tests" to analyze your code</p>
-                  <p className="text-xs">Generates test cases and checks for common issues</p>
+                  <p className="text-sm">Click "Run Tests" to analyze your code</p>
+                  <p className="text-xs mt-1">Runs comprehensive tests including build validation, code quality checks, and security analysis</p>
                 </div>
               )}
             </div>
@@ -1846,7 +1890,8 @@ ${combinedJs}
         ) : activeTab === "deploy" ? (
           <div className="flex-1 overflow-auto">
             <DeploymentPanel 
-              files={files.map(f => ({ path: f.path, content: f.content }))} 
+              files={files.map(f => ({ path: f.path, content: f.content }))}
+              conversationId={conversationId}
             />
           </div>
         ) : activeTab === "ide" ? (
@@ -1874,38 +1919,6 @@ ${combinedJs}
                 });
               }}
             />
-          </div>
-        ) : activeTab === "execution" ? (
-          <RunTabContent files={files} />
-        ) : activeTab === "devserver" ? (
-          <div className="flex-1 overflow-hidden p-4">
-            {conversationId ? (
-              <VitePreview 
-                conversationId={conversationId} 
-                projectName={files[0]?.path?.split('/')[0] || 'Generated Project'}
-                height="100%"
-                autoStart={true}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <p>Select a conversation to start the dev server</p>
-              </div>
-            )}
-          </div>
-        ) : activeTab === "autorun" ? (
-          <div className="flex-1 overflow-hidden">
-            {files.length > 0 ? (
-              <AutoRunPreview 
-                files={files.map(f => ({ path: f.path, content: f.content, language: f.language }))}
-                projectName={files[0]?.path?.split('/')[0] || 'Generated Project'}
-                height="100%"
-                autoStart={true}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <p>Generate a project to auto-run it</p>
-              </div>
-            )}
           </div>
         ) : (
           <div className="flex-1 flex overflow-hidden">

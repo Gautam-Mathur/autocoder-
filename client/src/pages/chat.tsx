@@ -32,6 +32,7 @@ import { DevGuide } from "@/components/dev-guide";
 import { PreviewPanel } from "@/components/preview-panel";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { generateCodeWithContext, generateCodeWithThinking, type ThinkingStep } from "@/lib/code-generator";
+import { autoFixCode } from "@/lib/code-generator/code-validator";
 import type { Conversation, Message, ProjectFile } from "@shared/schema";
 
 // Extract code files from AI response and save to project
@@ -135,8 +136,12 @@ async function saveCodeToProject(conversationId: number, aiResponse: string) {
   }
   
   if (files.length > 0) {
+    const fixedFiles = files.map(f => ({
+      ...f,
+      content: autoFixCode(f.content, f.path),
+    }));
     try {
-      await apiRequest("POST", `/api/conversations/${conversationId}/files/bulk`, { files });
+      await apiRequest("POST", `/api/conversations/${conversationId}/files/bulk`, { files: fixedFiles });
       queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
     } catch (error) {
       console.error("Error saving code to project:", error);
