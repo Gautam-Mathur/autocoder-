@@ -4,6 +4,7 @@
 AutoCoder is an AI-powered, full-stack code generation platform that translates natural language descriptions into production-ready, multi-file React+Vite+TypeScript applications. It features a plan-driven generation pipeline with deep domain understanding across 14 industries, a chat-based interface, and advanced locally-operated AI intelligence modules. The platform supports both cloud AI and an offline local template engine, running as a web application with an optional Electron desktop mode for native file system access. Its core mission is to democratize full-stack application development by making it accessible through natural language.
 
 ## Recent Changes (Feb 2026)
+- Zero-config deployment: Server-side plan-driven pipeline now handles ALL requests when no cloud AI key is set, replacing client-side template engine fallback with full 6-phase conversation flow (deep understanding, clarification, planning, approval, generation)
 - Upgraded from template-based to plan-driven code generation pipeline
 - Added 14 industry domain profiles (consulting, manufacturing, healthcare, retail, education, real estate, HR, restaurant, fitness, logistics, finance, project management, CRM, inventory)
 - Implemented Deep Understanding Engine with 5-level analysis, multi-domain blending, keyword-based entity inference

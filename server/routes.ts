@@ -2897,13 +2897,92 @@ You're not just a code generator - you're a thinking partner who builds exactly 
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         res.end();
       } else {
-        // No cloud AI - tell client to use local engine
+        // No cloud AI - use server-side plan-driven pipeline for all requests
+        // instead of punting to client's basic template engine
+        const convState: ConversationState = {
+          phase: currentPhase as any,
+          understandingData: (conversation as any).understandingData as any,
+          planData: (conversation as any).projectPlanData as any,
+        };
+
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
-        
-        res.write(`data: ${JSON.stringify({ useLocalEngine: true, userMessage: content })}\n\n`);
-        res.end();
+
+        const conversationHistory = existingFiles.length > 0
+          ? existingFiles.map((f: any) => f.content).join(' ').slice(0, 500)
+          : '';
+
+        try {
+          const result = handlePhaseMessage(content, convState, conversationHistory);
+
+          for (const step of result.thinkingSteps) {
+            res.write(`data: ${JSON.stringify({ type: 'thinking', step })}\n\n`);
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+
+          if (result.generatedFiles && result.generatedFiles.length > 0) {
+            const validation = validateGeneratedCode(
+              result.generatedFiles.map(f => ({ path: f.path, content: f.content }))
+            );
+            const filesToSave = validation.fixedFiles.length > 0
+              ? validation.fixedFiles
+              : result.generatedFiles;
+
+            await storage.deleteProjectFilesByConversation(conversationId);
+            for (const file of filesToSave) {
+              const fixedContent = clientAutoFixCode(file.content, file.path);
+              const lang = ('language' in file && typeof file.language === 'string') ? file.language : inferLanguageFromPath(file.path);
+              await storage.upsertProjectFile(conversationId, file.path, fixedContent, lang);
+            }
+          }
+
+          await storage.updateProjectContext(conversationId, {
+            conversationPhase: result.newPhase,
+            ...(result.planData ? { projectPlanData: result.planData as any } : {}),
+            ...(result.understandingData ? { understandingData: result.understandingData as any } : {}),
+            ...(result.planData ? {
+              projectName: result.planData.projectName,
+              planGenerated: true,
+            } : {}),
+          });
+
+          const savedMessage = await storage.createMessage(conversationId, "assistant", result.responseContent, result.thinkingSteps);
+
+          const chunks = result.responseContent.split(/(?<=\s)/);
+          for (const chunk of chunks) {
+            res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+            await new Promise(resolve => setTimeout(resolve, 10));
+          }
+
+          const donePayload: any = {
+            done: true,
+            thinkingSteps: result.thinkingSteps,
+            messageId: savedMessage.id,
+            phase: result.newPhase,
+          };
+          if (result.generatedFiles) {
+            donePayload.deepProject = {
+              name: result.planData?.projectName || 'Generated Project',
+              totalFiles: result.generatedFiles.length,
+            };
+          }
+          if (result.newPhase === 'approval') {
+            donePayload.showApproval = true;
+          }
+
+          res.write(`data: ${JSON.stringify(donePayload)}\n\n`);
+          res.end();
+        } catch (localError) {
+          console.error("Server-side local generation failed, falling back to client:", localError);
+          if (!res.headersSent) {
+            res.setHeader("Content-Type", "text/event-stream");
+            res.setHeader("Cache-Control", "no-cache");
+            res.setHeader("Connection", "keep-alive");
+          }
+          res.write(`data: ${JSON.stringify({ useLocalEngine: true, userMessage: content })}\n\n`);
+          res.end();
+        }
       }
     } catch (error) {
       console.error("Error sending message:", error);
