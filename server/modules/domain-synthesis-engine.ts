@@ -40,11 +40,11 @@ export interface ExtractedRole {
 }
 
 const NOUN_PATTERNS = [
-  /(?:manage|track|handle|organize|monitor|control|maintain|process|schedule|coordinate)\s+(?:the\s+)?(\w+(?:\s+\w+)?)/gi,
-  /(\w+(?:\s+\w+)?)\s+(?:management|tracking|system|module|portal|dashboard|tool)/gi,
-  /(?:with|including|features?|for)\s+(\w+(?:\s+\w+)?)/gi,
-  /(?:need|want|require)\s+(?:a\s+|an\s+)?(\w+(?:\s+\w+)?)\s+(?:system|tool|feature|module|page|view|list)/gi,
-  /(\w+)\s+(?:list|listing|catalog|directory|registry|database|records?)/gi,
+  /(?:manage|track|handle|organize|monitor|control|maintain|process|schedule|coordinate)\s+(?:the\s+)?(\w+(?:\s+\w+){0,2})/gi,
+  /(\w+(?:\s+\w+){0,2})\s+(?:management|tracking|system|module|portal|dashboard|tool)/gi,
+  /(?:with|including|features?|for)\s+(\w+(?:\s+\w+){0,2})/gi,
+  /(?:need|want|require)\s+(?:a\s+|an\s+)?(\w+(?:\s+\w+){0,2})\s+(?:system|tool|feature|module|page|view|list)/gi,
+  /(\w+(?:\s+\w+){0,2})\s+(?:list|listing|catalog|directory|registry|database|records?)/gi,
 ];
 
 const VERB_PATTERNS = [
@@ -435,6 +435,58 @@ function buildCustomDomainFromDescription(lowerText: string, originalDescription
   };
 }
 
+function singularize(word: string): string {
+  const lower = word.toLowerCase();
+  
+  // Irregular plurals
+  const irregulars: Record<string, string> = {
+    'people': 'person', 'children': 'child', 'men': 'man', 'women': 'woman',
+    'mice': 'mouse', 'teeth': 'tooth', 'feet': 'foot', 'geese': 'goose',
+    'oxen': 'ox', 'data': 'datum', 'criteria': 'criterion', 'analyses': 'analysis',
+    'diagnoses': 'diagnosis', 'indices': 'index', 'matrices': 'matrix',
+    'vertices': 'vertex', 'appendices': 'appendix',
+  };
+  if (irregulars[lower]) return irregulars[lower];
+  
+  // Already singular or uncountable
+  if (lower.length <= 2) return word;
+  const uncountable = ['equipment', 'information', 'rice', 'money', 'species', 'series', 'fish', 'sheep', 'deer', 'aircraft', 'software', 'hardware', 'feedback', 'staff', 'furniture'];
+  if (uncountable.includes(lower)) return word;
+  
+  // Rules in order of specificity
+  if (lower.endsWith('ies') && lower.length > 4) {
+    // categories -> category, companies -> company  
+    // But NOT: series (handled above), movies -> movie (ends in 'ies' but 'ie' root)
+    const beforeIes = lower.slice(0, -3);
+    // Check if the character before 'ies' is a consonant
+    const lastChar = beforeIes[beforeIes.length - 1];
+    if (lastChar && !'aeiou'.includes(lastChar)) {
+      return word.slice(0, -3) + 'y';
+    }
+  }
+  if (lower.endsWith('ves')) {
+    // knives -> knife, leaves -> leaf
+    return word.slice(0, -3) + 'fe';
+  }
+  if (lower.endsWith('ses') && (lower.endsWith('sses') || lower.endsWith('uses') || lower.endsWith('ases') || lower.endsWith('ises') || lower.endsWith('oses'))) {
+    // addresses -> address, classes -> class, statuses -> status, databases -> database, buses -> bus
+    if (lower.endsWith('sses')) return word.slice(0, -2); // classes -> class
+    if (lower.endsWith('uses')) return word.slice(0, -2); // statuses -> status  
+    if (lower.endsWith('ases')) return word.slice(0, -1); // databases -> database, cases -> case
+    if (lower.endsWith('ises')) return word.slice(0, -1); // exercises -> exercise
+    if (lower.endsWith('oses')) return word.slice(0, -1); // purposes -> purpose
+  }
+  if (lower.endsWith('xes') || lower.endsWith('ches') || lower.endsWith('shes') || lower.endsWith('sses') || lower.endsWith('zzes')) {
+    // boxes -> box, watches -> watch, dishes -> dish, classes -> class
+    return word.slice(0, -2);
+  }
+  if (lower.endsWith('s') && !lower.endsWith('ss') && !lower.endsWith('us') && !lower.endsWith('is') && lower.length > 3) {
+    return word.slice(0, -1);
+  }
+  
+  return word;
+}
+
 export function extractEntitiesFromText(text: string): NLPEntityExtraction {
   const entities: ExtractedEntity[] = [];
   const workflows: ExtractedWorkflow[] = [];
@@ -457,10 +509,12 @@ export function extractEntitiesFromText(text: string): NLPEntityExtraction {
         'data', 'information', 'thing', 'stuff', 'ability', 'option', 'function', 'users', 'people'];
       if (stopWords.includes(lastWord)) continue;
 
-      const singularNoun = lastWord.endsWith('s') && lastWord.length > 3
-        ? lastWord.slice(0, -1)
-        : lastWord;
-      const entityName = singularNoun.charAt(0).toUpperCase() + singularNoun.slice(1);
+      const entityName = words.map((w, idx) => {
+        const singular = idx === words.length - 1 ? singularize(w) : w;
+        return singular.charAt(0).toUpperCase() + singular.slice(1);
+      }).join('');
+      
+      const singularNoun = singularize(lastWord);
 
       if (seenEntities.has(entityName.toLowerCase())) continue;
       seenEntities.add(entityName.toLowerCase());

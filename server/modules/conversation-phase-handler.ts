@@ -6,6 +6,8 @@ import { generateProjectFromPlan } from './plan-driven-generator.js';
 import { validateAndFix } from './post-generation-validator.js';
 import { analyzeSemantics, type ReasoningResult, type EntityRelationship, type ComputedField } from './contextual-reasoning-engine.js';
 import { learningEngine } from './generation-learning-engine.js';
+import { shouldAskMoreQuestions, createClarificationState, parseAnswersFromResponse, type ClarificationState } from './adaptive-clarification-engine.js';
+import { extractEntitiesFromText } from './domain-synthesis-engine.js';
 
 export type ConversationPhase = 'initial' | 'understanding' | 'clarifying' | 'planning' | 'approval' | 'generating' | 'complete';
 
@@ -136,6 +138,24 @@ function handleClarificationResponse(
   const currentRound = (state.clarificationRound || 0) + 1;
   emitStep('understanding', 'Processing your answers', `Clarification round ${currentRound}`);
 
+  const previousQuestions = state.understandingData?.level5_clarification.questions || [];
+  const parsedAnswers = parseAnswersFromResponse(
+    userMessage,
+    previousQuestions.map(q => ({
+      id: q.id,
+      category: 'scope' as const,
+      question: q.question,
+      priority: q.priority === 'critical' ? 100 : q.priority === 'important' ? 70 : 30,
+      impact: q.priority === 'critical' ? 'critical' as const : q.priority === 'important' ? 'high' as const : 'medium' as const,
+      context: q.why,
+      options: q.options,
+      defaultAnswer: q.defaultAnswer,
+      satisfied: false,
+    }))
+  );
+
+  emitStep('understanding', 'Parsed answers', `Extracted ${parsedAnswers.size} structured answers from response`);
+
   const previousContext = state.understandingData?.level1_intent.primaryGoal || '';
   const fullContext = previousContext ? `${previousContext}. ${userMessage}` : userMessage;
   const updatedUnderstanding = analyzeRequest(fullContext, undefined, currentRound);
@@ -146,8 +166,24 @@ function handleClarificationResponse(
       : 'Building general application'
   );
 
-  if (updatedUnderstanding.level5_clarification.needsClarification &&
-      updatedUnderstanding.level5_clarification.questions.filter(q => q.priority === 'critical').length > 0) {
+  const nlpEntities = extractEntitiesFromText(fullContext);
+  const domains = updatedUnderstanding.level2_domain.primaryDomain
+    ? [{ confidence: updatedUnderstanding.level2_domain.confidence, name: updatedUnderstanding.level2_domain.primaryDomain.name }]
+    : [];
+  const clarState = createClarificationState(state.conversationId || 0, fullContext, nlpEntities, domains);
+  clarState.roundsCompleted = currentRound;
+
+  parsedAnswers.forEach((value, key) => {
+    clarState.answeredQuestions.set(key, value);
+  });
+  clarState.readinessScore = Math.max(clarState.readinessScore, parsedAnswers.size * 0.1);
+
+  const { shouldAsk, reason } = shouldAskMoreQuestions(clarState);
+
+  emitStep('understanding', 'Readiness assessment', `Score: ${Math.round(clarState.readinessScore * 100)}% - ${reason}`);
+
+  if (shouldAsk && updatedUnderstanding.level5_clarification.needsClarification &&
+      updatedUnderstanding.level5_clarification.questions.length > 0) {
     const responseContent = formatUnderstandingResponse(updatedUnderstanding);
     return {
       responseContent,
@@ -318,7 +354,18 @@ function handlePlanModification(
     : userMessage;
 
   const updatedUnderstanding = analyzeRequest(combinedContext);
-  const updatedPlan = generatePlan(updatedUnderstanding);
+  let updatedPlan = generatePlan(updatedUnderstanding);
+
+  emitStep('planning', 'Applying learned patterns', 'Enhancing updated plan with successful patterns');
+  updatedPlan = learningEngine.applyLearnedPatterns(updatedPlan);
+
+  emitStep('planning', 'Running contextual analysis', 'Re-analyzing entity relationships and business rules');
+  const reasoning = analyzeSemantics(updatedPlan);
+  updatedPlan = enrichPlanWithReasoning(updatedPlan, reasoning);
+
+  emitStep('planning', 'Contextual reasoning applied',
+    `Enriched with ${reasoning.relationships.length} relationships, ${reasoning.computedFields.length} computed fields, ${reasoning.businessRules.length} rules, ${reasoning.uiPatterns.length} UI patterns`
+  );
 
   emitStep('planning', 'Plan updated',
     `Now has ${updatedPlan.modules.length} modules, ${updatedPlan.pages.length} pages`

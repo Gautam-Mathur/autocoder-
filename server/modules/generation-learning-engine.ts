@@ -1,4 +1,7 @@
 import type { ProjectPlan, PlannedEntity } from './plan-generator.js';
+import { db } from '../db.js';
+import { generationPatterns, generationOutcomes, userPreferences } from '../../shared/schema.js';
+import { eq } from 'drizzle-orm';
 
 export interface LearningContext {
   patterns: LearnedPattern[];
@@ -55,6 +58,45 @@ export class GenerationLearningEngine {
 
   constructor() {
     this.initializeDefaultPatterns();
+    this.tryLoadFromDatabase();
+  }
+
+  private async tryLoadFromDatabase(): Promise<void> {
+    try {
+      if (!db) return;
+      this.dbAvailable = true;
+
+      const dbPatterns = await db.select().from(generationPatterns).execute();
+      for (const row of dbPatterns) {
+        const successCount = row.successCount || 0;
+        const failureCount = row.failureCount || 0;
+        const total = successCount + failureCount;
+        const pattern: LearnedPattern = {
+          id: row.id,
+          patternType: row.patternType as any,
+          domainId: row.domainId || undefined,
+          entityType: row.entityType || undefined,
+          patternKey: row.patternKey,
+          patternValue: (row.patternValue as Record<string, any>) || {},
+          successCount,
+          failureCount,
+          reliability: total > 0 ? successCount / total : 0,
+        };
+        this.patterns.set(pattern.patternKey, pattern);
+      }
+
+      const dbPrefs = await db.select().from(userPreferences).execute();
+      for (const row of dbPrefs) {
+        this.preferences.set(row.preferenceKey, {
+          key: row.preferenceKey,
+          value: row.preferenceValue || '',
+          category: (row.category as any) || 'features',
+          frequency: row.frequency || 1,
+        });
+      }
+    } catch (e) {
+      this.dbAvailable = false;
+    }
   }
 
   private initializeDefaultPatterns(): void {
@@ -181,6 +223,64 @@ export class GenerationLearningEngine {
     this.dbAvailable = available;
   }
 
+  private async persistPattern(pattern: LearnedPattern): Promise<void> {
+    if (!this.dbAvailable || !db) return;
+    try {
+      const existing = await db.select().from(generationPatterns)
+        .where(eq(generationPatterns.patternKey, pattern.patternKey))
+        .execute();
+
+      if (existing.length > 0) {
+        await db.update(generationPatterns)
+          .set({
+            patternValue: pattern.patternValue,
+            successCount: pattern.successCount,
+            failureCount: pattern.failureCount,
+            lastUsed: new Date(),
+          })
+          .where(eq(generationPatterns.patternKey, pattern.patternKey))
+          .execute();
+      } else {
+        await db.insert(generationPatterns).values({
+          patternType: pattern.patternType,
+          patternKey: pattern.patternKey,
+          domainId: pattern.domainId || null,
+          entityType: pattern.entityType || null,
+          patternValue: pattern.patternValue,
+          successCount: pattern.successCount,
+          failureCount: pattern.failureCount,
+        }).execute();
+      }
+    } catch (e) {}
+  }
+
+  private async persistPreference(pref: LearnedPreference): Promise<void> {
+    if (!this.dbAvailable || !db) return;
+    try {
+      const existing = await db.select().from(userPreferences)
+        .where(eq(userPreferences.preferenceKey, pref.key))
+        .execute();
+
+      if (existing.length > 0) {
+        await db.update(userPreferences)
+          .set({
+            preferenceValue: pref.value,
+            frequency: pref.frequency,
+            lastSeen: new Date(),
+          })
+          .where(eq(userPreferences.preferenceKey, pref.key))
+          .execute();
+      } else {
+        await db.insert(userPreferences).values({
+          preferenceKey: pref.key,
+          preferenceValue: pref.value,
+          category: pref.category,
+          frequency: pref.frequency,
+        }).execute();
+      }
+    } catch (e) {}
+  }
+
   async recordOutcome(feedback: GenerationFeedback): Promise<void> {
     for (const entity of feedback.plan.dataModel) {
       this.learnEntityPattern(entity, feedback.domainId);
@@ -194,8 +294,9 @@ export class GenerationLearningEngine {
           existing.successCount += feedback.errors.length === 0 ? 1 : 0;
           existing.failureCount += feedback.errors.length > 0 ? 1 : 0;
           existing.reliability = existing.successCount / (existing.successCount + existing.failureCount);
+          this.persistPattern(existing);
         } else {
-          this.patterns.set(key, {
+          const newPattern: LearnedPattern = {
             patternType: 'workflow-design',
             patternKey: key,
             patternValue: {
@@ -205,7 +306,9 @@ export class GenerationLearningEngine {
             successCount: feedback.errors.length === 0 ? 1 : 0,
             failureCount: feedback.errors.length > 0 ? 1 : 0,
             reliability: feedback.errors.length === 0 ? 1 : 0,
-          });
+          };
+          this.patterns.set(key, newPattern);
+          this.persistPattern(newPattern);
         }
       }
     }
@@ -218,6 +321,23 @@ export class GenerationLearningEngine {
 
     if (feedback.domainId) {
       this.learnDomainMapping(feedback.domainId, feedback.plan);
+    }
+
+    if (this.dbAvailable && db) {
+      try {
+        await db.insert(generationOutcomes).values({
+          conversationId: feedback.conversationId,
+          domainId: feedback.domainId || null,
+          projectDescription: feedback.projectDescription,
+          entityCount: feedback.plan.dataModel.length,
+          fileCount: feedback.generatedFiles.length,
+          wasModified: feedback.userModifications.length > 0,
+          modifications: feedback.userModifications.length > 0 ? feedback.userModifications : null,
+          errorCount: feedback.errors.length,
+          autoFixCount: feedback.autoFixes.length,
+          generationTimeMs: feedback.generationTimeMs,
+        }).execute();
+      } catch (e) {}
     }
   }
 
@@ -235,8 +355,9 @@ export class GenerationLearningEngine {
       if (domainId) {
         existing.domainId = domainId;
       }
+      this.persistPattern(existing);
     } else {
-      this.patterns.set(key, {
+      const newPattern: LearnedPattern = {
         patternType: 'entity-structure',
         entityType: entity.name,
         domainId,
@@ -248,7 +369,9 @@ export class GenerationLearningEngine {
         successCount: 1,
         failureCount: 0,
         reliability: 1,
-      });
+      };
+      this.patterns.set(key, newPattern);
+      this.persistPattern(newPattern);
     }
   }
 
@@ -265,18 +388,22 @@ export class GenerationLearningEngine {
       const existing = this.preferences.get(preference.key);
       if (existing) {
         existing.frequency += 1;
+        this.persistPreference(existing);
       } else {
         this.preferences.set(preference.key, preference);
+        this.persistPreference(preference);
       }
     }
 
     if (mod.type === 'style-change' || mod.type === 'ui-change') {
-      this.preferences.set(`ui-mod-${mod.description}`, {
+      const pref: LearnedPreference = {
         key: `ui-mod-${mod.description}`,
         value: mod.description,
         category: 'ui',
         frequency: 1,
-      });
+      };
+      this.preferences.set(pref.key, pref);
+      this.persistPreference(pref);
     }
   }
 
@@ -287,8 +414,9 @@ export class GenerationLearningEngine {
     if (existing) {
       existing.successCount += 1;
       existing.reliability = existing.successCount / (existing.successCount + existing.failureCount);
+      this.persistPattern(existing);
     } else {
-      this.patterns.set(key, {
+      const newPattern: LearnedPattern = {
         patternType: 'domain-mapping',
         domainId,
         patternKey: key,
@@ -301,7 +429,9 @@ export class GenerationLearningEngine {
         successCount: 1,
         failureCount: 0,
         reliability: 1,
-      });
+      };
+      this.patterns.set(key, newPattern);
+      this.persistPattern(newPattern);
     }
   }
 

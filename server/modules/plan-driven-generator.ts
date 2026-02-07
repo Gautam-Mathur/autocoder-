@@ -1,4 +1,5 @@
 import type { ProjectPlan, PlannedEntity, PlannedPage, PlannedEndpoint, PlannedWorkflow } from './plan-generator.js';
+import { analyzeSemantics, generateSmartInputComponent, generateSmartTableCell, generateCurrencyDisplay, generateDateDisplay, type ReasoningResult, type FieldSemantics } from './contextual-reasoning-engine.js';
 
 interface GeneratedFile {
   path: string;
@@ -8,6 +9,7 @@ interface GeneratedFile {
 
 export function generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[] {
   const files: GeneratedFile[] = [];
+  const reasoning = analyzeSemantics(plan);
 
   files.push(generateIndexHtml(plan));
   files.push(generateMainTsx());
@@ -35,15 +37,15 @@ export function generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[] {
   files.push(generateSchema(plan));
   files.push(generateDb());
   files.push(generateStorageInterface(plan));
-  files.push(generateRoutes(plan));
+  files.push(generateRoutes(plan, reasoning));
   files.push(generateAppTsx(plan));
   files.push(generateIndexCss(plan));
 
   for (const page of plan.pages) {
-    files.push(generatePageComponent(page, plan));
+    files.push(generatePageComponent(page, plan, reasoning));
   }
 
-  files.push(generateDataTable(plan));
+  files.push(generateDataTable(plan, reasoning));
   files.push(generateKpiCard());
   files.push(generateStatusBadge(plan));
 
@@ -946,7 +948,7 @@ export const storage = new DatabaseStorage();
   return { path: 'server/storage.ts', content, language: 'typescript' };
 }
 
-function generateRoutes(plan: ProjectPlan): GeneratedFile {
+function generateRoutes(plan: ProjectPlan, reasoning: ReasoningResult): GeneratedFile {
   const entityImports = plan.dataModel.map(e => `insert${e.name}Schema`).join(', ');
 
   const routeHandlers: string[] = [];
@@ -954,6 +956,9 @@ function generateRoutes(plan: ProjectPlan): GeneratedFile {
   for (const entity of plan.dataModel) {
     const name = entity.name;
     const basePath = `/api/${toKebabCase(name)}s`;
+
+    const entityRules = reasoning?.businessRules.filter(r => r.entityName === name && r.type === 'validation') || [];
+    const validationSnippets = entityRules.map(r => `      // Business rule: ${r.ruleName}\n      ${r.codeSnippet}`).join('\n');
 
     routeHandlers.push(`
   // ${name} endpoints
@@ -983,7 +988,8 @@ function generateRoutes(plan: ProjectPlan): GeneratedFile {
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       }
-      const item = await storage.create${name}(parsed.data);
+      const data = parsed.data;
+${validationSnippets ? validationSnippets + '\n' : ''}      const item = await storage.create${name}(data);
       res.status(201).json(item);
     } catch (error) {
       res.status(500).json({ error: "Failed to create ${name.toLowerCase()}" });
@@ -993,7 +999,8 @@ function generateRoutes(plan: ProjectPlan): GeneratedFile {
   app.patch("${basePath}/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const item = await storage.update${name}(id, req.body);
+      const data = req.body;
+${validationSnippets ? validationSnippets + '\n' : ''}      const item = await storage.update${name}(id, data);
       if (!item) return res.status(404).json({ error: "${name} not found" });
       res.json(item);
     } catch (error) {
@@ -1256,7 +1263,7 @@ function generateIndexCss(plan: ProjectPlan): GeneratedFile {
   return { path: 'src/index.css', content, language: 'css' };
 }
 
-function generatePageComponent(page: PlannedPage, plan: ProjectPlan): GeneratedFile {
+function generatePageComponent(page: PlannedPage, plan: ProjectPlan, reasoning: ReasoningResult): GeneratedFile {
   const fileName = toKebabCase(page.componentName.replace('Page', ''));
 
   const isDashboard = page.path === '/';
@@ -1266,11 +1273,11 @@ function generatePageComponent(page: PlannedPage, plan: ProjectPlan): GeneratedF
   let content: string;
 
   if (isDashboard) {
-    content = generateDashboardPage(page, plan);
+    content = generateDashboardPage(page, plan, reasoning);
   } else if (isDetail) {
-    content = generateDetailPage(page, plan);
+    content = generateDetailPage(page, plan, reasoning);
   } else if (isList) {
-    content = generateListPage(page, plan);
+    content = generateListPage(page, plan, reasoning);
   } else {
     content = generateGenericPage(page, plan);
   }
@@ -1278,7 +1285,7 @@ function generatePageComponent(page: PlannedPage, plan: ProjectPlan): GeneratedF
   return { path: `src/pages/${fileName}.tsx`, content, language: 'tsx' };
 }
 
-function generateDashboardPage(page: PlannedPage, plan: ProjectPlan): GeneratedFile['content'] {
+function generateDashboardPage(page: PlannedPage, plan: ProjectPlan, reasoning: ReasoningResult): GeneratedFile['content'] {
   const kpis = plan.kpis.slice(0, 4);
   const kpiCards = kpis.map((kpi, i) => {
     const icons = ['TrendingUp', 'Users', 'DollarSign', 'Activity'];
@@ -1342,21 +1349,33 @@ ${firstEntity ? `              {${entityVarName}s.length > 0 ? \`\${${entityVarN
 `;
 }
 
-function generateListPage(page: PlannedPage, plan: ProjectPlan): GeneratedFile['content'] {
+function generateListPage(page: PlannedPage, plan: ProjectPlan, reasoning: ReasoningResult): GeneratedFile['content'] {
   const entityName = page.dataNeeded[0] || plan.dataModel[0]?.name || 'Item';
   const entity = plan.dataModel.find(e => e.name === entityName);
   const endpoint = `/api/${toKebabCase(entityName)}s`;
   const varName = toCamelCase(entityName);
 
+  const entitySemantics = reasoning?.fieldSemantics.get(entityName) || [];
+  const entityComputedFields = reasoning?.computedFields.filter(cf => cf.entityName === entityName) || [];
+  const computedFieldNames = new Set(entityComputedFields.map(cf => cf.fieldName));
+
   const displayFields = entity?.fields.filter(f => f.name !== 'id' && f.name !== 'createdAt').slice(0, 5) || [];
-  const editableFields = entity?.fields.filter(f => f.name !== 'id' && f.name !== 'createdAt') || [];
+  const editableFields = entity?.fields.filter(f => f.name !== 'id' && f.name !== 'createdAt' && !computedFieldNames.has(f.name) && !f.description?.startsWith('Computed:')) || [];
   const statusField = entity?.fields.find(f => f.name === 'status');
   const nameField = entity?.fields.find(f => ['name', 'title', 'firstName', 'companyName', 'orderNumber', 'trackingNumber', 'sku', 'code'].includes(f.name));
+
+  const getFieldSemantic = (fieldName: string): FieldSemantics | undefined => {
+    return entitySemantics.find(s => s.fieldName === fieldName);
+  };
 
   const tableHeaders = displayFields.map(f => `                <th className="text-left p-3 text-sm font-medium text-muted-foreground">${toTitleCase(f.name)}</th>`).join('\n');
   const tableRows = displayFields.map(f => {
     if (f.name === 'status') {
       return `                  <td className="p-3"><StatusBadge status={item.${f.name}} /></td>`;
+    }
+    const semantic = getFieldSemantic(f.name);
+    if (semantic) {
+      return `                  ${generateSmartTableCell(f.name, semantic)}`;
     }
     return `                  <td className="p-3 text-sm">{item.${f.name}}</td>`;
   }).join('\n');
@@ -1390,16 +1409,83 @@ function generateListPage(page: PlannedPage, plan: ProjectPlan): GeneratedFile['
   const dialogFields = editableFields.map(f => {
     const stateVar = `form${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
     const setter = `set${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
-    if (f.type === 'integer' || f.type === 'number' || f.type === 'real' || f.type.includes('decimal')) {
-      return `              <div className="space-y-2">
-                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
-                <Input id="${f.name}" type="number" value={${stateVar}} onChange={(e) => ${setter}(Number(e.target.value))} data-testid="input-${toKebabCase(f.name)}" />
-              </div>`;
-    }
+    const semantic = getFieldSemantic(f.name);
+
     if (f.type === 'boolean') {
       return `              <div className="flex items-center gap-2">
                 <input id="${f.name}" type="checkbox" checked={${stateVar}} onChange={(e) => ${setter}(e.target.checked)} data-testid="input-${toKebabCase(f.name)}" />
                 <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+              </div>`;
+    }
+
+    if (semantic) {
+      switch (semantic.inputType) {
+        case 'currency':
+          return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input id="${f.name}" type="number" step="0.01" min="0" placeholder="0.00" className="pl-7" value={${stateVar}} onChange={(e) => ${setter}(Number(e.target.value))} data-testid="input-${toKebabCase(f.name)}" />
+                </div>
+              </div>`;
+        case 'percentage':
+          return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <div className="relative">
+                  <Input id="${f.name}" type="number" step="0.1" min="0" max="100" placeholder="0" className="pr-8" value={${stateVar}} onChange={(e) => ${setter}(Number(e.target.value))} data-testid="input-${toKebabCase(f.name)}" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                </div>
+              </div>`;
+        case 'email':
+          return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <Input id="${f.name}" type="email" placeholder="${semantic.placeholder || 'name@example.com'}" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />
+              </div>`;
+        case 'tel':
+          return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <Input id="${f.name}" type="tel" placeholder="${semantic.placeholder || '+1 (555) 000-0000'}" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />
+              </div>`;
+        case 'url':
+          return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <Input id="${f.name}" type="url" placeholder="${semantic.placeholder || 'https://example.com'}" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />
+              </div>`;
+        case 'date':
+          return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <Input id="${f.name}" type="date" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />
+              </div>`;
+        case 'datetime':
+          return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <Input id="${f.name}" type="datetime-local" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />
+              </div>`;
+        case 'textarea':
+          return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <textarea id="${f.name}" placeholder="${semantic.placeholder || 'Enter text...'}" className="flex min-h-[80px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-gray-600" rows={3} value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />
+              </div>`;
+        case 'select':
+          const enumMatch = f.type.match(/enum\(([^)]+)\)/);
+          if (enumMatch) {
+            const options = enumMatch[1].split(',').map(o => o.trim().replace(/'/g, ''));
+            const optionElements = options.map(o => `                  <SelectOption value="${o}">${toTitleCase(o)}</SelectOption>`).join('\n');
+            return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <Select value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}">
+                  <SelectOption value="">Select ${toTitleCase(f.name)}...</SelectOption>
+${optionElements}
+                </Select>
+              </div>`;
+          }
+      }
+    }
+
+    if (f.type === 'integer' || f.type === 'number' || f.type === 'real' || f.type.includes('decimal')) {
+      return `              <div className="space-y-2">
+                <Label htmlFor="${f.name}">${toTitleCase(f.name)}</Label>
+                <Input id="${f.name}" type="number" value={${stateVar}} onChange={(e) => ${setter}(Number(e.target.value))} data-testid="input-${toKebabCase(f.name)}" />
               </div>`;
     }
     return `              <div className="space-y-2">
@@ -1576,17 +1662,78 @@ ${dialogFields}
 `;
 }
 
-function generateDetailPage(page: PlannedPage, plan: ProjectPlan): GeneratedFile['content'] {
+function generateDetailPage(page: PlannedPage, plan: ProjectPlan, reasoning: ReasoningResult): GeneratedFile['content'] {
   const entityName = page.dataNeeded[0] || plan.dataModel[0]?.name || 'Item';
   const endpoint = `/api/${toKebabCase(entityName)}s`;
   const entity = plan.dataModel.find(e => e.name === entityName);
   const displayFields = entity?.fields.filter(f => f.name !== 'id' && f.name !== 'createdAt').slice(0, 8) || [];
   const listPath = page.path.split('/:')[0];
 
+  const entitySemantics = reasoning?.fieldSemantics.get(entityName) || [];
+  const entityComputedFields = reasoning?.computedFields.filter(cf => cf.entityName === entityName && cf.displayInDetail) || [];
+
+  const getFieldSemantic = (fieldName: string): FieldSemantics | undefined => {
+    return entitySemantics.find(s => s.fieldName === fieldName);
+  };
+
   const fieldRows = displayFields.map(f => {
+    const semantic = getFieldSemantic(f.name);
+    if (f.name === 'status') {
+      return `              <div>
+                <dt className="text-sm text-muted-foreground">${toTitleCase(f.name)}</dt>
+                <dd className="mt-1" data-testid="text-${toKebabCase(f.name)}"><StatusBadge status={item?.${f.name} ?? ""} /></dd>
+              </div>`;
+    }
+    if (semantic) {
+      switch (semantic.inputType) {
+        case 'currency':
+          return `              <div>
+                <dt className="text-sm text-muted-foreground">${toTitleCase(f.name)}</dt>
+                <dd className="text-sm font-medium mt-1" data-testid="text-${toKebabCase(f.name)}">{typeof item?.${f.name} === 'number' ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.${f.name}) : '—'}</dd>
+              </div>`;
+        case 'percentage':
+          return `              <div>
+                <dt className="text-sm text-muted-foreground">${toTitleCase(f.name)}</dt>
+                <dd className="text-sm font-medium mt-1" data-testid="text-${toKebabCase(f.name)}">{typeof item?.${f.name} === 'number' ? \`\${item.${f.name}}%\` : '—'}</dd>
+              </div>`;
+        case 'date':
+        case 'datetime':
+          return `              <div>
+                <dt className="text-sm text-muted-foreground">${toTitleCase(f.name)}</dt>
+                <dd className="text-sm font-medium mt-1" data-testid="text-${toKebabCase(f.name)}">{item?.${f.name} ? new Date(item.${f.name}).toLocaleDateString() : '—'}</dd>
+              </div>`;
+        case 'email':
+          return `              <div>
+                <dt className="text-sm text-muted-foreground">${toTitleCase(f.name)}</dt>
+                <dd className="text-sm font-medium mt-1" data-testid="text-${toKebabCase(f.name)}">{item?.${f.name} ? <a href={\`mailto:\${item.${f.name}}\`} className="text-blue-600 hover:underline">{item.${f.name}}</a> : '—'}</dd>
+              </div>`;
+        case 'tel':
+          return `              <div>
+                <dt className="text-sm text-muted-foreground">${toTitleCase(f.name)}</dt>
+                <dd className="text-sm font-medium mt-1" data-testid="text-${toKebabCase(f.name)}">{item?.${f.name} ? <a href={\`tel:\${item.${f.name}}\`} className="text-blue-600 hover:underline">{item.${f.name}}</a> : '—'}</dd>
+              </div>`;
+        case 'url':
+          return `              <div>
+                <dt className="text-sm text-muted-foreground">${toTitleCase(f.name)}</dt>
+                <dd className="text-sm font-medium mt-1" data-testid="text-${toKebabCase(f.name)}">{item?.${f.name} ? <a href={item.${f.name}} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{item.${f.name}}</a> : '—'}</dd>
+              </div>`;
+        case 'checkbox':
+          return `              <div>
+                <dt className="text-sm text-muted-foreground">${toTitleCase(f.name)}</dt>
+                <dd className="text-sm font-medium mt-1" data-testid="text-${toKebabCase(f.name)}">{item?.${f.name} ? 'Yes' : 'No'}</dd>
+              </div>`;
+      }
+    }
     return `              <div>
                 <dt className="text-sm text-muted-foreground">${toTitleCase(f.name)}</dt>
                 <dd className="text-sm font-medium mt-1" data-testid="text-${toKebabCase(f.name)}">{item?.${f.name} ?? "—"}</dd>
+              </div>`;
+  }).join('\n');
+
+  const computedFieldRows = entityComputedFields.map(cf => {
+    return `              <div>
+                <dt className="text-sm text-muted-foreground">${toTitleCase(cf.fieldName)} <span className="text-xs text-blue-500">(computed)</span></dt>
+                <dd className="text-sm font-medium mt-1" data-testid="text-${toKebabCase(cf.fieldName)}">{${cf.expression.replace(/\bthis\./g, 'item?.')}}</dd>
               </div>`;
   }).join('\n');
 
@@ -1659,7 +1806,7 @@ export default function ${page.componentName}() {
         <CardContent>
           <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
 ${fieldRows}
-          </dl>
+${computedFieldRows ? computedFieldRows + '\n' : ''}          </dl>
         </CardContent>
       </Card>
     </div>
@@ -1695,7 +1842,7 @@ export default function ${page.componentName}() {
 `;
 }
 
-function generateDataTable(plan: ProjectPlan): GeneratedFile {
+function generateDataTable(plan: ProjectPlan, reasoning: ReasoningResult): GeneratedFile {
   const content = `import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useState } from "react";

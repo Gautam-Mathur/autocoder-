@@ -1,7 +1,7 @@
 import { detectDomainFromText, getAllDomains, getDomain, buildEntitiesForModules, buildPagesForModules, buildWorkflowsForEntities } from './domain-knowledge.js';
 import type { IndustryDomain, DomainEntity, DomainModule, DomainWorkflow, UserRole } from './domain-knowledge.js';
-import { synthesizeDomain, extractEntitiesFromText as nlpExtractEntities, isDomainSynthesized } from './domain-synthesis-engine.js';
-import { assessComplexity, identifyInformationGaps, generateClarificationQuestions, shouldAskMoreQuestions, calculateReadinessScore, formatClarificationMessage, type ClarificationState } from './adaptive-clarification-engine.js';
+import { synthesizeDomain, extractEntitiesFromText as nlpExtractEntities, isDomainSynthesized, type NLPEntityExtraction } from './domain-synthesis-engine.js';
+import { assessComplexity, identifyInformationGaps, generateClarificationQuestions as generateAdaptiveClarifications, shouldAskMoreQuestions, calculateReadinessScore, formatClarificationMessage, createClarificationState, type ClarificationState, type ClarificationQuestion as AdaptiveClarificationQuestion } from './adaptive-clarification-engine.js';
 
 export interface UnderstandingResult {
   level1_intent: IntentDecomposition;
@@ -553,7 +553,7 @@ function generateClarifications(
     return { needsClarification: false, questions: [], assumptions };
   }
 
-  const adaptiveQuestions = generateClarificationQuestions(gaps, complexity, nlpExtracted, answeredMap);
+  const adaptiveQuestions = generateAdaptiveClarifications(gaps, complexity, nlpExtracted, answeredMap);
 
   const questions: ClarifyingQuestion[] = adaptiveQuestions.map((aq, i) => ({
     id: aq.id,
