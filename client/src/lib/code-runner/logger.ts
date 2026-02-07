@@ -127,12 +127,12 @@ class RunnerLogger {
     this.emit('success', category, message, details, duration);
   }
 
-  warn(category: string, message: string, details?: Record<string, unknown>): void {
-    this.emit('warn', category, message, details);
+  warn(category: string, message: string, details?: Record<string, unknown>, duration?: number): void {
+    this.emit('warn', category, message, details, duration);
   }
 
-  error(category: string, message: string, details?: Record<string, unknown>): void {
-    this.emit('error', category, message, details);
+  error(category: string, message: string, details?: Record<string, unknown>, duration?: number): void {
+    this.emit('error', category, message, details, duration);
   }
 
   startTimer(label: string): void {

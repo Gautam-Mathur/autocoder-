@@ -1,3 +1,5 @@
+import { runnerLog } from './logger';
+
 export interface ProjectFile {
   path: string;
   content: string;
@@ -53,18 +55,32 @@ function getElectronAPI(): ElectronAPI {
 
 export async function writeFiles(projectName: string, files: ProjectFile[], onLog?: LogCallback): Promise<RunResult> {
   if (!isElectronEnvironment()) {
+    runnerLog.warn('AutoRunner', 'writeFiles called outside Electron environment');
     return { success: false, error: 'Not running in Electron' };
   }
 
   const api = getElectronAPI();
   currentProjectName = projectName;
+
+  runnerLog.startTimer('electron-write-files');
+  runnerLog.info('FileSystem', `Writing ${files.length} files to project "${projectName}"`, {
+    fileCount: files.length,
+    projectName,
+  });
   onLog?.(`[AutoCoder] Writing ${files.length} files to ${projectName}...`);
 
   const result = await api.writeFiles(projectName, files);
+  const elapsed = runnerLog.endTimer('electron-write-files');
   
   if (result.success) {
+    runnerLog.success('FileSystem', `Files written to ${result.projectPath}`, {
+      projectPath: result.projectPath,
+    }, elapsed);
     onLog?.(`[AutoCoder] Files written to ${result.projectPath}`);
   } else {
+    runnerLog.error('FileSystem', `Failed to write files: ${result.error}`, {
+      error: result.error,
+    });
     onLog?.(`[AutoCoder] Error: ${result.error}`);
   }
 
@@ -73,24 +89,47 @@ export async function writeFiles(projectName: string, files: ProjectFile[], onLo
 
 export async function installDependencies(projectName: string, onLog?: LogCallback): Promise<RunResult> {
   if (!isElectronEnvironment()) {
+    runnerLog.warn('AutoRunner', 'installDependencies called outside Electron environment');
     return { success: false, error: 'Not running in Electron' };
   }
 
   const api = getElectronAPI();
+
   if (logUnsubscribe) {
     logUnsubscribe();
   }
   logUnsubscribe = api.onLog((log) => {
     onLog?.(log);
+    if (log.includes('added') && log.includes('package')) {
+      runnerLog.success('NPM', log.replace('[npm] ', '').trim());
+    } else if (log.includes('ERR') || log.includes('error')) {
+      runnerLog.error('NPM', log.replace('[npm] ', '').trim());
+    } else if (log.includes('WARN') || log.includes('warn')) {
+      runnerLog.warn('NPM', log.replace('[npm] ', '').trim());
+    }
   });
 
+  runnerLog.separator('ELECTRON NPM INSTALL');
+  runnerLog.startTimer('electron-npm-install');
+  runnerLog.info('NPM', `Starting npm install for "${projectName}"`, { projectName });
+
   const result = await api.npmInstall(projectName);
-  
+  const elapsed = runnerLog.endTimer('electron-npm-install');
+
+  if (result.success) {
+    runnerLog.success('NPM', `npm install completed for "${projectName}"`, undefined, elapsed);
+  } else {
+    runnerLog.error('NPM', `npm install failed for "${projectName}": ${result.error}`, {
+      error: result.error,
+    }, elapsed);
+  }
+
   return result;
 }
 
 export async function startDevServer(projectName: string, onLog?: LogCallback): Promise<ServerResult> {
   if (!isElectronEnvironment()) {
+    runnerLog.warn('AutoRunner', 'startDevServer called outside Electron environment');
     return { success: false, error: 'Not running in Electron' };
   }
 
@@ -99,6 +138,7 @@ export async function startDevServer(projectName: string, onLog?: LogCallback): 
     serverUnsubscribe();
   }
   serverUnsubscribe = api.onServerReady((url) => {
+    runnerLog.success('DevServer', `Server ready at ${url}`, { url });
     onLog?.(`[AutoCoder] Server ready at ${url}`);
   });
 
@@ -107,10 +147,28 @@ export async function startDevServer(projectName: string, onLog?: LogCallback): 
   }
   logUnsubscribe = api.onLog((log) => {
     onLog?.(log);
+    if (log.includes('error') || log.includes('Error')) {
+      runnerLog.error('DevServer', log.replace('[dev] ', '').trim());
+    }
   });
 
+  runnerLog.separator('ELECTRON DEV SERVER');
+  runnerLog.startTimer('electron-dev-server');
+  runnerLog.info('DevServer', `Starting dev server for "${projectName}"`, { projectName });
+
   const result = await api.startServer(projectName);
-  
+  const elapsed = runnerLog.endTimer('electron-dev-server');
+
+  if (result.success) {
+    runnerLog.success('DevServer', `Dev server started at ${result.url}`, {
+      url: result.url,
+    }, elapsed);
+  } else {
+    runnerLog.error('DevServer', `Failed to start dev server: ${result.error}`, {
+      error: result.error,
+    }, elapsed);
+  }
+
   return result;
 }
 
@@ -119,9 +177,16 @@ export async function stopDevServer(): Promise<RunResult> {
     return { success: false, error: 'Not running in Electron' };
   }
 
+  runnerLog.info('DevServer', 'Stopping Electron dev server');
   const api = getElectronAPI();
   const result = await api.stopServer();
   
+  if (result.success) {
+    runnerLog.success('DevServer', 'Dev server stopped');
+  } else {
+    runnerLog.error('DevServer', `Failed to stop dev server: ${result.error}`);
+  }
+
   if (logUnsubscribe) {
     logUnsubscribe();
     logUnsubscribe = null;
@@ -147,7 +212,10 @@ export async function listProjects(): Promise<string[]> {
     return [];
   }
 
-  return getElectronAPI().listProjects();
+  runnerLog.debug('Pipeline', 'Listing Electron projects');
+  const projects = await getElectronAPI().listProjects();
+  runnerLog.debug('Pipeline', `Found ${projects.length} projects`, { projects });
+  return projects;
 }
 
 export async function deleteProject(projectName: string): Promise<RunResult> {
@@ -155,7 +223,14 @@ export async function deleteProject(projectName: string): Promise<RunResult> {
     return { success: false, error: 'Not running in Electron' };
   }
 
-  return getElectronAPI().deleteProject(projectName);
+  runnerLog.info('Pipeline', `Deleting project "${projectName}"`);
+  const result = await getElectronAPI().deleteProject(projectName);
+  if (result.success) {
+    runnerLog.success('Pipeline', `Project "${projectName}" deleted`);
+  } else {
+    runnerLog.error('Pipeline', `Failed to delete project "${projectName}": ${result.error}`);
+  }
+  return result;
 }
 
 export async function openProjectFolder(projectName: string): Promise<RunResult> {
@@ -163,6 +238,7 @@ export async function openProjectFolder(projectName: string): Promise<RunResult>
     return { success: false, error: 'Not running in Electron' };
   }
 
+  runnerLog.info('Pipeline', `Opening project folder: "${projectName}"`);
   return getElectronAPI().openProject(projectName);
 }
 
@@ -171,6 +247,7 @@ export function getCurrentProjectName(): string | null {
 }
 
 export function cleanup(): void {
+  runnerLog.info('AutoRunner', 'Cleaning up Electron runner resources');
   if (logUnsubscribe) {
     logUnsubscribe();
     logUnsubscribe = null;

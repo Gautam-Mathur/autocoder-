@@ -15,6 +15,7 @@ AutoCoder is an AI-powered, full-stack code generation platform that translates 
 - Enhanced list pages with create dialogs, delete mutations, status filters
 - Updated all documentation with accurate statistics
 - Comprehensive logging upgrade: client-side RunnerLogger with color-coded CSS console output, 12 new log categories (WebContainer, PreWarm, NPM, DevServer, FileSystem, Pipeline, AutoRunner, CodeGen, Validator, ErrorFix, Process, Cache), full instrumentation of WebContainer boot/pre-warm/npm install/mount/dev server/teardown and auto-runner pipeline phases with pass/fail reasons and timing
+- Electron logger upgrade: ANSI color-coded output matching client RunnerLogger, timer support, success level, separator/group methods, all 12+ categories; local-runner.ts fully instrumented with structured logging for writeFiles/npmInstall/devServer; electron-runner.ts uses runnerLog for all operations
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

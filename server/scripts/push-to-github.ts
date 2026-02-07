@@ -182,7 +182,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Fix WebContainer npm installs: switch COEP to require-corp, add crossOriginIsolated check, fix font CORS',
+      message: 'Electron logger upgrade: ANSI colors, timers, success level, full instrumentation of local-runner and electron-runner',
       tree: newTree.sha,
       parents: [latestSha]
     });
