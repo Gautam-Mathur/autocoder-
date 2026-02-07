@@ -197,13 +197,33 @@ const SPINNER_RE = /^[|/\-\\⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]$/;
 
 export type NpmLineCallback = (cleanLine: string, level: 'success' | 'warn' | 'error' | 'info' | 'debug') => void;
 
+export interface NpmProgress {
+  fetched: number;
+  resolved: number;
+  reified: number;
+  phase: 'resolving' | 'fetching' | 'reifying' | 'auditing' | 'done' | 'idle';
+  packages: string[];
+}
+
 export class NpmOutputParser {
   private buffer = '';
   private seen = new Set<string>();
+  private fetchedPackages = new Set<string>();
   private onLine?: NpmLineCallback;
+  private _progress: NpmProgress = {
+    fetched: 0,
+    resolved: 0,
+    reified: 0,
+    phase: 'idle',
+    packages: [],
+  };
 
   constructor(onLine?: NpmLineCallback) {
     this.onLine = onLine;
+  }
+
+  get progress(): NpmProgress {
+    return { ...this._progress, packages: [...this._progress.packages] };
   }
 
   private clean(raw: string): string {
@@ -228,6 +248,14 @@ export class NpmOutputParser {
     this.onLine?.(line, level);
   }
 
+  private extractPackageName(url: string): string {
+    let pkg = url.replace(/^https?:\/\/registry\.npmjs\.org\//, '');
+    pkg = pkg.split('/-/')[0];
+    pkg = decodeURIComponent(pkg);
+    if (pkg.length > 60) pkg = pkg.slice(0, 57) + '...';
+    return pkg;
+  }
+
   feed(chunk: string): void {
     this.buffer += this.clean(chunk);
     const parts = this.buffer.split('\n');
@@ -240,23 +268,49 @@ export class NpmOutputParser {
       this.seen.add(line);
 
       if (/added \d+ package/i.test(line)) {
+        this._progress.phase = 'done';
         this.emitLine(line, 'success');
       } else if (/npm warn/i.test(line) || /WARN/i.test(line)) {
         this.emitLine(line, 'warn');
       } else if (/npm error/i.test(line) || /ERR!/i.test(line) || /ERESOLVE|E404|ENOENT|ETARGET/i.test(line)) {
         this.emitLine(line, 'error');
       } else if (/http fetch (GET|POST)/i.test(line)) {
-        const m = line.match(/http fetch (GET|POST)\s+\d+\s+(\S+)/i);
+        this._progress.phase = 'fetching';
+        const m = line.match(/http fetch (GET|POST)\s+(\d+)\s+(\S+)/i);
         if (m) {
-          const pkg = m[2].replace(/^https?:\/\/registry\.npmjs\.org\//, '');
-          this.emitLine(`${m[1]} ${pkg}`, 'debug');
+          const statusCode = m[2];
+          const pkg = this.extractPackageName(m[3]);
+          if (!this.fetchedPackages.has(pkg)) {
+            this.fetchedPackages.add(pkg);
+            this._progress.fetched = this.fetchedPackages.size;
+            this._progress.packages.push(pkg);
+          }
+          const statusOk = statusCode.startsWith('2') || statusCode === '304';
+          if (statusOk) {
+            this.emitLine(`📦 ${pkg} (${this._progress.fetched} downloaded)`, 'info');
+          } else {
+            this.emitLine(`⚠ ${pkg} HTTP ${statusCode}`, 'warn');
+          }
         } else {
-          this.emitLine(line, 'debug');
+          this.emitLine(line, 'info');
         }
       } else if (/^npm http/i.test(line)) {
-        this.emitLine(line, 'debug');
-      } else if (/resolving|idealTree|reify/i.test(line)) {
-        continue;
+        this.emitLine(line, 'info');
+      } else if (/idealTree/i.test(line)) {
+        if (this._progress.phase !== 'resolving') {
+          this._progress.phase = 'resolving';
+          this.emitLine('Resolving dependency tree...', 'info');
+        }
+        this._progress.resolved++;
+      } else if (/reify/i.test(line)) {
+        if (this._progress.phase !== 'reifying') {
+          this._progress.phase = 'reifying';
+          this.emitLine('Installing packages to node_modules...', 'info');
+        }
+        this._progress.reified++;
+      } else if (/audit/i.test(line) && !/no-audit/.test(line)) {
+        this._progress.phase = 'auditing';
+        this.emitLine(line, 'info');
       } else if (line.length > 3) {
         this.emitLine(line, 'info');
       }
@@ -279,5 +333,12 @@ export class NpmOutputParser {
     }
     this.buffer = '';
     this.seen.clear();
+  }
+
+  reset(): void {
+    this.buffer = '';
+    this.seen.clear();
+    this.fetchedPackages.clear();
+    this._progress = { fetched: 0, resolved: 0, reified: 0, phase: 'idle', packages: [] };
   }
 }

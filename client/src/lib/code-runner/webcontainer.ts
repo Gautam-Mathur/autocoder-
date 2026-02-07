@@ -383,7 +383,7 @@ export async function installDependencies(
     
     runnerLog.startTimer(`npm-attempt-${attempt}`);
     const installParser = new NpmOutputParser((line, level) => {
-      if (level !== 'debug') onOutput?.(line + '\n');
+      onOutput?.(line + '\n');
     });
     const result = await new Promise<RunResult>(async (resolve) => {
       const timeoutId = setTimeout(() => {
@@ -448,12 +448,14 @@ export async function installDependencies(
     
     if (result.success) {
       const totalMs = runnerLog.endTimer('npm-install-total');
+      const prog = installParser.progress;
       runnerLog.success('NPM', `Dependencies installed successfully on attempt ${attempt}`, {
         attemptTime: `${attemptMs}ms`,
         totalTime: `${totalMs}ms`,
+        packagesFetched: prog.fetched,
       }, totalMs);
       runnerLog.separator('NPM INSTALL DONE');
-      onOutput?.('\n✅ Dependencies installed successfully!\n');
+      onOutput?.(`\n✅ Dependencies installed successfully! (${prog.fetched} packages fetched)\n`);
       return {
         success: true,
         output: allOutput,
@@ -496,7 +498,7 @@ export async function installDependencies(
       try {
         runnerLog.info('NPM', 'Trying --ignore-scripts fallback');
         const fallbackParser = new NpmOutputParser((line, level) => {
-          if (level !== 'debug') onOutput?.(line + '\n');
+          onOutput?.(line + '\n');
         });
         const process = await container.spawn('npm', [
           'install',
@@ -618,7 +620,7 @@ export async function runNpmInstall(
     
     try {
       const pkgParser = new NpmOutputParser((line, level) => {
-        if (level !== 'debug') onOutput?.(line + '\n');
+        onOutput?.(line + '\n');
       });
       const process = await container.spawn('npm', args);
       
