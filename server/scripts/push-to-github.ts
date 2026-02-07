@@ -182,7 +182,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Update documentation: plan-driven pipeline test suite, accurate statistics, 14 industry domains',
+      message: 'Optimize WebContainer pre-warming and smart dependency detection in plan-driven generator',
       tree: newTree.sha,
       parents: [latestSha]
     });

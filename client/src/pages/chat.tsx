@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers, PanelRightClose, PanelRight, Activity, Zap } from "lucide-react";
+import { isWebContainerSupported, preWarmWebContainer } from "@/lib/code-runner/webcontainer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -273,6 +274,15 @@ export default function Chat() {
         setAiMode(data.aiMode || "local");
       })
       .catch(() => setAiMode("local"));
+  }, []);
+
+  useEffect(() => {
+    if (isWebContainerSupported()) {
+      const timer = setTimeout(() => {
+        preWarmWebContainer().catch(() => {});
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const { data: conversations = [] } = useQuery<Conversation[]>({

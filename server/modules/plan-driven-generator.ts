@@ -9,7 +9,6 @@ interface GeneratedFile {
 export function generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[] {
   const files: GeneratedFile[] = [];
 
-  files.push(generatePackageJson(plan));
   files.push(generateIndexHtml(plan));
   files.push(generateMainTsx());
   files.push(generateViteConfig());
@@ -48,6 +47,8 @@ export function generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[] {
   files.push(generateKpiCard());
   files.push(generateStatusBadge(plan));
 
+  files.unshift(generatePackageJson(plan, files));
+
   return files;
 }
 
@@ -55,30 +56,83 @@ function toSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-function generatePackageJson(plan: ProjectPlan): GeneratedFile {
-  const deps: Record<string, string> = {
-    'react': '^18.3.1',
-    'react-dom': '^18.3.1',
-    'wouter': '^3.0.0',
-    '@tanstack/react-query': '^5.0.0',
-    'lucide-react': '^0.344.0',
-    'recharts': '^2.12.0',
-    'date-fns': '^3.3.1',
-    'clsx': '^2.1.0',
-    'tailwind-merge': '^2.2.0',
-    'express': '^4.18.0',
-    'drizzle-orm': '^0.29.0',
-    'drizzle-zod': '^0.5.0',
-    '@neondatabase/serverless': '^0.7.0',
-    'zod': '^3.22.0',
-  };
-  const devDeps: Record<string, string> = {
-    'vite': '^5.1.0',
-    '@vitejs/plugin-react': '^4.2.0',
-    'tailwindcss': '^3.4.1',
-    'postcss': '^8.4.35',
-    'autoprefixer': '^10.4.17',
-  };
+const AVAILABLE_DEPS: Record<string, string> = {
+  'react': '^18.3.1',
+  'react-dom': '^18.3.1',
+  'wouter': '^3.0.0',
+  '@tanstack/react-query': '^5.0.0',
+  'lucide-react': '^0.344.0',
+  'recharts': '^2.12.0',
+  'date-fns': '^3.3.1',
+  'clsx': '^2.1.0',
+  'tailwind-merge': '^2.2.0',
+  'express': '^4.18.0',
+  'drizzle-orm': '^0.29.0',
+  'drizzle-zod': '^0.5.0',
+  '@neondatabase/serverless': '^0.7.0',
+  'zod': '^3.22.0',
+  'framer-motion': '^11.0.0',
+  'react-hook-form': '^7.50.0',
+  '@hookform/resolvers': '^3.3.0',
+};
+
+const AVAILABLE_DEV_DEPS: Record<string, string> = {
+  'vite': '^5.1.0',
+  '@vitejs/plugin-react': '^4.2.0',
+  'tailwindcss': '^3.4.1',
+  'postcss': '^8.4.35',
+  'autoprefixer': '^10.4.17',
+};
+
+const ALWAYS_INCLUDE_DEPS = [
+  'react', 'react-dom', 'clsx', 'tailwind-merge', 'zod',
+];
+
+const ALWAYS_INCLUDE_DEV_DEPS = [
+  'vite', '@vitejs/plugin-react', 'tailwindcss', 'postcss', 'autoprefixer',
+];
+
+function detectUsedPackages(files: GeneratedFile[]): Set<string> {
+  const allCode = files.map(f => f.content).join('\n');
+  const used = new Set<string>();
+
+  for (const pkg of Object.keys(AVAILABLE_DEPS)) {
+    if (ALWAYS_INCLUDE_DEPS.includes(pkg)) {
+      used.add(pkg);
+      continue;
+    }
+    const escaped = pkg.replace(/[.*+?^${}()|[\]\\/@]/g, '\\$&');
+    const patterns = [
+      `from\\s+["']${escaped}(?:[/"']|$)`,
+      `require\\(\\s*["']${escaped}(?:[/"']|\\))`,
+      `import\\s*\\(\\s*["']${escaped}`,
+      `import\\s+["']${escaped}`,
+      `export\\s+.*\\s+from\\s+["']${escaped}`,
+      `export\\s*\\*\\s*from\\s+["']${escaped}`,
+    ];
+    const importPattern = new RegExp(patterns.join('|'));
+    if (importPattern.test(allCode)) {
+      used.add(pkg);
+    }
+  }
+
+  return used;
+}
+
+function generatePackageJson(plan: ProjectPlan, generatedFiles: GeneratedFile[]): GeneratedFile {
+  const usedPkgs = detectUsedPackages(generatedFiles);
+
+  const deps: Record<string, string> = {};
+  for (const pkg of usedPkgs) {
+    if (AVAILABLE_DEPS[pkg]) {
+      deps[pkg] = AVAILABLE_DEPS[pkg];
+    }
+  }
+
+  const devDeps: Record<string, string> = {};
+  for (const pkg of ALWAYS_INCLUDE_DEV_DEPS) {
+    devDeps[pkg] = AVAILABLE_DEV_DEPS[pkg];
+  }
 
   const content = JSON.stringify({
     name: toSlug(plan.projectName),

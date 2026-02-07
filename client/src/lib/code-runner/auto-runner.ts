@@ -12,6 +12,8 @@ import {
   isWebContainerSupported,
   hasNodeModules,
   setPackageJsonHash,
+  getPreWarmStatus,
+  getPreWarmedPackages,
   type FileSystemTree,
   type RunResult
 } from './webcontainer';
@@ -539,9 +541,51 @@ export default {
       
       const shouldSkipInstall = hasExistingModules && !pkgChanged && !options.forceInstall && !useBatchedInstall;
       
+      const isPreWarmed = getPreWarmStatus() === 'ready' && hasExistingModules;
+      
       if (shouldSkipInstall) {
         log('⚡ Dependencies cached, skipping npm install');
         updateState({ progress: 70, message: 'Using cached dependencies' });
+      } else if (isPreWarmed && !useBatchedInstall) {
+        updateState({ status: 'installing', progress: 50, message: 'Using pre-installed packages...' });
+        log('⚡ Core packages pre-installed, checking for extras...');
+
+        const { deps: preWarmedDeps, devDeps: preWarmedDevDeps } = getPreWarmedPackages();
+
+        try {
+          const currentPkg = pkgContent ? JSON.parse(pkgContent || '{}') : {};
+          const projectDeps = currentPkg.dependencies || {};
+          const projectDevDeps = currentPkg.devDependencies || {};
+
+          const extraDeps = Object.keys(projectDeps).filter(d => !preWarmedDeps[d]);
+          const extraDevDeps = Object.keys(projectDevDeps).filter(d => !preWarmedDevDeps[d]);
+
+          if (extraDeps.length > 0 || extraDevDeps.length > 0) {
+            log(`📦 Installing ${extraDeps.length + extraDevDeps.length} extra packages...`);
+            updateState({ progress: 55, message: `Installing ${extraDeps.length + extraDevDeps.length} extra packages...` });
+
+            if (extraDeps.length > 0) {
+              const result = await runNpmInstall(extraDeps, false, (out) => log(out));
+              if (!result.success) {
+                log('⚠️ Some extra packages failed, continuing...');
+              }
+            }
+            if (extraDevDeps.length > 0) {
+              const result = await runNpmInstall(extraDevDeps, true, (out) => log(out));
+              if (!result.success) {
+                log('⚠️ Some extra dev packages failed, continuing...');
+              }
+            }
+            log('✅ Extra packages installed');
+          } else {
+            log('✅ All packages already pre-installed');
+          }
+        } catch {
+          log('⚠️ Could not diff packages, running full install...');
+          await installDependencies((output) => log(output));
+        }
+
+        updateState({ progress: 70, message: 'Dependencies ready' });
       } else if (useBatchedInstall) {
         // Batched install for large package.json files
         updateState({ status: 'installing', progress: 50, message: 'Installing packages in batches...' });
@@ -718,6 +762,12 @@ export function estimateInstallTime(files: { path: string; content: string }[]):
   const { dependencies, devDependencies } = detectDependencies(allCode, useTypeScript);
   const depCount = Object.keys(dependencies).length + Object.keys(devDependencies).length;
   
-  // Rough estimate: 5 seconds base + 3 seconds per dependency
+  if (getPreWarmStatus() === 'ready') {
+    const { deps: preWarmed, devDeps: preWarmedDev } = getPreWarmedPackages();
+    const extraCount = Object.keys(dependencies).filter(d => !preWarmed[d]).length
+      + Object.keys(devDependencies).filter(d => !preWarmedDev[d]).length;
+    return 3 + (extraCount * 3);
+  }
+  
   return 5 + (depCount * 3);
 }

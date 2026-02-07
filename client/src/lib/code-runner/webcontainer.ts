@@ -3,6 +3,30 @@ import { WebContainer, FileSystemTree } from '@webcontainer/api';
 let webcontainerInstance: WebContainer | null = null;
 let bootPromise: Promise<WebContainer> | null = null;
 let lastPackageJsonHash: string | null = null;
+let preWarmPromise: Promise<boolean> | null = null;
+let preWarmStatus: 'idle' | 'booting' | 'installing' | 'ready' | 'failed' = 'idle';
+let preWarmListeners: Array<(status: string, message: string) => void> = [];
+
+const CORE_PACKAGES: Record<string, string> = {
+  'react': '^18.3.1',
+  'react-dom': '^18.3.1',
+  'wouter': '^3.0.0',
+  '@tanstack/react-query': '^5.0.0',
+  'lucide-react': '^0.344.0',
+  'recharts': '^2.12.0',
+  'date-fns': '^3.3.1',
+  'clsx': '^2.1.0',
+  'tailwind-merge': '^2.2.0',
+  'zod': '^3.22.0',
+};
+
+const CORE_DEV_PACKAGES: Record<string, string> = {
+  'vite': '^5.1.0',
+  '@vitejs/plugin-react': '^4.2.0',
+  'tailwindcss': '^3.4.1',
+  'postcss': '^8.4.35',
+  'autoprefixer': '^10.4.17',
+};
 
 export interface RunResult {
   success: boolean;
@@ -13,7 +37,6 @@ export interface RunResult {
 
 export type { FileSystemTree };
 
-// Simple hash for comparing package.json changes
 function simpleHash(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -24,7 +47,6 @@ function simpleHash(str: string): string {
   return hash.toString(36);
 }
 
-// Check if node_modules exists in the container
 export async function hasNodeModules(): Promise<boolean> {
   try {
     const container = await getWebContainer();
@@ -35,12 +57,111 @@ export async function hasNodeModules(): Promise<boolean> {
   }
 }
 
-// Set the package.json hash to track changes
 export function setPackageJsonHash(packageJson: string): boolean {
   const newHash = simpleHash(packageJson);
   const changed = lastPackageJsonHash !== newHash;
   lastPackageJsonHash = newHash;
   return changed;
+}
+
+export function getPreWarmStatus(): string {
+  return preWarmStatus;
+}
+
+export function onPreWarmProgress(listener: (status: string, message: string) => void) {
+  preWarmListeners.push(listener);
+  return () => {
+    preWarmListeners = preWarmListeners.filter(l => l !== listener);
+  };
+}
+
+function notifyPreWarm(status: string, message: string) {
+  preWarmListeners.forEach(l => l(status, message));
+}
+
+export function getPreWarmedPackages(): { deps: Record<string, string>; devDeps: Record<string, string> } {
+  return { deps: { ...CORE_PACKAGES }, devDeps: { ...CORE_DEV_PACKAGES } };
+}
+
+export async function preWarmWebContainer(): Promise<boolean> {
+  if (preWarmStatus === 'ready') return true;
+  if (preWarmPromise && preWarmStatus !== 'failed') return preWarmPromise;
+
+  preWarmPromise = (async () => {
+    try {
+      preWarmStatus = 'booting';
+      notifyPreWarm('booting', 'Starting environment...');
+
+      const container = await getWebContainer();
+      notifyPreWarm('booting', 'Environment ready');
+
+      preWarmStatus = 'installing';
+      notifyPreWarm('installing', 'Pre-installing core packages...');
+
+      const allDeps = { ...CORE_PACKAGES };
+      const allDevDeps = { ...CORE_DEV_PACKAGES };
+
+      const minimalPkg = JSON.stringify({
+        name: 'prewarm-cache',
+        private: true,
+        version: '1.0.0',
+        type: 'module',
+        scripts: { dev: 'vite' },
+        dependencies: allDeps,
+        devDependencies: allDevDeps,
+      }, null, 2);
+
+      await container.fs.writeFile('package.json', minimalPkg);
+
+      const viteConfig = `import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+export default defineConfig({ plugins: [react()] });
+`;
+      await container.fs.writeFile('vite.config.ts', viteConfig);
+
+      const installProcess = await container.spawn('npm', [
+        'install',
+        '--prefer-offline',
+        '--no-audit',
+        '--no-fund',
+        '--loglevel=error',
+        '--fetch-retries=2',
+        '--fetch-timeout=30000'
+      ]);
+
+      let installOutput = '';
+      installProcess.output.pipeTo(
+        new WritableStream({
+          write(data) {
+            installOutput += data;
+            if (data.includes('added')) {
+              notifyPreWarm('installing', data.trim());
+            }
+          },
+        })
+      );
+
+      const exitCode = await installProcess.exit;
+
+      if (exitCode === 0) {
+        preWarmStatus = 'ready';
+        notifyPreWarm('ready', 'Core packages pre-installed');
+        return true;
+      } else {
+        preWarmStatus = 'failed';
+        preWarmPromise = null;
+        notifyPreWarm('failed', 'Pre-install failed, will install on demand');
+        return false;
+      }
+    } catch (err) {
+      preWarmStatus = 'failed';
+      preWarmPromise = null;
+      notifyPreWarm('failed', `Pre-warm error: ${err}`);
+      return false;
+    }
+  })();
+
+  return preWarmPromise;
 }
 
 export async function getWebContainer(): Promise<WebContainer> {
