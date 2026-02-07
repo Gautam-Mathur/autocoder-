@@ -1847,6 +1847,7 @@ function generateConfigFiles(blueprint: ProjectBlueprint, options: GenerationOpt
         vitest: '^1.0.0',
         autoprefixer: '^10.4.16',
         postcss: '^8.4.32',
+        'fast-glob': '^3.3.2',
       },
     }, null, 2),
     type: 'config',

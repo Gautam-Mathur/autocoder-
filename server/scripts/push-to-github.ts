@@ -182,7 +182,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Clean npm console output: NpmOutputParser strips ANSI/spinners, shows meaningful package info',
+      message: 'Speed up code running: expand pre-warm packages, add fast-glob fix for PostCSS/Tailwind',
       tree: newTree.sha,
       parents: [latestSha]
     });

@@ -82,6 +82,7 @@ const AVAILABLE_DEV_DEPS: Record<string, string> = {
   'tailwindcss': '^3.4.1',
   'postcss': '^8.4.35',
   'autoprefixer': '^10.4.17',
+  'fast-glob': '^3.3.2',
 };
 
 const ALWAYS_INCLUDE_DEPS = [
@@ -89,7 +90,7 @@ const ALWAYS_INCLUDE_DEPS = [
 ];
 
 const ALWAYS_INCLUDE_DEV_DEPS = [
-  'vite', '@vitejs/plugin-react', 'tailwindcss', 'postcss', 'autoprefixer',
+  'vite', '@vitejs/plugin-react', 'tailwindcss', 'postcss', 'autoprefixer', 'fast-glob',
 ];
 
 function detectUsedPackages(files: GeneratedFile[]): Set<string> {

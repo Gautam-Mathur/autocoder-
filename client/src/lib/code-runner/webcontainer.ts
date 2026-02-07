@@ -19,6 +19,9 @@ const CORE_PACKAGES: Record<string, string> = {
   'clsx': '^2.1.0',
   'tailwind-merge': '^2.2.0',
   'zod': '^3.22.0',
+  'react-hook-form': '^7.50.0',
+  '@hookform/resolvers': '^3.3.0',
+  'framer-motion': '^11.0.0',
 };
 
 const CORE_DEV_PACKAGES: Record<string, string> = {
@@ -27,6 +30,7 @@ const CORE_DEV_PACKAGES: Record<string, string> = {
   'tailwindcss': '^3.4.1',
   'postcss': '^8.4.35',
   'autoprefixer': '^10.4.17',
+  'fast-glob': '^3.3.2',
 };
 
 export interface RunResult {
