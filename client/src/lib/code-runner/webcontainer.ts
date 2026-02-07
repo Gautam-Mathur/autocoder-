@@ -76,6 +76,7 @@ export function onPreWarmProgress(listener: (status: string, message: string) =>
 }
 
 function notifyPreWarm(status: string, message: string) {
+  console.log(`[PreWarm] [${status}] ${message}`);
   preWarmListeners.forEach(l => l(status, message));
 }
 

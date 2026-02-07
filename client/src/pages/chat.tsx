@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers, PanelRightClose, PanelRight, Activity, Zap } from "lucide-react";
-import { isWebContainerSupported, preWarmWebContainer } from "@/lib/code-runner/webcontainer";
+import { isWebContainerSupported, preWarmWebContainer, onPreWarmProgress, getPreWarmStatus } from "@/lib/code-runner/webcontainer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -253,6 +253,7 @@ export default function Chat() {
   const [completedThinkingSteps, setCompletedThinkingSteps] = useState<Map<number, ThinkingStep[]>>(new Map());
   const [conversationPhase, setConversationPhase] = useState<string>("initial");
   const [approvalMessageId, setApprovalMessageId] = useState<number | null>(null);
+  const [preWarmState, setPreWarmState] = useState<string>(getPreWarmStatus());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Prevent CMD+1/CMD+2 from interfering with the app
@@ -281,7 +282,10 @@ export default function Chat() {
       const timer = setTimeout(() => {
         preWarmWebContainer().catch(() => {});
       }, 3000);
-      return () => clearTimeout(timer);
+      const unsubscribe = onPreWarmProgress((status) => {
+        setPreWarmState(status);
+      });
+      return () => { clearTimeout(timer); unsubscribe(); };
     }
   }, []);
 
@@ -763,6 +767,31 @@ export default function Chat() {
                   <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground border-l border-border pl-2" data-testid="project-context-indicator">
                     <Layers className="w-3 h-3 text-primary" />
                     <span className="font-medium text-foreground text-xs truncate max-w-[100px]">{activeConversation.projectName}</span>
+                  </div>
+                )}
+                {isWebContainerSupported() && preWarmState !== 'idle' && (
+                  <div
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground border-l border-border pl-2"
+                    title={
+                      preWarmState === 'ready' ? 'Environment cached and ready'
+                        : preWarmState === 'failed' ? 'Cache failed, will install on demand'
+                        : 'Caching core packages...'
+                    }
+                    data-testid="prewarm-status-indicator"
+                  >
+                    <div
+                      data-testid="status-prewarm-dot"
+                      className={`w-2 h-2 rounded-full ${
+                        preWarmState === 'ready' ? 'bg-green-500 dark:bg-green-400'
+                          : preWarmState === 'failed' ? 'bg-red-500 dark:bg-red-400'
+                          : 'bg-yellow-500 dark:bg-yellow-400 animate-pulse'
+                      }`}
+                    />
+                    <span className="hidden sm:inline text-[10px]" data-testid="text-prewarm-status">
+                      {preWarmState === 'ready' ? 'Cached'
+                        : preWarmState === 'failed' ? 'No cache'
+                        : 'Caching...'}
+                    </span>
                   </div>
                 )}
               </div>
