@@ -145,7 +145,7 @@ export function analyzeRequest(userMessage: string, conversationContext?: string
   const lower = fullText.toLowerCase();
 
   const level1 = decomposeIntent(lower, userMessage);
-  const level2 = detectDomain(lower, level1);
+  const level2 = detectDomain(lower, level1, fullText);
   const level3 = extractEntities(lower, level2, level1);
   const level4 = detectWorkflows(lower, level3, level2);
   const level5 = generateClarifications(level1, level2, level3, level4, userMessage, clarificationRound);
@@ -232,20 +232,28 @@ function decomposeIntent(lower: string, original: string): IntentDecomposition {
   return { primaryGoal, applicationType, targetAudience, scale, keyRequirements, impliedFeatures, mentionedFeatures };
 }
 
-function detectDomain(lower: string, intent: IntentDecomposition): DomainDetectionResult {
+function detectDomain(lower: string, intent: IntentDecomposition, originalText?: string): DomainDetectionResult {
   const domainMatches = detectDomainFromText(lower);
 
   if (domainMatches.length === 0) {
-    const synthesized = synthesizeDomain(lower);
+    const synthesized = synthesizeDomain(originalText || lower);
     if (synthesized) {
-      const synModules = synthesized.modules.map(m => m.name);
+      const allSynModules = synthesized.modules.map(m => m.name);
+      const matchedSynModules = synthesized.modules
+        .filter(m => {
+          const modKeywords = [...m.entities.map(e => e.toLowerCase()), m.name.toLowerCase()];
+          return modKeywords.some(k => lower.includes(k));
+        })
+        .map(m => m.name);
+      const detectedSynModules = matchedSynModules.length > 0 ? matchedSynModules : allSynModules;
+      const suggestedSynModules = allSynModules.filter(m => !detectedSynModules.includes(m));
       return {
         primaryDomain: synthesized,
         secondaryDomains: [],
         confidence: isDomainSynthesized(synthesized) ? 0.5 : 0.4,
         matchedKeywords: [],
-        detectedModules: synModules,
-        suggestedModules: [],
+        detectedModules: detectedSynModules,
+        suggestedModules: suggestedSynModules,
       };
     }
     return {
@@ -512,6 +520,22 @@ function generateClarifications(
   }
 
   const answeredMap = new Map<string, string>();
+
+  if (clarificationRound > 0) {
+    if (entities.mentionedEntities.length > 0) {
+      answeredMap.set('q-entities', entities.mentionedEntities.join(', '));
+    }
+    if (domain.primaryDomain) {
+      answeredMap.set('q-scope', domain.primaryDomain.name);
+    }
+    if (workflows.inferredWorkflows.length > 0) {
+      answeredMap.set('q-workflows', workflows.inferredWorkflows.map(w => w.name).join(', '));
+    }
+    if (intent.targetAudience !== 'internal team') {
+      answeredMap.set('q-roles', intent.targetAudience);
+    }
+  }
+
   const gaps = identifyInformationGaps(originalMessage, nlpExtracted, complexity);
   const readiness = calculateReadinessScore(nlpExtracted, gaps, answeredMap);
 

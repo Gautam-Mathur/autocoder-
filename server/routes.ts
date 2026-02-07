@@ -613,6 +613,7 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
           phase: currentPhase as any,
           understandingData: (conversation as any).understandingData as any,
           planData: (conversation as any).projectPlanData as any,
+          conversationId: conversationId,
         };
 
         // Stream the response with thinking steps
@@ -2897,12 +2898,11 @@ You're not just a code generator - you're a thinking partner who builds exactly 
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         res.end();
       } else {
-        // No cloud AI - use server-side plan-driven pipeline for all requests
-        // instead of punting to client's basic template engine
         const convState: ConversationState = {
           phase: currentPhase as any,
           understandingData: (conversation as any).understandingData as any,
           planData: (conversation as any).projectPlanData as any,
+          conversationId: conversationId,
         };
 
         res.setHeader("Content-Type", "text/event-stream");
