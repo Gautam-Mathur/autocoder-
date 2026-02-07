@@ -19,6 +19,8 @@ AutoCoder is an AI-powered, full-stack code generation platform that translates 
   - Domain synthesis receives original text for better matching and prioritizes detected vs suggested modules
   - Plan modifications re-apply contextual reasoning and learned patterns
 - Database schema includes 3 learning tables (generation_patterns, generation_outcomes, user_preferences)
+- **Well-Known App Fast-Path**: 16 common app patterns (task manager, todo app, CRM, expense tracker, etc.) skip clarification entirely — simple requests go straight to plan generation with boosted confidence (85%+). Verb stripping handles "Create a...", "Build me a...", "I need a..." etc. Only triggers for short requests (≤15 words) on first round.
+- **Reduced Clarification Aggressiveness**: Scope ambiguity gaps no longer block trivial/simple complexity requests. Combined with well-known app detection, prevents interrogation for obvious requests like "Create a task manager".
 - **End-to-End Integration Test**: 29 automated tests verify full pipeline from NL description through understanding, planning, reasoning, code generation, and learning (server/tests/intelligence-pipeline.test.ts)
 - Zero-config deployment: Server-side plan-driven pipeline handles ALL requests without cloud AI keys
 - 14 industry domain profiles with deep entity/workflow/role definitions
