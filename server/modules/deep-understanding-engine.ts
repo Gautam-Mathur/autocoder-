@@ -140,6 +140,42 @@ const APP_TYPE_PATTERNS: Record<string, string[]> = {
   'saas': ['saas', 'subscription', 'multi-tenant', 'platform'],
 };
 
+const WELL_KNOWN_APP_PATTERNS: Record<string, { domain: string; modules: string[]; description: string }> = {
+  'task manager': { domain: 'project-management', modules: ['Tasks', 'Projects', 'Dashboard'], description: 'Task management application' },
+  'task tracker': { domain: 'project-management', modules: ['Tasks', 'Projects', 'Dashboard'], description: 'Task tracking application' },
+  'todo app': { domain: 'project-management', modules: ['Tasks', 'Dashboard'], description: 'Todo list application' },
+  'todo list': { domain: 'project-management', modules: ['Tasks', 'Dashboard'], description: 'Todo list application' },
+  'project manager': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Team', 'Dashboard'], description: 'Project management application' },
+  'project tracker': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Dashboard'], description: 'Project tracking application' },
+  'issue tracker': { domain: 'project-management', modules: ['Tasks', 'Projects', 'Dashboard'], description: 'Issue tracking application' },
+  'kanban board': { domain: 'project-management', modules: ['Tasks', 'Projects', 'Dashboard'], description: 'Kanban board application' },
+  'blog': { domain: 'project-management', modules: ['Tasks'], description: 'Blog platform' },
+  'crm': { domain: 'crm', modules: ['Contacts', 'Deals', 'Pipeline', 'Dashboard'], description: 'CRM application' },
+  'inventory manager': { domain: 'inventory', modules: ['Products', 'Stock', 'Dashboard'], description: 'Inventory management application' },
+  'inventory tracker': { domain: 'inventory', modules: ['Products', 'Stock', 'Dashboard'], description: 'Inventory tracking application' },
+  'invoice app': { domain: 'finance', modules: ['Invoices', 'Clients', 'Dashboard'], description: 'Invoice management application' },
+  'expense tracker': { domain: 'finance', modules: ['Expenses', 'Budget', 'Dashboard'], description: 'Expense tracking application' },
+  'booking system': { domain: 'restaurant', modules: ['Reservations', 'Dashboard'], description: 'Booking system' },
+  'appointment scheduler': { domain: 'healthcare', modules: ['Appointments', 'Patients', 'Dashboard'], description: 'Appointment scheduling application' },
+};
+
+function isWellKnownApp(text: string): string | null {
+  const lower = text.toLowerCase().replace(/^(create|build|make|develop|design|i want|i need|give me|generate)\s+(a|an|the|me\s+a|me\s+an)?\s*/i, '').trim();
+  for (const pattern of Object.keys(WELL_KNOWN_APP_PATTERNS)) {
+    if (lower === pattern || lower === `${pattern} app` || lower === `${pattern} application` ||
+        lower.startsWith(`${pattern} to `) || lower.startsWith(`${pattern} for `) ||
+        lower.startsWith(`${pattern} that `) || lower.startsWith(`${pattern} with `)) {
+      return pattern;
+    }
+  }
+  for (const pattern of Object.keys(WELL_KNOWN_APP_PATTERNS)) {
+    if (lower.includes(pattern)) {
+      return pattern;
+    }
+  }
+  return null;
+}
+
 export function analyzeRequest(userMessage: string, conversationContext?: string, clarificationRound: number = 0): UnderstandingResult {
   const fullText = conversationContext ? `${conversationContext} ${userMessage}` : userMessage;
   const lower = fullText.toLowerCase();
@@ -148,6 +184,40 @@ export function analyzeRequest(userMessage: string, conversationContext?: string
   const level2 = detectDomain(lower, level1, fullText);
   const level3 = extractEntities(lower, level2, level1);
   const level4 = detectWorkflows(lower, level3, level2);
+
+  const wellKnownMatch = isWellKnownApp(userMessage);
+  const isSimpleRequest = userMessage.split(/\s+/).length <= 15;
+
+  if (wellKnownMatch && isSimpleRequest && clarificationRound === 0) {
+    const appInfo = WELL_KNOWN_APP_PATTERNS[wellKnownMatch];
+    const assumptions: string[] = [];
+    if (level2.primaryDomain) {
+      assumptions.push(`This is for the ${level2.primaryDomain.name} industry`);
+    }
+    assumptions.push(`Well-known app type: ${appInfo.description}`);
+    if (level2.detectedModules.length > 0) {
+      assumptions.push(`Key modules: ${level2.detectedModules.join(', ')}`);
+    } else {
+      assumptions.push(`Key modules: ${appInfo.modules.join(', ')}`);
+    }
+    const allEntities = [...level3.mentionedEntities, ...level3.inferredEntities];
+    if (allEntities.length > 0) {
+      assumptions.push(`Key data: ${allEntities.slice(0, 5).join(', ')}`);
+    }
+
+    const boostedConfidence = Math.max(calculateOverallConfidence(level1, level2, level3, level4), 0.85);
+
+    return {
+      level1_intent: level1,
+      level2_domain: { ...level2, confidence: Math.max(level2.confidence, 0.8) },
+      level3_entities: level3,
+      level4_workflows: level4,
+      level5_clarification: { needsClarification: false, questions: [], assumptions },
+      confidence: boostedConfidence,
+      readyForPlan: true,
+    };
+  }
+
   const level5 = generateClarifications(level1, level2, level3, level4, userMessage, clarificationRound);
 
   const confidence = calculateOverallConfidence(level1, level2, level3, level4);

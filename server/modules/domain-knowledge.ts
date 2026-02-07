@@ -1157,7 +1157,7 @@ const INDUSTRY_DOMAINS: Record<string, IndustryDomain> = {
     id: 'project-management',
     name: 'Project Management',
     description: 'Project tracking, task management, team collaboration, and reporting',
-    keywords: ['project management', 'task', 'kanban', 'agile', 'scrum', 'sprint', 'jira', 'trello', 'asana', 'todo', 'planner', 'backlog'],
+    keywords: ['project management', 'task manager', 'task management', 'task tracker', 'task app', 'task board', 'task', 'kanban', 'agile', 'scrum', 'sprint', 'jira', 'trello', 'asana', 'todo app', 'todo list', 'todo tracker', 'todo', 'planner', 'backlog', 'issue tracker', 'project tracker'],
     modules: [
       { name: 'Projects', description: 'Project portfolio management', entities: ['Project'], pages: [
         { name: 'Projects', path: '/projects', description: 'All projects with progress', features: ['search', 'status-filter', 'owner-filter', 'create-project', 'progress-bar'] },

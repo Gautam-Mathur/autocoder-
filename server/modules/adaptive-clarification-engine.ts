@@ -176,7 +176,7 @@ export function identifyInformationGaps(
     });
   }
 
-  if (complexity.ambiguityScore > 0.6) {
+  if (complexity.ambiguityScore > 0.6 && complexity.level !== 'trivial' && complexity.level !== 'simple') {
     gaps.push({
       category: 'scope',
       description: 'The project scope is ambiguous - unclear what features are needed',
