@@ -124,50 +124,40 @@ async function pushToGitHub() {
     
     const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
     
-    for (const file of files) {
-      let retries = 3;
-      while (retries > 0) {
-        try {
-          let blob;
-          if (file.content.startsWith('__BASE64__')) {
-            blob = await octokit.git.createBlob({
-              owner, repo,
-              content: file.content.slice(10),
-              encoding: 'base64'
-            });
-          } else {
-            blob = await octokit.git.createBlob({
-              owner, repo,
-              content: file.content,
-              encoding: 'utf-8'
-            });
-          }
-          
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(batch.map(async (file) => {
+        const isBase64 = file.content.startsWith('__BASE64__');
+        const blob = await octokit.git.createBlob({
+          owner, repo,
+          content: isBase64 ? file.content.slice(10) : file.content,
+          encoding: isBase64 ? 'base64' : 'utf-8'
+        });
+        return { path: file.path, sha: blob.data.sha };
+      }));
+      
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
           treeItems.push({
-            path: file.path,
+            path: result.value.path,
             mode: '100644' as const,
             type: 'blob' as const,
-            sha: blob.data.sha
+            sha: result.value.sha
           });
-          
           blobCount++;
-          if (blobCount % 50 === 0) {
-            console.log(`  Created ${blobCount}/${files.length} blobs...`);
-            await delay(2000);
-          } else if (blobCount % 10 === 0) {
-            await delay(500);
-          }
-          break;
-        } catch (e: any) {
-          if (e.message?.includes('secondary rate limit') && retries > 1) {
-            console.log(`  Rate limited on ${file.path}, waiting 30s... (${retries - 1} retries left)`);
-            await delay(30000);
-            retries--;
-          } else {
-            console.log(`  Skipping ${file.path}: ${e.message}`);
-            break;
-          }
+        } else {
+          console.log(`  Skipping file: ${result.reason?.message || 'unknown error'}`);
         }
+      }
+      
+      if (blobCount % 50 < BATCH_SIZE) {
+        console.log(`  Created ${blobCount}/${files.length} blobs...`);
+      }
+      
+      if (results.some(r => r.status === 'rejected' && (r.reason as any)?.message?.includes('rate limit'))) {
+        console.log('  Rate limited, waiting 30s...');
+        await delay(30000);
       }
     }
     
@@ -182,7 +172,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'Fix pre-warm race condition: auto-runner now waits for pre-warm before installing',
+      message: 'AutoCoder: Full AI intelligence pipeline with bi-directional learning, semantic code generation, UI pattern pages, and relationship-aware detail views',
       tree: newTree.sha,
       parents: [latestSha]
     });
