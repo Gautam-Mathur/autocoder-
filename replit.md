@@ -14,6 +14,7 @@ AutoCoder is an AI-powered, full-stack code generation platform that translates 
 - Added 7 new UI component generators (Dialog, Select, Label, Textarea, Tabs, tsconfig.json, tsconfig.node.json)
 - Enhanced list pages with create dialogs, delete mutations, status filters
 - Updated all documentation with accurate statistics
+- Comprehensive logging upgrade: client-side RunnerLogger with color-coded CSS console output, 12 new log categories (WebContainer, PreWarm, NPM, DevServer, FileSystem, Pipeline, AutoRunner, CodeGen, Validator, ErrorFix, Process, Cache), full instrumentation of WebContainer boot/pre-warm/npm install/mount/dev server/teardown and auto-runner pipeline phases with pass/fail reasons and timing
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
