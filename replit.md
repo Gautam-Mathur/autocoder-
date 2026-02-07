@@ -6,15 +6,20 @@ AutoCoder is an AI-powered, full-stack code generation platform that translates 
 ## Recent Changes (Feb 2026)
 - **Advanced AI Intelligence Layer (2,683 lines across 4 new modules)**:
   - Contextual Reasoning Engine (949 lines): Semantic entity relationship discovery, computed field inference (fullName, lineTotal, duration), UI pattern detection (kanban, timeline, calendar), validation rule generation, business logic analysis
-  - Domain Synthesis Engine (642 lines): Fuzzy multi-domain matching with confidence scoring, dynamic domain synthesis from unrecognized descriptions, entity/workflow extraction via NLP patterns, original-text-aware keyword matching with module prioritization
-  - Adaptive Clarification Engine (598 lines): Complexity-driven question depth, information gap tracking with answeredMap from prior rounds, priority-based question ordering, smart stop conditions based on readiness scoring
-  - Generation Learning Engine (494 lines): Pattern storage from successful generations, outcome recording with actual conversation IDs and generation duration, user preference tracking, learned pattern application for improving future generations
-- All 4 intelligence modules fully integrated into plan-driven pipeline:
-  - Contextual reasoning enriches plans with relationships, computed fields, UI patterns, and validation rules via `enrichPlanWithReasoning()`
-  - Learning engine records outcomes with real conversationId and measured generation duration
+  - Domain Synthesis Engine (642 lines): Fuzzy multi-domain matching with confidence scoring, dynamic domain synthesis from unrecognized descriptions, entity/workflow extraction via NLP patterns, proper English singularization (classes→class, statuses→status), multi-word entity support up to 3 words with PascalCase naming
+  - Adaptive Clarification Engine (598 lines): Complexity-driven question depth, information gap tracking with answeredMap from prior rounds, priority-based question ordering, smart stop conditions based on readiness scoring, fully integrated into conversation flow via shouldAskMoreQuestions/createClarificationState
+  - Generation Learning Engine (494 lines): Pattern storage with PostgreSQL persistence, outcome recording with actual conversation IDs and generation duration, user preference tracking, learned pattern application, **bi-directional error learning** (learnFromErrors analyzes error patterns, getErrorPreventionRules returns actionable fixes, applyLearnedPatterns prevents recurring failures)
+- All 4 intelligence modules fully integrated into plan-driven pipeline — **actually influencing generated code**:
+  - Contextual reasoning drives smart form inputs (currency $ prefix, email/tel/date types), semantic table cells (Intl.NumberFormat for currency, toLocaleDateString for dates, mailto links), business rule validation code injected into API routes
+  - **Dashboard KPIs**: Semantic type detection (currency/percentage/count) with real data formatting via Intl.NumberFormat, useMemo-computed values from entity data
+  - **UI Pattern Pages**: Kanban board (workflow state columns with draggable cards), Calendar view (month grid with item grouping), Card Grid (responsive visual cards with images) — all with Table fallback and view toggle
+  - **Relationship-aware Detail Pages**: Child entity tables (e.g., Order→OrderItems) and parent navigation links auto-generated from discovered relationships
+  - Learning engine records outcomes with real conversationId, persists to PostgreSQL, loads patterns on restart, prevents recurring errors via error pattern analysis
   - Adaptive clarification tracks answered topics across rounds to avoid redundant questions
   - Domain synthesis receives original text for better matching and prioritizes detected vs suggested modules
+  - Plan modifications re-apply contextual reasoning and learned patterns
 - Database schema includes 3 learning tables (generation_patterns, generation_outcomes, user_preferences)
+- **End-to-End Integration Test**: 29 automated tests verify full pipeline from NL description through understanding, planning, reasoning, code generation, and learning (server/tests/intelligence-pipeline.test.ts)
 - Zero-config deployment: Server-side plan-driven pipeline handles ALL requests without cloud AI keys
 - 14 industry domain profiles with deep entity/workflow/role definitions
 - Deep Understanding Engine with 5-level analysis, multi-domain blending, keyword-based entity inference

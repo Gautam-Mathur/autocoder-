@@ -11,7 +11,7 @@ export interface LearningContext {
 
 export interface LearnedPattern {
   id?: number;
-  patternType: 'entity-structure' | 'field-naming' | 'workflow-design' | 'ui-layout' | 'tech-choice' | 'domain-mapping' | 'validation-rule' | 'page-structure';
+  patternType: 'entity-structure' | 'field-naming' | 'workflow-design' | 'ui-layout' | 'tech-choice' | 'domain-mapping' | 'validation-rule' | 'page-structure' | 'error-prevention';
   domainId?: string;
   entityType?: string;
   patternKey: string;
@@ -313,6 +313,10 @@ export class GenerationLearningEngine {
       }
     }
 
+    if (feedback.errors.length > 0) {
+      this.learnFromErrors(feedback.errors, feedback.plan);
+    }
+
     if (feedback.userModifications.length > 0) {
       for (const mod of feedback.userModifications) {
         this.learnFromModification(mod, feedback.domainId);
@@ -339,6 +343,159 @@ export class GenerationLearningEngine {
         }).execute();
       } catch (e) {}
     }
+  }
+
+  learnFromErrors(errors: string[], plan: ProjectPlan): void {
+    for (const error of errors) {
+      const errorLower = error.toLowerCase();
+
+      if (/cannot find module|module not found|is not defined/i.test(errorLower)) {
+        const moduleMatch = error.match(/['"]([^'"]+)['"]/);
+        if (moduleMatch) {
+          const key = `error-missing-import-${moduleMatch[1]}`;
+          const existing = this.patterns.get(key);
+          if (existing) {
+            existing.failureCount += 1;
+            existing.reliability = 0;
+            existing.patternValue.occurrences = (existing.patternValue.occurrences || 0) + 1;
+            existing.patternValue.lastSeen = new Date().toISOString();
+            this.persistPattern(existing);
+          } else {
+            const newPattern: LearnedPattern = {
+              patternType: 'error-prevention',
+              patternKey: key,
+              patternValue: {
+                errorType: 'missing-import',
+                module: moduleMatch[1],
+                occurrences: 1,
+                lastSeen: new Date().toISOString(),
+                fix: `Ensure ${moduleMatch[1]} is included in package.json dependencies`,
+              },
+              successCount: 0,
+              failureCount: 1,
+              reliability: 0,
+            };
+            this.patterns.set(key, newPattern);
+            this.persistPattern(newPattern);
+          }
+        }
+      }
+
+      if (/type.*not assignable|expected.*got/i.test(errorLower)) {
+        const key = `error-type-mismatch-${Date.now()}`;
+        const newPattern: LearnedPattern = {
+          patternType: 'error-prevention',
+          patternKey: key,
+          patternValue: {
+            errorType: 'type-mismatch',
+            errorMessage: error,
+            occurrences: 1,
+            lastSeen: new Date().toISOString(),
+          },
+          successCount: 0,
+          failureCount: 1,
+          reliability: 0,
+        };
+        this.patterns.set(key, newPattern);
+        this.persistPattern(newPattern);
+      }
+
+      if (/property.*does not exist|cannot read.*undefined/i.test(errorLower)) {
+        const propMatch = error.match(/property\s+'(\w+)'/i);
+        if (propMatch) {
+          const key = `error-missing-field-${propMatch[1]}`;
+          const existing = this.patterns.get(key);
+          if (existing) {
+            existing.failureCount += 1;
+            existing.patternValue.occurrences = (existing.patternValue.occurrences || 0) + 1;
+            this.persistPattern(existing);
+          } else {
+            const newPattern: LearnedPattern = {
+              patternType: 'error-prevention',
+              patternKey: key,
+              patternValue: {
+                errorType: 'missing-field',
+                fieldName: propMatch[1],
+                occurrences: 1,
+                fix: `Ensure field '${propMatch[1]}' exists in entity schema`,
+              },
+              successCount: 0,
+              failureCount: 1,
+              reliability: 0,
+            };
+            this.patterns.set(key, newPattern);
+            this.persistPattern(newPattern);
+          }
+        }
+      }
+
+      if (/jsx|component|is not a function|element type is invalid/i.test(errorLower)) {
+        const compMatch = error.match(/<(\w+)/);
+        if (compMatch) {
+          const key = `error-component-${compMatch[1]}`;
+          const existing = this.patterns.get(key);
+          if (existing) {
+            existing.failureCount += 1;
+            existing.patternValue.occurrences = (existing.patternValue.occurrences || 0) + 1;
+            this.persistPattern(existing);
+          } else {
+            const newPattern: LearnedPattern = {
+              patternType: 'error-prevention',
+              patternKey: key,
+              patternValue: {
+                errorType: 'component-error',
+                componentName: compMatch[1],
+                occurrences: 1,
+                fix: `Ensure component '${compMatch[1]}' is properly defined and exported`,
+              },
+              successCount: 0,
+              failureCount: 1,
+              reliability: 0,
+            };
+            this.patterns.set(key, newPattern);
+            this.persistPattern(newPattern);
+          }
+        }
+      }
+    }
+  }
+
+  getErrorPreventionRules(): {
+    requiredDependencies: string[];
+    requiredFields: { entityPattern: string; fieldName: string }[];
+    avoidComponents: string[];
+    safeImports: string[];
+  } {
+    const rules = {
+      requiredDependencies: [] as string[],
+      requiredFields: [] as { entityPattern: string; fieldName: string }[],
+      avoidComponents: [] as string[],
+      safeImports: [] as string[],
+    };
+
+    for (const [key, pattern] of Array.from(this.patterns.entries())) {
+      if (pattern.patternType !== 'error-prevention') continue;
+      if ((pattern.patternValue.occurrences || 0) < 2) continue;
+
+      switch (pattern.patternValue.errorType) {
+        case 'missing-import':
+          rules.requiredDependencies.push(pattern.patternValue.module);
+          break;
+        case 'missing-field':
+          rules.requiredFields.push({
+            entityPattern: '*',
+            fieldName: pattern.patternValue.fieldName,
+          });
+          break;
+        case 'component-error':
+          if (pattern.failureCount >= 3) {
+            rules.avoidComponents.push(pattern.patternValue.componentName);
+          }
+          break;
+      }
+    }
+
+    return rules;
   }
 
   private learnEntityPattern(entity: PlannedEntity, domainId?: string): void {
@@ -487,9 +644,21 @@ export class GenerationLearningEngine {
     const listPattern = this.patterns.get('list-page-fields');
     const featurePattern = this.patterns.get('list-page-features');
 
+    let optimalKpiCount = 4;
+    let optimalColumns = 5;
+
+    const successfulEntityPatterns = Array.from(this.patterns.values())
+      .filter(p => p.patternType === 'entity-structure' && p.reliability > 0.7);
+
+    if (successfulEntityPatterns.length > 0) {
+      const avgFieldCount = successfulEntityPatterns.reduce((sum, p) =>
+        sum + (p.patternValue.recommended?.length || 5), 0) / successfulEntityPatterns.length;
+      optimalColumns = Math.min(Math.max(Math.round(avgFieldCount * 0.6), 3), 7);
+    }
+
     return {
-      dashboardKpiCount: kpiPattern?.patternValue.optimalCount || 4,
-      listPageColumns: listPattern?.patternValue.optimalColumns || 5,
+      dashboardKpiCount: kpiPattern?.patternValue.optimalCount || optimalKpiCount,
+      listPageColumns: listPattern?.patternValue.optimalColumns || optimalColumns,
       listPageFeatures: featurePattern?.patternValue.recommended || ['search', 'create-dialog', 'delete-action'],
     };
   }
@@ -572,6 +741,47 @@ export class GenerationLearningEngine {
           enhancedPlan.kpis.push(`Total ${entityName}s`);
         } else {
           break;
+        }
+      }
+    }
+
+    const errorRules = this.getErrorPreventionRules();
+
+    for (const rule of errorRules.requiredFields) {
+      for (const entity of enhancedPlan.dataModel) {
+        if (!entity.fields.some(f => f.name === rule.fieldName)) {
+          if (['name', 'title', 'description', 'status', 'createdAt'].includes(rule.fieldName)) {
+            entity.fields.push({
+              name: rule.fieldName,
+              type: rule.fieldName === 'createdAt' ? 'timestamp' : 'text',
+              required: false,
+            });
+          }
+        }
+      }
+    }
+
+    if (errorRules.requiredDependencies.length > 0) {
+      if (!enhancedPlan.techStack) {
+        (enhancedPlan as any).techStack = {};
+      }
+      if (!(enhancedPlan as any).techStack.additionalDependencies) {
+        (enhancedPlan as any).techStack.additionalDependencies = [];
+      }
+      for (const dep of errorRules.requiredDependencies) {
+        if (!(enhancedPlan as any).techStack.additionalDependencies.includes(dep)) {
+          (enhancedPlan as any).techStack.additionalDependencies.push(dep);
+        }
+      }
+    }
+
+    if (errorRules.avoidComponents.length > 0) {
+      if (!(enhancedPlan as any).avoidComponents) {
+        (enhancedPlan as any).avoidComponents = [];
+      }
+      for (const comp of errorRules.avoidComponents) {
+        if (!(enhancedPlan as any).avoidComponents.includes(comp)) {
+          (enhancedPlan as any).avoidComponents.push(comp);
         }
       }
     }

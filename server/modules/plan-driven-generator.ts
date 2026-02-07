@@ -132,6 +132,13 @@ function generatePackageJson(plan: ProjectPlan, generatedFiles: GeneratedFile[])
     }
   }
 
+  const additionalDeps = (plan as any).techStack?.additionalDependencies || [];
+  for (const dep of additionalDeps) {
+    if (AVAILABLE_DEPS[dep] && !deps[dep]) {
+      deps[dep] = AVAILABLE_DEPS[dep];
+    }
+  }
+
   const devDeps: Record<string, string> = {};
   for (const pkg of ALWAYS_INCLUDE_DEV_DEPS) {
     devDeps[pkg] = AVAILABLE_DEV_DEPS[pkg];
@@ -1287,13 +1294,49 @@ function generatePageComponent(page: PlannedPage, plan: ProjectPlan, reasoning: 
 
 function generateDashboardPage(page: PlannedPage, plan: ProjectPlan, reasoning: ReasoningResult): GeneratedFile['content'] {
   const kpis = plan.kpis.slice(0, 4);
+
+  // Helper function to determine KPI semantic type and formatting
+  const getKpiSemantic = (kpiLabel: string): { type: 'currency' | 'percentage' | 'count' | 'generic'; icon: string; formatExpr: string; sampleValue: string } => {
+    const lower = kpiLabel.toLowerCase();
+    
+    // Check if KPI matches a field semantic from reasoning
+    for (const [entityName, semantics] of Array.from(reasoning?.fieldSemantics?.entries() || [])) {
+      for (const sem of semantics) {
+        if (lower.includes(sem.fieldName.toLowerCase()) || lower.includes(entityName.toLowerCase())) {
+          if (sem.inputType === 'currency') {
+            return { type: 'currency', icon: 'DollarSign', formatExpr: `new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)`, sampleValue: '$48,350' };
+          }
+          if (sem.inputType === 'percentage') {
+            return { type: 'percentage', icon: 'TrendingUp', formatExpr: '`\${value}%`', sampleValue: '94%' };
+          }
+        }
+      }
+    }
+    
+    // Heuristic fallback based on KPI label text
+    if (/revenue|income|sales|cost|price|amount|total.*\$/i.test(lower) || /\$/i.test(lower)) {
+      return { type: 'currency', icon: 'DollarSign', formatExpr: `new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)`, sampleValue: '$48,350' };
+    }
+    if (/rate|percentage|completion|satisfaction|retention|conversion/i.test(lower)) {
+      return { type: 'percentage', icon: 'TrendingUp', formatExpr: '`\${value}%`', sampleValue: '94%' };
+    }
+    if (/users?|members?|customers?|clients?|employees?|staff|people|team/i.test(lower)) {
+      return { type: 'count', icon: 'Users', formatExpr: `new Intl.NumberFormat('en-US').format(value)`, sampleValue: '1,284' };
+    }
+    if (/total|count|number|orders?|items?|tasks?|projects?|tickets?/i.test(lower)) {
+      return { type: 'count', icon: 'Activity', formatExpr: `new Intl.NumberFormat('en-US').format(value)`, sampleValue: '156' };
+    }
+    return { type: 'generic', icon: 'Activity', formatExpr: 'String(value)', sampleValue: '0' };
+  };
+
+  // Generate semantic-aware KPI cards
   const kpiCards = kpis.map((kpi, i) => {
-    const icons = ['TrendingUp', 'Users', 'DollarSign', 'Activity'];
+    const semantic = getKpiSemantic(kpi);
     return `        <KpiCard
           title="${kpi}"
-          value="${['1,284', '156', '$48,350', '94%'][i] || '0'}"
+          value={formatKpiValue(kpiValues[${i}], "${semantic.type}")}
           change="+${[12, 8, 15, 3][i] || 5}%"
-          icon={<${icons[i] || 'Activity'} className="h-4 w-4" />}
+          icon={<${semantic.icon} className="h-4 w-4" />}
           data-testid="card-kpi-${toKebabCase(kpi)}"
         />`;
   }).join('\n');
@@ -1302,13 +1345,53 @@ function generateDashboardPage(page: PlannedPage, plan: ProjectPlan, reasoning: 
   const entityEndpoint = firstEntity ? `/api/${toKebabCase(firstEntity.name)}s` : '';
   const entityVarName = firstEntity ? toCamelCase(firstEntity.name) : 'items';
 
-  return `import { useQuery } from "@tanstack/react-query";
+  // Determine Quick Stats fields based on semantic analysis
+  const quickStatFields = firstEntity?.fields
+    .filter(f => {
+      const sem = reasoning?.fieldSemantics.get(firstEntity.name)?.find(s => s.fieldName === f.name);
+      return sem && (sem.inputType === 'currency' || sem.inputType === 'percentage' || /count|total|amount/i.test(f.name));
+    })
+    .slice(0, 3) || [];
+
+  const quickStatsContent = quickStatFields.length > 0
+    ? quickStatFields.map(f => `              <div className="text-sm"><span className="text-muted-foreground">${toTitleCase(f.name)}:</span> <span className="font-medium">-</span></div>`).join('\n')
+    : '              System is running smoothly.';
+
+  const kpiComputations = kpis.map((kpi, i) => {
+    const sem = getKpiSemantic(kpi);
+    const lower = kpi.toLowerCase();
+    if (sem.type === 'count' && firstEntity) {
+      return `${entityVarName}s.length`;
+    }
+    if (sem.type === 'currency' && firstEntity) {
+      const currencyField = firstEntity.fields.find(f => /price|amount|cost|revenue|value|total|fee|salary|budget/i.test(f.name));
+      if (currencyField) return `${entityVarName}s.reduce((sum: number, item: any) => sum + (Number(item.${currencyField.name}) || 0), 0)`;
+    }
+    if (sem.type === 'percentage') {
+      return `0`;
+    }
+    return `${entityVarName}s.length`;
+  });
+
+  return `import { useQuery, } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, DollarSign, Activity } from "lucide-react";
+import { TrendingUp, Users, DollarSign, Activity, ShoppingCart, Calendar, BarChart3, Target } from "lucide-react";
 import KpiCard from "@/components/kpi-card";
+
+function formatKpiValue(value: number, type: string): string {
+  if (type === 'currency') return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+  if (type === 'percentage') return \`\${value}%\`;
+  if (type === 'count') return new Intl.NumberFormat('en-US').format(value);
+  return String(value);
+}
 
 export default function ${page.componentName}() {
 ${firstEntity ? `  const { data: ${entityVarName}s = [] } = useQuery({ queryKey: ["${entityEndpoint}"] });` : ''}
+
+  const kpiValues = useMemo(() => [
+${kpiComputations.map(c => `    ${c},`).join('\n')}
+  ], [${firstEntity ? `${entityVarName}s` : ''}]);
 
   return (
     <div className="p-6 space-y-6" data-testid="page-dashboard">
@@ -1337,9 +1420,9 @@ ${firstEntity ? `              {${entityVarName}s.length > 0 ? \`\${${entityVarN
             <CardTitle className="text-base">Quick Stats</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground" data-testid="text-quick-stats">
-              System is running smoothly.
-            </p>
+            <div className="space-y-2 text-sm text-muted-foreground" data-testid="text-quick-stats">
+${quickStatsContent}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -1355,6 +1438,8 @@ function generateListPage(page: PlannedPage, plan: ProjectPlan, reasoning: Reaso
   const endpoint = `/api/${toKebabCase(entityName)}s`;
   const varName = toCamelCase(entityName);
 
+  const uiPattern = reasoning?.uiPatterns.find(p => p.entityName === entityName);
+
   const entitySemantics = reasoning?.fieldSemantics.get(entityName) || [];
   const entityComputedFields = reasoning?.computedFields.filter(cf => cf.entityName === entityName) || [];
   const computedFieldNames = new Set(entityComputedFields.map(cf => cf.fieldName));
@@ -1363,6 +1448,9 @@ function generateListPage(page: PlannedPage, plan: ProjectPlan, reasoning: Reaso
   const editableFields = entity?.fields.filter(f => f.name !== 'id' && f.name !== 'createdAt' && !computedFieldNames.has(f.name) && !f.description?.startsWith('Computed:')) || [];
   const statusField = entity?.fields.find(f => f.name === 'status');
   const nameField = entity?.fields.find(f => ['name', 'title', 'firstName', 'companyName', 'orderNumber', 'trackingNumber', 'sku', 'code'].includes(f.name));
+
+  const detailPage = plan.pages.find(p => p.path.includes(':id') && p.dataNeeded.includes(entityName));
+  const detailPath = detailPage ? detailPage.path.split('/:')[0] : `/${toKebabCase(entityName)}s`;
 
   const getFieldSemantic = (fieldName: string): FieldSemantics | undefined => {
     return entitySemantics.find(s => s.fieldName === fieldName);
@@ -1517,6 +1605,267 @@ ${optionElements}
     JSON.stringify(item).toLowerCase().includes(search.toLowerCase())
   );`;
 
+  const isKanban = uiPattern?.pattern === 'kanban';
+  const isCalendar = uiPattern?.pattern === 'calendar';
+  const isCardGrid = uiPattern?.pattern === 'card-grid';
+  const hasPatternView = isKanban || isCalendar || isCardGrid;
+
+  const extraImports: string[] = [];
+  const extraLucideIcons: string[] = [];
+
+  if (hasPatternView) {
+    extraLucideIcons.push('List');
+  }
+  if (isKanban) {
+    extraImports.push('import { Badge } from "@/components/ui/badge";');
+    extraImports.push('import { useLocation } from "wouter";');
+    extraLucideIcons.push('Columns');
+  }
+  if (isCalendar) {
+    extraImports.push('import { useMemo } from "react";');
+    extraImports.push('import { useLocation } from "wouter";');
+    extraLucideIcons.push('ChevronLeft', 'ChevronRight', 'Calendar');
+  }
+  if (isCardGrid) {
+    extraImports.push('import { useLocation } from "wouter";');
+    extraLucideIcons.push('Grid');
+  }
+
+  const lucideIconsList = ['Plus', 'Search', 'Trash2', ...extraLucideIcons];
+
+  let patternStateDeclarations = '';
+  if (hasPatternView) {
+    patternStateDeclarations += `  const [viewMode, setViewMode] = useState<'pattern' | 'table'>('pattern');\n`;
+  }
+  if (isKanban || isCalendar || isCardGrid) {
+    patternStateDeclarations += `  const [, navigate] = useLocation();\n`;
+  }
+  if (isCalendar) {
+    patternStateDeclarations += `  const today = new Date();
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const itemsByDate = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    for (const item of filtered) {
+      const d = new Date(item.${uiPattern?.config?.dateField || 'date'});
+      if (isNaN(d.getTime())) continue;
+      const key = \`\${d.getFullYear()}-\${d.getMonth()}-\${d.getDate()}\`;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    }
+    return grouped;
+  }, [filtered]);\n`;
+  }
+
+  let kanbanColumns: string[] = [];
+  let kanbanCardTitle = 'name';
+  let kanbanCardSubtitle = '';
+  if (isKanban && uiPattern) {
+    kanbanColumns = (uiPattern.config.columns as string[]) || ['To Do', 'In Progress', 'Done'];
+    kanbanCardTitle = (uiPattern.config.cardTitle as string) || 'name';
+    kanbanCardSubtitle = (uiPattern.config.cardSubtitle as string) || '';
+  }
+
+  let cardGridImageField = '';
+  let cardGridTitleField = 'name';
+  let cardGridSubtitleField = '';
+  if (isCardGrid && uiPattern) {
+    cardGridImageField = (uiPattern.config.imageField as string) || '';
+    cardGridTitleField = (uiPattern.config.titleField as string) || 'name';
+    cardGridSubtitleField = (uiPattern.config.subtitleField as string) || '';
+  }
+
+  let calendarDateField = 'date';
+  let calendarTitleField = 'name';
+  if (isCalendar && uiPattern) {
+    calendarDateField = (uiPattern.config.dateField as string) || 'date';
+    calendarTitleField = (uiPattern.config.titleField as string) || 'name';
+  }
+
+  let viewToggleJSX = '';
+  if (hasPatternView) {
+    let patternIcon = '';
+    let patternLabel = '';
+    if (isKanban) { patternIcon = '<Columns className="h-4 w-4 mr-1" />'; patternLabel = 'Board'; }
+    else if (isCalendar) { patternIcon = '<Calendar className="h-4 w-4 mr-1" />'; patternLabel = 'Calendar'; }
+    else if (isCardGrid) { patternIcon = '<Grid className="h-4 w-4 mr-1" />'; patternLabel = 'Grid'; }
+    viewToggleJSX = `
+        <div className="flex gap-1">
+          <Button variant={viewMode === 'pattern' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('pattern')}>
+            ${patternIcon} ${patternLabel}
+          </Button>
+          <Button variant={viewMode === 'table' ? 'default' : 'outline'} size="sm" onClick={() => setViewMode('table')}>
+            <List className="h-4 w-4 mr-1" /> Table
+          </Button>
+        </div>`;
+  }
+
+  const tableViewJSX = `      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-8 text-center text-muted-foreground" data-testid="text-loading">Loading...</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground" data-testid="text-empty">
+              {search ? "No results found." : "No ${entityName.toLowerCase()}s yet. Click 'Add ${entityName}' to create one."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="border-b">
+                  <tr>
+${tableHeaders}
+                    <th className="text-right p-3 text-sm font-medium text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map((item: any) => (
+                    <tr key={item.id} className="hover-elevate cursor-pointer" data-testid={\`row-${toKebabCase(entityName)}-\${item.id}\`}>
+${tableRows}
+                      <td className="p-3 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(item.id); }}
+                          data-testid={\`button-delete-\${item.id}\`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>`;
+
+  let patternViewJSX = '';
+  if (isKanban) {
+    const columnsLiteral = JSON.stringify(kanbanColumns);
+    patternViewJSX = `      {isLoading ? (
+        <div className="p-8 text-center text-muted-foreground" data-testid="text-loading">Loading...</div>
+      ) : (
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {${columnsLiteral}.map((column: string) => (
+            <div key={column} className="flex-shrink-0 w-80 bg-muted/30 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm">{column}</h3>
+                <Badge variant="secondary">{filtered.filter((i: any) => i.status === column).length}</Badge>
+              </div>
+              <div className="space-y-2">
+                {filtered.filter((i: any) => i.status === column).map((item: any) => (
+                  <Card key={item.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(\`${detailPath}/\${item.id}\`)}>
+                    <CardContent className="p-3">
+                      <p className="font-medium text-sm">{item.${kanbanCardTitle}}</p>${kanbanCardSubtitle ? `
+                      <p className="text-xs text-muted-foreground mt-1">{item.${kanbanCardSubtitle}}</p>` : ''}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}`;
+  } else if (isCalendar) {
+    patternViewJSX = `      {isLoading ? (
+        <div className="p-8 text-center text-muted-foreground" data-testid="text-loading">Loading...</div>
+      ) : (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <Button variant="outline" size="sm" onClick={() => {
+              if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); }
+              else { setCurrentMonth(currentMonth - 1); }
+            }}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h3 className="font-semibold">{monthNames[currentMonth]} {currentYear}</h3>
+            <Button variant="outline" size="sm" onClick={() => {
+              if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(currentYear + 1); }
+              else { setCurrentMonth(currentMonth + 1); }
+            }}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+              <div key={day} className="bg-background p-2 text-center text-xs font-medium text-muted-foreground">{day}</div>
+            ))}
+            {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+              <div key={\`empty-\${i}\`} className="bg-background p-2 min-h-[80px]" />
+            ))}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const dateKey = \`\${currentYear}-\${currentMonth}-\${day}\`;
+              const dayItems = itemsByDate[dateKey] || [];
+              return (
+                <div key={day} className="bg-background p-2 min-h-[80px] border-t">
+                  <div className="text-xs font-medium mb-1">{day}</div>
+                  <div className="space-y-1">
+                    {dayItems.slice(0, 2).map((item: any) => (
+                      <div key={item.id} className="text-xs bg-primary/10 text-primary rounded px-1 py-0.5 truncate cursor-pointer hover:bg-primary/20" onClick={() => navigate(\`${detailPath}/\${item.id}\`)}>
+                        {item.${calendarTitleField}}
+                      </div>
+                    ))}
+                    {dayItems.length > 2 && (
+                      <div className="text-xs text-muted-foreground">+{dayItems.length - 2} more</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}`;
+  } else if (isCardGrid) {
+    const imageFieldJSX = cardGridImageField ? `
+              {item.${cardGridImageField} && (
+                <div className="h-48 bg-muted rounded-t-lg overflow-hidden">
+                  <img src={item.${cardGridImageField}} alt={item.${cardGridTitleField}} className="w-full h-full object-cover" />
+                </div>
+              )}` : '';
+    const subtitleJSX = cardGridSubtitleField ? `
+                <p className="text-sm text-muted-foreground mt-1">{item.${cardGridSubtitleField}}</p>` : '';
+    const statusBadgeJSX = statusField ? `
+                <div className="mt-2"><StatusBadge status={item.status} /></div>` : '';
+    patternViewJSX = `      {isLoading ? (
+        <div className="p-8 text-center text-muted-foreground" data-testid="text-loading">Loading...</div>
+      ) : filtered.length === 0 ? (
+        <div className="p-8 text-center text-muted-foreground" data-testid="text-empty">
+          {search ? "No results found." : "No ${entityName.toLowerCase()}s yet. Click 'Add ${entityName}' to create one."}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((item: any) => (
+            <Card key={item.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(\`${detailPath}/\${item.id}\`)}>
+              ${imageFieldJSX}
+              <CardContent className="p-4">
+                <h3 className="font-semibold">{item.${cardGridTitleField}}</h3>${subtitleJSX}${statusBadgeJSX}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}`;
+  }
+
+  let viewContentJSX: string;
+  if (hasPatternView) {
+    viewContentJSX = `      {viewMode === 'pattern' ? (
+        <>
+${patternViewJSX}
+        </>
+      ) : (
+        <>
+${tableViewJSX}
+        </>
+      )}`;
+  } else {
+    viewContentJSX = tableViewJSX;
+  }
+
   return `import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -1526,15 +1875,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectOption } from "@/components/ui/select";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { ${lucideIconsList.join(', ')} } from "lucide-react";
 import StatusBadge from "@/components/status-badge";
 import { useToast } from "@/hooks/use-toast";
-
+${extraImports.join('\n')}${extraImports.length > 0 ? '\n' : ''}
 export default function ${page.componentName}() {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 ${statusFilterLine ? statusFilterLine + '\n' : ''}  const { toast } = useToast();
-${formStates}
+${patternStateDeclarations}${formStates}
   const { data: items = [], isLoading } = useQuery({ queryKey: ["${endpoint}"] });
 
   const createMutation = useMutation({
@@ -1581,10 +1930,12 @@ ${formBody}
           <h1 className="text-2xl font-bold" data-testid="text-page-title">${page.name}</h1>
           <p className="text-muted-foreground">${page.description}</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} data-testid="button-add-${toKebabCase(entityName)}">
-          <Plus className="h-4 w-4 mr-2" />
-          Add ${entityName}
-        </Button>
+        <div className="flex items-center gap-2">${viewToggleJSX}
+          <Button onClick={() => setShowCreate(true)} data-testid="button-add-${toKebabCase(entityName)}">
+            <Plus className="h-4 w-4 mr-2" />
+            Add ${entityName}
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -1600,45 +1951,7 @@ ${formBody}
         </div>${statusFilterJSX}
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground" data-testid="text-loading">Loading...</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground" data-testid="text-empty">
-              {search ? "No results found." : "No ${entityName.toLowerCase()}s yet. Click 'Add ${entityName}' to create one."}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b">
-                  <tr>
-${tableHeaders}
-                    <th className="text-right p-3 text-sm font-medium text-muted-foreground">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {filtered.map((item: any) => (
-                    <tr key={item.id} className="hover-elevate cursor-pointer" data-testid={\`row-${toKebabCase(entityName)}-\${item.id}\`}>
-${tableRows}
-                      <td className="p-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(item.id); }}
-                          data-testid={\`button-delete-\${item.id}\`}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+${viewContentJSX}
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent>
@@ -1675,6 +1988,104 @@ function generateDetailPage(page: PlannedPage, plan: ProjectPlan, reasoning: Rea
   const getFieldSemantic = (fieldName: string): FieldSemantics | undefined => {
     return entitySemantics.find(s => s.fieldName === fieldName);
   };
+
+  // Find related entities
+  const childRelationships = reasoning?.relationships.filter(r =>
+    r.to === entityName && (r.cardinality === '1:N' || r.cardinality === 'N:1')
+  ) || [];
+
+  const parentRelationships = reasoning?.relationships.filter(r =>
+    r.from === entityName && (r.cardinality === 'N:1' || r.cardinality === '1:1')
+  ) || [];
+
+  // Generate related sections
+  const relatedSections = childRelationships.map(rel => {
+    const childEntity = plan.dataModel.find(e => e.name === rel.from);
+    if (!childEntity) return null;
+
+    const childEndpoint = `/api/${toKebabCase(rel.from)}s`;
+    const childVarName = toCamelCase(rel.from);
+    const foreignKey = rel.fromField || `${toCamelCase(entityName)}Id`;
+    const childDisplayFields = childEntity.fields
+      .filter(f => f.name !== 'id' && f.name !== 'createdAt' && f.name !== foreignKey)
+      .slice(0, 4);
+
+    const childSemantics = reasoning?.fieldSemantics.get(rel.from) || [];
+    const getChildFieldSemantic = (fieldName: string): FieldSemantics | undefined => {
+      return childSemantics.find(s => s.fieldName === fieldName);
+    };
+
+    const childTableRows = childDisplayFields.map(f => {
+      const semantic = getChildFieldSemantic(f.name);
+      if (semantic) {
+        switch (semantic.inputType) {
+          case 'currency':
+            return `                    <td className="py-2">{typeof child?.${f.name} === 'number' ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(child.${f.name}) : '—'}</td>`;
+          case 'percentage':
+            return `                    <td className="py-2">{typeof child?.${f.name} === 'number' ? \`\${child.${f.name}}%\` : '—'}</td>`;
+          case 'date':
+          case 'datetime':
+            return `                    <td className="py-2">{child?.${f.name} ? new Date(child.${f.name}).toLocaleDateString() : '—'}</td>`;
+          case 'email':
+            return `                    <td className="py-2">{child?.${f.name} ? <a href={\`mailto:\${child.${f.name}}\`} className="text-blue-600 hover:underline">{child.${f.name}}</a> : '—'}</td>`;
+          case 'tel':
+            return `                    <td className="py-2">{child?.${f.name} ? <a href={\`tel:\${child.${f.name}}\`} className="text-blue-600 hover:underline">{child.${f.name}}</a> : '—'}</td>`;
+          case 'url':
+            return `                    <td className="py-2">{child?.${f.name} ? <a href={child.${f.name}} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{child.${f.name}}</a> : '—'}</td>`;
+          case 'checkbox':
+            return `                    <td className="py-2">{child?.${f.name} ? 'Yes' : 'No'}</td>`;
+        }
+      }
+      return `                    <td className="py-2">{child?.${f.name} ?? "—"}</td>`;
+    }).join('\n');
+
+    const queryDecl = `  const { data: ${childVarName}s = [] } = useQuery({
+    queryKey: ["${childEndpoint}", { ${foreignKey}: id }],
+    enabled: !!id,
+  });`;
+
+    const section = `
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">${toTitleCase(rel.from)}s</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {${childVarName}s.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+${childDisplayFields.map(f => `                  <th className="text-left py-2 font-medium">${toTitleCase(f.name)}</th>`).join('\n')}
+                </tr>
+              </thead>
+              <tbody>
+                {${childVarName}s.map((child: any) => (
+                  <tr key={child.id} className="border-b last:border-0">
+${childTableRows}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="text-sm text-muted-foreground">No related ${rel.from.toLowerCase()}s found.</p>
+          )}
+        </CardContent>
+      </Card>`;
+
+    return { queryDecl, section };
+  }).filter(Boolean);
+
+  // Generate parent navigation links
+  const parentLinks = parentRelationships.map(rel => {
+    const parentEntity = plan.dataModel.find(e => e.name === rel.to);
+    if (!parentEntity) return '';
+    const parentPage = plan.pages.find(p => p.dataNeeded?.includes(rel.to));
+    const parentPath = parentPage?.path?.split('/:')[0] || `/${toKebabCase(rel.to)}s`;
+    const foreignKey = rel.fromField || `${toCamelCase(rel.to)}Id`;
+    return `{item?.${foreignKey} && <Link href={\`${parentPath}/\${item.${foreignKey}}\`}><Button variant="ghost" size="sm"><ArrowLeft className="h-3 w-3 mr-1" /> View ${toTitleCase(rel.to)}</Button></Link>}`;
+  }).filter(Boolean);
+
+  const additionalQueries = relatedSections.map((s: any) => s.queryDecl).join('\n');
+  const relatedContent = relatedSections.map((s: any) => s.section).join('\n');
 
   const fieldRows = displayFields.map(f => {
     const semantic = getFieldSemantic(f.name);
@@ -1756,6 +2167,7 @@ export default function ${page.componentName}() {
     queryKey: ["${endpoint}", id],
     enabled: !!id,
   });
+${additionalQueries ? '\n' + additionalQueries : ''}
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -1788,15 +2200,18 @@ export default function ${page.componentName}() {
           </Button>
         </Link>
         <h1 className="text-2xl font-bold flex-1" data-testid="text-page-title">${page.name}</h1>
-        <Button
-          variant="destructive"
-          onClick={() => deleteMutation.mutate()}
-          disabled={deleteMutation.isPending}
-          data-testid="button-delete-${toKebabCase(entityName)}"
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          {deleteMutation.isPending ? "Deleting..." : "Delete"}
-        </Button>
+        <div className="flex items-center gap-2">
+          ${parentLinks.length > 0 ? parentLinks.join('\n          ') : ''}${parentLinks.length > 0 ? '\n          ' : ''}
+          <Button
+            variant="destructive"
+            onClick={() => deleteMutation.mutate()}
+            disabled={deleteMutation.isPending}
+            data-testid="button-delete-${toKebabCase(entityName)}"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -1809,6 +2224,7 @@ ${fieldRows}
 ${computedFieldRows ? computedFieldRows + '\n' : ''}          </dl>
         </CardContent>
       </Card>
+${relatedContent}
     </div>
   );
 }
