@@ -13,59 +13,68 @@ type LogListener = (entry: RunnerLogEntry) => void;
 
 const LEVEL_STYLES: Record<LogLevel, { badge: string; text: string; icon: string }> = {
   debug: {
-    badge: 'background:#334155;color:#94a3b8;padding:1px 6px;border-radius:3px;font-weight:600',
+    badge: 'background:#1e293b;color:#64748b;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
     text: 'color:#94a3b8',
-    icon: '\u2500'
+    icon: '·'
   },
   info: {
-    badge: 'background:#0e4da4;color:#60a5fa;padding:1px 6px;border-radius:3px;font-weight:600',
-    text: 'color:#93c5fd',
-    icon: '\u25CF'
+    badge: 'background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+    text: 'color:#7dd3fc',
+    icon: '●'
   },
   success: {
-    badge: 'background:#14532d;color:#4ade80;padding:1px 6px;border-radius:3px;font-weight:600',
+    badge: 'background:#14532d;color:#4ade80;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
     text: 'color:#86efac',
-    icon: '\u2714'
+    icon: '✓'
   },
   warn: {
-    badge: 'background:#713f12;color:#fbbf24;padding:1px 6px;border-radius:3px;font-weight:600',
+    badge: 'background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
     text: 'color:#fcd34d',
-    icon: '\u26A0'
+    icon: '▲'
   },
   error: {
-    badge: 'background:#7f1d1d;color:#f87171;padding:1px 6px;border-radius:3px;font-weight:600',
+    badge: 'background:#7f1d1d;color:#f87171;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
     text: 'color:#fca5a5',
-    icon: '\u2718'
+    icon: '✖'
   },
 };
 
 const CATEGORY_STYLES: Record<string, string> = {
-  'WebContainer': 'background:#1e1b4b;color:#a78bfa;padding:1px 6px;border-radius:3px;font-weight:600',
-  'PreWarm':      'background:#172554;color:#38bdf8;padding:1px 6px;border-radius:3px;font-weight:600',
-  'NPM':          'background:#431407;color:#fb923c;padding:1px 6px;border-radius:3px;font-weight:600',
-  'DevServer':    'background:#052e16;color:#34d399;padding:1px 6px;border-radius:3px;font-weight:600',
-  'FileSystem':   'background:#1c1917;color:#a8a29e;padding:1px 6px;border-radius:3px;font-weight:600',
-  'Pipeline':     'background:#312e81;color:#818cf8;padding:1px 6px;border-radius:3px;font-weight:600',
-  'AutoRunner':   'background:#0c4a6e;color:#38bdf8;padding:1px 6px;border-radius:3px;font-weight:600',
-  'CodeGen':      'background:#4a044e;color:#e879f9;padding:1px 6px;border-radius:3px;font-weight:600',
-  'Validator':    'background:#365314;color:#a3e635;padding:1px 6px;border-radius:3px;font-weight:600',
-  'ErrorFix':     'background:#450a0a;color:#fb7185;padding:1px 6px;border-radius:3px;font-weight:600',
-  'Process':      'background:#292524;color:#d6d3d1;padding:1px 6px;border-radius:3px;font-weight:600',
-  'Cache':        'background:#1e3a5f;color:#7dd3fc;padding:1px 6px;border-radius:3px;font-weight:600',
+  'WebContainer': 'background:#1e1b4b;color:#a78bfa;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'PreWarm':      'background:#172554;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'NPM':          'background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'DevServer':    'background:#052e16;color:#34d399;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'FileSystem':   'background:#1c1917;color:#a8a29e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'Pipeline':     'background:#312e81;color:#818cf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'AutoRunner':   'background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'CodeGen':      'background:#4a044e;color:#e879f9;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'Validator':    'background:#365314;color:#a3e635;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'ErrorFix':     'background:#450a0a;color:#fb7185;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'Process':      'background:#292524;color:#d6d3d1;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
+  'Cache':        'background:#1e3a5f;color:#7dd3fc;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px',
 };
 
-const DEFAULT_CATEGORY_STYLE = 'background:#1e293b;color:#cbd5e1;padding:1px 6px;border-radius:3px;font-weight:600';
+const DEFAULT_CATEGORY_STYLE = 'background:#1e293b;color:#cbd5e1;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px';
+
+function fmtDuration(ms: number): string {
+  if (ms < 1) return '<1ms';
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.round((ms % 60000) / 1000);
+  return `${mins}m${secs}s`;
+}
+
+function fmtTime(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}.${d.getMilliseconds().toString().padStart(3, '0')}`;
+}
 
 class RunnerLogger {
   private logs: RunnerLogEntry[] = [];
   private listeners: Set<LogListener> = new Set();
   private maxLogs = 500;
   private timers: Map<string, number> = new Map();
-
-  private formatTime(ts: number): string {
-    const d = new Date(ts);
-    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}.${d.getMilliseconds().toString().padStart(3, '0')}`;
-  }
 
   private emit(level: LogLevel, category: string, message: string, details?: Record<string, unknown>, duration?: number): void {
     const entry: RunnerLogEntry = {
@@ -86,18 +95,18 @@ class RunnerLogger {
 
     const lvl = LEVEL_STYLES[level];
     const catStyle = CATEGORY_STYLES[category] || DEFAULT_CATEGORY_STYLE;
-    const timeStr = this.formatTime(entry.timestamp);
-    const durStr = duration != null ? ` (${duration}ms)` : '';
+    const timeStr = fmtTime(entry.timestamp);
+    const durStr = duration != null ? ` ${fmtDuration(duration)}` : '';
 
-    const fmt = `%c${timeStr}%c %c${lvl.icon} ${level.toUpperCase()}%c %c${category}%c ${message}${durStr}`;
+    const fmt = `%c${timeStr}%c %c${lvl.icon} ${level.toUpperCase().padEnd(5)}%c %c${category}%c ${message}${durStr}`;
     const args = [
       fmt,
-      'color:#64748b;font-weight:400',
+      'color:#475569;font-size:11px;font-family:monospace',
       '',
       lvl.badge,
       '',
       catStyle,
-      '',
+      lvl.text,
     ];
 
     switch (level) {
@@ -107,11 +116,10 @@ class RunnerLogger {
     }
 
     if (details && Object.keys(details).length > 0) {
-      const detailStyle = 'color:#64748b;font-style:italic;margin-left:20px';
-      for (const [key, value] of Object.entries(details)) {
-        const val = typeof value === 'object' ? JSON.stringify(value) : String(value);
-        console.log(`%c  \u2514 ${key}: ${val}`, detailStyle);
-      }
+      const pairs = Object.entries(details)
+        .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+        .join('  ·  ');
+      console.log(`%c  └─ ${pairs}`, 'color:#475569;font-size:11px;font-style:italic;padding-left:8px');
     }
   }
 
@@ -148,11 +156,11 @@ class RunnerLogger {
 
   group(category: string, title: string): void {
     const catStyle = CATEGORY_STYLES[category] || DEFAULT_CATEGORY_STYLE;
-    const timeStr = this.formatTime(Date.now());
+    const timeStr = fmtTime(Date.now());
     console.groupCollapsed(
       `%c${timeStr}%c %c${category}%c ${title}`,
-      'color:#64748b;font-weight:400', '',
-      catStyle, ''
+      'color:#475569;font-size:11px;font-family:monospace', '',
+      catStyle, 'color:#cbd5e1'
     );
   }
 
@@ -162,9 +170,9 @@ class RunnerLogger {
 
   separator(label?: string): void {
     const line = label
-      ? `\u2500\u2500\u2500 ${label} ${'─'.repeat(Math.max(0, 50 - label.length))}`
-      : '\u2500'.repeat(60);
-    console.log(`%c${line}`, 'color:#475569');
+      ? `── ${label} ${'─'.repeat(Math.max(0, 44 - label.length))}`
+      : '─'.repeat(50);
+    console.log(`%c${line}`, 'color:#334155;font-size:11px');
   }
 
   subscribe(listener: LogListener): () => void {
@@ -209,7 +217,7 @@ export class NpmOutputParser {
     return false;
   }
 
-  private emit(line: string, level: 'success' | 'warn' | 'error' | 'info' | 'debug'): void {
+  private emitLine(line: string, level: 'success' | 'warn' | 'error' | 'info' | 'debug'): void {
     switch (level) {
       case 'success': runnerLog.success('NPM', line); break;
       case 'warn': runnerLog.warn('NPM', line); break;
@@ -232,25 +240,25 @@ export class NpmOutputParser {
       this.seen.add(line);
 
       if (/added \d+ package/i.test(line)) {
-        this.emit(line, 'success');
+        this.emitLine(line, 'success');
       } else if (/npm warn/i.test(line) || /WARN/i.test(line)) {
-        this.emit(line, 'warn');
+        this.emitLine(line, 'warn');
       } else if (/npm error/i.test(line) || /ERR!/i.test(line) || /ERESOLVE|E404|ENOENT|ETARGET/i.test(line)) {
-        this.emit(line, 'error');
+        this.emitLine(line, 'error');
       } else if (/http fetch (GET|POST)/i.test(line)) {
         const m = line.match(/http fetch (GET|POST)\s+\d+\s+(\S+)/i);
         if (m) {
           const pkg = m[2].replace(/^https?:\/\/registry\.npmjs\.org\//, '');
-          this.emit(`${m[1]} ${pkg}`, 'debug');
+          this.emitLine(`${m[1]} ${pkg}`, 'debug');
         } else {
-          this.emit(line, 'debug');
+          this.emitLine(line, 'debug');
         }
       } else if (/^npm http/i.test(line)) {
-        this.emit(line, 'debug');
+        this.emitLine(line, 'debug');
       } else if (/resolving|idealTree|reify/i.test(line)) {
         continue;
       } else if (line.length > 3) {
-        this.emit(line, 'info');
+        this.emitLine(line, 'info');
       }
     }
   }
@@ -261,11 +269,11 @@ export class NpmOutputParser {
       if (!this.isNoise(line) && !this.seen.has(line)) {
         this.seen.add(line);
         if (/added \d+ package/i.test(line)) {
-          this.emit(line, 'success');
+          this.emitLine(line, 'success');
         } else if (/ERR|error/i.test(line)) {
-          this.emit(line, 'error');
+          this.emitLine(line, 'error');
         } else if (line.length > 3) {
-          this.emit(line, 'info');
+          this.emitLine(line, 'info');
         }
       }
     }

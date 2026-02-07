@@ -27,52 +27,86 @@ const LOG_LEVELS: Record<LogLevel, number> = {
   error: 4,
 };
 
-const RESET = "\x1b[0m";
-const BOLD = "\x1b[1m";
-const DIM = "\x1b[2m";
+const R = "\x1b[0m";
+const B = "\x1b[1m";
+const D = "\x1b[2m";
 
-const CYAN = "\x1b[36m";
-const GREEN = "\x1b[32m";
-const YELLOW = "\x1b[33m";
-const RED = "\x1b[31m";
-const GRAY = "\x1b[90m";
-const WHITE = "\x1b[37m";
-const MAGENTA = "\x1b[35m";
-const BLUE = "\x1b[34m";
+const fg = {
+  black:   "\x1b[30m",
+  red:     "\x1b[31m",
+  green:   "\x1b[32m",
+  yellow:  "\x1b[33m",
+  blue:    "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan:    "\x1b[36m",
+  white:   "\x1b[37m",
+  gray:    "\x1b[90m",
+};
 
-const LEVEL_LABELS: Record<LogLevel, { label: string; color: string; statusColor?: string }> = {
-  debug: { label: "[...]", color: GRAY },
-  info: { label: "[INF]", color: CYAN },
-  success: { label: "[OK!]", color: GREEN, statusColor: GREEN },
-  warn: { label: "[WRN]", color: YELLOW },
-  error: { label: "[ERR]", color: RED },
+const bg = {
+  red:     "\x1b[41m",
+  green:   "\x1b[42m",
+  yellow:  "\x1b[43m",
+  blue:    "\x1b[44m",
+  magenta: "\x1b[45m",
+  cyan:    "\x1b[46m",
+};
+
+const LEVEL_CONFIG: Record<LogLevel, { icon: string; color: string; label: string }> = {
+  debug: { icon: "·", color: fg.gray,    label: "DBG" },
+  info:  { icon: "●", color: fg.cyan,    label: "INF" },
+  success: { icon: "✓", color: fg.green, label: " OK" },
+  warn:  { icon: "▲", color: fg.yellow,  label: "WRN" },
+  error: { icon: "✖", color: fg.red,     label: "ERR" },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  API: CYAN,
-  AI: MAGENTA,
-  DB: BLUE,
-  Security: YELLOW,
-  Chat: GREEN,
-  Perf: YELLOW,
-  Server: CYAN,
-  FAILSAFE: CYAN,
-  "MEMORY-MGR": CYAN,
-  VAPT: YELLOW,
-  System: CYAN,
-  WebContainer: MAGENTA,
-  PreWarm: BLUE,
-  NPM: YELLOW,
-  DevServer: GREEN,
-  FileSystem: GRAY,
-  Pipeline: MAGENTA,
-  AutoRunner: CYAN,
-  CodeGen: MAGENTA,
-  Validator: GREEN,
-  ErrorFix: RED,
-  Process: WHITE,
-  Cache: BLUE,
+  API:          fg.cyan,
+  AI:           fg.magenta,
+  DB:           fg.blue,
+  Security:     fg.yellow,
+  Chat:         fg.green,
+  Perf:         fg.yellow,
+  Server:       fg.cyan,
+  FAILSAFE:     fg.cyan,
+  "MEMORY-MGR": fg.blue,
+  VAPT:         fg.yellow,
+  System:       fg.cyan,
+  WebContainer: fg.magenta,
+  PreWarm:      fg.blue,
+  NPM:          fg.yellow,
+  DevServer:    fg.green,
+  FileSystem:   fg.gray,
+  Pipeline:     fg.magenta,
+  AutoRunner:   fg.cyan,
+  CodeGen:      fg.magenta,
+  Validator:    fg.green,
+  ErrorFix:     fg.red,
+  Process:      fg.white,
+  Cache:        fg.blue,
+  Learning:     fg.magenta,
+  Reasoning:    fg.cyan,
+  Clarify:      fg.green,
+  Domain:       fg.blue,
+  Routes:       fg.cyan,
 };
+
+function fmtDuration(ms: number): string {
+  if (ms < 1) return "<1ms";
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.round((ms % 60000) / 1000);
+  return `${mins}m${secs}s`;
+}
+
+function fmtTime(date: Date): string {
+  const h = date.getHours().toString().padStart(2, "0");
+  const m = date.getMinutes().toString().padStart(2, "0");
+  const s = date.getSeconds().toString().padStart(2, "0");
+  const ms = date.getMilliseconds().toString().padStart(3, "0");
+  return `${h}:${m}:${s}.${ms}`;
+}
 
 class Logger {
   private logs: LogEntry[] = [];
@@ -84,37 +118,23 @@ class Logger {
   private listeners: Set<(log: LogEntry) => void> = new Set();
   private startupComplete = false;
 
-  private formatTimestamp(date: Date): string {
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    const seconds = date.getSeconds().toString().padStart(2, "0");
-    const ms = date.getMilliseconds().toString().padStart(3, "0");
-    return `${hours}:${minutes}:${seconds}.${ms}`;
-  }
-
   private shouldLog(level: LogLevel): boolean {
     return LOG_LEVELS[level] >= LOG_LEVELS[this.config.minLevel];
   }
 
-  private formatConsoleMessage(entry: LogEntry): string {
-    const levelConfig = LEVEL_LABELS[entry.level];
-    const categoryColor = CATEGORY_COLORS[entry.category] || CYAN;
-    const timestamp = this.formatTimestamp(entry.timestamp);
-    
-    const categoryPadded = entry.category.toUpperCase().padEnd(12);
-    const duration = entry.duration ? ` ${GRAY}(${entry.duration}ms)${RESET}` : "";
-    
-    let statusLabel = "";
-    if (entry.level === "success") {
-      statusLabel = `${GREEN}GOOD${RESET}  `;
-    }
-    
-    return `${GRAY}${timestamp}${RESET} ${levelConfig.color}${levelConfig.label}${RESET} ${statusLabel}${categoryColor}[${categoryPadded}]${RESET} ${WHITE}${entry.message}${RESET}${duration}`;
+  private formatLine(entry: LogEntry): string {
+    const lv = LEVEL_CONFIG[entry.level];
+    const catColor = CATEGORY_COLORS[entry.category] || fg.cyan;
+    const time = fmtTime(entry.timestamp);
+    const cat = entry.category.toUpperCase().padEnd(10);
+    const dur = entry.duration != null ? ` ${fg.gray}${fmtDuration(entry.duration)}${R}` : "";
+
+    return `${fg.gray}${time}${R} ${lv.color}${lv.icon} ${lv.label}${R} ${catColor}${cat}${R} ${fg.white}${entry.message}${R}${dur}`;
   }
 
   private addLog(entry: LogEntry): void {
     this.logs.push(entry);
-    
+
     if (this.logs.length > this.config.maxLogs) {
       this.logs = this.logs.slice(-this.config.maxLogs);
     }
@@ -122,19 +142,19 @@ class Logger {
     this.listeners.forEach((listener) => listener(entry));
 
     if (this.shouldLog(entry.level)) {
-      const formattedMessage = this.formatConsoleMessage(entry);
+      const line = this.formatLine(entry);
       switch (entry.level) {
         case "error":
-          console.error(formattedMessage);
+          console.error(line);
           break;
         case "warn":
-          console.warn(formattedMessage);
+          console.warn(line);
           break;
         case "debug":
-          console.debug(formattedMessage);
+          console.debug(line);
           break;
         default:
-          console.log(formattedMessage);
+          console.log(line);
       }
     }
   }
@@ -159,123 +179,121 @@ class Logger {
     };
   }
 
-  boxHeader(title: string, subtitle?: string): void {
-    const width = 60;
-    const topBorder = "+" + "=".repeat(width - 2) + "+";
-    const bottomBorder = topBorder;
-    
-    const padLine = (text: string) => {
-      const padding = Math.max(0, width - 4 - text.length);
-      const leftPad = Math.floor(padding / 2);
-      const rightPad = padding - leftPad;
-      return "|" + " ".repeat(leftPad + 1) + text + " ".repeat(rightPad + 1) + "|";
+  banner(title: string, subtitle?: string): void {
+    const w = 52;
+    const pad = (text: string) => {
+      const space = Math.max(0, w - text.length);
+      const l = Math.floor(space / 2);
+      return " ".repeat(l) + text + " ".repeat(space - l);
     };
-
-    console.log(`${CYAN}${topBorder}${RESET}`);
-    console.log(`${CYAN}${padLine(title)}${RESET}`);
+    console.log("");
+    console.log(`  ${fg.cyan}${B}${"━".repeat(w)}${R}`);
+    console.log(`  ${fg.cyan}${B}${pad(title)}${R}`);
     if (subtitle) {
-      console.log(`${GRAY}${padLine(subtitle)}${RESET}`);
+      console.log(`  ${fg.gray}${pad(subtitle)}${R}`);
     }
-    console.log(`${CYAN}${bottomBorder}${RESET}`);
+    console.log(`  ${fg.cyan}${B}${"━".repeat(w)}${R}`);
+    console.log("");
+  }
+
+  divider(label?: string): void {
+    if (label) {
+      const line = "─".repeat(Math.max(0, 40 - label.length));
+      console.log(`  ${fg.gray}── ${fg.cyan}${label} ${fg.gray}${line}${R}`);
+    } else {
+      console.log(`  ${fg.gray}${"─".repeat(44)}${R}`);
+    }
+  }
+
+  bullet(text: string, icon?: string, color?: string): void {
+    const c = color || fg.white;
+    const i = icon || "›";
+    console.log(`  ${fg.gray}${i}${R} ${c}${text}${R}`);
+  }
+
+  keyValue(key: string, value: string | number, color?: string): void {
+    const c = color || fg.cyan;
+    console.log(`    ${fg.gray}${key}:${R} ${c}${value}${R}`);
+  }
+
+  ready(category: string, message: string, subItems?: string[]): void {
+    const catColor = CATEGORY_COLORS[category] || fg.cyan;
+    const time = fmtTime(new Date());
+    const cat = category.toUpperCase().padEnd(10);
+    console.log(`${fg.gray}${time}${R} ${fg.green}${B}✓  OK${R} ${catColor}${cat}${R} ${fg.green}${B}${message}${R}`);
+    if (subItems) {
+      for (const item of subItems) {
+        console.log(`${fg.gray}${time}${R}              ${fg.gray}└ ${item}${R}`);
+      }
+    }
   }
 
   section(category: string, title: string): void {
-    const timestamp = this.formatTimestamp(new Date());
-    const categoryColor = CATEGORY_COLORS[category] || CYAN;
-    const categoryPadded = category.toUpperCase().padEnd(12);
-    const line = "-".repeat(45) + "+";
-    
-    console.log(`${GRAY}${timestamp}${RESET} ${CYAN}[INF]${RESET} INFO  ${categoryColor}[${categoryPadded}]${RESET} ${line}`);
+    const catColor = CATEGORY_COLORS[category] || fg.cyan;
+    const time = fmtTime(new Date());
+    const cat = category.toUpperCase().padEnd(10);
+    console.log(`${fg.gray}${time}${R} ${fg.cyan}● INF${R} ${catColor}${cat}${R} ${D}── ${title} ${"─".repeat(Math.max(0, 30 - title.length))}${R}`);
   }
 
   tree(category: string, items: string[], colors?: string[]): void {
-    const timestamp = this.formatTimestamp(new Date());
-    const categoryColor = CATEGORY_COLORS[category] || CYAN;
-    const categoryPadded = category.toUpperCase().padEnd(12);
-    
-    items.forEach((item, index) => {
-      const isLast = index === items.length - 1;
-      const prefix = isLast ? "└──" : "├──";
-      const itemColor = colors?.[index] || WHITE;
-      
-      console.log(`${GRAY}${timestamp}${RESET} ${CYAN}[INF]${RESET} INFO  ${categoryColor}[${categoryPadded}]${RESET} ${GRAY}${prefix}${RESET} ${itemColor}${item}${RESET}`);
+    const time = fmtTime(new Date());
+    const catColor = CATEGORY_COLORS[category] || fg.cyan;
+    const cat = category.toUpperCase().padEnd(10);
+    items.forEach((item, i) => {
+      const last = i === items.length - 1;
+      const prefix = last ? "└─" : "├─";
+      const c = colors?.[i] || fg.white;
+      console.log(`${fg.gray}${time}${R}              ${catColor}${cat}${R} ${fg.gray}${prefix}${R} ${c}${item}${R}`);
     });
   }
 
   logConfig(category: string, configs: Record<string, string | number>): void {
-    const timestamp = this.formatTimestamp(new Date());
-    const categoryColor = CATEGORY_COLORS[category] || CYAN;
-    const categoryPadded = category.toUpperCase().padEnd(12);
-    
-    console.log(`${GRAY}${timestamp}${RESET} ${CYAN}[INF]${RESET} INFO  ${categoryColor}[${categoryPadded}]${RESET} Config:`);
-    
+    const time = fmtTime(new Date());
+    const catColor = CATEGORY_COLORS[category] || fg.cyan;
+    const cat = category.toUpperCase().padEnd(10);
     const entries = Object.entries(configs);
-    entries.forEach(([key, value], index) => {
-      const isLast = index === entries.length - 1;
-      const prefix = isLast ? "└──" : "├──";
-      console.log(`${GRAY}${timestamp}${RESET} ${CYAN}[INF]${RESET} INFO  ${categoryColor}[${categoryPadded}]${RESET} ${GRAY}${prefix}${RESET} ${key}: ${CYAN}${value}${RESET}`);
+    entries.forEach(([key, value], i) => {
+      const last = i === entries.length - 1;
+      const prefix = last ? "└─" : "├─";
+      console.log(`${fg.gray}${time}${R}              ${catColor}${cat}${R} ${fg.gray}${prefix}${R} ${fg.gray}${key}${R} ${fg.cyan}${value}${R}`);
     });
-  }
-
-  ready(category: string, message: string, subItems?: string[]): void {
-    const timestamp = this.formatTimestamp(new Date());
-    const categoryColor = CATEGORY_COLORS[category] || CYAN;
-    const categoryPadded = category.toUpperCase().padEnd(12);
-    const line = "-".repeat(45) + "+";
-    
-    console.log(`${GRAY}${timestamp}${RESET} ${GREEN}[OK!]${RESET} ${GREEN}GOOD${RESET}  ${categoryColor}[${categoryPadded}]${RESET} ${line}`);
-    console.log(`${GRAY}${timestamp}${RESET} ${GREEN}[OK!]${RESET} ${GREEN}GOOD${RESET}  ${categoryColor}[${categoryPadded}]${RESET} | ${GREEN}${BOLD}${message}${RESET}     |`);
-    
-    if (subItems) {
-      subItems.forEach((item) => {
-        console.log(`${GRAY}${timestamp}${RESET} ${GREEN}[OK!]${RESET} ${GREEN}GOOD${RESET}  ${categoryColor}[${categoryPadded}]${RESET} |   ${item}`);
-      });
-    }
-    
-    console.log(`${GRAY}${timestamp}${RESET} ${GREEN}[OK!]${RESET} ${GREEN}GOOD${RESET}  ${categoryColor}[${categoryPadded}]${RESET} ${line}`);
   }
 
   startup(): void {
     if (this.startupComplete) return;
     this.startupComplete = true;
 
-    this.boxHeader("AUTOCODER AI ENGINE", "Code Generation & Intelligence Platform");
-    
-    console.log("");
-    this.section("FAILSAFE", "Initializing service registry...");
-    
-    this.info("FAILSAFE", "Global error handlers registered:");
+    this.banner("AUTOCODER AI ENGINE", "Intelligent Code Generation Platform");
+
+    this.section("FAILSAFE", "Service Registry");
     this.tree("FAILSAFE", [
-      "uncaughtException  → graceful shutdown + auto-restart",
-      "unhandledRejection → graceful shutdown + auto-restart",
-      "SIGTERM            → graceful shutdown",
-      "SIGINT             → graceful shutdown"
+      "uncaughtException  → graceful shutdown",
+      "unhandledRejection → graceful shutdown",
+      "SIGTERM / SIGINT   → clean exit",
     ]);
-    
+
     console.log("");
-    this.info("FAILSAFE", "Pre-registered modules (8 total):");
+    this.section("FAILSAFE", "Registered Modules");
     this.tree("FAILSAFE", [
       "Core (4): database, auth, websocket, scanner",
-      "AI (3): generator, cleaner, intelligence", 
-      "Tools (1): template-engine"
+      "AI   (3): generator, cleaner, intelligence",
+      "Tools(1): template-engine",
     ]);
-    
+
     console.log("");
-    this.ready("FAILSAFE", "FAILSAFE READY: ALL MODULES HEALTHY", [
-      "Auto-restart: ENABLED (max 5 attempts/60s)"
+    this.ready("FAILSAFE", "All modules healthy", [
+      "Auto-restart: enabled (max 5 attempts/60s)",
     ]);
-    
+
     console.log("");
-    this.section("MEMORY-MGR", "MEMORY MANAGER INITIALIZED");
+    this.section("MEMORY-MGR", "Memory Manager");
     this.logConfig("MEMORY-MGR", {
       "Chunk Size": "50 items",
       "Memory Ceiling": "500MB",
-      "Critical Threshold": "800MB",
+      "Critical": "800MB",
       "GC Interval": "5s",
-      "Initial Heap": "140MB"
     });
-    
-    this.debug("MEMORY-MGR", "GC Available: NO (use --expose-gc)");
+
     console.log("");
   }
 
@@ -434,7 +452,7 @@ export const logger = new Logger();
 export function requestLogger() {
   return (req: any, res: any, next: any) => {
     const start = performance.now();
-    
+
     res.on("finish", () => {
       const duration = Math.round(performance.now() - start);
       if (!req.path.startsWith("/api/logs")) {
