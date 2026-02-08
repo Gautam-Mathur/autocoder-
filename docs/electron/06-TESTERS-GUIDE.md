@@ -1167,6 +1167,40 @@ The plan-driven pipeline is the primary code generation system. These tests vali
 
 ---
 
+### TC-PD-008: Code Generation Quality (Automated)
+
+**Objective:** Verify generated code quality across diverse app types using the automated quality test.
+
+**Test File:** `server/tests/codegen-quality-test.ts`
+
+**Steps:**
+1. Run `npx tsx server/tests/codegen-quality-test.ts`
+2. Review the scorecard output
+
+**What It Tests (6 Categories):**
+- **Schema** — All entity fields present in Drizzle schema, correct types, foreign keys
+- **Routes/CRUD** — Full CRUD operations (GET list, GET by ID, POST, PUT/PATCH, DELETE) for each entity
+- **UI/Pages** — List pages with data tables, detail pages with child entity tables, create forms with field completeness
+- **Semantic Formatting** — Currency fields use Intl.NumberFormat or $ prefix, dates use toLocaleDateString, emails/phones use appropriate input types
+- **Relationships** — Parent-child entity wiring, foreign key references, navigation between related entities
+- **Infrastructure** — package.json dependencies, build scripts, App routing completeness, import resolution, storage interface, UI component library
+
+**Expected Results:**
+- [ ] Overall score ≥ 95% (Grade A or A+)
+- [ ] Schema category ≥ 98%
+- [ ] Routes/CRUD category ≥ 98%
+- [ ] Infrastructure category ≥ 95%
+- [ ] UI/Pages category ≥ 95%
+- [ ] Semantic category ≥ 90%
+- [ ] Relationships category ≥ 90%
+- [ ] All 5 test apps generate without errors (Veterinary Clinic, Invoice Generator, Recipe Manager, Project Board, Freelancer Platform)
+
+**Current Baseline:** 99% (856/868 pts) — Grade A+
+
+**Pass Criteria:** All category scores at or above thresholds; no regressions from baseline.
+
+---
+
 ## 13. Pro Generator Validation Test Suite (Fallback)
 
 The Pro Generator (`client/src/lib/code-generator/pro-generator.ts`, 3,624 lines) is the template-based fallback engine. These tests validate prompt analysis accuracy and output quality.

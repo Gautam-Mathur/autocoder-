@@ -6,12 +6,15 @@ Complete documentation for the AutoCoder Electron desktop application.
 
 | Metric | Value |
 |--------|-------|
-| **Total Lines of Code** | 372,575+ |
-| **Source Files** | 28,046 |
-| **Server Modules** | 41 intelligence modules |
+| **Total Lines of Code (source)** | 117,000+ |
+| **Source Files** | 215+ |
+| **Server Modules** | 45 intelligence modules |
 | **React Components** | 71 frontend components |
+| **AI Intelligence Modules** | 4 (contextual reasoning, domain synthesis, adaptive clarification, generation learning) |
 | **Domain Knowledge Profiles** | 14 industry domains |
-| **Code Generation** | Plan-driven (1,828 lines) + Template fallback (3,624 lines) |
+| **Code Generation Quality** | 99% (Grade A+) across 5 test apps |
+| **Code Generation** | Plan-driven (2,559 lines) + Template fallback (3,624 lines) |
+| **Test Suites** | 4 automated test files |
 | **Electron Files** | 5 (main, preload, services) |
 
 ## Documentation Index
