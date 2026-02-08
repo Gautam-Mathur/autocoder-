@@ -379,12 +379,42 @@ export async function installDependencies(
   const allOutput: string[] = [];
   const allErrors: string[] = [];
   
-  if (preWarmProcess) {
-    runnerLog.warn('NPM', 'Killing stalled pre-warm npm process before main install');
-    try { preWarmProcess.kill(); } catch {}
-    preWarmProcess = null;
-    preWarmStatus = 'failed';
-    await new Promise(r => setTimeout(r, 500));
+  if (preWarmProcess || (preWarmStatus === 'installing' && preWarmPromise)) {
+    runnerLog.info('NPM', 'Pre-warm npm install is still running, giving it 10s to finish...');
+    onOutput?.('⏳ Waiting for background package cache to finish...\n');
+    const preWarmDone = await awaitPreWarm(10000);
+    
+    if (preWarmDone) {
+      runnerLog.success('NPM', 'Pre-warm completed! Cached packages will speed up install.');
+      onOutput?.('✓ Background cache complete, proceeding with install\n');
+    } else if (preWarmProcess) {
+      runnerLog.warn('NPM', 'Pre-warm did not finish in time, killing it');
+      onOutput?.('⚠ Cache still running, stopping it to proceed...\n');
+      try { preWarmProcess.kill(); } catch {}
+      preWarmProcess = null;
+      preWarmStatus = 'failed';
+    
+      runnerLog.info('NPM', 'Waiting for pre-warm process to fully terminate...');
+      await new Promise(r => setTimeout(r, 3000));
+    
+      try {
+        runnerLog.info('NPM', 'Cleaning up npm lock files after pre-warm kill...');
+        const cleanups = [
+          container.spawn('rm', ['-rf', 'node_modules/.package-lock.json']),
+          container.spawn('rm', ['-f', 'package-lock.json']),
+        ];
+        const cleanupResults = await Promise.allSettled(cleanups.map(async (p) => {
+          const proc = await p;
+          await proc.exit;
+        }));
+        runnerLog.debug('NPM', 'Lock file cleanup done', {
+          results: cleanupResults.map(r => r.status).join(', ')
+        });
+        await new Promise(r => setTimeout(r, 500));
+      } catch (cleanErr) {
+        runnerLog.debug('NPM', `Lock cleanup error (non-fatal): ${String(cleanErr)}`);
+      }
+    }
   }
 
   runnerLog.separator('NPM INSTALL');
@@ -492,9 +522,27 @@ export async function installDependencies(
     });
     
     if (attempt < maxRetries) {
-      const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-      runnerLog.info('NPM', `Retrying in ${backoffMs / 1000}s...`);
+      const backoffMs = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
+      runnerLog.info('NPM', `Retrying in ${backoffMs / 1000}s (cleaning up first)...`);
       onOutput?.(`\n🔄 Retrying in ${backoffMs/1000}s...\n`);
+      
+      try {
+        runnerLog.info('NPM', 'Cleaning npm cache/locks before retry...');
+        const rmLock = await container.spawn('rm', ['-f', 'package-lock.json']);
+        await rmLock.exit;
+        const rmPkgLock = await container.spawn('rm', ['-rf', 'node_modules/.package-lock.json']);
+        await rmPkgLock.exit;
+        
+        if (attempt >= 2) {
+          runnerLog.info('NPM', 'Attempt 3+: removing node_modules for clean install');
+          onOutput?.('🧹 Cleaning node_modules for fresh install...\n');
+          const rmModules = await container.spawn('rm', ['-rf', 'node_modules']);
+          await rmModules.exit;
+        }
+      } catch (cleanErr) {
+        runnerLog.debug('NPM', `Pre-retry cleanup error (non-fatal): ${String(cleanErr)}`);
+      }
+      
       await new Promise(r => setTimeout(r, backoffMs));
     }
   }
@@ -503,6 +551,12 @@ export async function installDependencies(
   onOutput?.('\n⚠️ Standard install failed, trying minimal install...\n');
   
   try {
+    runnerLog.info('NPM', 'Full cleanup before minimal install fallback');
+    onOutput?.('🧹 Cleaning everything for fresh minimal install...\n');
+    const rmAll = await container.spawn('rm', ['-rf', 'node_modules', 'package-lock.json']);
+    await rmAll.exit;
+    await new Promise(r => setTimeout(r, 1000));
+    
     runnerLog.startTimer('npm-minimal');
     const minimalResult = await new Promise<RunResult>(async (resolve) => {
       const timeoutId = setTimeout(() => {
