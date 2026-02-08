@@ -172,7 +172,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'AutoCoder: Fix WebContainer npm install race condition (exit code 143), add escalating retry with lock cleanup, document problem and solution',
+      message: 'AutoCoder: Fix npm install hanging — add stall detection (45s), registry connectivity check, alternative registry fallback, verbose npm logging',
       tree: newTree.sha,
       parents: [latestSha]
     });

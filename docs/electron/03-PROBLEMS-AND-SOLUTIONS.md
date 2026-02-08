@@ -874,6 +874,64 @@ if (attempt === 2) {
 
 ---
 
+### 20.5 npm Install Hangs Indefinitely (Stall/Timeout on Windows)
+
+**Description:** npm install inside WebContainer hangs with zero output for 180 seconds on every attempt, timing out without installing anything. This occurs on Windows with Node.js v24 and is distinct from the exit code 143 race condition.
+
+**Symptoms:**
+- npm install produces no output at all after spawning
+- Every install attempt times out at exactly 180 seconds
+- All 3 retry attempts fail identically with `exitCode: -1, timedOut: true`
+- Minimal fallback install also times out at 60 seconds
+- Pre-warm npm install also produces no progress before being killed
+- No error messages — just complete silence from npm
+- Only occurs in Electron/WebContainer mode on certain Windows machines
+
+**Root Cause:** The npm process inside WebContainer is unable to reach the npm registry or gets stuck during dependency resolution. Possible causes:
+1. WebContainer's virtual network layer has connectivity issues (corporate firewalls, VPN, proxy)
+2. Node.js v24 (non-LTS) has compatibility issues with WebContainer's npm implementation
+3. npm gets stuck in a resolution loop with no timeout on individual network operations
+4. No stall detection existed — the system waited the full 180s timeout even when npm was clearly frozen (no output for minutes)
+
+**Solution:** Multi-layer fix in `webcontainer.ts`:
+
+1. **Stall detection** — Kill npm early (after 45s of no output) instead of waiting the full 180s timeout. A stall checker runs every 5 seconds and monitors `lastActivityTime`:
+```typescript
+const stallChecker = setInterval(() => {
+  const silentMs = Date.now() - lastActivityTime;
+  if (silentMs > stallTimeoutMs) {
+    // npm is stuck, kill it and retry immediately
+    try { processRef?.kill(); } catch {}
+    resolve({ success: false, stalledOut: true, exitCode: -2 });
+  }
+}, 5000);
+```
+
+2. **Registry connectivity check** — Before any install attempt, verify that WebContainer can actually reach the npm registry using `npm ping`. If the default registry is unreachable, try alternative mirrors:
+```typescript
+const connectivity = await checkRegistryConnectivity(container);
+// Tries: registry.npmjs.org → registry.npmmirror.com
+```
+
+3. **Alternative registry fallback** — After 2+ stalls, automatically switch to an alternative npm registry mirror that may be reachable from the user's network.
+
+4. **Verbose npm logging** — Changed pre-warm from `--loglevel=error` to `--loglevel=http` so npm outputs each HTTP request it makes. This makes stalls immediately visible in logs (no output = no HTTP requests = network issue).
+
+5. **User-facing diagnostics** — When stalls are detected, the error message now explains the likely cause and suggests actionable fixes:
+   - Check internet connection
+   - Disable VPN or proxy
+   - Use Node.js LTS (v20.x) instead of v24
+   - Restart the app to reset WebContainer
+
+**Prevention:**
+- Always use stall detection alongside overall timeouts for any npm operation
+- Check registry connectivity before attempting npm install
+- Use `--loglevel=http` to make npm's activity visible
+- Support alternative registry mirrors for users behind restrictive networks
+- Recommend Node.js LTS versions (v20.x) for Electron mode
+
+---
+
 ## Summary: All Problems Solved
 
 | Category | Predicted | Actual | Total |
@@ -895,8 +953,8 @@ if (attempt === 2) {
 | Electron (Cross-Platform) | 2 | 0 | 2 |
 | Electron (Performance) | 2 | 0 | 2 |
 | Electron (Security) | 3 | 0 | 3 |
-| WebContainer | 0 | 4 | 4 |
-| **Total** | **33** | **35** | **68** |
+| WebContainer | 0 | 5 | 5 |
+| **Total** | **33** | **36** | **69** |
 
 ---
 

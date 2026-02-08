@@ -9,6 +9,12 @@ let preWarmStatus: 'idle' | 'booting' | 'installing' | 'ready' | 'failed' = 'idl
 let preWarmListeners: Array<(status: string, message: string) => void> = [];
 let preWarmProcess: { kill: () => void } | null = null;
 
+const STALL_TIMEOUT_MS = 45000;
+const ALTERNATIVE_REGISTRIES = [
+  'https://registry.npmmirror.com',
+  'https://registry.npmjs.org',
+];
+
 const CORE_PACKAGES: Record<string, string> = {
   'react': '^18.3.1',
   'react-dom': '^18.3.1',
@@ -39,6 +45,126 @@ export interface RunResult {
   output: string[];
   errors: string[];
   exitCode: number;
+}
+
+async function checkRegistryConnectivity(container: WebContainer): Promise<{ reachable: boolean; registry?: string }> {
+  runnerLog.startTimer('registry-check');
+  try {
+    const proc = await container.spawn('npm', ['ping', '--registry=https://registry.npmjs.org']);
+    let output = '';
+    proc.output.pipeTo(new WritableStream({ write(data) { output += data; } }));
+    const exitCode = await Promise.race([
+      proc.exit,
+      new Promise<number>(r => setTimeout(() => { try { proc.kill(); } catch {} r(-1); }, 15000)),
+    ]);
+    const ms = runnerLog.endTimer('registry-check');
+    if (exitCode === 0) {
+      runnerLog.success('NPM', 'Registry reachable (npmjs.org)', undefined, ms);
+      return { reachable: true, registry: 'https://registry.npmjs.org' };
+    }
+  } catch {}
+
+  for (const alt of ALTERNATIVE_REGISTRIES) {
+    try {
+      const proc = await container.spawn('npm', ['ping', `--registry=${alt}`]);
+      let output = '';
+      proc.output.pipeTo(new WritableStream({ write(data) { output += data; } }));
+      const exitCode = await Promise.race([
+        proc.exit,
+        new Promise<number>(r => setTimeout(() => { try { proc.kill(); } catch {} r(-1); }, 10000)),
+      ]);
+      if (exitCode === 0) {
+        runnerLog.success('NPM', `Alternative registry reachable: ${alt}`);
+        return { reachable: true, registry: alt };
+      }
+    } catch {}
+  }
+
+  runnerLog.endTimer('registry-check');
+  runnerLog.error('NPM', 'No npm registry is reachable from WebContainer');
+  return { reachable: false };
+}
+
+interface StallAwareInstallOptions {
+  container: WebContainer;
+  args: string[];
+  timeoutMs: number;
+  stallTimeoutMs: number;
+  onOutput?: (data: string) => void;
+  label: string;
+}
+
+async function stallAwareNpmInstall(opts: StallAwareInstallOptions): Promise<RunResult & { stalledOut: boolean }> {
+  const { container, args, timeoutMs, stallTimeoutMs, onOutput, label } = opts;
+  const output: string[] = [];
+  const errors: string[] = [];
+  let lastActivityTime = Date.now();
+  let stalledOut = false;
+
+  return new Promise(async (resolve) => {
+    let processRef: { kill: () => void } | null = null;
+
+    const overallTimer = setTimeout(() => {
+      runnerLog.warn('NPM', `${label}: Overall timeout (${Math.round(timeoutMs / 1000)}s)`);
+      try { processRef?.kill(); } catch {}
+      resolve({ success: false, output, errors: ['Timeout'], exitCode: -1, stalledOut: false });
+    }, timeoutMs);
+
+    const stallChecker = setInterval(() => {
+      const silentMs = Date.now() - lastActivityTime;
+      if (silentMs > stallTimeoutMs) {
+        stalledOut = true;
+        runnerLog.warn('NPM', `${label}: Stall detected — no output for ${Math.round(silentMs / 1000)}s, killing npm`);
+        onOutput?.(`\n⚠ npm appears stuck (no activity for ${Math.round(silentMs / 1000)}s), restarting...\n`);
+        clearInterval(stallChecker);
+        try { processRef?.kill(); } catch {}
+        clearTimeout(overallTimer);
+        resolve({ success: false, output, errors: ['Stalled - no output'], exitCode: -2, stalledOut: true });
+      }
+    }, 5000);
+
+    try {
+      const process = await container.spawn('npm', args);
+      processRef = process;
+
+      const parser = new NpmOutputParser((line, level) => {
+        if (level !== 'debug') onOutput?.(line + '\n');
+      });
+
+      process.output.pipeTo(
+        new WritableStream({
+          write(data) {
+            lastActivityTime = Date.now();
+            output.push(data);
+            parser.feed(data);
+          },
+        })
+      );
+
+      const exitCode = await process.exit;
+      parser.flush();
+      clearTimeout(overallTimer);
+      clearInterval(stallChecker);
+
+      resolve({
+        success: exitCode === 0,
+        output,
+        errors,
+        exitCode,
+        stalledOut: false,
+      });
+    } catch (err) {
+      clearTimeout(overallTimer);
+      clearInterval(stallChecker);
+      resolve({
+        success: false,
+        output,
+        errors: [String(err)],
+        exitCode: 1,
+        stalledOut: false,
+      });
+    }
+  });
 }
 
 export type { FileSystemTree };
@@ -181,22 +307,25 @@ export default defineConfig({ plugins: [react()] });
 
       runnerLog.startTimer('prewarm-npm');
       const PREWARM_TIMEOUT = 180000;
+      const PREWARM_STALL_TIMEOUT = 60000;
       const installProcess = await container.spawn('npm', [
         'install',
         '--prefer-offline',
         '--no-audit',
         '--no-fund',
-        '--loglevel=error',
+        '--loglevel=http',
         '--fetch-retries=2',
         '--fetch-timeout=30000'
       ]);
       preWarmProcess = installProcess;
       runnerLog.info('NPM', 'Spawned npm install for pre-warm', {
-        flags: '--prefer-offline --no-audit --no-fund --loglevel=error',
+        flags: '--prefer-offline --no-audit --no-fund --loglevel=http',
         timeout: `${PREWARM_TIMEOUT / 1000}s`,
+        stallTimeout: `${PREWARM_STALL_TIMEOUT / 1000}s`,
       });
 
       let installOutput = '';
+      let lastPrewarmActivity = Date.now();
       const prewarmParser = new NpmOutputParser((line, level) => {
         if (level === 'success') notifyPreWarm('installing', line);
       });
@@ -204,10 +333,20 @@ export default defineConfig({ plugins: [react()] });
         new WritableStream({
           write(data) {
             installOutput += data;
+            lastPrewarmActivity = Date.now();
             prewarmParser.feed(data);
           },
         })
       );
+
+      const stallCheckInterval = setInterval(() => {
+        const silentMs = Date.now() - lastPrewarmActivity;
+        if (silentMs > PREWARM_STALL_TIMEOUT) {
+          runnerLog.warn('PreWarm', `npm stall detected — no output for ${Math.round(silentMs / 1000)}s, killing`);
+          clearInterval(stallCheckInterval);
+          try { installProcess.kill(); } catch {}
+        }
+      }, 10000);
 
       const exitCode = await Promise.race([
         installProcess.exit,
@@ -217,6 +356,7 @@ export default defineConfig({ plugins: [react()] });
           resolve(-1);
         }, PREWARM_TIMEOUT)),
       ]);
+      clearInterval(stallCheckInterval);
       preWarmProcess = null;
       prewarmParser.flush();
       const npmTime = runnerLog.endTimer('prewarm-npm');
@@ -378,6 +518,7 @@ export async function installDependencies(
   const container = await getWebContainer();
   const allOutput: string[] = [];
   const allErrors: string[] = [];
+  let registryArg: string | null = null;
   
   if (preWarmProcess || (preWarmStatus === 'installing' && preWarmPromise)) {
     runnerLog.info('NPM', 'Pre-warm npm install is still running, giving it 10s to finish...');
@@ -419,112 +560,89 @@ export async function installDependencies(
 
   runnerLog.separator('NPM INSTALL');
   runnerLog.startTimer('npm-install-total');
+
+  runnerLog.info('NPM', 'Checking npm registry connectivity...');
+  onOutput?.('🔍 Checking npm registry connectivity...\n');
+  const connectivity = await checkRegistryConnectivity(container);
+  if (!connectivity.reachable) {
+    runnerLog.error('NPM', 'Cannot reach any npm registry — network issue in WebContainer');
+    onOutput?.('❌ Cannot reach npm registry. This is usually a network issue.\n');
+    onOutput?.('   Try: 1) Check your internet connection  2) Disable VPN/proxy  3) Restart the app\n');
+    allErrors.push('No npm registry reachable');
+  } else {
+    onOutput?.(`✓ Registry reachable: ${connectivity.registry}\n`);
+    if (connectivity.registry && connectivity.registry !== 'https://registry.npmjs.org') {
+      registryArg = `--registry=${connectivity.registry}`;
+      runnerLog.info('NPM', `Using alternative registry: ${connectivity.registry}`);
+      onOutput?.(`📦 Using mirror registry for faster downloads\n`);
+    }
+  }
+  
+  let stallCount = 0;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const output: string[] = [];
-    const errors: string[] = [];
-    let timedOut = false;
+    const baseArgs = [
+      'install',
+      '--prefer-offline',
+      '--no-audit',
+      '--no-fund',
+      '--loglevel=http',
+      '--fetch-retries=2',
+      '--fetch-timeout=30000'
+    ];
+    if (registryArg) baseArgs.push(registryArg);
     
     runnerLog.info('NPM', `Install attempt ${attempt}/${maxRetries}`, {
       timeout: `${Math.round(timeoutMs / 1000)}s`,
-      flags: '--prefer-offline --no-audit --no-fund --loglevel=http'
+      stallTimeout: `${Math.round(STALL_TIMEOUT_MS / 1000)}s`,
+      flags: baseArgs.slice(1).join(' '),
     });
     onOutput?.(`\n--- npm install attempt ${attempt}/${maxRetries}...\n`);
     
     runnerLog.startTimer(`npm-attempt-${attempt}`);
-    const installParser = new NpmOutputParser((line, level) => {
-      if (level !== 'debug') onOutput?.(line + '\n');
-    });
-    const result = await new Promise<RunResult>(async (resolve) => {
-      const timeoutId = setTimeout(() => {
-        timedOut = true;
-        runnerLog.warn('NPM', `Attempt ${attempt} timed out after ${Math.round(timeoutMs / 1000)}s`);
-        onOutput?.(`\nAttempt ${attempt} timed out after ${Math.round(timeoutMs/1000)}s\n`);
-        resolve({
-          success: false,
-          output: [...output],
-          errors: ['Timeout'],
-          exitCode: -1,
-        });
-      }, timeoutMs);
-      
-      try {
-        const process = await container.spawn('npm', [
-          'install',
-          '--prefer-offline',
-          '--no-audit',
-          '--no-fund',
-          '--loglevel=http',
-          '--fetch-retries=2',
-          '--fetch-timeout=30000'
-        ]);
-        
-        process.output.pipeTo(
-          new WritableStream({
-            write(data) {
-              output.push(data);
-              allOutput.push(data);
-              installParser.feed(data);
-            },
-          })
-        );
-        
-        const exitCode = await process.exit;
-        installParser.flush();
-        clearTimeout(timeoutId);
-        
-        resolve({
-          success: exitCode === 0,
-          output,
-          errors,
-          exitCode,
-        });
-      } catch (err) {
-        clearTimeout(timeoutId);
-        const errStr = String(err);
-        errors.push(errStr);
-        allErrors.push(errStr);
-        runnerLog.error('NPM', `Spawn error on attempt ${attempt}: ${errStr}`);
-        resolve({
-          success: false,
-          output,
-          errors: [errStr],
-          exitCode: 1,
-        });
-      }
+    
+    const result = await stallAwareNpmInstall({
+      container,
+      args: baseArgs,
+      timeoutMs,
+      stallTimeoutMs: STALL_TIMEOUT_MS,
+      onOutput,
+      label: `Attempt ${attempt}`,
     });
     
     const attemptMs = runnerLog.endTimer(`npm-attempt-${attempt}`);
     
     if (result.success) {
       const totalMs = runnerLog.endTimer('npm-install-total');
-      const prog = installParser.progress;
       runnerLog.success('NPM', `Dependencies installed successfully on attempt ${attempt}`, {
         attemptTime: `${attemptMs}ms`,
         totalTime: `${totalMs}ms`,
-        packagesFetched: prog.fetched,
       }, totalMs);
       runnerLog.separator('NPM INSTALL DONE');
-      onOutput?.(`\n✅ Dependencies installed successfully! (${prog.fetched} packages fetched)\n`);
+      onOutput?.(`\n✅ Dependencies installed successfully!\n`);
       return {
         success: true,
-        output: allOutput,
+        output: allOutput.concat(result.output),
         errors: allErrors,
         exitCode: 0,
       };
     }
+
+    if (result.stalledOut) stallCount++;
     
     runnerLog.warn('NPM', `Attempt ${attempt} failed`, {
       exitCode: result.exitCode,
-      timedOut,
+      stalledOut: result.stalledOut,
       attemptTime: `${attemptMs}ms`,
-      reason: timedOut ? 'timeout' : `exit code ${result.exitCode}`,
+      reason: result.stalledOut ? 'stall (no output)' : result.exitCode === -1 ? 'timeout' : `exit code ${result.exitCode}`,
     });
+    allOutput.push(...result.output);
+    allErrors.push(...result.errors);
     
     if (attempt < maxRetries) {
       const backoffMs = Math.min(2000 * Math.pow(2, attempt - 1), 15000);
       runnerLog.info('NPM', `Retrying in ${backoffMs / 1000}s (cleaning up first)...`);
-      onOutput?.(`\n🔄 Retrying in ${backoffMs/1000}s...\n`);
+      onOutput?.(`\n🔄 Retrying in ${Math.round(backoffMs/1000)}s...\n`);
       
       try {
         runnerLog.info('NPM', 'Cleaning npm cache/locks before retry...');
@@ -533,11 +651,26 @@ export async function installDependencies(
         const rmPkgLock = await container.spawn('rm', ['-rf', 'node_modules/.package-lock.json']);
         await rmPkgLock.exit;
         
-        if (attempt >= 2) {
-          runnerLog.info('NPM', 'Attempt 3+: removing node_modules for clean install');
+        if (attempt >= 2 || stallCount >= 2) {
+          runnerLog.info('NPM', 'Removing node_modules for clean install');
           onOutput?.('🧹 Cleaning node_modules for fresh install...\n');
           const rmModules = await container.spawn('rm', ['-rf', 'node_modules']);
           await rmModules.exit;
+          await new Promise(r => setTimeout(r, 1000));
+        }
+
+        if (stallCount >= 2 && !registryArg) {
+          runnerLog.info('NPM', 'Multiple stalls detected, trying alternative registry...');
+          onOutput?.('🔄 Trying alternative npm registry...\n');
+          for (const alt of ALTERNATIVE_REGISTRIES) {
+            const check = await checkRegistryConnectivity(container);
+            if (check.reachable && check.registry) {
+              registryArg = `--registry=${check.registry}`;
+              runnerLog.info('NPM', `Switching to registry: ${check.registry}`);
+              onOutput?.(`📦 Switched to: ${check.registry}\n`);
+              break;
+            }
+          }
         }
       } catch (cleanErr) {
         runnerLog.debug('NPM', `Pre-retry cleanup error (non-fatal): ${String(cleanErr)}`);
@@ -558,59 +691,24 @@ export async function installDependencies(
     await new Promise(r => setTimeout(r, 1000));
     
     runnerLog.startTimer('npm-minimal');
-    const minimalResult = await new Promise<RunResult>(async (resolve) => {
-      const timeoutId = setTimeout(() => {
-        runnerLog.error('NPM', 'Minimal install timed out (60s)');
-        resolve({
-          success: false,
-          output: [],
-          errors: ['Minimal install timed out'],
-          exitCode: -1,
-        });
-      }, 60000);
-      
-      try {
-        runnerLog.info('NPM', 'Trying --ignore-scripts fallback');
-        const fallbackParser = new NpmOutputParser((line, level) => {
-          if (level !== 'debug') onOutput?.(line + '\n');
-        });
-        const process = await container.spawn('npm', [
-          'install',
-          '--prefer-offline',
-          '--no-audit',
-          '--no-fund',
-          '--ignore-scripts',
-          '--loglevel=http'
-        ]);
-        
-        process.output.pipeTo(
-          new WritableStream({
-            write(data) {
-              allOutput.push(data);
-              fallbackParser.feed(data);
-            },
-          })
-        );
-        
-        const exitCode = await process.exit;
-        fallbackParser.flush();
-        clearTimeout(timeoutId);
-        
-        resolve({
-          success: exitCode === 0,
-          output: allOutput,
-          errors: allErrors,
-          exitCode,
-        });
-      } catch (err) {
-        clearTimeout(timeoutId);
-        resolve({
-          success: false,
-          output: allOutput,
-          errors: [String(err)],
-          exitCode: 1,
-        });
-      }
+
+    const minimalArgs = [
+      'install',
+      '--prefer-offline',
+      '--no-audit',
+      '--no-fund',
+      '--ignore-scripts',
+      '--loglevel=http'
+    ];
+    if (registryArg) minimalArgs.push(registryArg);
+    
+    const minimalResult = await stallAwareNpmInstall({
+      container,
+      args: minimalArgs,
+      timeoutMs: 90000,
+      stallTimeoutMs: STALL_TIMEOUT_MS,
+      onOutput,
+      label: 'Minimal install',
     });
     
     const minimalMs = runnerLog.endTimer('npm-minimal');
@@ -623,23 +721,43 @@ export async function installDependencies(
       }, totalMs);
       runnerLog.separator('NPM INSTALL DONE (MINIMAL)');
       onOutput?.('\n✅ Minimal dependencies installed (some scripts skipped)\n');
-      return minimalResult;
+      return {
+        success: true,
+        output: allOutput.concat(minimalResult.output),
+        errors: allErrors,
+        exitCode: 0,
+      };
     }
     
-    runnerLog.error('NPM', 'Minimal install also failed', { minimalTime: `${minimalMs}ms` });
+    runnerLog.error('NPM', 'Minimal install also failed', {
+      minimalTime: `${minimalMs}ms`,
+      stalledOut: minimalResult.stalledOut,
+    });
   } catch (err) {
     allErrors.push(String(err));
     runnerLog.error('NPM', `Minimal install error: ${err}`);
   }
   
   runnerLog.endTimer('npm-install-total');
+  const networkNote = stallCount > 0
+    ? ' This appears to be a network/connectivity issue — npm could not download packages.'
+    : '';
   runnerLog.error('NPM', 'All install attempts exhausted', {
     totalAttempts: maxRetries + 1,
+    stallCount,
     errors: allErrors.slice(-3),
   });
   runnerLog.separator('NPM INSTALL FAILED');
-  onOutput?.('\n❌ npm install failed after all attempts\n');
-  onOutput?.('   Some packages may be missing. The app may still run if core dependencies are cached.\n');
+  onOutput?.(`\n❌ npm install failed after all attempts.${networkNote}\n`);
+  if (stallCount > 0) {
+    onOutput?.('   Possible fixes:\n');
+    onOutput?.('   1. Check your internet connection\n');
+    onOutput?.('   2. Disable VPN or proxy if active\n');
+    onOutput?.('   3. Try using Node.js LTS (v20.x) instead of v24\n');
+    onOutput?.('   4. Close and reopen the app to reset WebContainer\n');
+  } else {
+    onOutput?.('   Some packages may be missing. The app may still run if core dependencies are cached.\n');
+  }
   return {
     success: false,
     output: allOutput,
