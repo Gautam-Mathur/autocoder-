@@ -815,6 +815,65 @@ WebContainer is not supported in this browser
 
 ---
 
+### 20.4 npm Install Race Condition During File Mount (Exit Code 143)
+
+**Description:** In Electron mode, `npm install` failed with exit code 143 (SIGTERM) because the pre-warm npm install process was still running when the actual install was triggered after file mounting.
+
+**Symptoms:**
+- npm install fails immediately after files are mounted with exit code 143
+- Error: `npm install failed with exit code 143`
+- Subsequent retry attempts also fail due to stale lock files
+- Console shows "Pre-warm npm install killed" followed by install failures
+- Issue only occurs in Electron/WebContainer mode, not in browser-only preview
+
+**Root Cause:** The WebContainer pre-warm system starts an npm install early (before project files are mounted) to cache packages. When the user's files are mounted and the real install begins, the pre-warm process is killed via SIGTERM (signal 143). However:
+1. The 500ms delay after killing the pre-warm process wasn't enough for WebContainer to fully release npm locks
+2. Stale `package-lock.json` and `node_modules/.package-lock.json` files from the killed process caused subsequent installs to fail with lock errors
+3. Retry attempts inherited the corrupted lock state, so all 3 retries failed
+4. The minimal/fallback install also failed because the stale node_modules remained
+
+**Solution:** Multi-layer fix in `installDependencies()` (`client/src/lib/code-runner/webcontainer.ts`):
+
+1. **Wait for pre-warm to complete first** — Instead of immediately killing the pre-warm process, wait up to 10 seconds for it to finish naturally. If it completes, the cached packages make the actual install faster:
+```typescript
+const awaitPreWarm = new Promise<boolean>((resolve) => {
+  const timeout = setTimeout(() => resolve(false), 10000);
+  preWarmPromise.then(() => { clearTimeout(timeout); resolve(true); })
+    .catch(() => { clearTimeout(timeout); resolve(false); });
+});
+const preWarmCompleted = await awaitPreWarm;
+```
+
+2. **Proper cleanup after kill** — If pre-warm must be killed (didn't complete in 10s):
+   - Increased post-kill delay from 500ms to 3,000ms
+   - Delete `package-lock.json` and `node_modules/.package-lock.json`
+   - Additional 500ms settle time after cleanup
+
+3. **Lock cleanup between retries** — Before each retry attempt, delete lock files to prevent inherited corruption:
+```typescript
+const rmLock = await container.spawn('rm', ['-f', 'package-lock.json', 'node_modules/.package-lock.json']);
+await rmLock.exit;
+```
+
+4. **Escalating retry strategy** — Backoff increased from 1–10s to 2–15s. On 3rd attempt, full `node_modules` removal for a completely clean install:
+```typescript
+if (attempt === 2) {
+  const rmModules = await container.spawn('rm', ['-rf', 'node_modules']);
+  await rmModules.exit;
+  await new Promise(r => setTimeout(r, 1000));
+}
+```
+
+5. **Full cleanup before fallback** — The minimal install fallback (`--ignore-scripts`) now removes both `node_modules` and `package-lock.json` before attempting.
+
+**Prevention:**
+- Never kill a running npm process without waiting for lock cleanup
+- Always delete lock files after forcefully terminating npm
+- Use escalating cleanup: lock files → partial cleanup → full node_modules removal
+- Allow pre-warm to complete if it's close to finishing (saves time vs. kill + retry)
+
+---
+
 ## Summary: All Problems Solved
 
 | Category | Predicted | Actual | Total |
@@ -836,8 +895,8 @@ WebContainer is not supported in this browser
 | Electron (Cross-Platform) | 2 | 0 | 2 |
 | Electron (Performance) | 2 | 0 | 2 |
 | Electron (Security) | 3 | 0 | 3 |
-| WebContainer | 0 | 3 | 3 |
-| **Total** | **33** | **34** | **67** |
+| WebContainer | 0 | 4 | 4 |
+| **Total** | **33** | **35** | **68** |
 
 ---
 

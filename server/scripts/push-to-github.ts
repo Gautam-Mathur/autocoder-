@@ -172,7 +172,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'AutoCoder: Add test generation, runtime error fixer expansion, contextual reasoning engine expansion, 8-category quality validation (99% A+, 931/943 pts)',
+      message: 'AutoCoder: Fix WebContainer npm install race condition (exit code 143), add escalating retry with lock cleanup, document problem and solution',
       tree: newTree.sha,
       parents: [latestSha]
     });
