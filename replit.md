@@ -32,19 +32,20 @@ The system employs a multi-phase intelligent approach:
 5.  **Conversation Phase Handler**: Manages a 6-phase conversation flow (initial, understanding, clarifying, planning, approval, generating, complete) with phase recovery and natural language interaction.
 
 ### AI Intelligence Layer
--   **Contextual Reasoning Engine**: Performs semantic analysis of entity relationships, infers computed fields, detects UI patterns (e.g., Kanban, Calendar), and generates validation rules and business logic.
--   **Domain Synthesis Engine**: Dynamically synthesizes domain profiles from unrecognized descriptions using NLP patterns, fuzzy matching, and multi-domain blending.
--   **Adaptive Clarification Engine**: Implements complexity-driven question depth, tracks information gaps, prioritizes questions, and stops clarification when readiness is met, preventing redundant inquiries.
--   **Generation Learning Engine**: Records generation patterns and outcomes to a PostgreSQL database, tracks user preferences, and applies learned patterns to improve future generations. It includes bi-directional error learning to prevent recurring failures.
--   **Well-Known App Fast-Path**: Incorporates a mechanism to bypass clarification for 16 common app patterns, expediting generation for simple requests.
+-   **Contextual Reasoning Engine** (1,566 lines): Semantic analysis of entity relationships, computed field inference, UI pattern detection (Kanban, Calendar, Card Grid), validation rule generation, business logic discovery. Now includes architecture pattern detection (pagination, search/filter, sorting, infinite-scroll, optimistic-updates), cross-entity logic inference (status propagation, cascade updates, aggregate computation), smart validation rules (date ranges, conditional required, uniqueness, numeric bounds, string lengths), and code quality pattern identification (shared utilities, error boundaries, loading states, empty states, Zod schemas).
+-   **Domain Synthesis Engine** (696 lines): Dynamically synthesizes domain profiles from unrecognized descriptions using NLP patterns, fuzzy matching, and multi-domain blending.
+-   **Adaptive Clarification Engine** (598 lines): Complexity-driven question depth, information gap tracking, priority-based question ordering, and smart stop conditions.
+-   **Generation Learning Engine** (834 lines): Records generation patterns and outcomes to PostgreSQL, tracks user preferences, applies learned patterns. Bi-directional error learning to prevent recurring failures.
+-   **Test Generator** (1,214 lines): Generates Vitest test files alongside app code — API route tests (CRUD for each entity), component render tests, validation tests, relationship tests, plus vitest.config.ts and test setup with mock providers.
+-   **Well-Known App Fast-Path**: Bypasses clarification for 16 common app patterns.
 
 ### Post-Generation Validation & Auto-Fix
 -   **Post-Generation Validator** (601 lines): 50+ package dependency checks, implicit dependency detection, smart stub generation.
--   **Vite Error Fixer** (829 lines): 11 error type analyzers with closed-loop debugging.
+-   **Vite & Runtime Error Fixer** (1,526 lines): 11 build-time error analyzers plus 12 runtime error analyzers (null reference, not-a-function, invalid React child, re-render loops, hook violations, missing keys, network errors, hydration failures). Includes proactive safety patching via `generateRuntimeSafetyPatches()` and error classification via `classifyRuntimeError()`.
 -   **Auto-Run Preview** (641 lines): Client-side closed-loop debugging with auto-fix and preview refresh.
 
 ### Test Suite
--   **codegen-quality-test.ts** (759 lines): Per-entity quality validation across 5 apps, 6 categories. Current score: 99% (A+).
+-   **codegen-quality-test.ts** (888 lines): Per-entity quality validation across 5 apps, 8 categories (Schema, Routes/CRUD, UI/Pages, Semantic, Relationships, Infrastructure, Testing, Intelligence). Current score: 99% (A+), 931/943 pts.
 -   **intelligence-pipeline.test.ts**: 29 integration tests for full pipeline.
 -   **e2e-pipeline-quality.ts** (572 lines): End-to-end pipeline quality.
 -   **stress-test-30-builds.ts**: Bulk generation stress testing.
@@ -54,13 +55,13 @@ The system employs a multi-phase intelligent approach:
 -   **Schema**: Drizzle ORM schema (316 lines, 19 tables) for users, conversations, project files, project plans, and 3 learning tables.
 
 ### Platform Statistics
--   Source Lines of Code: 117,000+
--   Source Files: 215+
--   Server Modules: 45
+-   Source Lines of Code: 120,000+
+-   Source Files: 216+
+-   Server Modules: 46
 -   React Components: 71
--   AI Intelligence Modules: 4
+-   AI Intelligence Modules: 5 (contextual reasoning, domain synthesis, adaptive clarification, generation learning, test generation)
 -   Domain Knowledge Profiles: 14
--   Code Generation Quality: 99% (A+)
+-   Code Generation Quality: 99% (A+), 931/943 pts across 8 categories
 
 ### Electron Desktop Mode
 -   Enables native file system access and local execution of Node.js and npm commands.

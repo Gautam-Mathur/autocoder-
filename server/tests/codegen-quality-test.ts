@@ -566,6 +566,133 @@ function checkGlobalCodeGen(plan: any, files: any[], reasoning: ReasoningResult 
     });
   }
 
+  // --- TEST FILE GENERATION CHECKS ---
+  const testFiles = files.filter(f => f.path.includes('__tests__') || f.path.includes('.test.'));
+  const hasTestSetup = files.some(f => f.path.includes('__tests__/setup'));
+  const hasApiTests = files.some(f => f.path.includes('__tests__/api.test'));
+  const hasComponentTests = files.some(f => f.path.includes('__tests__/components.test'));
+  const hasValidationTests = files.some(f => f.path.includes('__tests__/validation.test'));
+  const hasRelationshipTests = files.some(f => f.path.includes('__tests__/relationships.test'));
+  const hasVitestConfig = files.some(f => f.path === 'vitest.config.ts');
+
+  checks.push({
+    name: 'Test files generated',
+    passed: testFiles.length >= 4,
+    detail: `${testFiles.length} test files generated (setup, API, components, validation, relationships)`,
+    severity: 'major',
+  });
+
+  checks.push({
+    name: 'Test setup file',
+    passed: hasTestSetup,
+    detail: hasTestSetup ? 'Test setup with mock providers found' : 'Missing test setup file',
+    severity: 'minor',
+  });
+
+  checks.push({
+    name: 'API route tests',
+    passed: hasApiTests,
+    detail: hasApiTests ? 'API CRUD tests generated' : 'Missing API route tests',
+    severity: 'major',
+  });
+
+  checks.push({
+    name: 'Component render tests',
+    passed: hasComponentTests,
+    detail: hasComponentTests ? 'Component render tests generated' : 'Missing component tests',
+    severity: 'minor',
+  });
+
+  checks.push({
+    name: 'Vitest configuration',
+    passed: hasVitestConfig,
+    detail: hasVitestConfig ? 'vitest.config.ts generated' : 'Missing vitest configuration',
+    severity: 'minor',
+  });
+
+  if (hasApiTests) {
+    const apiTestContent = files.find(f => f.path.includes('__tests__/api.test'))?.content || '';
+    const testedEntities = plan.dataModel.filter((e: any) => {
+      const kebab = toKebabCase(e.name);
+      const lower = e.name.toLowerCase();
+      return apiTestContent.includes(`/api/${kebab}s`) || apiTestContent.includes(`/api/${lower}s`);
+    });
+    const coverageRatio = plan.dataModel.length > 0 ? testedEntities.length / plan.dataModel.length : 0;
+    checks.push({
+      name: 'API test entity coverage',
+      passed: coverageRatio >= 0.7,
+      detail: `${testedEntities.length}/${plan.dataModel.length} entities have API tests (${Math.round(coverageRatio * 100)}%)`,
+      severity: 'major',
+    });
+
+    const hasCrudTests = apiTestContent.includes('GET') && apiTestContent.includes('POST') && apiTestContent.includes('DELETE');
+    checks.push({
+      name: 'API CRUD test completeness',
+      passed: hasCrudTests,
+      detail: hasCrudTests ? 'GET, POST, DELETE tests present' : 'Missing some CRUD test methods',
+      severity: 'minor',
+    });
+  }
+
+  // Package.json test scripts
+  if (pkgFile) {
+    try {
+      const pkg = JSON.parse(pkgFile.content);
+      const hasTestScript = !!pkg.scripts?.test;
+      checks.push({
+        name: 'Test script in package.json',
+        passed: hasTestScript,
+        detail: hasTestScript ? `test script: "${pkg.scripts.test}"` : 'Missing test script',
+        severity: 'minor',
+      });
+
+      const hasTestDeps = !!(pkg.devDependencies?.vitest);
+      checks.push({
+        name: 'Vitest dev dependency',
+        passed: hasTestDeps,
+        detail: hasTestDeps ? `vitest ${pkg.devDependencies.vitest}` : 'Missing vitest in devDependencies',
+        severity: 'minor',
+      });
+    } catch {}
+  }
+
+  // --- ARCHITECTURE PATTERN CHECKS ---
+  if (reasoning) {
+    const archPatterns = (reasoning as any).architecturePatterns || [];
+    const hasPagination = archPatterns.some((p: any) => p.pattern === 'pagination');
+    const hasSearchFilter = archPatterns.some((p: any) => p.pattern === 'search-filter');
+    const hasSorting = archPatterns.some((p: any) => p.pattern === 'sorting');
+
+    if (archPatterns.length > 0) {
+      checks.push({
+        name: 'Architecture patterns detected',
+        passed: archPatterns.length >= 3,
+        detail: `${archPatterns.length} patterns: ${archPatterns.map((p: any) => p.pattern).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i).join(', ')}`,
+        severity: 'minor',
+      });
+    }
+
+    const crossLogic = (reasoning as any).crossEntityLogic || [];
+    if (crossLogic.length > 0) {
+      checks.push({
+        name: 'Cross-entity logic inferred',
+        passed: true,
+        detail: `${crossLogic.length} cross-entity rules: ${crossLogic.map((l: any) => l.logicType).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i).join(', ')}`,
+        severity: 'minor',
+      });
+    }
+
+    const qualityPatterns = (reasoning as any).codeQualityPatterns || [];
+    if (qualityPatterns.length > 0) {
+      checks.push({
+        name: 'Code quality patterns suggested',
+        passed: qualityPatterns.length >= 2,
+        detail: `${qualityPatterns.length} patterns: ${qualityPatterns.map((p: any) => p.type).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i).join(', ')}`,
+        severity: 'minor',
+      });
+    }
+  }
+
   return checks;
 }
 
@@ -738,6 +865,8 @@ async function runTest() {
       c.name.includes('form') || c.name.includes('Form') || c.name.includes('Page') || c.name.includes('Table') || c.name.includes('stub') ? 'UI/Pages' :
       c.name.includes('Currency') || c.name.includes('Date') || c.name.includes('Email') || c.name.includes('Phone') || c.name.includes('Textarea') || c.name.includes('mailto') ? 'Semantic' :
       c.name.includes('Foreign') || c.name.includes('relationship') ? 'Relationships' :
+      c.name.includes('Test') || c.name.includes('test') || c.name.includes('Vitest') || c.name.includes('vitest') ? 'Testing' :
+      c.name.includes('Architecture') || c.name.includes('Cross-entity') || c.name.includes('Code quality') ? 'Intelligence' :
       'Infrastructure';
 
     if (!categories[cat]) categories[cat] = { passed: 0, total: 0 };

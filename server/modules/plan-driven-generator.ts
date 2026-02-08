@@ -1,5 +1,6 @@
 import type { ProjectPlan, PlannedEntity, PlannedPage, PlannedEndpoint, PlannedWorkflow } from './plan-generator.js';
 import { analyzeSemantics, generateSmartInputComponent, generateSmartTableCell, generateCurrencyDisplay, generateDateDisplay, type ReasoningResult, type FieldSemantics } from './contextual-reasoning-engine.js';
+import { generateTestFiles } from './test-generator.js';
 
 interface GeneratedFile {
   path: string;
@@ -49,6 +50,9 @@ export function generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[] {
   files.push(generateKpiCard());
   files.push(generateStatusBadge(plan));
 
+  const testFiles = generateTestFiles(plan, reasoning);
+  files.push(...testFiles);
+
   files.unshift(generatePackageJson(plan, files));
 
   return files;
@@ -85,6 +89,11 @@ const AVAILABLE_DEV_DEPS: Record<string, string> = {
   'postcss': '^8.4.35',
   'autoprefixer': '^10.4.17',
   'fast-glob': '^3.3.2',
+  'vitest': '^1.3.0',
+  '@testing-library/react': '^14.2.0',
+  '@testing-library/jest-dom': '^6.4.0',
+  'jsdom': '^24.0.0',
+  '@testing-library/user-event': '^14.5.0',
 };
 
 const ALWAYS_INCLUDE_DEPS = [
@@ -93,6 +102,7 @@ const ALWAYS_INCLUDE_DEPS = [
 
 const ALWAYS_INCLUDE_DEV_DEPS = [
   'vite', '@vitejs/plugin-react', 'tailwindcss', 'postcss', 'autoprefixer', 'fast-glob',
+  'vitest', '@testing-library/react', '@testing-library/jest-dom', 'jsdom',
 ];
 
 function detectUsedPackages(files: GeneratedFile[]): Set<string> {
@@ -153,6 +163,8 @@ function generatePackageJson(plan: ProjectPlan, generatedFiles: GeneratedFile[])
       dev: 'vite',
       build: 'vite build',
       preview: 'vite preview',
+      test: 'vitest run',
+      'test:watch': 'vitest',
     },
     dependencies: deps,
     devDependencies: devDeps,

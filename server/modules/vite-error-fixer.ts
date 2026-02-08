@@ -124,6 +124,66 @@ const VITE_ERROR_PATTERNS: ErrorPattern[] = [
     type: 'missing_file',
     extract: (m) => ({ filePath: m[1] }),
   },
+  {
+    pattern: /Cannot read propert(?:y|ies) of (?:undefined|null)(?:.*?reading '(\w+)')?/,
+    type: 'runtime' as const,
+    extract: (m: RegExpMatchArray) => ({ importName: m[1] }),
+  },
+  {
+    pattern: /(?:TypeError|Error): ([\w.]+) is not a function/,
+    type: 'runtime' as const,
+    extract: (m: RegExpMatchArray) => ({ importName: m[1] }),
+  },
+  {
+    pattern: /Objects are not valid as a React child.*?found: (object|array)/,
+    type: 'runtime' as const,
+    extract: (m: RegExpMatchArray) => ({ importName: m[1] }),
+  },
+  {
+    pattern: /Too many re-renders\. React limits the number of renders/,
+    type: 'runtime' as const,
+    extract: () => ({}),
+  },
+  {
+    pattern: /(?:Rendered more hooks than during the previous render|React has detected a change in the order of Hooks)/,
+    type: 'runtime' as const,
+    extract: () => ({}),
+  },
+  {
+    pattern: /(?:Maximum update depth exceeded|Warning: Cannot update a component.*while rendering a different component)/,
+    type: 'runtime' as const,
+    extract: () => ({}),
+  },
+  {
+    pattern: /Uncaught (?:TypeError|ReferenceError|Error): (.+?)(?:\n|$)/,
+    type: 'runtime' as const,
+    extract: (m: RegExpMatchArray) => ({ message: m[1] }),
+  },
+  {
+    pattern: /(?:Unhandled|Uncaught) (?:Promise |)(?:Rejection|Error).*?(?:at|in) ([\w./]+\.(?:tsx?|jsx?))(?::(\d+))?/,
+    type: 'runtime' as const,
+    extract: (m: RegExpMatchArray) => ({ filePath: m[1], line: m[2] ? parseInt(m[2]) : undefined }),
+  },
+  {
+    pattern: /Each child in a list should have a unique "key" prop/,
+    type: 'runtime' as const,
+    extract: () => ({}),
+  },
+  {
+    pattern: /Cannot update during an existing state transition/,
+    type: 'runtime' as const,
+    extract: () => ({}),
+  },
+  {
+    pattern: /(?:fetch|axios|XMLHttpRequest).*?(?:Failed to fetch|Network Error|net::ERR_)/,
+    type: 'runtime' as const,
+    extract: () => ({}),
+  },
+  {
+    pattern: /Hydration failed because.*?(?:server|client)/i,
+    type: 'runtime' as const,
+    extract: () => ({}),
+  },
 ];
 
 const COMMON_PACKAGES: Record<string, string> = {
@@ -257,6 +317,8 @@ function generateFixes(error: ParsedError, files: ProjectFile[], fileMap: Map<st
       return fixConfigError(error, files);
     case 'dependency_conflict':
       return fixDependencyConflict(error, files);
+    case 'runtime':
+      return fixRuntimeError(error, files, fileMap);
     default:
       return [];
   }
@@ -822,6 +884,641 @@ export function addDependenciesToPackageJson(packageJsonContent: string, depende
   } catch {
     return packageJsonContent;
   }
+}
+
+function fixRuntimeError(error: ParsedError, files: ProjectFile[], fileMap: Map<string, ProjectFile>): FixAction[] {
+  const fixes: FixAction[] = [];
+  const raw = error.raw;
+
+  if (/Cannot read propert(?:y|ies) of (?:undefined|null)/.test(raw)) {
+    const propMatch = raw.match(/reading '(\w+)'/);
+    const propName = propMatch ? propMatch[1] : null;
+    const targetFile = error.filePath ? findFile(error.filePath, fileMap) : undefined;
+    const searchFiles = targetFile ? [targetFile] : files.filter(f => /\.(tsx?|jsx?)$/.test(f.path));
+
+    for (const file of searchFiles) {
+      let content = file.content;
+      let changed = false;
+
+      if (propName) {
+        const dotAccessPattern = new RegExp(`(\\w+)\\.${escapeRegex(propName)}\\b`, 'g');
+        const replaced = content.replace(dotAccessPattern, (match, obj) => {
+          if (['Math', 'JSON', 'Object', 'Array', 'String', 'Number', 'console', 'window', 'document', 'process'].includes(obj)) {
+            return match;
+          }
+          changed = true;
+          return `${obj}?.${propName}`;
+        });
+        if (changed) content = replaced;
+      }
+
+      const mapOnUndefinedPattern = /(\w+)(\.map\s*\()/g;
+      const mapReplaced = content.replace(mapOnUndefinedPattern, (match, varName, mapCall) => {
+        if (['Array', 'Object', 'JSON', 'Math'].includes(varName)) return match;
+        if (content.includes(`${varName}?.map`)) return match;
+        changed = true;
+        return `(${varName} || [])${mapCall}`;
+      });
+      if (mapReplaced !== content) content = mapReplaced;
+
+      const forEachPattern = /(\w+)(\.forEach\s*\()/g;
+      const forEachReplaced = content.replace(forEachPattern, (match, varName, call) => {
+        if (['Array', 'Object', 'JSON', 'document'].includes(varName)) return match;
+        changed = true;
+        return `(${varName} || [])${call}`;
+      });
+      if (forEachReplaced !== content) content = forEachReplaced;
+
+      if (changed && content !== file.content) {
+        fixes.push({
+          type: 'patch_file',
+          filePath: file.path,
+          description: `Add null safety (optional chaining / fallback arrays) for property access in ${file.path}`,
+          oldContent: file.content,
+          newContent: content,
+          confidence: 'medium',
+        });
+      }
+    }
+  }
+
+  if (/is not a function/.test(raw)) {
+    const fnMatch = raw.match(/(?:TypeError|Error): ([\w.]+) is not a function/);
+    const fnName = fnMatch ? fnMatch[1] : error.importName;
+    if (fnName) {
+      const parts = fnName.split('.');
+      const baseName = parts[0];
+
+      for (const file of files) {
+        if (!/\.(tsx?|jsx?)$/.test(file.path)) continue;
+        if (!file.content.includes(baseName)) continue;
+
+        let content = file.content;
+        let changed = false;
+
+        const defaultImportPattern = new RegExp(`import\\s+${escapeRegex(baseName)}\\s+from\\s+['"]([^'"]+)['"]`);
+        const namedImportPattern = new RegExp(`import\\s*\\{[^}]*\\b${escapeRegex(baseName)}\\b[^}]*\\}\\s*from\\s+['"]([^'"]+)['"]`);
+
+        if (defaultImportPattern.test(content)) {
+          const match = content.match(defaultImportPattern);
+          if (match) {
+            const modulePath = match[1];
+            const moduleFile = findFile(modulePath, fileMap);
+            if (moduleFile && !moduleFile.content.includes('export default')) {
+              const namedExportCheck = new RegExp(`export\\s+(?:const|function|class)\\s+${escapeRegex(baseName)}`);
+              if (namedExportCheck.test(moduleFile.content)) {
+                content = content.replace(defaultImportPattern, `import { ${baseName} } from '${modulePath}'`);
+                changed = true;
+              }
+            }
+          }
+        } else if (namedImportPattern.test(content)) {
+          const match = content.match(namedImportPattern);
+          if (match) {
+            const modulePath = match[1];
+            const moduleFile = findFile(modulePath, fileMap);
+            if (moduleFile && moduleFile.content.includes('export default') && !new RegExp(`export\\s+(?:const|function|class)\\s+${escapeRegex(baseName)}`).test(moduleFile.content)) {
+              content = content.replace(namedImportPattern, `import ${baseName} from '${modulePath}'`);
+              changed = true;
+            }
+          }
+        }
+
+        if (parts.length > 1) {
+          const methodName = parts[parts.length - 1];
+          const mapCallPattern = new RegExp(`(\\w+)\\.${escapeRegex(methodName)}\\s*\\(`);
+          if (mapCallPattern.test(content) && methodName === 'map') {
+            content = content.replace(
+              new RegExp(`(\\w+)\\.map\\s*\\(`, 'g'),
+              (match, varName) => {
+                if (['Array', 'Object'].includes(varName)) return match;
+                changed = true;
+                return `Array.from(${varName} || []).map(`;
+              }
+            );
+          }
+        }
+
+        if (changed && content !== file.content) {
+          fixes.push({
+            type: 'patch_file',
+            filePath: file.path,
+            description: `Fix "${fnName} is not a function" - correct import style or add type guards in ${file.path}`,
+            oldContent: file.content,
+            newContent: content,
+            confidence: 'medium',
+          });
+        }
+      }
+    }
+  }
+
+  if (/Objects are not valid as a React child/.test(raw)) {
+    for (const file of files) {
+      if (!/\.(tsx|jsx)$/.test(file.path)) continue;
+
+      let content = file.content;
+      let changed = false;
+
+      const jsxObjectPattern = /(\{)(\s*)([\w.]+)(\s*\})/g;
+      content = content.replace(jsxObjectPattern, (match, open, ws1, expr, close) => {
+        if (/^['"`\d]/.test(expr)) return match;
+        if (expr.includes('(') || expr.includes(')')) return match;
+        if (/^(?:true|false|null|undefined)$/.test(expr)) return match;
+        if (expr.startsWith('...')) return match;
+        const parts = expr.split('.');
+        const varName = parts[0];
+        const isLikelyObject = /^(?:data|result|response|item|record|entry|obj|config|settings|user|profile|payload)$/i.test(varName);
+        if (isLikelyObject && parts.length === 1) {
+          changed = true;
+          return `{${ws1}JSON.stringify(${expr})${close}`;
+        }
+        return match;
+      });
+
+      const dateRenderPattern = /\{(\s*)(new Date\([^)]*\))(\s*)\}/g;
+      content = content.replace(dateRenderPattern, (match, ws1, dateExpr, ws2) => {
+        changed = true;
+        return `{${ws1}${dateExpr}.toLocaleDateString()${ws2}}`;
+      });
+
+      const dateVarPattern = /\{(\s*)([\w.]+Date[\w.]*)(\s*)\}/g;
+      content = content.replace(dateVarPattern, (match, ws1, expr, ws2) => {
+        if (expr.includes('toLocale') || expr.includes('toString') || expr.includes('format')) return match;
+        changed = true;
+        return `{${ws1}String(${expr})${ws2}}`;
+      });
+
+      if (changed && content !== file.content) {
+        fixes.push({
+          type: 'patch_file',
+          filePath: file.path,
+          description: `Fix "Objects are not valid as a React child" - stringify or extract properties in ${file.path}`,
+          oldContent: file.content,
+          newContent: content,
+          confidence: 'medium',
+        });
+      }
+    }
+  }
+
+  if (/Too many re-renders|Maximum update depth exceeded/.test(raw)) {
+    for (const file of files) {
+      if (!/\.(tsx|jsx)$/.test(file.path)) continue;
+
+      let content = file.content;
+      let changed = false;
+
+      const inlineSetStatePattern = /(\w+)=\{(set\w+)\(([^)]*)\)\}/g;
+      content = content.replace(inlineSetStatePattern, (match, attr, setter, args) => {
+        if (/^on[A-Z]/.test(attr)) {
+          changed = true;
+          return `${attr}={() => ${setter}(${args})}`;
+        }
+        return match;
+      });
+
+      const directCallInJsx = /(\w+)=\{(\(\)\s*=>\s*)?(\w+)\(([^)]*)\)\s*\}/g;
+      content = content.replace(directCallInJsx, (match, attr, arrow, fnName, args) => {
+        if (arrow) return match;
+        if (/^on[A-Z]/.test(attr) && /^(?:set[A-Z]|dispatch|navigate|push)/.test(fnName)) {
+          changed = true;
+          return `${attr}={() => ${fnName}(${args})}`;
+        }
+        return match;
+      });
+
+      if (changed && content !== file.content) {
+        fixes.push({
+          type: 'patch_file',
+          filePath: file.path,
+          description: `Fix "Too many re-renders" - wrap setState calls in arrow functions in ${file.path}`,
+          oldContent: file.content,
+          newContent: content,
+          confidence: 'high',
+        });
+      }
+    }
+  }
+
+  if (/Rendered more hooks than during the previous render|change in the order of Hooks/.test(raw)) {
+    for (const file of files) {
+      if (!/\.(tsx|jsx)$/.test(file.path)) continue;
+      if (!REACT_HOOKS.some(h => file.content.includes(h))) continue;
+
+      let content = file.content;
+      let changed = false;
+
+      const conditionalHookPattern = /if\s*\([^)]+\)\s*\{[^}]*\b(use(?:State|Effect|Callback|Memo|Ref|Context|Reducer|Query|Mutation))\s*\(/;
+      const conditionalMatch = content.match(conditionalHookPattern);
+      if (conditionalMatch) {
+        const hookName = conditionalMatch[1];
+        fixes.push({
+          type: 'patch_file',
+          filePath: file.path,
+          description: `Warning: Hook "${hookName}" called conditionally in ${file.path} - hooks must be called in the same order every render. Move hook call before any conditional returns or if-blocks.`,
+          oldContent: content,
+          newContent: content,
+          confidence: 'low',
+        });
+      }
+
+      const earlyReturnBeforeHooks = /^(\s*(?:export\s+)?(?:default\s+)?function\s+\w+[^{]*\{[\s\S]*?)(return\s+[^;]+;)([\s\S]*?)(use(?:State|Effect|Callback|Memo|Ref)\s*\()/m;
+      const earlyReturnMatch = content.match(earlyReturnBeforeHooks);
+      if (earlyReturnMatch) {
+        fixes.push({
+          type: 'patch_file',
+          filePath: file.path,
+          description: `Warning: Early return detected before hook calls in ${file.path} - move all hooks before any conditional returns.`,
+          oldContent: content,
+          newContent: content,
+          confidence: 'low',
+        });
+      }
+    }
+  }
+
+  if (/Each child in a list should have a unique "key" prop/.test(raw)) {
+    for (const file of files) {
+      if (!/\.(tsx|jsx)$/.test(file.path)) continue;
+
+      let content = file.content;
+      let changed = false;
+
+      const mapWithJsxPattern = /\.map\s*\(\s*\(\s*(\w+)\s*(?:,\s*(\w+))?\s*\)\s*=>\s*(?:\(?\s*)<(\w+)(?![^>]*\bkey\b)/g;
+      content = content.replace(mapWithJsxPattern, (match, itemVar, indexVar, tagName) => {
+        changed = true;
+        const keyProp = indexVar ? `key={${indexVar}}` : `key={${itemVar}.id || ${itemVar}}`;
+        return match.replace(`<${tagName}`, `<${tagName} ${keyProp}`);
+      });
+
+      const mapWithReturnPattern = /\.map\s*\(\s*\(\s*(\w+)\s*(?:,\s*(\w+))?\s*\)\s*=>\s*\{[\s\S]*?return\s*(?:\(?\s*)<(\w+)(?![^>]*\bkey\b)/g;
+      content = content.replace(mapWithReturnPattern, (match, itemVar, indexVar, tagName) => {
+        changed = true;
+        const keyProp = indexVar ? `key={${indexVar}}` : `key={${itemVar}.id || ${itemVar}}`;
+        return match.replace(`<${tagName}`, `<${tagName} ${keyProp}`);
+      });
+
+      if (changed && content !== file.content) {
+        fixes.push({
+          type: 'patch_file',
+          filePath: file.path,
+          description: `Add missing "key" props to list items in ${file.path}`,
+          oldContent: file.content,
+          newContent: content,
+          confidence: 'high',
+        });
+      }
+    }
+  }
+
+  if (/Cannot update during an existing state transition/.test(raw)) {
+    for (const file of files) {
+      if (!/\.(tsx|jsx)$/.test(file.path)) continue;
+
+      let content = file.content;
+      let changed = false;
+
+      const renderBodySetStatePattern = /^(\s*)(set\w+\([^)]*\)\s*;)/gm;
+      const lines = content.split('\n');
+      const newLines: string[] = [];
+      let inComponent = false;
+      let inHandler = false;
+      let braceDepth = 0;
+
+      for (const line of lines) {
+        const componentStart = /(?:export\s+)?(?:default\s+)?function\s+[A-Z]\w*/.test(line);
+        if (componentStart) inComponent = true;
+
+        const handlerStart = /(?:const|let|var)\s+\w+\s*=\s*(?:async\s+)?(?:\([^)]*\)|[\w]+)\s*=>/.test(line) ||
+                             /(?:function\s+\w+|on[A-Z]\w*)\s*\(/.test(line) ||
+                             /useEffect\s*\(/.test(line) ||
+                             /useCallback\s*\(/.test(line);
+        if (handlerStart) inHandler = true;
+
+        if (inComponent && !inHandler) {
+          const setStateMatch = line.match(/^(\s*)(set[A-Z]\w*\([^)]*\)\s*;)/);
+          if (setStateMatch) {
+            const indent = setStateMatch[1];
+            const stateCall = setStateMatch[2];
+            newLines.push(`${indent}useEffect(() => { ${stateCall} }, []);`);
+            changed = true;
+            continue;
+          }
+        }
+
+        newLines.push(line);
+      }
+
+      if (changed) {
+        const newContent = newLines.join('\n');
+        fixes.push({
+          type: 'patch_file',
+          filePath: file.path,
+          description: `Wrap state updates in useEffect to prevent updates during render in ${file.path}`,
+          oldContent: file.content,
+          newContent,
+          confidence: 'medium',
+        });
+      }
+    }
+  }
+
+  if (/(?:fetch|axios|XMLHttpRequest).*?(?:Failed to fetch|Network Error|net::ERR_)/.test(raw) ||
+      /(?:Unhandled|Uncaught) (?:Promise |)(?:Rejection|Error)/.test(raw)) {
+    for (const file of files) {
+      if (!/\.(tsx?|jsx?)$/.test(file.path)) continue;
+
+      let content = file.content;
+      let changed = false;
+
+      const fetchWithoutCatch = /(?:^|\n)([ \t]*)((?:const|let|var)\s+\w+\s*=\s*)?(?:await\s+)?fetch\s*\([^)]+\)(?![\s\S]*?\.catch)(?![\s\S]*?catch\s*\()/gm;
+      content = content.replace(fetchWithoutCatch, (match, indent, assignment) => {
+        if (content.includes('try') && content.indexOf('try') < content.indexOf(match)) {
+          return match;
+        }
+        changed = true;
+        const fetchExpr = match.trim();
+        return `\n${indent}try {\n${indent}  ${fetchExpr}\n${indent}} catch (err) {\n${indent}  console.error('Fetch error:', err);\n${indent}}`;
+      });
+
+      const thenWithoutCatch = /\.(then\s*\([^)]*\)(?:\s*\.then\s*\([^)]*\))*)(?!\s*\.catch)/g;
+      content = content.replace(thenWithoutCatch, (match) => {
+        changed = true;
+        return `${match}.catch((err: unknown) => console.error('Unhandled promise error:', err))`;
+      });
+
+      if (changed && content !== file.content) {
+        fixes.push({
+          type: 'patch_file',
+          filePath: file.path,
+          description: `Add error handling for fetch/promise calls in ${file.path}`,
+          oldContent: file.content,
+          newContent: content,
+          confidence: 'medium',
+        });
+      }
+    }
+  }
+
+  if (/Hydration failed/.test(raw)) {
+    for (const file of files) {
+      if (!/\.(tsx|jsx)$/.test(file.path)) continue;
+
+      let content = file.content;
+      let changed = false;
+
+      if (content.includes('typeof window') || content.includes('useEffect')) {
+        const windowCheckPattern = /\{(\s*)typeof window !== ['"]undefined['"]\s*&&\s*([\s\S]+?)(\s*)\}/;
+        if (!windowCheckPattern.test(content)) {
+          const dateNowPattern = /\{(\s*)(?:Date\.now\(\)|new Date\(\)\.toISOString\(\)|Math\.random\(\))(\s*)\}/g;
+          content = content.replace(dateNowPattern, (match) => {
+            changed = true;
+            return match;
+          });
+        }
+      }
+
+      if (/dangerouslySetInnerHTML/.test(content) && !content.includes('suppressHydrationWarning')) {
+        content = content.replace(
+          /(<\w+)(\s+dangerouslySetInnerHTML)/g,
+          (match, tag, attr) => {
+            changed = true;
+            return `${tag} suppressHydrationWarning${attr}`;
+          }
+        );
+      }
+
+      if (changed && content !== file.content) {
+        fixes.push({
+          type: 'patch_file',
+          filePath: file.path,
+          description: `Fix hydration mismatch issues in ${file.path}`,
+          oldContent: file.content,
+          newContent: content,
+          confidence: 'medium',
+        });
+      }
+    }
+  }
+
+  return fixes;
+}
+
+export function classifyRuntimeError(errorMessage: string): {
+  category: string;
+  severity: 'critical' | 'warning' | 'info';
+  description: string;
+  suggestedFix: string;
+} {
+  if (/Cannot read propert(?:y|ies) of (?:undefined|null)/.test(errorMessage)) {
+    return {
+      category: 'null_reference',
+      severity: 'critical',
+      description: 'Attempted to access a property on an undefined or null value. This often happens when API data has not loaded yet or a variable was not properly initialized.',
+      suggestedFix: 'Add optional chaining (?.) to property accesses, provide default values with ?? or ||, and check for loading states before accessing data.',
+    };
+  }
+
+  if (/is not a function/.test(errorMessage)) {
+    return {
+      category: 'type_mismatch',
+      severity: 'critical',
+      description: 'A value was called as a function but is not callable. This may be caused by incorrect import/export patterns or accessing the wrong property.',
+      suggestedFix: 'Verify import statements match the export style (default vs named). Check that the variable holds a function before calling it.',
+    };
+  }
+
+  if (/Objects are not valid as a React child/.test(errorMessage)) {
+    return {
+      category: 'invalid_render',
+      severity: 'critical',
+      description: 'A plain object or array is being rendered directly in JSX. React can only render strings, numbers, elements, or null.',
+      suggestedFix: 'Use JSON.stringify() for debugging, access a specific string/number property on the object, or map arrays to JSX elements.',
+    };
+  }
+
+  if (/Too many re-renders/.test(errorMessage)) {
+    return {
+      category: 'infinite_loop',
+      severity: 'critical',
+      description: 'The component is re-rendering infinitely, usually because setState is called directly in the render body without proper guards.',
+      suggestedFix: 'Wrap state updates in useEffect with proper dependencies, or ensure event handlers use arrow functions: onClick={() => setState(x)} instead of onClick={setState(x)}.',
+    };
+  }
+
+  if (/Rendered more hooks|change in the order of Hooks/.test(errorMessage)) {
+    return {
+      category: 'hook_order_violation',
+      severity: 'critical',
+      description: 'React hooks must be called in the exact same order on every render. Conditional or looped hook calls break this rule.',
+      suggestedFix: 'Move all hook calls to the top level of the component function, before any conditional returns, if-blocks, or loops.',
+    };
+  }
+
+  if (/Maximum update depth exceeded/.test(errorMessage)) {
+    return {
+      category: 'infinite_update',
+      severity: 'critical',
+      description: 'A component triggered an infinite chain of state updates, often from useEffect with incorrect dependencies or from calling setState during render.',
+      suggestedFix: 'Check useEffect dependency arrays for objects/arrays that create new references each render. Use useMemo/useCallback to stabilize references.',
+    };
+  }
+
+  if (/Each child in a list should have a unique "key" prop/.test(errorMessage)) {
+    return {
+      category: 'missing_key',
+      severity: 'warning',
+      description: 'Elements rendered in a list via .map() are missing unique key props, which degrades performance and can cause rendering bugs.',
+      suggestedFix: 'Add a unique key prop to the outermost element inside .map() callbacks: key={item.id} using a stable identifier. Avoid using array index as key if the list can be reordered.',
+    };
+  }
+
+  if (/Cannot update during an existing state transition/.test(errorMessage)) {
+    return {
+      category: 'state_during_render',
+      severity: 'critical',
+      description: 'A state update was triggered while another component was rendering. This typically happens when a parent sets state in response to a child render.',
+      suggestedFix: 'Defer the state update to useEffect or wrap in queueMicrotask/setTimeout to move it outside the current render cycle.',
+    };
+  }
+
+  if (/Failed to fetch|Network Error|net::ERR_/.test(errorMessage)) {
+    return {
+      category: 'network_error',
+      severity: 'warning',
+      description: 'A network request failed, possibly due to server being unavailable, CORS issues, or connectivity problems.',
+      suggestedFix: 'Add try/catch around fetch calls, implement retry logic, and display user-friendly error states. Check CORS configuration on the server.',
+    };
+  }
+
+  if (/Unhandled.*(?:Rejection|Error)|Uncaught.*(?:Rejection|Error)/.test(errorMessage)) {
+    return {
+      category: 'unhandled_error',
+      severity: 'warning',
+      description: 'An error or promise rejection was not caught by any error handler, which may crash the application.',
+      suggestedFix: 'Add .catch() to promise chains, wrap async code in try/catch, and add React Error Boundaries around critical components.',
+    };
+  }
+
+  if (/Hydration failed/.test(errorMessage)) {
+    return {
+      category: 'hydration_mismatch',
+      severity: 'warning',
+      description: 'The server-rendered HTML does not match what React generated on the client. This is common when using browser-only APIs during SSR.',
+      suggestedFix: 'Guard browser-only code with typeof window checks, use useEffect for client-only logic, and add suppressHydrationWarning where appropriate.',
+    };
+  }
+
+  return {
+    category: 'unknown',
+    severity: 'info',
+    description: `An unrecognized runtime error occurred: ${errorMessage.slice(0, 150)}`,
+    suggestedFix: 'Check the browser console for the full stack trace, identify the source file and line number, and review recent code changes.',
+  };
+}
+
+export function generateRuntimeSafetyPatches(files: ProjectFile[]): FixAction[] {
+  const fixes: FixAction[] = [];
+
+  for (const file of files) {
+    if (!/\.(tsx|jsx)$/.test(file.path)) continue;
+
+    let content = file.content;
+    let changed = false;
+
+    const unsafeMapPattern = /(?<!\|\|\s*\[\]\))(?<!\?)(\b\w+)(\.map\s*\()/g;
+    content = content.replace(unsafeMapPattern, (match, varName, mapCall) => {
+      if (['Array', 'Object', 'JSON', 'Math', 'String', 'console', 'window', 'document'].includes(varName)) return match;
+      if (/^['"`\d]/.test(varName)) return match;
+      if (varName === 'children' || varName === 'props') return match;
+      const beforeMatch = content.slice(0, content.indexOf(match));
+      const lastLine = beforeMatch.split('\n').pop() || '';
+      if (lastLine.includes('||') || lastLine.includes('??')) return match;
+      changed = true;
+      return `(${varName} || [])${mapCall}`;
+    });
+
+    const unsafeFilterPattern = /(?<!\|\|\s*\[\]\))(?<!\?)(\b\w+)(\.filter\s*\()/g;
+    content = content.replace(unsafeFilterPattern, (match, varName, filterCall) => {
+      if (['Array', 'Object', 'JSON', 'Math'].includes(varName)) return match;
+      if (/^['"`\d]/.test(varName)) return match;
+      changed = true;
+      return `(${varName} || [])${filterCall}`;
+    });
+
+    const apiDataAccessPattern = /(?:data|response|result|payload)\.(\w+)\.(\w+)/g;
+    content = content.replace(apiDataAccessPattern, (match, prop1, prop2) => {
+      if (match.includes('?.')) return match;
+      changed = true;
+      return `data?.${prop1}?.${prop2}`;
+    });
+
+    const mapWithJsxNoKeyPattern = /\.map\s*\(\s*\(\s*(\w+)\s*(?:,\s*(\w+))?\s*\)\s*=>\s*(?:\(?\s*)<(\w+)(?![^>]*\bkey\b)/g;
+    content = content.replace(mapWithJsxNoKeyPattern, (match, itemVar, indexVar, tagName) => {
+      changed = true;
+      const keyProp = indexVar ? `key={${indexVar}}` : `key={${itemVar}.id || ${itemVar}}`;
+      return match.replace(`<${tagName}`, `<${tagName} ${keyProp}`);
+    });
+
+    const inlineSetStateInHandler = /(\w+=)\{(set[A-Z]\w*)\(([^)]*)\)\}/g;
+    content = content.replace(inlineSetStateInHandler, (match, attr, setter, args) => {
+      if (/^on[A-Z]/.test(attr.replace('=', ''))) {
+        changed = true;
+        return `${attr}{() => ${setter}(${args})}`;
+      }
+      return match;
+    });
+
+    if (changed && content !== file.content) {
+      fixes.push({
+        type: 'patch_file',
+        filePath: file.path,
+        description: `Apply proactive runtime safety patches in ${file.path}`,
+        oldContent: file.content,
+        newContent: content,
+        confidence: 'medium',
+      });
+    }
+  }
+
+  for (const file of files) {
+    if (!/\.(tsx?|jsx?)$/.test(file.path)) continue;
+
+    let content = file.content;
+    let changed = false;
+
+    const useEffectAsyncPattern = /useEffect\s*\(\s*\(\)\s*=>\s*\{([\s\S]*?await\s[\s\S]*?)\}\s*,/g;
+    content = content.replace(useEffectAsyncPattern, (match, body) => {
+      if (body.includes('try') && body.includes('catch')) return match;
+      changed = true;
+      const wrappedBody = body.replace(
+        /([\s\S]*)/,
+        'try {\n$1\n} catch (err) {\n  console.error(err);\n}'
+      );
+      return match.replace(body, wrappedBody);
+    });
+
+    const asyncArrowWithoutTryCatch = /const\s+(\w+)\s*=\s*async\s*\([^)]*\)\s*=>\s*\{(?![\s\S]*?try\s*\{)([\s\S]*?)\}/g;
+    content = content.replace(asyncArrowWithoutTryCatch, (match, name, body) => {
+      if (body.includes('.catch(') || body.trim().length < 20) return match;
+      changed = true;
+      return match.replace(body, `\n    try {${body}\n    } catch (err) {\n      console.error('Error in ${name}:', err);\n      throw err;\n    }\n  `);
+    });
+
+    if (changed && content !== file.content) {
+      fixes.push({
+        type: 'patch_file',
+        filePath: file.path,
+        description: `Add error handling to async operations in ${file.path}`,
+        oldContent: file.content,
+        newContent: content,
+        confidence: 'medium',
+      });
+    }
+  }
+
+  return fixes;
 }
 
 function escapeRegex(str: string): string {

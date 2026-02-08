@@ -35,6 +35,7 @@ const EXTERNAL_PACKAGES = new Set([
   '@radix-ui/react-dropdown-menu', '@radix-ui/react-checkbox', '@radix-ui/react-separator',
   '@radix-ui/react-scroll-area', '@radix-ui/react-switch', '@radix-ui/react-slot',
   '@radix-ui/react-avatar', '@radix-ui/react-alert-dialog', '@radix-ui/react-accordion',
+  'vitest', '@testing-library/react', '@testing-library/jest-dom', '@testing-library/user-event', 'jsdom',
 ]);
 
 function isExternalImport(importPath: string): boolean {

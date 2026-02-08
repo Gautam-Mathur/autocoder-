@@ -59,6 +59,9 @@ export interface ReasoningResult {
   searchableFields: Map<string, string[]>;
   sortableFields: Map<string, string[]>;
   filterableFields: Map<string, FilterConfig[]>;
+  architecturePatterns: ArchitecturePattern[];
+  crossEntityLogic: CrossEntityLogic[];
+  codeQualityPatterns: CodeQualityPattern[];
 }
 
 export interface FormGroup {
@@ -73,6 +76,30 @@ export interface FilterConfig {
   filterType: 'select' | 'range' | 'date-range' | 'search' | 'toggle' | 'multi-select';
   options?: string[];
   label: string;
+}
+
+export interface ArchitecturePattern {
+  entityName: string;
+  pattern: 'pagination' | 'search-filter' | 'sorting' | 'infinite-scroll' | 'optimistic-update' | 'debounced-search' | 'error-boundary' | 'loading-skeleton';
+  reason: string;
+  config: Record<string, any>;
+  codeHint: string;
+}
+
+export interface CrossEntityLogic {
+  sourceEntity: string;
+  targetEntity: string;
+  logicType: 'status-propagation' | 'cascade-update' | 'aggregate-computation' | 'derived-filter' | 'shared-validation';
+  description: string;
+  codeSnippet: string;
+}
+
+export interface CodeQualityPattern {
+  type: 'shared-utility' | 'error-boundary' | 'loading-state' | 'empty-state' | 'form-validation-schema' | 'api-error-handler' | 'optimistic-update-hook';
+  name: string;
+  description: string;
+  applicableEntities: string[];
+  codeSnippet: string;
 }
 
 const FIELD_SEMANTIC_PATTERNS: Record<string, FieldSemantics> = {
@@ -171,6 +198,12 @@ export function analyzeSemantics(plan: ProjectPlan): ReasoningResult {
   const patterns = inferUIPatterns(plan.dataModel, relationships, plan.workflows);
   uiPatterns.push(...patterns);
 
+  const archPatterns = inferArchitecturePatterns(plan.dataModel, rels);
+  const crossLogic = inferCrossEntityLogic(plan.dataModel, rels, plan.workflows);
+  const smartRules = inferSmartValidationRules(plan.dataModel, rels);
+  rules.push(...smartRules);
+  const qualityPatterns = inferCodeQualityPatterns(plan.dataModel, rels, patterns);
+
   return {
     fieldSemantics,
     relationships,
@@ -181,6 +214,9 @@ export function analyzeSemantics(plan: ProjectPlan): ReasoningResult {
     searchableFields,
     sortableFields,
     filterableFields,
+    architecturePatterns: archPatterns,
+    crossEntityLogic: crossLogic,
+    codeQualityPatterns: qualityPatterns,
   };
 }
 
@@ -942,6 +978,587 @@ export function generateSmartTableCell(fieldName: string, semantics: FieldSemant
     default:
       return `<td className="p-3 text-sm">{item.${fieldName}}</td>`;
   }
+}
+
+function inferArchitecturePatterns(entities: PlannedEntity[], relationships: EntityRelationship[]): ArchitecturePattern[] {
+  const patterns: ArchitecturePattern[] = [];
+
+  for (const entity of entities) {
+    const fields = entity.fields;
+    const fieldNames = fields.map(f => f.name.toLowerCase());
+    const textFields = fields.filter(f => /name|title|description|email|label|subject/i.test(f.name) && (f.type === 'text' || f.type === 'string' || f.type.includes('text')));
+    const sortableFields = fields.filter(f => /date|created|amount|total|price|name|title|status|priority/i.test(f.name));
+    const hasImage = fields.some(f => IMAGE_FIELD_PATTERNS.test(f.name));
+    const hasStatus = fields.some(f => f.name === 'status');
+    const hasBooleanToggle = fields.some(f => f.type === 'boolean');
+
+    if (fields.length > 5) {
+      patterns.push({
+        entityName: entity.name,
+        pattern: 'pagination',
+        reason: `${entity.name} has ${fields.length} fields, likely many records that need paginated display`,
+        config: { pageSize: 10, showPageNumbers: true },
+        codeHint: `const [page, setPage] = useState(1);
+const pageSize = 10;
+const { data } = useQuery({ queryKey: ['/${entity.name.toLowerCase()}s', page], queryFn: () => fetch(\`/api/${entity.name.toLowerCase()}s?page=\${page}&limit=\${pageSize}\`).then(r => r.json()) });
+<div className="flex items-center justify-between mt-4">
+  <Button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+  <span>Page {page}</span>
+  <Button onClick={() => setPage(p => p + 1)} disabled={!data?.hasMore}>Next</Button>
+</div>`,
+      });
+    }
+
+    if (textFields.length > 0) {
+      patterns.push({
+        entityName: entity.name,
+        pattern: 'search-filter',
+        reason: `${entity.name} has searchable text fields (${textFields.map(f => f.name).join(', ')})`,
+        config: { searchFields: textFields.map(f => f.name), debounceMs: 300 },
+        codeHint: `const [search, setSearch] = useState('');
+const debouncedSearch = useDebounce(search, 300);
+const { data } = useQuery({ queryKey: ['/${entity.name.toLowerCase()}s', debouncedSearch], queryFn: () => fetch(\`/api/${entity.name.toLowerCase()}s?search=\${debouncedSearch}\`).then(r => r.json()) });
+<Input placeholder="Search ${entity.name.toLowerCase()}s..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-sm" />`,
+      });
+    }
+
+    if (sortableFields.length > 0) {
+      patterns.push({
+        entityName: entity.name,
+        pattern: 'sorting',
+        reason: `${entity.name} has sortable fields (${sortableFields.map(f => f.name).join(', ')})`,
+        config: { sortableColumns: sortableFields.map(f => f.name), defaultSort: sortableFields[0]?.name },
+        codeHint: `const [sortBy, setSortBy] = useState('${sortableFields[0]?.name || 'id'}');
+const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+const toggleSort = (field: string) => { if (sortBy === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else { setSortBy(field); setSortDir('asc'); } };
+<th onClick={() => toggleSort('${sortableFields[0]?.name || 'name'}')} className="cursor-pointer hover:bg-muted">${sortableFields[0]?.name || 'Name'} {sortBy === '${sortableFields[0]?.name || 'name'}' && (sortDir === 'asc' ? '↑' : '↓')}</th>`,
+      });
+    }
+
+    if (hasImage) {
+      patterns.push({
+        entityName: entity.name,
+        pattern: 'infinite-scroll',
+        reason: `${entity.name} has image fields, better suited for infinite scroll with visual card layout`,
+        config: { batchSize: 20, threshold: 200 },
+        codeHint: `const observerRef = useRef<IntersectionObserver>();
+const lastElementRef = useCallback((node: HTMLElement | null) => {
+  if (observerRef.current) observerRef.current.disconnect();
+  observerRef.current = new IntersectionObserver(entries => { if (entries[0].isIntersecting && hasNextPage) fetchNextPage(); });
+  if (node) observerRef.current.observe(node);
+}, [hasNextPage, fetchNextPage]);`,
+      });
+    }
+
+    if (hasStatus || hasBooleanToggle) {
+      patterns.push({
+        entityName: entity.name,
+        pattern: 'optimistic-update',
+        reason: `${entity.name} has ${hasStatus ? 'status' : 'toggle'} fields suitable for optimistic UI updates`,
+        config: { fields: fields.filter(f => f.name === 'status' || f.type === 'boolean').map(f => f.name) },
+        codeHint: `const queryClient = useQueryClient();
+const updateMutation = useMutation({
+  mutationFn: (data: Partial<${entity.name}>) => fetch(\`/api/${entity.name.toLowerCase()}s/\${data.id}\`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()),
+  onMutate: async (newData) => {
+    await queryClient.cancelQueries({ queryKey: ['/${entity.name.toLowerCase()}s'] });
+    const prev = queryClient.getQueryData(['/${entity.name.toLowerCase()}s']);
+    queryClient.setQueryData(['/${entity.name.toLowerCase()}s'], (old: any[]) => old.map(item => item.id === newData.id ? { ...item, ...newData } : item));
+    return { prev };
+  },
+  onError: (_err, _data, context) => { queryClient.setQueryData(['/${entity.name.toLowerCase()}s'], context?.prev); },
+  onSettled: () => { queryClient.invalidateQueries({ queryKey: ['/${entity.name.toLowerCase()}s'] }); },
+});`,
+      });
+    }
+
+    if (textFields.length >= 3) {
+      patterns.push({
+        entityName: entity.name,
+        pattern: 'debounced-search',
+        reason: `${entity.name} has ${textFields.length} text fields, benefits from debounced search to reduce API calls`,
+        config: { delayMs: 300, minChars: 2 },
+        codeHint: `function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => { const handler = setTimeout(() => setDebouncedValue(value), delay); return () => clearTimeout(handler); }, [value, delay]);
+  return debouncedValue;
+}`,
+      });
+    }
+
+    const hasDetailPage = relationships.some(r => r.to === entity.name || r.from === entity.name);
+    if (hasDetailPage) {
+      patterns.push({
+        entityName: entity.name,
+        pattern: 'error-boundary',
+        reason: `${entity.name} has detail pages with relationships that may fail to load`,
+        config: { fallbackMessage: `Failed to load ${entity.name.toLowerCase()} details` },
+        codeHint: `<ErrorBoundary fallback={<div className="p-8 text-center"><AlertCircle className="mx-auto h-12 w-12 text-destructive" /><h3 className="mt-4 text-lg font-semibold">Something went wrong</h3><p className="text-muted-foreground">Failed to load ${entity.name.toLowerCase()} details. Please try again.</p><Button onClick={() => window.location.reload()} className="mt-4">Retry</Button></div>}><${entity.name}Detail /></ErrorBoundary>`,
+      });
+    }
+
+    const kpiFields = fields.filter(f => CURRENCY_FIELD_PATTERNS.test(f.name) || PERCENTAGE_FIELD_PATTERNS.test(f.name) || /count|total|score/i.test(f.name));
+    if (kpiFields.length >= 2 || fields.length > 5) {
+      patterns.push({
+        entityName: entity.name,
+        pattern: 'loading-skeleton',
+        reason: `${entity.name} ${kpiFields.length >= 2 ? 'is a dashboard entity' : 'has a list page'} that benefits from skeleton loading`,
+        config: { skeletonRows: 5, showHeaderSkeleton: true },
+        codeHint: `{isLoading ? (
+  <div className="space-y-3">
+    <Skeleton className="h-8 w-[250px]" />
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div key={i} className="flex items-center space-x-4">
+        <Skeleton className="h-12 w-12 rounded-full" />
+        <div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div>
+      </div>
+    ))}
+  </div>
+) : (<${entity.name}List data={data} />)}`,
+      });
+    }
+  }
+
+  return patterns;
+}
+
+function inferCrossEntityLogic(entities: PlannedEntity[], relationships: EntityRelationship[], workflows: PlannedWorkflow[]): CrossEntityLogic[] {
+  const logic: CrossEntityLogic[] = [];
+
+  for (const rel of relationships) {
+    const parentEntity = entities.find(e => e.name === rel.to);
+    const childEntity = entities.find(e => e.name === rel.from);
+    if (!parentEntity || !childEntity) continue;
+
+    const parentHasStatus = parentEntity.fields.some(f => f.name === 'status');
+    const childHasStatus = childEntity.fields.some(f => f.name === 'status');
+
+    if (parentHasStatus && childHasStatus && (rel.type === 'composition' || rel.type === 'parent-child')) {
+      const parentWorkflow = workflows.find(w => w.entity === parentEntity.name);
+      const cancelState = parentWorkflow?.states.find(s => /cancel|void|reject|close/i.test(s)) || 'cancelled';
+      logic.push({
+        sourceEntity: parentEntity.name,
+        targetEntity: childEntity.name,
+        logicType: 'status-propagation',
+        description: `When ${parentEntity.name} status changes to '${cancelState}', propagate to all related ${childEntity.name} records`,
+        codeSnippet: `async function propagateStatusTo${childEntity.name}(${parentEntity.name.toLowerCase()}Id: number, newStatus: string) {
+  if (newStatus === '${cancelState}') {
+    await db.update(${childEntity.name.toLowerCase()}s).set({ status: '${cancelState}' }).where(eq(${childEntity.name.toLowerCase()}s.${rel.fromField || parentEntity.name.toLowerCase() + 'Id'}, ${parentEntity.name.toLowerCase()}Id));
+  }
+}`,
+      });
+    }
+
+    if (rel.type === 'composition' || rel.type === 'parent-child') {
+      logic.push({
+        sourceEntity: parentEntity.name,
+        targetEntity: childEntity.name,
+        logicType: 'cascade-update',
+        description: `When ${parentEntity.name} is deleted, cascade delete all related ${childEntity.name} records`,
+        codeSnippet: `async function cascadeDelete${parentEntity.name}(id: number) {
+  await db.delete(${childEntity.name.toLowerCase()}s).where(eq(${childEntity.name.toLowerCase()}s.${rel.fromField || parentEntity.name.toLowerCase() + 'Id'}, id));
+  await db.delete(${parentEntity.name.toLowerCase()}s).where(eq(${parentEntity.name.toLowerCase()}s.id, id));
+}`,
+      });
+    }
+
+    const childNumericFields = childEntity.fields.filter(f =>
+      CURRENCY_FIELD_PATTERNS.test(f.name) || /quantity|count|amount|total|hours/i.test(f.name)
+    );
+    if (childNumericFields.length > 0 && (rel.type === 'composition' || rel.cardinality === 'N:1')) {
+      for (const numField of childNumericFields) {
+        logic.push({
+          sourceEntity: childEntity.name,
+          targetEntity: parentEntity.name,
+          logicType: 'aggregate-computation',
+          description: `Compute sum of ${childEntity.name}.${numField.name} on ${parentEntity.name} detail page`,
+          codeSnippet: `const ${childEntity.name.toLowerCase()}${numField.name.charAt(0).toUpperCase() + numField.name.slice(1)}Total = useMemo(() => {
+  return related${childEntity.name}s?.reduce((sum: number, item: any) => sum + (Number(item.${numField.name}) || 0), 0) ?? 0;
+}, [related${childEntity.name}s]);`,
+        });
+      }
+    }
+
+    if (rel.cardinality === 'N:1' || rel.type === 'reference') {
+      const parentDisplayField = parentEntity.fields.find(f => /name|title|label|code/i.test(f.name))?.name || 'name';
+      logic.push({
+        sourceEntity: childEntity.name,
+        targetEntity: parentEntity.name,
+        logicType: 'derived-filter',
+        description: `${childEntity.name} list page should have a filter dropdown for ${parentEntity.name}.${parentDisplayField}`,
+        codeSnippet: `const [selected${parentEntity.name}Id, setSelected${parentEntity.name}Id] = useState<number | null>(null);
+const { data: ${parentEntity.name.toLowerCase()}s } = useQuery({ queryKey: ['/${parentEntity.name.toLowerCase()}s'], queryFn: () => fetch('/api/${parentEntity.name.toLowerCase()}s').then(r => r.json()) });
+<Select value={selected${parentEntity.name}Id?.toString() || ''} onValueChange={v => setSelected${parentEntity.name}Id(v ? Number(v) : null)}>
+  <SelectTrigger><SelectValue placeholder="Filter by ${parentEntity.name}" /></SelectTrigger>
+  <SelectContent>{${parentEntity.name.toLowerCase()}s?.map((item: any) => <SelectItem key={item.id} value={item.id.toString()}>{item.${parentDisplayField}}</SelectItem>)}</SelectContent>
+</Select>`,
+      });
+    }
+  }
+
+  const fieldPatternMap: Record<string, string[]> = {};
+  for (const entity of entities) {
+    for (const field of entity.fields) {
+      if (/email/i.test(field.name)) {
+        if (!fieldPatternMap['email']) fieldPatternMap['email'] = [];
+        fieldPatternMap['email'].push(entity.name);
+      }
+      if (/phone/i.test(field.name)) {
+        if (!fieldPatternMap['phone']) fieldPatternMap['phone'] = [];
+        fieldPatternMap['phone'].push(entity.name);
+      }
+      if (/url|website/i.test(field.name)) {
+        if (!fieldPatternMap['url']) fieldPatternMap['url'] = [];
+        fieldPatternMap['url'].push(entity.name);
+      }
+    }
+  }
+
+  for (const [pattern, entityNames] of Object.entries(fieldPatternMap)) {
+    if (entityNames.length >= 2) {
+      const validatorMap: Record<string, string> = {
+        email: `export function validateEmail(value: string): boolean { return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value); }`,
+        phone: `export function validatePhone(value: string): boolean { return /^\\+?[\\d\\s\\-()]{7,15}$/.test(value); }`,
+        url: `export function validateUrl(value: string): boolean { try { new URL(value); return true; } catch { return false; } }`,
+      };
+      logic.push({
+        sourceEntity: entityNames[0],
+        targetEntity: entityNames[1],
+        logicType: 'shared-validation',
+        description: `Shared ${pattern} validation used by ${entityNames.join(', ')}`,
+        codeSnippet: validatorMap[pattern] || `export function validate${pattern.charAt(0).toUpperCase() + pattern.slice(1)}(value: string): boolean { return value.length > 0; }`,
+      });
+    }
+  }
+
+  return logic;
+}
+
+function inferSmartValidationRules(entities: PlannedEntity[], relationships: EntityRelationship[]): BusinessRule[] {
+  const rules: BusinessRule[] = [];
+
+  for (const entity of entities) {
+    const fields = entity.fields;
+    const fieldNames = fields.map(f => f.name.toLowerCase());
+
+    const hasStartDate = fields.find(f => /^(startDate|startTime|start|checkIn|beginDate)$/i.test(f.name));
+    const hasEndDate = fields.find(f => /^(endDate|endTime|end|checkOut|deadline|dueDate)$/i.test(f.name));
+    if (hasStartDate && hasEndDate) {
+      rules.push({
+        entityName: entity.name,
+        ruleName: `zod_date_range_${hasStartDate.name}_${hasEndDate.name}`,
+        type: 'validation',
+        condition: `${hasEndDate.name} < ${hasStartDate.name}`,
+        action: 'reject',
+        description: `${hasEndDate.name} must be on or after ${hasStartDate.name}`,
+        codeSnippet: `.refine((data) => !data.${hasStartDate.name} || !data.${hasEndDate.name} || new Date(data.${hasEndDate.name}) >= new Date(data.${hasStartDate.name}), { message: "${hasEndDate.name} must be on or after ${hasStartDate.name}", path: ["${hasEndDate.name}"] })`,
+      });
+    }
+
+    const statusField = fields.find(f => f.name === 'status');
+    const assignableFields = fields.filter(f => /assignedTo|assignee|owner|responsible|handler/i.test(f.name));
+    if (statusField && assignableFields.length > 0) {
+      for (const aField of assignableFields) {
+        rules.push({
+          entityName: entity.name,
+          ruleName: `conditional_required_${aField.name}`,
+          type: 'validation',
+          condition: `status === 'in_progress' && !${aField.name}`,
+          action: 'reject',
+          description: `${aField.name} is required when status is 'in_progress'`,
+          codeSnippet: `.refine((data) => !(data.status === 'in_progress' && !data.${aField.name}), { message: "${aField.name} is required when status is in_progress", path: ["${aField.name}"] })`,
+        });
+      }
+    }
+
+    const uniqueCandidates = fields.filter(f => /^(email|username|code|sku|slug|orderNumber|invoiceNumber)$/i.test(f.name));
+    for (const uf of uniqueCandidates) {
+      rules.push({
+        entityName: entity.name,
+        ruleName: `unique_${uf.name}`,
+        type: 'constraint',
+        action: 'check-unique',
+        description: `${uf.name} must be unique across all ${entity.name} records`,
+        codeSnippet: `const existing = await db.select().from(${entity.name.toLowerCase()}s).where(eq(${entity.name.toLowerCase()}s.${uf.name}, data.${uf.name})).limit(1);
+if (existing.length > 0 && existing[0].id !== data.id) {
+  return res.status(409).json({ error: "${uf.name} already exists" });
+}`,
+      });
+    }
+
+    const refFields = fields.filter(f => f.name.toLowerCase().endsWith('id') && f.name.toLowerCase() !== 'id');
+    for (const rf of refFields) {
+      const refName = rf.name.replace(/Id$/i, '');
+      const refEntity = entities.find(e => e.name.toLowerCase() === refName.toLowerCase() || e.name.toLowerCase() === refName.toLowerCase() + 's');
+      if (refEntity) {
+        rules.push({
+          entityName: entity.name,
+          ruleName: `ref_integrity_${rf.name}`,
+          type: 'constraint',
+          action: 'check-exists',
+          description: `Referenced ${refEntity.name} must exist for ${rf.name}`,
+          codeSnippet: `if (data.${rf.name}) {
+  const ref = await db.select().from(${refEntity.name.toLowerCase()}s).where(eq(${refEntity.name.toLowerCase()}s.id, data.${rf.name})).limit(1);
+  if (ref.length === 0) { return res.status(400).json({ error: "Referenced ${refEntity.name} not found" }); }
+}`,
+        });
+      }
+    }
+
+    const priceFields = fields.filter(f => CURRENCY_FIELD_PATTERNS.test(f.name) && (f.type.includes('number') || f.type.includes('integer') || f.type.includes('real') || f.type.includes('decimal')));
+    for (const pf of priceFields) {
+      rules.push({
+        entityName: entity.name,
+        ruleName: `numeric_bound_${pf.name}_non_negative`,
+        type: 'validation',
+        condition: `${pf.name} < 0`,
+        action: 'reject',
+        description: `${pf.name} must be >= 0`,
+        codeSnippet: `z.number().min(0, { message: "${pf.name} must be a non-negative number" })`,
+      });
+    }
+
+    const percentFields = fields.filter(f => PERCENTAGE_FIELD_PATTERNS.test(f.name) && !CURRENCY_FIELD_PATTERNS.test(f.name));
+    for (const pf of percentFields) {
+      rules.push({
+        entityName: entity.name,
+        ruleName: `numeric_bound_${pf.name}_percentage`,
+        type: 'validation',
+        condition: `${pf.name} < 0 || ${pf.name} > 100`,
+        action: 'reject',
+        description: `${pf.name} must be between 0 and 100`,
+        codeSnippet: `z.number().min(0).max(100, { message: "${pf.name} must be between 0 and 100" })`,
+      });
+    }
+
+    const ratingField = fields.find(f => /^(rating|score|stars)$/i.test(f.name));
+    if (ratingField) {
+      rules.push({
+        entityName: entity.name,
+        ruleName: `numeric_bound_${ratingField.name}_rating`,
+        type: 'validation',
+        condition: `${ratingField.name} < 1 || ${ratingField.name} > 5`,
+        action: 'reject',
+        description: `${ratingField.name} must be between 1 and 5`,
+        codeSnippet: `z.number().min(1).max(5, { message: "${ratingField.name} must be between 1 and 5" })`,
+      });
+    }
+
+    const nameFields = fields.filter(f => /^(name|firstName|lastName|title|companyName|displayName|label)$/i.test(f.name));
+    for (const nf of nameFields) {
+      rules.push({
+        entityName: entity.name,
+        ruleName: `string_length_${nf.name}`,
+        type: 'validation',
+        action: 'reject',
+        description: `${nf.name} must be at most 100 characters`,
+        codeSnippet: `z.string().max(100, { message: "${nf.name} must be at most 100 characters" })`,
+      });
+    }
+
+    const descFields = fields.filter(f => TEXTAREA_FIELD_PATTERNS.test(f.name));
+    for (const df of descFields) {
+      rules.push({
+        entityName: entity.name,
+        ruleName: `string_length_${df.name}`,
+        type: 'validation',
+        action: 'reject',
+        description: `${df.name} must be at most 2000 characters`,
+        codeSnippet: `z.string().max(2000, { message: "${df.name} must be at most 2000 characters" })`,
+      });
+    }
+
+    const codeFields = fields.filter(f => /^(code|sku|slug|abbreviation)$/i.test(f.name));
+    for (const cf of codeFields) {
+      rules.push({
+        entityName: entity.name,
+        ruleName: `string_length_${cf.name}`,
+        type: 'validation',
+        action: 'reject',
+        description: `${cf.name} must be at most 50 characters`,
+        codeSnippet: `z.string().max(50, { message: "${cf.name} must be at most 50 characters" })`,
+      });
+    }
+
+    const hasPassword = fieldNames.includes('password');
+    const hasConfirmPassword = fieldNames.includes('confirmpassword') || fieldNames.includes('passwordconfirm');
+    if (hasPassword && hasConfirmPassword) {
+      const confirmField = fields.find(f => /confirmpassword|passwordconfirm/i.test(f.name));
+      rules.push({
+        entityName: entity.name,
+        ruleName: 'cross_field_password_match',
+        type: 'validation',
+        condition: `password !== ${confirmField?.name || 'confirmPassword'}`,
+        action: 'reject',
+        description: 'Password and confirmation must match',
+        codeSnippet: `.refine((data) => data.password === data.${confirmField?.name || 'confirmPassword'}, { message: "Passwords do not match", path: ["${confirmField?.name || 'confirmPassword'}"] })`,
+      });
+    }
+  }
+
+  return rules;
+}
+
+function inferCodeQualityPatterns(entities: PlannedEntity[], relationships: EntityRelationship[], uiPatterns: UIPattern[]): CodeQualityPattern[] {
+  const patterns: CodeQualityPattern[] = [];
+
+  const entitiesWithCurrency = entities.filter(e => e.fields.some(f => CURRENCY_FIELD_PATTERNS.test(f.name)));
+  if (entitiesWithCurrency.length >= 3) {
+    patterns.push({
+      type: 'shared-utility',
+      name: 'formatCurrency',
+      description: 'Shared currency formatting utility used across multiple entities',
+      applicableEntities: entitiesWithCurrency.map(e => e.name),
+      codeSnippet: `export function formatCurrency(value: number | null | undefined, currency = 'USD'): string {
+  if (value == null) return '$0.00';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
+}
+
+export function parseCurrency(value: string): number {
+  return parseFloat(value.replace(/[^0-9.-]+/g, '')) || 0;
+}`,
+    });
+  }
+
+  const entitiesWithDetailPages = entities.filter(e =>
+    relationships.some(r => r.to === e.name || r.from === e.name)
+  );
+  if (entitiesWithDetailPages.length >= 2) {
+    patterns.push({
+      type: 'error-boundary',
+      name: 'EntityErrorBoundary',
+      description: 'Error boundary component for entity detail pages',
+      applicableEntities: entitiesWithDetailPages.map(e => e.name),
+      codeSnippet: `class EntityErrorBoundary extends React.Component<{ children: React.ReactNode; entityName: string }, { hasError: boolean; error?: Error }> {
+  state = { hasError: false, error: undefined as Error | undefined };
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
+  render() {
+    if (this.state.hasError) {
+      return (<div className="p-8 text-center border rounded-lg bg-destructive/5">
+        <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
+        <h3 className="mt-4 text-lg font-semibold">Error loading {this.props.entityName}</h3>
+        <p className="mt-2 text-muted-foreground">{this.state.error?.message}</p>
+        <Button onClick={() => this.setState({ hasError: false })} className="mt-4">Try Again</Button>
+      </div>);
+    }
+    return this.props.children;
+  }
+}`,
+    });
+  }
+
+  if (entities.length >= 3) {
+    patterns.push({
+      type: 'loading-state',
+      name: 'TableSkeleton',
+      description: 'Reusable skeleton loading component for data tables',
+      applicableEntities: entities.map(e => e.name),
+      codeSnippet: `export function TableSkeleton({ columns = 4, rows = 5 }: { columns?: number; rows?: number }) {
+  return (
+    <div className="w-full space-y-3">
+      <div className="flex gap-4">{Array.from({ length: columns }).map((_, i) => <Skeleton key={i} className="h-8 flex-1" />)}</div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex gap-4">{Array.from({ length: columns }).map((_, j) => <Skeleton key={j} className="h-12 flex-1" />)}</div>
+      ))}
+    </div>
+  );
+}`,
+    });
+  }
+
+  for (const entity of entities) {
+    const displayName = entity.name.replace(/([A-Z])/g, ' $1').trim().toLowerCase();
+    patterns.push({
+      type: 'empty-state',
+      name: `${entity.name}EmptyState`,
+      description: `Empty state component for ${entity.name} list when no records exist`,
+      applicableEntities: [entity.name],
+      codeSnippet: `export function ${entity.name}EmptyState({ onCreateNew }: { onCreateNew?: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <FileX className="h-12 w-12 text-muted-foreground" />
+      <h3 className="mt-4 text-lg font-semibold">No ${displayName}s yet</h3>
+      <p className="mt-2 text-sm text-muted-foreground">Get started by creating your first ${displayName}.</p>
+      {onCreateNew && <Button onClick={onCreateNew} className="mt-4"><Plus className="mr-2 h-4 w-4" />Create ${entity.name}</Button>}
+    </div>
+  );
+}`,
+    });
+  }
+
+  const entitiesWithManyFields = entities.filter(e => e.fields.filter(f => f.name !== 'id').length >= 5);
+  for (const entity of entitiesWithManyFields) {
+    const zodFields = entity.fields
+      .filter(f => f.name !== 'id' && f.name !== 'createdAt')
+      .map(f => {
+        if (f.type === 'boolean') return `  ${f.name}: z.boolean()`;
+        if (f.type.includes('number') || f.type.includes('integer') || f.type.includes('real')) return `  ${f.name}: z.number()${f.required ? '' : '.optional()'}`;
+        if (f.type === 'date' || f.type === 'timestamp') return `  ${f.name}: z.string()${f.required ? '' : '.optional()'}`;
+        return `  ${f.name}: z.string()${f.required ? '.min(1, "Required")' : '.optional()'}`;
+      })
+      .join(',\n');
+    patterns.push({
+      type: 'form-validation-schema',
+      name: `${entity.name}FormSchema`,
+      description: `Zod validation schema for ${entity.name} form with ${entity.fields.length} fields`,
+      applicableEntities: [entity.name],
+      codeSnippet: `export const ${entity.name.charAt(0).toLowerCase() + entity.name.slice(1)}FormSchema = z.object({\n${zodFields}\n});`,
+    });
+  }
+
+  if (entities.length >= 2) {
+    patterns.push({
+      type: 'api-error-handler',
+      name: 'handleApiError',
+      description: 'Shared API error handler with toast notifications for consistent error handling',
+      applicableEntities: entities.map(e => e.name),
+      codeSnippet: `export function handleApiError(error: unknown, toast: (opts: { title: string; description?: string; variant?: string }) => void) {
+  if (error instanceof Response) {
+    error.json().then(body => {
+      toast({ title: 'Error', description: body.error || body.message || 'An unexpected error occurred', variant: 'destructive' });
+    }).catch(() => {
+      toast({ title: 'Error', description: \`Request failed with status \${error.status}\`, variant: 'destructive' });
+    });
+  } else if (error instanceof Error) {
+    toast({ title: 'Error', description: error.message, variant: 'destructive' });
+  } else {
+    toast({ title: 'Error', description: 'An unexpected error occurred', variant: 'destructive' });
+  }
+}`,
+    });
+  }
+
+  const entitiesWithFrequentUpdates = entities.filter(e =>
+    e.fields.some(f => f.name === 'status' || f.type === 'boolean') &&
+    relationships.some(r => r.from === e.name || r.to === e.name)
+  );
+  if (entitiesWithFrequentUpdates.length >= 2) {
+    patterns.push({
+      type: 'optimistic-update-hook',
+      name: 'useOptimisticUpdate',
+      description: 'Reusable hook for optimistic UI updates with automatic rollback on error',
+      applicableEntities: entitiesWithFrequentUpdates.map(e => e.name),
+      codeSnippet: `export function useOptimisticUpdate<T extends { id: number }>(queryKey: string[]) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<T> }) => {
+      const res = await fetch(\`/api/\${queryKey[0]}/\${id}\`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      if (!res.ok) throw new Error('Update failed');
+      return res.json();
+    },
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousData = queryClient.getQueryData<T[]>(queryKey);
+      queryClient.setQueryData<T[]>(queryKey, (old) => old?.map(item => item.id === id ? { ...item, ...data } : item) || []);
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => { if (context?.previousData) queryClient.setQueryData(queryKey, context.previousData); },
+    onSettled: () => { queryClient.invalidateQueries({ queryKey }); },
+  });
+}`,
+    });
+  }
+
+  return patterns;
 }
 
 function toKebabCase(str: string): string {
