@@ -1998,7 +1998,7 @@ function generateDetailPage(page: PlannedPage, plan: ProjectPlan, reasoning: Rea
     r.from === entityName && (r.cardinality === 'N:1' || r.cardinality === '1:1')
   ) || [];
 
-  // Generate related sections
+  // Generate related sections with inline create forms
   const relatedSections = childRelationships.map(rel => {
     const childEntity = plan.dataModel.find(e => e.name === rel.from);
     if (!childEntity) return null;
@@ -2010,7 +2010,12 @@ function generateDetailPage(page: PlannedPage, plan: ProjectPlan, reasoning: Rea
       .filter(f => f.name !== 'id' && f.name !== 'createdAt' && f.name !== foreignKey)
       .slice(0, 4);
 
+    const childEditableFields = childEntity.fields
+      .filter(f => f.name !== 'id' && f.name !== 'createdAt' && f.name !== foreignKey);
+
     const childSemantics = reasoning?.fieldSemantics.get(rel.from) || [];
+    const childComputedFields = reasoning?.computedFields.filter(cf => cf.entityName === rel.from) || [];
+    const computedFieldNames = new Set(childComputedFields.map(cf => cf.fieldName));
     const getChildFieldSemantic = (fieldName: string): FieldSemantics | undefined => {
       return childSemantics.find(s => s.fieldName === fieldName);
     };
@@ -2039,17 +2044,121 @@ function generateDetailPage(page: PlannedPage, plan: ProjectPlan, reasoning: Rea
       return `                    <td className="py-2">{child?.${f.name} ?? "—"}</td>`;
     }).join('\n');
 
+    const formableFields = childEditableFields.filter(f =>
+      !computedFieldNames.has(f.name) && !f.description?.startsWith('Computed:')
+    ).slice(0, 6);
+
+    const formStates = formableFields.map(f => {
+      const setter = `setChild${rel.from}${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
+      const stateVar = `child${rel.from}${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
+      if (f.type === 'integer' || f.type === 'number' || f.type === 'real' || f.type.includes('decimal')) {
+        return `  const [${stateVar}, ${setter}] = useState(0);`;
+      }
+      if (f.type === 'boolean') {
+        return `  const [${stateVar}, ${setter}] = useState(false);`;
+      }
+      return `  const [${stateVar}, ${setter}] = useState("");`;
+    }).join('\n');
+
+    const formBody = formableFields.map(f => {
+      return `      ${f.name}: child${rel.from}${f.name.charAt(0).toUpperCase() + f.name.slice(1)},`;
+    }).join('\n');
+
+    const resetFields = formableFields.map(f => {
+      const setter = `setChild${rel.from}${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
+      if (f.type === 'integer' || f.type === 'number' || f.type === 'real' || f.type.includes('decimal')) return `      ${setter}(0);`;
+      if (f.type === 'boolean') return `      ${setter}(false);`;
+      return `      ${setter}("");`;
+    }).join('\n');
+
+    const formInputs = formableFields.map(f => {
+      const stateVar = `child${rel.from}${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
+      const setter = `setChild${rel.from}${f.name.charAt(0).toUpperCase() + f.name.slice(1)}`;
+      const semantic = getChildFieldSemantic(f.name);
+
+      if (f.type === 'boolean') {
+        return `                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={${stateVar}} onChange={(e) => ${setter}(e.target.checked)} /> ${toTitleCase(f.name)}</label>`;
+      }
+
+      if (semantic) {
+        switch (semantic.inputType) {
+          case 'currency':
+            return `                <div className="relative"><span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span><input type="number" step="0.01" min="0" placeholder="${toTitleCase(f.name)}" className="w-full pl-6 rounded border px-3 py-1.5 text-sm" value={${stateVar}} onChange={(e) => ${setter}(Number(e.target.value))} data-testid="input-${toKebabCase(f.name)}" /></div>`;
+          case 'date':
+            return `                <input type="date" placeholder="${toTitleCase(f.name)}" className="w-full rounded border px-3 py-1.5 text-sm" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />`;
+          case 'datetime':
+            return `                <input type="datetime-local" placeholder="${toTitleCase(f.name)}" className="w-full rounded border px-3 py-1.5 text-sm" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />`;
+          case 'email':
+            return `                <input type="email" placeholder="${semantic.placeholder || toTitleCase(f.name)}" className="w-full rounded border px-3 py-1.5 text-sm" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />`;
+          case 'tel':
+            return `                <input type="tel" placeholder="${semantic.placeholder || toTitleCase(f.name)}" className="w-full rounded border px-3 py-1.5 text-sm" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />`;
+          case 'textarea':
+            return `                <textarea placeholder="${toTitleCase(f.name)}" rows={2} className="w-full rounded border px-3 py-1.5 text-sm" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />`;
+          case 'select':
+            const enumMatch = f.type.match(/enum\(([^)]+)\)/);
+            if (enumMatch) {
+              const options = enumMatch[1].split(',').map(o => o.trim().replace(/'/g, ''));
+              return `                <select className="w-full rounded border px-3 py-1.5 text-sm" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}">\n                  <option value="">Select ${toTitleCase(f.name)}</option>\n${options.map(o => `                  <option value="${o}">${toTitleCase(o)}</option>`).join('\n')}\n                </select>`;
+            }
+        }
+      }
+
+      if (f.type === 'integer' || f.type === 'number' || f.type === 'real' || f.type.includes('decimal')) {
+        return `                <input type="number" placeholder="${toTitleCase(f.name)}" className="w-full rounded border px-3 py-1.5 text-sm" value={${stateVar}} onChange={(e) => ${setter}(Number(e.target.value))} data-testid="input-${toKebabCase(f.name)}" />`;
+      }
+
+      return `                <input type="text" placeholder="${toTitleCase(f.name)}" className="w-full rounded border px-3 py-1.5 text-sm" value={${stateVar}} onChange={(e) => ${setter}(e.target.value)} data-testid="input-${toKebabCase(f.name)}" />`;
+    }).join('\n');
+
+    const showFormVar = `showAdd${rel.from}`;
+    const mutationVar = `create${rel.from}Mutation`;
+
     const queryDecl = `  const { data: ${childVarName}s = [] } = useQuery({
     queryKey: ["${childEndpoint}", { ${foreignKey}: id }],
     enabled: !!id,
+  });
+  const [${showFormVar}, setShow${rel.from}Form] = useState(false);
+${formStates}
+  const ${mutationVar} = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest("POST", "${childEndpoint}", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["${childEndpoint}"] });
+      setShow${rel.from}Form(false);
+${resetFields}
+      toast({ title: "${toTitleCase(rel.from)} added" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
   });`;
 
     const section = `
       <Card className="mt-6">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">${toTitleCase(rel.from)}s</CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setShow${rel.from}Form(!${showFormVar})} data-testid="button-add-${toKebabCase(rel.from)}">
+            <Plus className="h-3 w-3 mr-1" /> Add
+          </Button>
         </CardHeader>
         <CardContent>
+          {${showFormVar} && (
+            <div className="mb-4 p-3 border rounded-lg space-y-2 bg-muted/30">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+${formInputs}
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="ghost" onClick={() => setShow${rel.from}Form(false)}>Cancel</Button>
+                <Button size="sm" onClick={() => ${mutationVar}.mutate({
+${formBody}
+      ${foreignKey}: Number(id),
+    })} disabled={${mutationVar}.isPending} data-testid="button-submit-${toKebabCase(rel.from)}">
+                  {${mutationVar}.isPending ? "Adding..." : "Add ${toTitleCase(rel.from)}"}
+                </Button>
+              </div>
+            </div>
+          )}
           {${childVarName}s.length > 0 ? (
             <table className="w-full text-sm">
               <thead>
@@ -2148,12 +2257,16 @@ ${childTableRows}
               </div>`;
   }).join('\n');
 
-  return `import { useQuery, useMutation } from "@tanstack/react-query";
+  const hasChildForms = relatedSections.length > 0;
+  const stateImport = hasChildForms ? `import { useState } from "react";\n` : '';
+  const lucideIcons = hasChildForms ? 'ArrowLeft, Trash2, Plus' : 'ArrowLeft, Trash2';
+
+  return `${stateImport}import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link, useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ${lucideIcons} } from "lucide-react";
 import StatusBadge from "@/components/status-badge";
 import { useToast } from "@/hooks/use-toast";
 
