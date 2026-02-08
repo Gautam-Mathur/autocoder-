@@ -172,7 +172,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'AutoCoder: Fix npm install hanging — add stall detection (45s), registry connectivity check, alternative registry fallback, verbose npm logging',
+      message: 'AutoCoder: Add Node.js LTS version requirement (engines field) and Electron startup version check warning for non-LTS versions',
       tree: newTree.sha,
       parents: [latestSha]
     });

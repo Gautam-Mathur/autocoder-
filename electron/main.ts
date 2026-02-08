@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell, IpcMainInvokeEvent } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { LocalRunner } from './services/local-runner.js';
@@ -9,6 +9,27 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+function checkNodeVersion() {
+  const version = process.versions.node;
+  const major = parseInt(version.split('.')[0], 10);
+  const supported = major >= 18 && major < 23;
+  if (!supported) {
+    const msg = `Node.js v${version} detected. AutoCoder requires Node.js v18–v22 (LTS). ` +
+      `Non-LTS versions may cause WebContainer npm installs to hang silently.`;
+    logger.warn('NodeVersion', msg);
+    dialog.showMessageBoxSync({
+      type: 'warning',
+      title: 'Node.js Version Warning',
+      message: `Unsupported Node.js v${version}`,
+      detail: `AutoCoder requires Node.js v18, v20, or v22 (LTS).\n\nNode.js v${major} is not supported and may cause npm installs to hang inside WebContainer.\n\nPlease install Node.js v20 LTS from https://nodejs.org and restart.`,
+      buttons: ['Continue Anyway'],
+    });
+  } else {
+    logger.info('NodeVersion', `Node.js v${version} — OK`);
+  }
+}
+
 
 let mainWindow: BrowserWindow | null = null;
 const runner = new LocalRunner();
@@ -119,6 +140,7 @@ app.whenReady().then(() => {
     nodeVersion: process.version
   });
   
+  checkNodeVersion();
   logger.rotateLogs();
   createWindow();
 
