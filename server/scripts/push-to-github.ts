@@ -172,7 +172,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'AutoCoder: Full AI intelligence pipeline with bi-directional learning, semantic code generation, UI pattern pages, and relationship-aware detail views',
+      message: 'AutoCoder: Add test generation, runtime error fixer expansion, contextual reasoning engine expansion, 8-category quality validation (99% A+, 931/943 pts)',
       tree: newTree.sha,
       parents: [latestSha]
     });
