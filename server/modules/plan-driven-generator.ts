@@ -1,6 +1,8 @@
 import type { ProjectPlan, PlannedEntity, PlannedPage, PlannedEndpoint, PlannedWorkflow } from './plan-generator.js';
 import { analyzeSemantics, generateSmartInputComponent, generateSmartTableCell, generateCurrencyDisplay, generateDateDisplay, type ReasoningResult, type FieldSemantics } from './contextual-reasoning-engine.js';
 import { generateTestFiles } from './test-generator.js';
+import { generateDesignSystem, generateDesignedTailwindConfig, generateDesignedIndexCss, type DesignSystem } from './design-system-engine.js';
+import { generateFunctionalitySpec, type FunctionalitySpec } from './functionality-engine.js';
 
 interface GeneratedFile {
   path: string;
@@ -11,11 +13,13 @@ interface GeneratedFile {
 export function generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[] {
   const files: GeneratedFile[] = [];
   const reasoning = analyzeSemantics(plan);
+  const designSystem = generateDesignSystem(plan, reasoning);
+  const funcSpec = generateFunctionalitySpec(plan, reasoning);
 
   files.push(generateIndexHtml(plan));
-  files.push(generateMainTsx());
+  files.push(generateMainTsx(designSystem));
   files.push(generateViteConfig());
-  files.push(generateTailwindConfig());
+  files.push({ path: 'tailwind.config.ts', content: generateDesignedTailwindConfig(designSystem), language: 'typescript' });
   files.push(generatePostcssConfig());
 
   files.push(generateLibUtils());
@@ -39,16 +43,17 @@ export function generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[] {
   files.push(generateDb());
   files.push(generateStorageInterface(plan));
   files.push(generateRoutes(plan, reasoning));
-  files.push(generateAppTsx(plan));
-  files.push(generateIndexCss(plan));
+  files.push(generateAppTsx(plan, designSystem));
+  files.push({ path: 'src/index.css', content: generateDesignedIndexCss(designSystem), language: 'css' });
 
   for (const page of plan.pages) {
-    files.push(generatePageComponent(page, plan, reasoning));
+    files.push(generatePageComponent(page, plan, reasoning, funcSpec));
   }
 
   files.push(generateDataTable(plan, reasoning));
   files.push(generateKpiCard());
   files.push(generateStatusBadge(plan));
+  files.push(generateThemeProvider(designSystem));
 
   const testFiles = generateTestFiles(plan, reasoning);
   files.push(...testFiles);
@@ -137,7 +142,7 @@ function generatePackageJson(plan: ProjectPlan, generatedFiles: GeneratedFile[])
   const usedPkgs = detectUsedPackages(generatedFiles);
 
   const deps: Record<string, string> = {};
-  for (const pkg of usedPkgs) {
+  for (const pkg of Array.from(usedPkgs)) {
     if (AVAILABLE_DEPS[pkg]) {
       deps[pkg] = AVAILABLE_DEPS[pkg];
     }
@@ -190,10 +195,12 @@ function generateIndexHtml(plan: ProjectPlan): GeneratedFile {
   return { path: 'index.html', content, language: 'html' };
 }
 
-function generateMainTsx(): GeneratedFile {
+function generateMainTsx(_designSystem?: DesignSystem): GeneratedFile {
   const content = `import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+
+document.documentElement.classList.add("dark");
 
 createRoot(document.getElementById("root")!).render(<App />);
 `;
@@ -1061,7 +1068,7 @@ ${routeHandlers.join('\n')}
   return { path: 'server/routes.ts', content, language: 'typescript' };
 }
 
-function generateAppTsx(plan: ProjectPlan): GeneratedFile {
+function generateAppTsx(plan: ProjectPlan, _designSystem?: DesignSystem): GeneratedFile {
   const pageImports: string[] = [];
   const routes: string[] = [];
 
@@ -1289,7 +1296,7 @@ function generateIndexCss(plan: ProjectPlan): GeneratedFile {
   return { path: 'src/index.css', content, language: 'css' };
 }
 
-function generatePageComponent(page: PlannedPage, plan: ProjectPlan, reasoning: ReasoningResult): GeneratedFile {
+function generatePageComponent(page: PlannedPage, plan: ProjectPlan, reasoning: ReasoningResult, _funcSpec?: FunctionalitySpec): GeneratedFile {
   const fileName = toKebabCase(page.componentName.replace('Page', ''));
 
   const isDashboard = page.path === '/';
@@ -2555,6 +2562,49 @@ export default function StatusBadge({ status, className }: StatusBadgeProps) {
 `;
 
   return { path: 'src/components/status-badge.tsx', content, language: 'tsx' };
+}
+
+function generateThemeProvider(_designSystem: DesignSystem): GeneratedFile {
+  const content = `import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+
+type Theme = "dark" | "light";
+
+interface ThemeContextType {
+  theme: Theme;
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType>({ theme: "dark", toggleTheme: () => {} });
+
+export function ThemeProvider({ children, defaultTheme = "dark" }: { children: ReactNode; defaultTheme?: Theme }) {
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("theme") as Theme) || defaultTheme;
+    }
+    return defaultTheme;
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === "dark" ? "light" : "dark");
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme() {
+  return useContext(ThemeContext);
+}
+`;
+  return { path: 'src/components/theme-provider.tsx', content, language: 'tsx' };
 }
 
 function toSnakeCase(str: string): string {

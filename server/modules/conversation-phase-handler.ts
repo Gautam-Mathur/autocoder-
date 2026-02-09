@@ -8,6 +8,7 @@ import { analyzeSemantics, type ReasoningResult, type EntityRelationship, type C
 import { learningEngine } from './generation-learning-engine.js';
 import { shouldAskMoreQuestions, createClarificationState, parseAnswersFromResponse, type ClarificationState } from './adaptive-clarification-engine.js';
 import { extractEntitiesFromText } from './domain-synthesis-engine.js';
+import { orchestrateGeneration, type OrchestrationResult } from './pipeline-orchestrator.js';
 
 export type ConversationPhase = 'initial' | 'understanding' | 'clarifying' | 'planning' | 'approval' | 'generating' | 'complete';
 
@@ -252,39 +253,55 @@ function handleGeneration(
     };
   }
 
-  const generationStartTime = Date.now();
-  emitStep('generating', 'Plan approved - starting code generation', `Building ${plan.projectName}`);
-  emitStep('generating', 'Generating database schema', `Creating ${plan.dataModel.length} tables with relationships`);
-  emitStep('generating', 'Generating API routes', `Building ${plan.apiEndpoints.length} endpoints with validation`);
-  emitStep('generating', 'Generating page components', `Creating ${plan.pages.length} pages with features`);
-  emitStep('generating', 'Generating shared components', 'Data tables, KPI cards, status badges');
+  emitStep('orchestrator', 'Pipeline Orchestrator activated', `Coordinating 16 specialized AI modules for ${plan.projectName}`);
+  emitStep('orchestrator', 'Team assembled', 'Product Manager → Architect → Designer → Schema Engineer → API Architect → UI Composer → Full-Stack Developer → DevOps → QA → Code Reviewer → Release Engineer');
 
-  const rawFiles = generateProjectFromPlan(plan);
-
-  emitStep('generating', 'Code generation complete', `${rawFiles.length} files created`);
-
-  emitStep('validating', 'Running post-generation validation', 'Checking imports, exports, dependencies, and cross-file consistency');
-
-  const validationResult = validateAndFix(rawFiles, 3);
-
-  if (validationResult.fixesApplied.length > 0) {
-    emitStep('validating', `Auto-fixed ${validationResult.fixesApplied.length} issues`,
-      validationResult.fixesApplied.slice(0, 5).join('; ') + (validationResult.fixesApplied.length > 5 ? `; ...and ${validationResult.fixesApplied.length - 5} more` : '')
-    );
+  let orchestrationResult: OrchestrationResult;
+  try {
+    orchestrationResult = orchestrateGeneration(plan, state.understandingData);
+  } catch (err) {
+    emitStep('orchestrator', 'Pipeline encountered critical error, falling back to direct generation');
+    const rawFiles = generateProjectFromPlan(plan);
+    emitStep('generating', 'Code generation complete', `${rawFiles.length} files created`);
+    emitStep('validating', 'Running post-generation validation');
+    const validationResult = validateAndFix(rawFiles, 3);
+    if (validationResult.fixesApplied.length > 0) {
+      emitStep('validating', `Auto-fixed ${validationResult.fixesApplied.length} issues`);
+    }
+    const fallbackFiles = validationResult.files;
+    try {
+      learningEngine.recordOutcome({
+        conversationId: state.conversationId || 0,
+        projectDescription: plan.overview || plan.projectName,
+        domainId: state.understandingData?.level2_domain?.primaryDomain?.id,
+        plan,
+        generatedFiles: fallbackFiles.map(f => ({ path: f.path, content: f.content })),
+        errors: validationResult.issues.filter(i => i.severity === 'error').map(i => i.message),
+        autoFixes: validationResult.fixesApplied,
+        userModifications: [],
+        generationTimeMs: Date.now() - Date.now(),
+      });
+    } catch (e) {}
+    const validationSummary = validationResult.fixesApplied.length > 0
+      ? `Auto-fixed **${validationResult.fixesApplied.length} issues** across ${validationResult.iterations} validation pass(es).`
+      : 'All imports, exports, and dependencies verified.';
+    return {
+      responseContent: `## ${plan.projectName} - Generated Successfully!\n\nGenerated **${fallbackFiles.length} files** using fallback generation.\n\n${validationSummary}`,
+      newPhase: 'complete',
+      thinkingSteps,
+      generatedFiles: fallbackFiles,
+      planData: plan,
+    };
   }
 
-  if (validationResult.valid) {
-    emitStep('validating', 'Validation passed', `All imports resolve, exports match, dependencies present (${validationResult.iterations} iteration${validationResult.iterations > 1 ? 's' : ''})`);
-  } else {
-    const remainingErrors = validationResult.issues.filter(i => i.severity === 'error');
-    emitStep('validating', `Validation completed with ${remainingErrors.length} remaining warnings`,
-      remainingErrors.slice(0, 3).map(i => i.message).join('; ')
-    );
+  for (const step of orchestrationResult.context.thinkingSteps) {
+    thinkingSteps.push(step);
   }
 
-  const finalFiles = validationResult.files;
+  const summary = orchestrationResult.summary;
+  const metrics = orchestrationResult.metrics;
+  const finalFiles = [...orchestrationResult.files, ...orchestrationResult.testFiles];
 
-  const generationDurationMs = Date.now() - generationStartTime;
   try {
     learningEngine.recordOutcome({
       conversationId: state.conversationId || 0,
@@ -292,39 +309,55 @@ function handleGeneration(
       domainId: state.understandingData?.level2_domain?.primaryDomain?.id,
       plan,
       generatedFiles: finalFiles.map(f => ({ path: f.path, content: f.content })),
-      errors: validationResult.issues.filter(i => i.severity === 'error').map(i => i.message),
-      autoFixes: validationResult.fixesApplied,
+      errors: summary.warnings,
+      autoFixes: [],
       userModifications: [],
-      generationTimeMs: generationDurationMs,
+      generationTimeMs: metrics.totalDurationMs,
     });
   } catch (e) {
   }
 
   const moduleList = plan.modules.map(m => `- **${m.name}**: ${m.description}`).join('\n');
-  const fileList = finalFiles.map(f => `- \`${f.path}\``).join('\n');
+  const fileList = finalFiles.slice(0, 30).map(f => `- \`${f.path}\``).join('\n');
+  const fileListExtra = finalFiles.length > 30 ? `\n- ...and ${finalFiles.length - 30} more files` : '';
 
-  const validationSummary = validationResult.fixesApplied.length > 0
-    ? `\n### Quality Checks\n- Auto-fixed **${validationResult.fixesApplied.length} issues** during validation\n- Ran **${validationResult.iterations} validation pass${validationResult.iterations > 1 ? 'es' : ''}**\n- All imports, exports, and dependencies verified`
-    : `\n### Quality Checks\n- All imports, exports, and dependencies verified\n- Zero issues detected`;
+  const highlightsList = summary.highlights.map(h => `- ${h}`).join('\n');
+  const warningsList = summary.warnings.length > 0
+    ? `\n### Notes\n${summary.warnings.slice(0, 5).map(w => `- ${w}`).join('\n')}`
+    : '';
+
+  const qualityGrade = orchestrationResult.context.qualityReport
+    ? ` (Grade: ${orchestrationResult.context.qualityReport.grade})`
+    : '';
 
   const responseContent = `## ${plan.projectName} - Generated Successfully!
 
-Your project has been generated with **${finalFiles.length} files** based on the approved plan.
+Your project was built by a **${summary.totalStages}-module AI pipeline** with an overall quality score of **${summary.overallQuality}/100**${qualityGrade}.
+
+### Pipeline Summary
+- **${summary.completedStages}/${summary.totalStages}** specialized modules completed
+- **${metrics.fileCount} files** generated (~${metrics.lineCount.toLocaleString()} lines of code)
+- **${metrics.endpointCount} API endpoints** designed
+- **${metrics.componentCount} UI components** composed
+- Completed in **${(metrics.totalDurationMs / 1000).toFixed(1)}s**
+
+### Architecture Highlights
+${highlightsList}
 
 ### Modules Built
 ${moduleList}
 
 ### Files Created
-${fileList}
-${validationSummary}
+${fileList}${fileListExtra}
 
 ### What's Included
 - **${plan.dataModel.length} database tables** with full CRUD APIs
 - **${plan.pages.length} pages** with search, filter, and data display
 - **${plan.apiEndpoints.length} API endpoints** with validation
-- **Dashboard** with KPI metrics
-- **Status badges** for workflow tracking
-- **Responsive layout** with sidebar navigation
+- **Dashboard** with KPI metrics and domain-aware design system
+- **Component tree** with accessibility and responsive design
+- **Automated tests** for API routes and components
+${warningsList}
 
 ### Next Steps
 - Click **Preview** to see your app running

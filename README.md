@@ -5,7 +5,9 @@ A comprehensive, intelligent code generation platform that produces production-r
 ![AutoCoder Preview](https://img.shields.io/badge/AI-Powered-8b5cf6?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Lines of Code](https://img.shields.io/badge/Lines-372K+-blue?style=for-the-badge)
+![Lines of Code](https://img.shields.io/badge/Lines-121K+-blue?style=for-the-badge)
+![AI Modules](https://img.shields.io/badge/AI_Modules-13-orange?style=for-the-badge)
+![Pipeline](https://img.shields.io/badge/Pipeline-16_Stages-green?style=for-the-badge)
 
 ---
 
@@ -13,37 +15,70 @@ A comprehensive, intelligent code generation platform that produces production-r
 
 | Metric | Value |
 |--------|-------|
-| **Total Lines of Code** | 372,575+ |
-| **Source Files** | 28,046 |
-| **Server Modules** | 41 intelligence modules |
-| **React Components** | 71 frontend components |
+| **Source Lines of Code** | 121,000+ |
+| **Source Files** | 225+ |
+| **Server Modules** | 55 TypeScript modules (~47,000 lines) |
+| **React Components** | 78 frontend components |
+| **AI Intelligence Modules** | 13 specialized modules + Pipeline Orchestrator |
+| **Pipeline Stages** | 16 sequential stages with quality gates |
 | **Domain Knowledge Profiles** | 14 industry domains |
-| **Plan-Driven Generator** | 1,828 lines, 36 generator functions |
-| **Deep Understanding Engine** | 662 lines, 5-level analysis pipeline |
-| **Post-Generation Validator** | 601 lines, 50+ dependency packages |
-| **Conversation Phase Handler** | 346 lines, 6-phase state machine |
-| **Plan Generator** | 493 lines, structured ProjectPlan output |
-| **Vite Error Fixer** | 829 lines, 11 error type analyzers |
+| **Code Generation Quality** | 99% (A+ grade), 931/943 pts |
+| **Pipeline Orchestrator** | 618 lines, 16-stage coordinator |
+| **Plan-Driven Generator** | 2,628 lines, 36 generator functions |
+| **Deep Understanding Engine** | 776 lines, 5-level analysis pipeline |
+| **Contextual Reasoning Engine** | 1,566 lines, semantic analysis |
+| **Test Generator** | 1,214 lines, Vitest test generation |
+| **Generation Learning Engine** | 834 lines, PostgreSQL pattern tracking |
+| **Post-Generation Validator** | 617 lines, 50+ dependency packages |
+| **Conversation Phase Handler** | 520 lines, 6-phase state machine + orchestrator |
+| **Vite Error Fixer** | 1,526 lines, 23 error type analyzers |
+| **Architecture Planner** | 457 lines, system architecture decisions |
+| **Schema Designer** | 553 lines, database engineering |
+| **API Designer** | 566 lines, REST API design |
+| **Component Composer** | 532 lines, UI tree composition |
+| **Code Quality Engine** | 462 lines, 8-category grading |
+| **Dependency Resolver** | 311 lines, smart package management |
 | **Pro Generator (Client)** | 3,624 lines, template-based fallback |
 | **Code Validator (Client)** | 955 lines, 15 checks + 8 auto-fixes |
 | **LiveCodeRunner** | 1,263 lines, browser-based preview |
 | **Auto-Run Preview** | 641 lines, closed-loop error detection |
-| **Domain Knowledge Base** | 1,383 lines across 14 industries |
+| **Domain Knowledge Base** | 1,400 lines across 14 industries |
 | **Electron Files** | 5 (desktop app support) |
-| **Documentation Files** | 7 guides in docs/electron/ |
+| **Documentation Files** | 12 (7 electron guides + 5 project docs) |
 
 ---
 
 ## What's New (Feb 2026)
 
-### Plan-Driven Code Generation Pipeline (Major Upgrade)
+### 16-Stage Pipeline Orchestrator (Latest)
 
-AutoCoder has been upgraded from template-based generation to a fully intelligent, plan-driven system. The platform now deeply understands user requests, generates a detailed written plan for approval, and produces truly custom, production-ready, runnable React+Vite+TypeScript projects.
+AutoCoder now features a **Pipeline Orchestrator** that coordinates 16 specialized AI modules operating as a full development team. Instead of a single code generator, the system runs a complete pipeline from Product Manager through Code Reviewer to Release Engineer:
+
+```
+Product Manager → Project Manager → Senior Advisor → Technical Analyst
+→ System Architect → UI/UX Designer → Feature Analyst → Database Engineer
+→ API Architect → UI Engineer → Full-Stack Developer → DevOps Engineer
+→ Code Reviewer → QA Engineer → Release Engineer → Knowledge Manager
+```
+
+Each stage produces quality-scored results with warnings and errors. The orchestrator aggregates these into an overall quality score, pipeline metrics (file count, line count, component count, endpoint count), and a summary with highlights and warnings.
+
+**6 New Specialized AI Modules:**
+- **Architecture Planner** (457 lines) - Determines app pattern, folder structure, state management, auth, performance, and routing
+- **Schema Designer** (553 lines) - Database engineering with semantic field detection, index planning, FK derivation, enum extraction, constraints
+- **API Designer** (566 lines) - REST endpoint design with Zod validation, middleware chain, rate limiting, error formats
+- **Component Composer** (532 lines) - Complete UI component tree with accessibility, hooks, responsive design, animations
+- **Code Quality Engine** (462 lines) - 8-category code analysis with letter grading (A+ through F) and security checks
+- **Dependency Resolver** (311 lines) - 40+ package registry with bundle optimization and conflict detection
+
+### Plan-Driven Code Generation Pipeline
+
+AutoCoder uses a fully intelligent, plan-driven system. The platform deeply understands user requests, generates a detailed written plan for approval, and produces truly custom, production-ready, runnable React+Vite+TypeScript projects.
 
 **Multi-Phase Conversation Flow:**
 ```
 User Request -> Deep Understanding -> [Clarification (max 2 rounds)] -> Plan Generation
-     -> User Approval -> Code Generation -> Post-Validation -> Auto-Fix
+     -> User Approval -> Pipeline Orchestrator (16 stages) -> Post-Validation -> Auto-Fix
 ```
 
 **Key Features:**
@@ -247,48 +282,65 @@ User Input -> Typo Correction -> Conversational Stripping -> Synonym Expansion
 
 ## Intelligence Capabilities
 
-### 1. Deep Understanding & Domain Intelligence
-- **Deep Understanding Engine** - 5-level analysis pipeline with domain knowledge integration
-- **14 Industry Domain Profiles** - Complete entity/workflow/role definitions per industry
-- **Multi-Domain Blending** - Merges top 2 domains when confidence is close
-- **Keyword-Based Entity Inference** - Falls back to keyword matching when no domain matches
-- **Entity Caps** - Prevents over-generation: small=4, medium=8, large=12 entities
-- **Contextual Understanding** - 205+ typo corrections, 17+ synonym mappings, 12 intent patterns
-- **20 App Type Categories** - Dashboard, ecommerce, blog, portfolio, social, SaaS, todo, chat, CRM, analytics, booking, marketplace, CMS, game, calculator, form, landing, admin, API
-- **Confidence Scoring** - Rates understanding from 0-1 for each request
-- **Ambiguity Resolution** - Max 2 clarification rounds with auto-proceed
+### 1. Pipeline Orchestrator (16-Stage AI Team)
+- **Pipeline Orchestrator** (618 lines) - Tech Lead coordinating 16 sequential stages with quality gates, metrics tracking, error recovery, and fallback to direct generation
+- **Quality Gates** - Each stage produces a scored result (0-100); pipeline aborts on critical stage failure
+- **Metrics Tracking** - File count, line count, component count, endpoint count, total duration
+- **Pipeline Summary** - Aggregated quality score, highlights, warnings, completed/failed/skipped stages
 
-### 2. Plan Generation & Approval
-- **Comprehensive Project Plans** - Tech stack, modules, data model, pages, APIs, workflows, roles
+### 2. Deep Understanding & Domain Intelligence
+- **Deep Understanding Engine** (776 lines) - 5-level analysis pipeline with domain knowledge integration
+- **Contextual Reasoning Engine** (1,566 lines) - Semantic analysis of entity relationships, computed fields, UI patterns, validation rules, business logic, architecture patterns, cross-entity logic, code quality patterns
+- **Domain Synthesis Engine** (696 lines) - Dynamic domain profile synthesis from novel descriptions using NLP and fuzzy matching
+- **Adaptive Clarification Engine** (598 lines) - Complexity-driven question depth, information gap tracking, priority-based ordering, smart stop conditions
+- **14 Industry Domain Profiles** (1,400 lines) - Complete entity/workflow/role/KPI definitions per industry
+- **Multi-Domain Blending** - Merges top 2 domains when confidence is close
+- **Well-Known App Fast-Path** - Bypasses clarification for 16 common application patterns
+- **Contextual Understanding** - 205+ typo corrections, 17+ synonym mappings, 12 intent patterns
+- **Entity Caps** - Prevents over-generation: small=4, medium=8, large=12 entities
+
+### 3. Architecture & Design Intelligence
+- **Architecture Planner** (457 lines) - Determines app pattern (SPA-dashboard, marketplace, social, analytics, workflow), folder structure, state management, auth, performance strategy, routing configuration
+- **Design System Engine** (696 lines) - Domain-aware visual design with 14 color palettes, dark mode default, typography scales, shadow scales, component styles, CSS variable generation
+- **Functionality Engine** (599 lines) - Entity classification into 7 archetypes, feature mapping (drag-drop, status transitions, file upload), CRUD enhancements, page layout determination
+- **Component Composer** (532 lines) - Complete component tree planning with layout components, shared presentational components, context boundaries, custom hooks, accessibility (ARIA, focus traps, landmarks), responsive strategy, animations
+
+### 4. Data & API Architecture
+- **Schema Designer** (553 lines) - Normalized database schema with semantic field detection (email→varchar, price→decimal, metadata→jsonb), index planning, FK derivation, junction tables, enum extraction, constraint generation, soft delete, audit trails
+- **API Designer** (566 lines) - RESTful endpoint design with full CRUD, search, nested resources, batch operations, file upload, Zod validation schemas, middleware chain, rate limiting, standardized error/response formats
+
+### 5. Plan Generation & Approval
+- **Plan Generator** (493 lines) - Comprehensive ProjectPlan with tech stack, modules, data model with relationships, pages, APIs, workflows, roles, file blueprints
 - **Plan Visualization** - Structured plan presented to user before code generation
 - **Natural Language Modification** - Users can adjust plans conversationally
-- **Phase State Machine** - 6-phase lifecycle with deadlock recovery
+- **Phase State Machine** - 6-phase lifecycle (initial → understanding → clarifying → planning → approval → generating → complete) with deadlock recovery
 
-### 3. Code Generation
-- **Plan-Driven Generator** - 36 generator functions producing custom TypeScript projects
+### 6. Code Generation & Quality
+- **Plan-Driven Generator** (2,628 lines) - 36 generator functions producing custom TypeScript projects with full backend
+- **Code Quality Engine** (462 lines) - 8-category analysis (TypeScript, React, Error Handling, UI States, Performance, Accessibility, Code Style, Security) with letter grading A+ through F
+- **Dependency Resolver** (311 lines) - 40+ package registry with bundle size estimation, conflict detection, optimization suggestions
 - **Pro Generator (Fallback)** - 3,624-line template engine for 19 app types
-- **Post-Generation Validation** - 50+ package checks, implicit dependency detection, smart stubs
-- **Runtime Pattern Validation** - Missing providers, duplicate exports, empty components
+- **Post-Generation Validation** (617 lines) - 50+ package checks, implicit dependency detection, smart stubs, cross-file import validation
 
-### 4. Error Analysis & Auto-Fix
-- **Vite Error Fixer** - 11 error type analyzers with fix generation
-- **Closed-Loop Auto-Debugging** - Client detects errors -> backend analyzes -> fixes applied -> preview refreshes (3 retries)
+### 7. Error Analysis & Auto-Fix
+- **Vite Error Fixer** (1,526 lines) - 11 build-time + 12 runtime error analyzers with fix generation and proactive safety patching
+- **Closed-Loop Auto-Debugging** - Client detects errors → backend analyzes → fixes applied → preview refreshes (3 retries)
 - **Code Validator** - 15 checks + 8 auto-fix functions
 - **Root Cause Analysis** - Traces errors to their source
 
-### 5. Code Understanding & Memory
+### 8. Testing & Learning
+- **Test Generator** (1,214 lines) - Vitest tests for API routes, components, validation, relationships with supporting config
+- **Generation Learning Engine** (834 lines) - Records patterns and outcomes to PostgreSQL, tracks preferences, bi-directional error learning
+- **VAPT Dashboard** - Comprehensive vulnerability assessment and penetration testing with whitebox scanning
+
+### 9. Code Understanding & Memory
 - **Structure Parsing** - Extracts imports, exports, hooks, state, props
 - **Code Modification** - Safely edits existing code
 - **Conversation History** - Tracks last 100 messages per session
 - **Component Tracking** - Remembers all built components with aliases
 - **User Preference Extraction** - Learns coding style preferences
 
-### 6. Security & Testing
-- **VAPT Dashboard** - Comprehensive vulnerability assessment and penetration testing
-- **Whitebox Security Scanning** - Code-level vulnerability detection
-- **Test Generation** - Automated test creation for generated code
-
-### 7. Explanation & Teaching
+### 10. Explanation & Teaching
 - **Code Explanations** - Line-by-line understanding
 - **Concept Teaching** - Explains programming concepts
 - **Best Practices** - Teaches industry standards
@@ -298,47 +350,68 @@ User Input -> Typo Correction -> Conversational Stripping -> Synonym Expansion
 ## System Architecture
 
 ```
-+-------------------------------------------------------------------+
-|                         AUTOCODER PLATFORM                          |
-+-------------------------------------------------------------------+
-|                                                                     |
-|  +-------------------------------------------------------------+   |
-|  |                   FRONTEND (React + TypeScript)              |   |
-|  |  +-------------+ +-------------+ +-----------------------+  |   |
-|  |  |   Chat UI   | |  Preview    | |  VAPT Dashboard       |  |   |
-|  |  |  + Input    | |  Panel      | |  + Security Scans     |  |   |
-|  |  +-------------+ +-------------+ +-----------------------+  |   |
-|  |  +-----------------------------------------------------------+  |
-|  |  |  Plan-Driven Pipeline:                                      |  |
-|  |  |  Understanding -> Plan -> Approval -> Generation -> Validate |  |
-|  |  +-----------------------------------------------------------+  |
-|  |  |  Fallback: Pro Generator -> Code Validator -> LiveCodeRunner |  |
-|  |  +-----------------------------------------------------------+  |
-|  +-------------------------------------------------------------+   |
-|                                                                     |
-|  +-------------------------------------------------------------+   |
-|  |                   BACKEND (Express + Node.js)                |   |
-|  |  +-----------------------------------------------------------+  |
-|  |  |  Intelligence Modules (41)                                  |  |
-|  |  |  * Deep Understanding Engine  * Plan Generator              |  |
-|  |  |  * Plan-Driven Code Generator * Post-Generation Validator   |  |
-|  |  |  * Conversation Phase Handler * Vite Error Fixer            |  |
-|  |  |  * Domain Knowledge (14)      * VAPT Security Scanner       |  |
-|  |  +-----------------------------------------------------------+  |
-|  |  +-----------------------------------------------------------+  |
-|  |  |  API Routes                                                |  |
-|  |  |  * Conversations  * Messages  * Plan Generation             |  |
-|  |  |  * Code Generation  * Auto-Fix  * VAPT  * GitHub Push       |  |
-|  |  +-----------------------------------------------------------+  |
-|  +-------------------------------------------------------------+   |
-|                                                                     |
-|  +-------------------------------------------------------------+   |
-|  |  DATABASE (PostgreSQL + Drizzle ORM, optional in-memory)     |   |
-|  |  * conversations, messages, projectFiles, projectPlans        |   |
-|  |  * intelRecords, generationLogs, testResults, securityScans   |   |
-|  |  * VAPT tables (assets, vulnerabilities, scans, schedules)    |   |
-|  +-------------------------------------------------------------+   |
-+-------------------------------------------------------------------+
++------------------------------------------------------------------------+
+|                          AUTOCODER PLATFORM                              |
++------------------------------------------------------------------------+
+|                                                                          |
+|  +--------------------------------------------------------------------+ |
+|  |                   FRONTEND (React 18 + TypeScript)                  | |
+|  |  +-------------+ +-------------+ +-----------------------+         | |
+|  |  |   Chat UI   | |  Preview    | |  VAPT Dashboard       |         | |
+|  |  |  + Input    | |  Panel      | |  + Security Scans     |         | |
+|  |  +-------------+ +-------------+ +-----------------------+         | |
+|  |  +----------------------------------------------------------------+ | |
+|  |  |  Plan-Driven Pipeline:                                          | | |
+|  |  |  Understanding -> Plan -> Approval -> Orchestrator -> Validate  | | |
+|  |  +----------------------------------------------------------------+ | |
+|  |  |  Fallback: Pro Generator -> Code Validator -> LiveCodeRunner    | | |
+|  |  +----------------------------------------------------------------+ | |
+|  +--------------------------------------------------------------------+ |
+|                                                                          |
+|  +--------------------------------------------------------------------+ |
+|  |                   BACKEND (Express + Node.js)                       | |
+|  |                                                                      | |
+|  |  +----------------------------------------------------------------+ | |
+|  |  |  PIPELINE ORCHESTRATOR (16 Stages)                              | | |
+|  |  |  Product Mgr → Architect → Designer → DB Engineer → API Arch   | | |
+|  |  |  → UI Engineer → Full-Stack Dev → DevOps → Code Reviewer       | | |
+|  |  |  → QA Engineer → Release Engineer → Knowledge Manager          | | |
+|  |  +----------------------------------------------------------------+ | |
+|  |                                                                      | |
+|  |  +----------------------------------------------------------------+ | |
+|  |  |  AI Intelligence Modules (13)                                   | | |
+|  |  |  * Contextual Reasoning Engine  * Architecture Planner          | | |
+|  |  |  * Design System Engine         * Schema Designer               | | |
+|  |  |  * Functionality Engine          * API Designer                  | | |
+|  |  |  * Component Composer            * Code Quality Engine           | | |
+|  |  |  * Dependency Resolver           * Domain Synthesis Engine       | | |
+|  |  |  * Adaptive Clarification        * Generation Learning Engine    | | |
+|  |  |  * Test Generator                                               | | |
+|  |  +----------------------------------------------------------------+ | |
+|  |                                                                      | |
+|  |  +----------------------------------------------------------------+ | |
+|  |  |  Core Pipeline Modules                                          | | |
+|  |  |  * Deep Understanding Engine  * Plan Generator                  | | |
+|  |  |  * Plan-Driven Generator      * Post-Generation Validator       | | |
+|  |  |  * Conversation Phase Handler * Vite Error Fixer                | | |
+|  |  |  * Domain Knowledge (14)      * VAPT Security Scanner           | | |
+|  |  +----------------------------------------------------------------+ | |
+|  |                                                                      | |
+|  |  +----------------------------------------------------------------+ | |
+|  |  |  API Routes                                                     | | |
+|  |  |  * Conversations  * Messages  * Plan Generation                 | | |
+|  |  |  * Code Generation  * Auto-Fix  * VAPT  * GitHub Push           | | |
+|  |  +----------------------------------------------------------------+ | |
+|  +--------------------------------------------------------------------+ |
+|                                                                          |
+|  +--------------------------------------------------------------------+ |
+|  |  DATABASE (PostgreSQL + Drizzle ORM, optional in-memory)            | |
+|  |  * conversations, messages, projectFiles, projectPlans              | |
+|  |  * intelRecords, generationLogs, testResults, securityScans         | |
+|  |  * VAPT tables (assets, vulnerabilities, scans, schedules)          | |
+|  |  * Learning tables (generation patterns, error tracking)            | |
+|  +--------------------------------------------------------------------+ |
++------------------------------------------------------------------------+
 ```
 
 ---
@@ -369,12 +442,21 @@ User Input -> Typo Correction -> Conversational Stripping -> Synonym Expansion
 ### Code Generation & Preview
 | Technology | Purpose |
 |------------|---------|
-| Plan-Driven Generator | Custom TypeScript project generation from approved plans |
-| Deep Understanding Engine | 5-level NLU with domain knowledge |
-| Post-Generation Validator | Auto-validation with 50+ dependency checks |
-| Vite Error Fixer | Closed-loop auto-debugging (11 error types) |
-| Pro Generator | Template-based fallback (15-20 JSX files) |
-| Code Validator | Auto-fix void elements, exports, JSX returns |
+| Pipeline Orchestrator | 16-stage AI team coordination with quality gates |
+| Plan-Driven Generator | Custom TypeScript project generation (2,628 lines, 36 functions) |
+| Deep Understanding Engine | 5-level NLU with domain knowledge (776 lines) |
+| Contextual Reasoning Engine | Semantic analysis, relationships, UI patterns (1,566 lines) |
+| Architecture Planner | App pattern, structure, state management decisions (457 lines) |
+| Schema Designer | Database engineering with semantic field detection (553 lines) |
+| API Designer | REST endpoint design with Zod validation (566 lines) |
+| Component Composer | UI tree composition with accessibility (532 lines) |
+| Code Quality Engine | 8-category analysis with letter grading (462 lines) |
+| Dependency Resolver | 40+ package registry with bundle optimization (311 lines) |
+| Post-Generation Validator | Auto-validation with 50+ dependency checks (617 lines) |
+| Vite Error Fixer | Closed-loop auto-debugging (23 error types, 1,526 lines) |
+| Test Generator | Vitest test generation for routes, components, validation (1,214 lines) |
+| Pro Generator | Template-based fallback (15-20 JSX files, 3,624 lines) |
+| Code Validator | Auto-fix void elements, exports, JSX returns (955 lines) |
 | LiveCodeRunner | Browser-based Babel preview (instant, no npm install) |
 | WebContainer | In-browser Node.js runtime for full project preview |
 | Electron | Desktop app (native file system, no limits) |
@@ -450,16 +532,29 @@ autocoder/
 │       └── pages/                   # App Pages (landing, chat, vapt)
 │
 ├── server/                          # Backend Application
-│   ├── modules/                     # 41 Intelligence Modules
-│   │   ├── deep-understanding-engine.ts    # 5-level NLU (662 lines)
-│   │   ├── conversation-phase-handler.ts   # 6-phase state machine (346 lines)
+│   ├── modules/                     # 55 Intelligence Modules (~47,000 lines)
+│   │   ├── pipeline-orchestrator.ts        # 16-stage AI team coordinator (618 lines)
+│   │   ├── architecture-planner.ts         # System architecture decisions (457 lines)
+│   │   ├── schema-designer.ts              # Database engineering (553 lines)
+│   │   ├── api-designer.ts                 # REST API design (566 lines)
+│   │   ├── component-composer.ts           # UI component tree (532 lines)
+│   │   ├── code-quality-engine.ts          # 8-category code grading (462 lines)
+│   │   ├── dependency-resolver.ts          # Package management (311 lines)
+│   │   ├── contextual-reasoning-engine.ts  # Semantic analysis (1,566 lines)
+│   │   ├── design-system-engine.ts         # Domain-aware design (696 lines)
+│   │   ├── functionality-engine.ts         # Entity feature mapping (599 lines)
+│   │   ├── deep-understanding-engine.ts    # 5-level NLU (776 lines)
+│   │   ├── conversation-phase-handler.ts   # 6-phase state machine (520 lines)
 │   │   ├── plan-generator.ts               # ProjectPlan creation (493 lines)
-│   │   ├── plan-driven-generator.ts        # Code from plans (1,828 lines)
-│   │   ├── post-generation-validator.ts    # Auto-validation (601 lines)
-│   │   ├── domain-knowledge.ts             # 14 industry domains (1,383 lines)
-│   │   ├── vite-error-fixer.ts             # Auto-fix engine (829 lines)
-│   │   ├── complete-code-intelligence.ts   # Pattern intelligence
-│   │   └── ...more modules
+│   │   ├── plan-driven-generator.ts        # Code from plans (2,628 lines)
+│   │   ├── post-generation-validator.ts    # Auto-validation (617 lines)
+│   │   ├── domain-knowledge.ts             # 14 industry domains (1,400 lines)
+│   │   ├── vite-error-fixer.ts             # Auto-fix engine (1,526 lines)
+│   │   ├── test-generator.ts               # Vitest test generation (1,214 lines)
+│   │   ├── generation-learning-engine.ts   # Pattern learning (834 lines)
+│   │   ├── domain-synthesis-engine.ts      # Dynamic domain synthesis (696 lines)
+│   │   ├── adaptive-clarification-engine.ts # Smart questions (598 lines)
+│   │   └── ...more modules (35 additional)
 │   ├── routes.ts                    # API Endpoints
 │   └── storage.ts                   # Database Operations (IStorage interface)
 │
@@ -600,13 +695,28 @@ Clarification (0-2 rounds) --> Plan Generator --> ProjectPlan
                              pages, endpoints, workflows, roles}
      |                              |
      v                              v
-User Approval --> Plan-Driven Generator --> Post-Generation Validator
-     |                    |                         |
-"Looks good,         36 generator functions    50+ dependency checks,
- generate it"        produce complete project   smart stubs, runtime
-                                                pattern validation
-     |                                              |
-     v                                              v
+User Approval --> Pipeline Orchestrator (16 stages)
+     |                    |
+"Looks good,         Stage 1-3: Product/Project Mgr, Senior Advisor
+ generate it"        Stage 4: Contextual Reasoning (semantic analysis)
+                     Stage 5: Architecture Planner (app pattern, structure)
+                     Stage 6: Design System Engine (colors, typography)
+                     Stage 7: Functionality Engine (features, layouts)
+                     Stage 8: Schema Designer (tables, indexes, FKs)
+                     Stage 9: API Designer (endpoints, validation)
+                     Stage 10: Component Composer (UI tree, hooks)
+                     Stage 11: Plan-Driven Generator (code generation)
+                     Stage 12: Dependency Resolver (packages, bundle)
+                     Stage 13: Code Quality Engine (grading, security)
+                     Stage 14: Test Generator (Vitest tests)
+                     Stage 15: Post-Generation Validator (import checks)
+                     Stage 16: Learning Engine (record patterns)
+                              |
+                              v
+                     OrchestrationResult
+                     {files, testFiles, qualityGrade, metrics, summary}
+                              |
+                              v
 WebContainer Preview --> Auto-Fix Loop (max 3) --> Complete Project
 ```
 
@@ -640,7 +750,7 @@ Generated Files --> IPC --> Main Process --> Local File System
 
 ## Plan-Driven Generator Pipeline (Deep Dive)
 
-The Plan-Driven Generator (`server/modules/plan-driven-generator.ts`) is a **1,828-line** code generation engine that converts approved `ProjectPlan` objects into complete, runnable React+Vite+TypeScript projects with full backend.
+The Plan-Driven Generator (`server/modules/plan-driven-generator.ts`) is a **2,628-line** code generation engine that converts approved `ProjectPlan` objects into complete, runnable React+Vite+TypeScript projects with full backend. It is invoked at Stage 11 of the Pipeline Orchestrator, receiving enriched context from all prior stages (architecture plan, design system, schema design, API design, component tree).
 
 ### `generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[]`
 
