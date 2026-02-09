@@ -4,10 +4,15 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { isWebContainerSupported, preWarmWebContainer } from "@/lib/code-runner/webcontainer";
 import Landing from "@/pages/landing";
 import Chat from "@/pages/chat";
 import VaptDashboard from "@/pages/vapt-dashboard";
 import NotFound from "@/pages/not-found";
+
+if (isWebContainerSupported()) {
+  preWarmWebContainer().catch(() => {});
+}
 
 function Router() {
   return (

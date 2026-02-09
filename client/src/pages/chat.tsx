@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers, PanelRightClose, PanelRight, Activity, Zap } from "lucide-react";
-import { isWebContainerSupported, preWarmWebContainer, onPreWarmProgress, getPreWarmStatus } from "@/lib/code-runner/webcontainer";
+import { isWebContainerSupported, onPreWarmProgress, getPreWarmStatus } from "@/lib/code-runner/webcontainer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -279,13 +279,10 @@ export default function Chat() {
 
   useEffect(() => {
     if (isWebContainerSupported()) {
-      const timer = setTimeout(() => {
-        preWarmWebContainer().catch(() => {});
-      }, 3000);
       const unsubscribe = onPreWarmProgress((status) => {
         setPreWarmState(status);
       });
-      return () => { clearTimeout(timer); unsubscribe(); };
+      return () => { unsubscribe(); };
     }
   }, []);
 
