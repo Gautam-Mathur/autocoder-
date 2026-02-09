@@ -26,19 +26,15 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
       'react-dom': '^18.3.1',
     },
     devDeps: {
-      'vite': '^5.1.0',
       '@vitejs/plugin-react': '^4.2.0',
-      'typescript': '^5.3.0',
     },
   },
   {
     label: 'batch-2',
-    deps: {
-      'wouter': '^3.0.0',
-      '@tanstack/react-query': '^5.0.0',
-      'zod': '^3.22.0',
-    },
+    deps: {},
     devDeps: {
+      'vite': '^5.1.0',
+      'typescript': '^5.3.0',
       '@types/react': '^18.2.0',
       '@types/react-dom': '^18.2.0',
     },
@@ -46,10 +42,9 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
   {
     label: 'batch-3',
     deps: {
-      'lucide-react': '^0.344.0',
-      'clsx': '^2.1.0',
-      'tailwind-merge': '^2.2.0',
-      'class-variance-authority': '^0.7.0',
+      'wouter': '^3.0.0',
+      '@tanstack/react-query': '^5.0.0',
+      'zod': '^3.22.0',
     },
     devDeps: {
       '@types/node': '^20.10.0',
@@ -57,6 +52,16 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
   },
   {
     label: 'batch-4',
+    deps: {
+      'lucide-react': '^0.344.0',
+      'clsx': '^2.1.0',
+      'tailwind-merge': '^2.2.0',
+      'class-variance-authority': '^0.7.0',
+    },
+    devDeps: {},
+  },
+  {
+    label: 'batch-5',
     deps: {
       'tailwindcss': '^3.4.1',
       'postcss': '^8.4.35',
@@ -68,7 +73,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     },
   },
   {
-    label: 'batch-5',
+    label: 'batch-6',
     deps: {
       'express': '^4.18.2',
       'cors': '^2.8.5',
@@ -80,7 +85,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     },
   },
   {
-    label: 'batch-6',
+    label: 'batch-7',
     deps: {
       'drizzle-orm': '^0.29.0',
       'drizzle-zod': '^0.5.0',
@@ -91,7 +96,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     },
   },
   {
-    label: 'batch-7',
+    label: 'batch-8',
     deps: {
       'react-hook-form': '^7.50.0',
       '@hookform/resolvers': '^3.3.0',
@@ -103,7 +108,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     },
   },
   {
-    label: 'batch-8',
+    label: 'batch-9',
     deps: {
       '@radix-ui/react-dialog': '^1.0.5',
       '@radix-ui/react-select': '^2.0.0',
@@ -114,7 +119,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-9',
+    label: 'batch-10',
     deps: {
       '@radix-ui/react-tooltip': '^1.0.7',
       '@radix-ui/react-popover': '^1.0.7',
@@ -125,7 +130,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-10',
+    label: 'batch-11',
     deps: {
       '@radix-ui/react-scroll-area': '^1.0.5',
       '@radix-ui/react-switch': '^1.0.3',
@@ -136,7 +141,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-11',
+    label: 'batch-12',
     deps: {
       '@radix-ui/react-alert-dialog': '^1.0.5',
       '@radix-ui/react-accordion': '^1.1.2',
@@ -147,7 +152,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-12',
+    label: 'batch-13',
     deps: {
       '@radix-ui/react-toggle': '^1.0.3',
       '@radix-ui/react-toggle-group': '^1.0.4',
@@ -158,7 +163,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-13',
+    label: 'batch-14',
     deps: {
       '@radix-ui/react-navigation-menu': '^1.1.4',
       '@radix-ui/react-hover-card': '^1.0.7',
@@ -169,7 +174,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-14',
+    label: 'batch-15',
     deps: {
       'react-chartjs-2': '^5.2.0',
       'framer-motion': '^11.0.0',
@@ -180,7 +185,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-15',
+    label: 'batch-16',
     deps: {
       'uuid': '^9.0.0',
       'nanoid': '^5.0.0',
@@ -192,7 +197,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     },
   },
   {
-    label: 'batch-16',
+    label: 'batch-17',
     deps: {
       'jsonwebtoken': '^9.0.0',
       'bcryptjs': '^2.4.3',
@@ -204,7 +209,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     },
   },
   {
-    label: 'batch-17',
+    label: 'batch-18',
     deps: {
       'swr': '^2.2.0',
       'zustand': '^4.4.0',
@@ -215,7 +220,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-18',
+    label: 'batch-19',
     deps: {
       '@reduxjs/toolkit': '^2.0.0',
       'react-redux': '^9.0.0',
@@ -227,7 +232,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     },
   },
   {
-    label: 'batch-19',
+    label: 'batch-20',
     deps: {
       'socket.io-client': '^4.7.0',
       'react-beautiful-dnd': '^13.1.1',
@@ -239,7 +244,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     },
   },
   {
-    label: 'batch-20',
+    label: 'batch-21',
     deps: {
       'embla-carousel-react': '^8.0.0',
       'vaul': '^0.9.0',
@@ -250,7 +255,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-21',
+    label: 'batch-22',
     deps: {
       'passport': '^0.7.0',
       'passport-local': '^1.0.0',
@@ -261,7 +266,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-22',
+    label: 'batch-23',
     deps: {
       'multer': '^1.4.5-lts.1',
       'archiver': '^6.0.0',
@@ -272,7 +277,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-23',
+    label: 'batch-24',
     deps: {
       'nodemailer': '^6.9.8',
       'ws': '^8.16.0',
@@ -283,7 +288,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-24',
+    label: 'batch-25',
     deps: {
       'compression': '^1.7.4',
       'dotenv': '^16.4.0',
@@ -294,7 +299,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-25',
+    label: 'batch-26',
     deps: {
       'pg': '^8.11.3',
       'better-sqlite3': '^9.4.0',
@@ -306,7 +311,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     },
   },
   {
-    label: 'batch-26',
+    label: 'batch-27',
     deps: {
       '@tanstack/react-table': '^8.11.0',
       'react-resizable-panels': '^2.0.0',
@@ -317,7 +322,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-27',
+    label: 'batch-28',
     deps: {
       'react-icons': '^5.0.0',
       'react-hot-toast': '^2.4.1',
@@ -328,7 +333,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-28',
+    label: 'batch-29',
     deps: {
       'formik': '^2.4.5',
       'yup': '^1.3.3',
@@ -339,7 +344,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-29',
+    label: 'batch-30',
     deps: {
       'd3': '^7.8.5',
       '@nivo/core': '^0.84.0',
@@ -350,7 +355,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-30',
+    label: 'batch-31',
     deps: {
       'victory': '^36.9.0',
       'react-sparklines': '^1.7.0',
@@ -361,7 +366,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-31',
+    label: 'batch-32',
     deps: {
       'react-spring': '^9.7.3',
       '@formkit/auto-animate': '^0.8.1',
@@ -372,7 +377,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-32',
+    label: 'batch-33',
     deps: {
       'react-markdown': '^9.0.1',
       'remark-gfm': '^4.0.0',
@@ -383,7 +388,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-33',
+    label: 'batch-34',
     deps: {
       '@tiptap/react': '^2.2.0',
       '@tiptap/starter-kit': '^2.2.0',
@@ -394,7 +399,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-34',
+    label: 'batch-35',
     deps: {
       'react-player': '^2.14.0',
       'react-image-crop': '^11.0.0',
@@ -405,7 +410,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-35',
+    label: 'batch-36',
     deps: {
       'mobx': '^6.12.0',
       'mobx-react-lite': '^4.0.5',
@@ -416,7 +421,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-36',
+    label: 'batch-37',
     deps: {
       'react-i18next': '^14.0.0',
       'i18next': '^23.8.0',
@@ -427,7 +432,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-37',
+    label: 'batch-38',
     deps: {
       'qs': '^6.11.2',
       'superjson': '^2.2.1',
@@ -438,7 +443,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-38',
+    label: 'batch-39',
     deps: {
       'msw': '^2.1.0',
       '@faker-js/faker': '^8.4.0',
@@ -449,7 +454,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-39',
+    label: 'batch-40',
     deps: {
       'cron': '^3.1.0',
       'bull': '^4.12.0',
@@ -460,7 +465,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-40',
+    label: 'batch-41',
     deps: {
       'sharp': '^0.33.0',
       'csv-parse': '^5.5.3',
@@ -738,21 +743,26 @@ async function runBatchInstall(
   const CRASH_SILENCE_MS = 60000;
 
   let outputBuffer = '';
+  let spinnerCount = 0;
   function hasRealNpmProgress(data: string): boolean {
     outputBuffer += data;
     const lines = outputBuffer.split(/[\r\n]+/);
     outputBuffer = lines.pop() || '';
 
     for (const line of lines) {
-      const clean = line
+      const stripped = line
         .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
         .replace(/\x1b\][^\x07]*\x07/g, '')
         .replace(/\x9b[0-9;]*[a-zA-Z]/g, '')
         .replace(/[\x00-\x1f]/g, '')
         .replace(/\[[\d;]*[A-Za-z]/g, '')
-        .replace(/[|/\-\\]/g, '')
         .trim();
+      const clean = stripped.replace(/[|/\-\\]/g, '').trim();
       if (clean.length >= 3) return true;
+      if (stripped.length > 0 && /^[|/\-\\]+$/.test(stripped)) {
+        spinnerCount++;
+        if (spinnerCount % 20 === 0) return true;
+      }
     }
     return false;
   }
@@ -898,7 +908,9 @@ export default defineConfig({
         const batchPkgCount = Object.keys(batch.deps).length + Object.keys(batch.devDeps).length;
         notifyPreWarm('installing', `Batch ${i + 1}/${totalBatches}: Installing ${batchPkgCount} packages...`);
 
-        let result = await runBatchInstall(container, batch.deps, batch.devDeps, batch.label, 180000, 90000);
+        const batchStallTimeout = i < 3 ? 180000 : i < 10 ? 120000 : 90000;
+        const batchTimeout = i < 3 ? 240000 : 180000;
+        let result = await runBatchInstall(container, batch.deps, batch.devDeps, batch.label, batchTimeout, batchStallTimeout);
 
         if (!result.success && i === 0) {
           runnerLog.warn('PreWarm', `Batch 1 failed, retrying once...`);
@@ -911,7 +923,7 @@ export default defineConfig({
             await container.fs.rm('package-lock.json');
             runnerLog.debug('PreWarm', 'Cleared package-lock.json before retry');
           } catch {}
-          result = await runBatchInstall(container, batch.deps, batch.devDeps, `${batch.label}-retry`, 180000, 90000);
+          result = await runBatchInstall(container, batch.deps, batch.devDeps, `${batch.label}-retry`, 240000, 180000);
         }
 
         if (result.success) {
