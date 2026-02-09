@@ -2,6 +2,10 @@ import type { ProjectPlan, PlannedEntity } from './plan-generator.js';
 import { db } from '../db.js';
 import { generationPatterns, generationOutcomes, userPreferences } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const LEARNING_DATA_FILE = path.join(process.cwd(), 'learning-data.json');
 
 export interface LearningContext {
   patterns: LearnedPattern[];
@@ -50,15 +54,31 @@ export interface GenerationFeedback {
   generationTimeMs: number;
 }
 
+export interface GenerationOutcomeRecord {
+  plan: ProjectPlan;
+  files: { path: string; content: string }[];
+  success: boolean;
+  qualityScore: number;
+  domainId?: string;
+  errors?: string[];
+  autoFixes?: string[];
+}
+
 export class GenerationLearningEngine {
   private patterns: Map<string, LearnedPattern> = new Map();
   private preferences: Map<string, LearnedPreference> = new Map();
   private recentOutcomes: OutcomeSummary[] = [];
   private dbAvailable: boolean = false;
+  private _ready: Promise<void>;
 
   constructor() {
     this.initializeDefaultPatterns();
-    this.tryLoadFromDatabase();
+    this._ready = this.tryLoadFromDatabase();
+    this.tryLoadFromFile();
+  }
+
+  async ensureReady(): Promise<void> {
+    await this._ready;
   }
 
   private async tryLoadFromDatabase(): Promise<void> {
@@ -593,8 +613,9 @@ export class GenerationLearningEngine {
   }
 
   getEntityRecommendations(entityName: string, domainId?: string): { recommendedFields: string[]; fieldTypes: Record<string, string> } | null {
-    const key = `entity-${entityName.toLowerCase()}`;
-    const pattern = this.patterns.get(key);
+    const nameLower = entityName.toLowerCase();
+    const exactKey = `entity-${nameLower}`;
+    const pattern = this.patterns.get(exactKey);
 
     if (pattern && pattern.reliability >= 0.5) {
       return {
@@ -603,14 +624,17 @@ export class GenerationLearningEngine {
       };
     }
 
-    for (const [, pat] of Array.from(this.patterns.entries())) {
-      if (pat.patternType === 'entity-structure' &&
-          pat.entityType?.toLowerCase() === entityName.toLowerCase() &&
-          pat.reliability >= 0.5) {
-        return {
-          recommendedFields: pat.patternValue.recommended || [],
-          fieldTypes: pat.patternValue.fieldTypes || {},
-        };
+    for (const [key, pat] of Array.from(this.patterns.entries())) {
+      if (pat.patternType === 'entity-structure' && pat.reliability >= 0.5) {
+        if (pat.entityType?.toLowerCase() === nameLower ||
+            key.startsWith(`${nameLower}-entity`) ||
+            key.includes(`-${nameLower}-`) ||
+            key === `${nameLower}-entity-fields`) {
+          return {
+            recommendedFields: pat.patternValue.recommended || [],
+            fieldTypes: pat.patternValue.fieldTypes || {},
+          };
+        }
       }
     }
 
@@ -810,6 +834,264 @@ export class GenerationLearningEngine {
     };
   }
 
+  async recordGenerationOutcome(outcome: GenerationOutcomeRecord): Promise<void> {
+    const { plan, files, success, qualityScore, domainId, errors, autoFixes } = outcome;
+    const effectiveDomain = domainId || (plan as any).domainId || undefined;
+
+    for (const entity of plan.dataModel) {
+      this.learnEntityPattern(entity, effectiveDomain);
+    }
+
+    if (plan.workflows) {
+      for (const workflow of plan.workflows) {
+        const key = `workflow-${workflow.entity.toLowerCase()}`;
+        const existing = this.patterns.get(key);
+        if (existing) {
+          existing.successCount += success ? 1 : 0;
+          existing.failureCount += success ? 0 : 1;
+          existing.reliability = existing.successCount / (existing.successCount + existing.failureCount);
+          this.persistPattern(existing);
+        } else {
+          const newPattern: LearnedPattern = {
+            patternType: 'workflow-design',
+            patternKey: key,
+            patternValue: {
+              states: workflow.states,
+              commonTransitions: workflow.transitions,
+            },
+            successCount: success ? 1 : 0,
+            failureCount: success ? 0 : 1,
+            reliability: success ? 1 : 0,
+          };
+          this.patterns.set(key, newPattern);
+          this.persistPattern(newPattern);
+        }
+      }
+    }
+
+    if (success && plan.pages) {
+      for (const page of plan.pages) {
+        const key = `page-layout-${page.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown'}`;
+        const existing = this.patterns.get(key);
+        if (existing) {
+          existing.successCount += 1;
+          existing.reliability = existing.successCount / (existing.successCount + existing.failureCount);
+          this.persistPattern(existing);
+        } else {
+          const newPattern: LearnedPattern = {
+            patternType: 'page-structure',
+            patternKey: key,
+            domainId: effectiveDomain,
+            patternValue: {
+              layout: (page as any).layout || 'table',
+              entity: (page as any).entity,
+              features: (page as any).features || [],
+            },
+            successCount: 1,
+            failureCount: 0,
+            reliability: 1,
+          };
+          this.patterns.set(key, newPattern);
+          this.persistPattern(newPattern);
+        }
+      }
+    }
+
+    if (success && files.length > 0) {
+      const fileStructure = files.map(f => f.path);
+      const key = `file-structure-${effectiveDomain || 'general'}`;
+      const existing = this.patterns.get(key);
+      if (existing) {
+        existing.successCount += 1;
+        existing.patternValue.fileCount = files.length;
+        existing.patternValue.recentPaths = fileStructure.slice(0, 30);
+        existing.reliability = existing.successCount / (existing.successCount + existing.failureCount);
+        this.persistPattern(existing);
+      } else {
+        const newPattern: LearnedPattern = {
+          patternType: 'tech-choice',
+          patternKey: key,
+          domainId: effectiveDomain,
+          patternValue: {
+            fileCount: files.length,
+            recentPaths: fileStructure.slice(0, 30),
+            qualityScore,
+          },
+          successCount: 1,
+          failureCount: 0,
+          reliability: 1,
+        };
+        this.patterns.set(key, newPattern);
+        this.persistPattern(newPattern);
+      }
+    }
+
+    if (errors && errors.length > 0) {
+      this.learnFromErrors(errors, plan);
+    }
+
+    if (effectiveDomain) {
+      this.learnDomainMapping(effectiveDomain, plan);
+    }
+
+    if (success) {
+      const qualityPref: LearnedPreference = {
+        key: `quality-score-${effectiveDomain || 'general'}`,
+        value: `${qualityScore}`,
+        category: 'architecture',
+        frequency: 1,
+      };
+      const existingPref = this.preferences.get(qualityPref.key);
+      if (existingPref) {
+        existingPref.value = `${Math.max(parseInt(existingPref.value) || 0, qualityScore)}`;
+        existingPref.frequency += 1;
+        this.persistPreference(existingPref);
+      } else {
+        this.preferences.set(qualityPref.key, qualityPref);
+        this.persistPreference(qualityPref);
+      }
+    }
+
+    if (this.dbAvailable && db) {
+      try {
+        await db.insert(generationOutcomes).values({
+          conversationId: 0,
+          domainId: effectiveDomain || null,
+          projectDescription: plan.projectName || 'Generated Project',
+          entityCount: plan.dataModel.length,
+          fileCount: files.length,
+          wasModified: false,
+          modifications: null,
+          errorCount: errors?.length || 0,
+          autoFixCount: autoFixes?.length || 0,
+          generationTimeMs: 0,
+        }).execute();
+      } catch (e) {}
+    }
+
+    this.persistToFile();
+  }
+
+  private tryLoadFromFile(): void {
+    try {
+      if (!fs.existsSync(LEARNING_DATA_FILE)) return;
+      const raw = fs.readFileSync(LEARNING_DATA_FILE, 'utf-8');
+      const data = JSON.parse(raw);
+
+      if (data.patterns && Array.isArray(data.patterns)) {
+        for (const p of data.patterns) {
+          if (!this.patterns.has(p.patternKey)) {
+            this.patterns.set(p.patternKey, p);
+          }
+        }
+      }
+
+      if (data.preferences && Array.isArray(data.preferences)) {
+        for (const pref of data.preferences) {
+          if (!this.preferences.has(pref.key)) {
+            this.preferences.set(pref.key, pref);
+          }
+        }
+      }
+
+      console.log(`Learning engine: loaded ${data.patterns?.length || 0} patterns, ${data.preferences?.length || 0} preferences from file`);
+    } catch (e) {}
+  }
+
+  persistToFile(): void {
+    try {
+      const data = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        patterns: Array.from(this.patterns.values()),
+        preferences: Array.from(this.preferences.values()),
+        stats: {
+          totalPatterns: this.patterns.size,
+          reliablePatterns: Array.from(this.patterns.values()).filter(p => p.reliability >= 0.7).length,
+          totalPreferences: this.preferences.size,
+        },
+      };
+      fs.writeFileSync(LEARNING_DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (e) {}
+  }
+
+  getFullExport(): {
+    version: number;
+    exportedAt: string;
+    patterns: LearnedPattern[];
+    preferences: LearnedPreference[];
+    stats: Record<string, any>;
+  } {
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      patterns: Array.from(this.patterns.values()),
+      preferences: Array.from(this.preferences.values()),
+      stats: {
+        totalPatterns: this.patterns.size,
+        reliablePatterns: Array.from(this.patterns.values()).filter(p => p.reliability >= 0.7).length,
+        totalPreferences: this.preferences.size,
+        patternsByType: this.getPatternsByType(),
+      },
+    };
+  }
+
+  private getPatternsByType(): Record<string, number> {
+    const byType: Record<string, number> = {};
+    for (const pattern of Array.from(this.patterns.values())) {
+      byType[pattern.patternType] = (byType[pattern.patternType] || 0) + 1;
+    }
+    return byType;
+  }
+
+  importFullData(data: { patterns?: LearnedPattern[]; preferences?: LearnedPreference[] }): {
+    patternsImported: number;
+    preferencesImported: number;
+    patternsUpdated: number;
+  } {
+    let patternsImported = 0;
+    let preferencesImported = 0;
+    let patternsUpdated = 0;
+
+    if (data.patterns) {
+      for (const pattern of data.patterns) {
+        const existing = this.patterns.get(pattern.patternKey);
+        if (existing) {
+          existing.successCount = Math.max(existing.successCount, pattern.successCount);
+          existing.failureCount = Math.min(existing.failureCount, pattern.failureCount);
+          existing.reliability = existing.successCount / (existing.successCount + existing.failureCount || 1);
+          if (pattern.patternValue) {
+            existing.patternValue = { ...existing.patternValue, ...pattern.patternValue };
+          }
+          this.persistPattern(existing);
+          patternsUpdated++;
+        } else {
+          this.patterns.set(pattern.patternKey, pattern);
+          this.persistPattern(pattern);
+          patternsImported++;
+        }
+      }
+    }
+
+    if (data.preferences) {
+      for (const pref of data.preferences) {
+        const existing = this.preferences.get(pref.key);
+        if (existing) {
+          existing.frequency = Math.max(existing.frequency, pref.frequency);
+          this.persistPreference(existing);
+        } else {
+          this.preferences.set(pref.key, pref);
+          this.persistPreference(pref);
+          preferencesImported++;
+        }
+      }
+    }
+
+    this.persistToFile();
+
+    return { patternsImported, preferencesImported, patternsUpdated };
+  }
+
   exportPatterns(): LearnedPattern[] {
     return Array.from(this.patterns.values());
   }
@@ -828,6 +1110,7 @@ export class GenerationLearningEngine {
         this.patterns.set(pattern.patternKey, pattern);
       }
     }
+    this.persistToFile();
   }
 }
 

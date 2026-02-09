@@ -1,0 +1,2073 @@
+{
+  "version": 1,
+  "exportedAt": "2026-02-09T17:13:56.637Z",
+  "patterns": [
+    {
+      "patternType": "entity-structure",
+      "patternKey": "person-entity-fields",
+      "patternValue": {
+        "recommended": [
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "status"
+        ],
+        "optional": [
+          "avatar",
+          "address",
+          "city",
+          "state",
+          "zipCode",
+          "notes"
+        ]
+      },
+      "successCount": 10,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "entity-structure",
+      "patternKey": "transaction-entity-fields",
+      "patternValue": {
+        "recommended": [
+          "amount",
+          "date",
+          "status",
+          "reference",
+          "type"
+        ],
+        "optional": [
+          "notes",
+          "dueDate",
+          "paidDate",
+          "category"
+        ]
+      },
+      "successCount": 8,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "workflow-design",
+      "patternKey": "order-workflow",
+      "patternValue": {
+        "states": [
+          "draft",
+          "pending",
+          "approved",
+          "in-progress",
+          "completed",
+          "cancelled"
+        ],
+        "commonTransitions": [
+          {
+            "from": "draft",
+            "to": "pending",
+            "action": "Submit"
+          },
+          {
+            "from": "pending",
+            "to": "approved",
+            "action": "Approve"
+          },
+          {
+            "from": "approved",
+            "to": "in-progress",
+            "action": "Start"
+          },
+          {
+            "from": "in-progress",
+            "to": "completed",
+            "action": "Complete"
+          }
+        ]
+      },
+      "successCount": 12,
+      "failureCount": 1,
+      "reliability": 0.92
+    },
+    {
+      "patternType": "ui-layout",
+      "patternKey": "dashboard-kpi-count",
+      "patternValue": {
+        "optimalCount": 4,
+        "maxCount": 6
+      },
+      "successCount": 15,
+      "failureCount": 2,
+      "reliability": 0.88
+    },
+    {
+      "patternType": "ui-layout",
+      "patternKey": "list-page-fields",
+      "patternValue": {
+        "optimalColumns": 5,
+        "maxColumns": 7
+      },
+      "successCount": 10,
+      "failureCount": 1,
+      "reliability": 0.91
+    },
+    {
+      "patternType": "tech-choice",
+      "patternKey": "form-validation",
+      "patternValue": {
+        "preferred": "zod",
+        "alternative": "inline"
+      },
+      "successCount": 20,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "validation-rule",
+      "patternKey": "email-validation",
+      "patternValue": {
+        "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+        "errorMessage": "Invalid email format"
+      },
+      "successCount": 25,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "page-structure",
+      "patternKey": "list-page-features",
+      "patternValue": {
+        "recommended": [
+          "search",
+          "create-dialog",
+          "delete-action",
+          "status-filter"
+        ],
+        "optional": [
+          "export",
+          "bulk-actions",
+          "pagination",
+          "sort"
+        ]
+      },
+      "successCount": 18,
+      "failureCount": 2,
+      "reliability": 0.9
+    },
+    {
+      "patternType": "field-naming",
+      "patternKey": "date-field-naming",
+      "patternValue": {
+        "patterns": {
+          "creation": "createdAt",
+          "update": "updatedAt",
+          "due": "dueDate",
+          "start": "startDate",
+          "end": "endDate",
+          "schedule": "scheduledDate",
+          "birth": "dateOfBirth"
+        }
+      },
+      "successCount": 30,
+      "failureCount": 1,
+      "reliability": 0.97
+    },
+    {
+      "patternType": "domain-mapping",
+      "patternKey": "veterinary",
+      "patternValue": {
+        "entities": [
+          "Pet",
+          "Owner",
+          "Appointment",
+          "Treatment",
+          "Prescription"
+        ],
+        "blendSources": [
+          "healthcare",
+          "crm"
+        ],
+        "kpis": [
+          "Total Patients",
+          "Appointments Today",
+          "Revenue",
+          "Pending Treatments"
+        ]
+      },
+      "successCount": 3,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 14,
+      "patternType": "domain-mapping",
+      "domainId": "crm",
+      "patternKey": "domain-crm",
+      "patternValue": {
+        "kpis": [
+          "Pipeline Value",
+          "Deals Won",
+          "Win Rate",
+          "Revenue This Month",
+          "New Leads",
+          "Total Contacts",
+          "New This Week",
+          "Companies"
+        ],
+        "modules": [
+          "Contacts",
+          "Sales Pipeline",
+          "Activities",
+          "Dashboard"
+        ],
+        "entities": [
+          "Contact",
+          "Company",
+          "Deal",
+          "Activity"
+        ],
+        "pageCount": 8
+      },
+      "successCount": 2,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 4,
+      "patternType": "entity-structure",
+      "domainId": "crm",
+      "entityType": "Company",
+      "patternKey": "entity-company",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "name": "text",
+          "size": "text",
+          "address": "text",
+          "website": "text",
+          "industry": "text"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "industry",
+          "size",
+          "website",
+          "address"
+        ]
+      },
+      "successCount": 2,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 16,
+      "patternType": "entity-structure",
+      "domainId": "crm",
+      "entityType": "Deal",
+      "patternKey": "entity-deal",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "stage": "enum(prospecting,qualification,proposal,negotiation,closed-won,closed-lost)",
+          "title": "text",
+          "value": "integer",
+          "ownerId": "integer",
+          "companyId": "integer",
+          "contactId": "integer",
+          "probability": "integer",
+          "expectedCloseDate": "date"
+        },
+        "recommended": [
+          "id",
+          "title",
+          "contactId",
+          "companyId",
+          "value",
+          "stage",
+          "probability",
+          "expectedCloseDate",
+          "ownerId"
+        ]
+      },
+      "successCount": 2,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 10,
+      "patternType": "entity-structure",
+      "domainId": "crm",
+      "entityType": "Activity",
+      "patternKey": "entity-activity",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "type": "enum(call,email,meeting,task,note)",
+          "dealId": "integer",
+          "dueDate": "date",
+          "subject": "text",
+          "completed": "boolean",
+          "contactId": "integer",
+          "description": "text"
+        },
+        "recommended": [
+          "id",
+          "type",
+          "subject",
+          "description",
+          "contactId",
+          "dealId",
+          "dueDate",
+          "completed"
+        ]
+      },
+      "successCount": 2,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 12,
+      "patternType": "workflow-design",
+      "patternKey": "workflow-deal",
+      "patternValue": {
+        "states": [
+          "prospecting",
+          "qualification",
+          "proposal",
+          "negotiation",
+          "closed-won",
+          "closed-lost"
+        ],
+        "commonTransitions": [
+          {
+            "to": "qualification",
+            "from": "prospecting",
+            "role": "sales",
+            "action": "Qualify"
+          },
+          {
+            "to": "proposal",
+            "from": "qualification",
+            "role": "sales",
+            "action": "Send Proposal"
+          },
+          {
+            "to": "negotiation",
+            "from": "proposal",
+            "role": "sales",
+            "action": "Negotiate"
+          },
+          {
+            "to": "closed-won",
+            "from": "negotiation",
+            "role": "sales",
+            "action": "Close Won"
+          },
+          {
+            "to": "closed-lost",
+            "from": "negotiation",
+            "role": "sales",
+            "action": "Close Lost"
+          }
+        ]
+      },
+      "successCount": 1,
+      "failureCount": 1,
+      "reliability": 0.5
+    },
+    {
+      "id": 13,
+      "patternType": "entity-structure",
+      "domainId": "crm",
+      "entityType": "Contact",
+      "patternKey": "entity-contact",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "tags": "text[]",
+          "email": "text",
+          "phone": "text",
+          "title": "text",
+          "source": "text",
+          "status": "enum(lead,prospect,customer,churned)",
+          "lastName": "text",
+          "companyId": "integer",
+          "firstName": "text"
+        },
+        "recommended": [
+          "id",
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "companyId",
+          "title",
+          "tags",
+          "source",
+          "status"
+        ]
+      },
+      "successCount": 2,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 17,
+      "patternType": "entity-structure",
+      "domainId": "project-management",
+      "entityType": "Task",
+      "patternKey": "entity-task",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "title": "text",
+          "labels": "text[]",
+          "status": "enum(backlog,todo,in-progress,review,done)",
+          "dueDate": "date",
+          "priority": "enum(low,medium,high,urgent)",
+          "projectId": "integer",
+          "assigneeId": "integer",
+          "description": "text",
+          "commentCount": "text",
+          "estimatedHours": "integer"
+        },
+        "recommended": [
+          "id",
+          "projectId",
+          "title",
+          "description",
+          "assigneeId",
+          "status",
+          "priority",
+          "dueDate",
+          "labels",
+          "estimatedHours",
+          "commentCount"
+        ]
+      },
+      "successCount": 5,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 18,
+      "patternType": "entity-structure",
+      "domainId": "project-management",
+      "entityType": "Comment",
+      "patternKey": "entity-comment",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "taskId": "integer",
+          "content": "text",
+          "authorId": "integer"
+        },
+        "recommended": [
+          "id",
+          "taskId",
+          "authorId",
+          "content"
+        ]
+      },
+      "successCount": 5,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6,
+      "patternType": "error-prevention",
+      "patternKey": "error-missing-import-bad-module",
+      "patternValue": {
+        "fix": "Ensure bad-module is included in package.json dependencies",
+        "module": "bad-module",
+        "lastSeen": "2026-02-07T17:43:26.754Z",
+        "errorType": "missing-import",
+        "occurrences": 4
+      },
+      "successCount": 0,
+      "failureCount": 4,
+      "reliability": 0
+    },
+    {
+      "id": 19,
+      "patternType": "domain-mapping",
+      "domainId": "project-management",
+      "patternKey": "domain-project-management",
+      "patternValue": {
+        "kpis": [
+          "Active Projects",
+          "Tasks Due Today",
+          "Completion Rate",
+          "Team Velocity",
+          "Completed This Week",
+          "In Progress"
+        ],
+        "modules": [
+          "Tasks"
+        ],
+        "entities": [
+          "Task",
+          "Comment"
+        ],
+        "pageCount": 3
+      },
+      "successCount": 5,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 20,
+      "patternType": "workflow-design",
+      "patternKey": "workflow-task",
+      "patternValue": {
+        "states": [
+          "backlog",
+          "todo",
+          "in-progress",
+          "review",
+          "done"
+        ],
+        "commonTransitions": [
+          {
+            "to": "todo",
+            "from": "backlog",
+            "role": "member",
+            "action": "Move to Todo"
+          },
+          {
+            "to": "in-progress",
+            "from": "todo",
+            "role": "member",
+            "action": "Start Work"
+          },
+          {
+            "to": "review",
+            "from": "in-progress",
+            "role": "member",
+            "action": "Submit for Review"
+          },
+          {
+            "to": "done",
+            "from": "review",
+            "role": "manager",
+            "action": "Approve & Complete"
+          },
+          {
+            "to": "in-progress",
+            "from": "review",
+            "role": "manager",
+            "action": "Request Changes"
+          },
+          {
+            "to": "backlog",
+            "from": "todo",
+            "role": "member",
+            "action": "Move to Backlog"
+          }
+        ]
+      },
+      "successCount": 3,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "entity-structure",
+      "patternKey": "product-entity-fields",
+      "patternValue": {
+        "recommended": [
+          "name",
+          "description",
+          "price",
+          "sku",
+          "category",
+          "status",
+          "imageUrl"
+        ],
+        "optional": [
+          "weight",
+          "dimensions",
+          "tags",
+          "barcode",
+          "stockQuantity",
+          "discount"
+        ],
+        "fieldTypes": {
+          "price": "decimal(10,2)",
+          "sku": "text UNIQUE",
+          "status": "enum(active,draft,archived)",
+          "stockQuantity": "integer DEFAULT 0",
+          "weight": "decimal(8,2)",
+          "tags": "text[]"
+        }
+      },
+      "successCount": 15,
+      "failureCount": 1,
+      "reliability": 0.94
+    },
+    {
+      "patternType": "entity-structure",
+      "patternKey": "order-entity-fields",
+      "patternValue": {
+        "recommended": [
+          "orderNumber",
+          "customerId",
+          "status",
+          "totalAmount",
+          "createdAt",
+          "shippingAddress"
+        ],
+        "optional": [
+          "trackingNumber",
+          "notes",
+          "discount",
+          "tax",
+          "paymentMethod",
+          "completedAt"
+        ],
+        "fieldTypes": {
+          "orderNumber": "text UNIQUE",
+          "totalAmount": "decimal(12,2)",
+          "status": "enum(pending,processing,shipped,delivered,cancelled)",
+          "tax": "decimal(10,2)",
+          "discount": "decimal(10,2)"
+        }
+      },
+      "successCount": 14,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "entity-structure",
+      "patternKey": "invoice-entity-fields",
+      "patternValue": {
+        "recommended": [
+          "invoiceNumber",
+          "clientId",
+          "amount",
+          "dueDate",
+          "status",
+          "issuedDate"
+        ],
+        "optional": [
+          "paidDate",
+          "notes",
+          "taxAmount",
+          "lineItems",
+          "currency",
+          "paymentTerms"
+        ],
+        "fieldTypes": {
+          "invoiceNumber": "text UNIQUE",
+          "amount": "decimal(12,2)",
+          "status": "enum(draft,sent,paid,overdue,cancelled)",
+          "taxAmount": "decimal(10,2)",
+          "currency": "varchar(3) DEFAULT 'USD'"
+        }
+      },
+      "successCount": 12,
+      "failureCount": 1,
+      "reliability": 0.92
+    },
+    {
+      "patternType": "entity-structure",
+      "patternKey": "appointment-entity-fields",
+      "patternValue": {
+        "recommended": [
+          "title",
+          "clientId",
+          "providerId",
+          "startTime",
+          "endTime",
+          "status"
+        ],
+        "optional": [
+          "notes",
+          "location",
+          "reminderSent",
+          "recurrenceRule",
+          "cancelReason",
+          "type"
+        ],
+        "fieldTypes": {
+          "startTime": "timestamp",
+          "endTime": "timestamp",
+          "status": "enum(scheduled,confirmed,completed,cancelled,no-show)",
+          "reminderSent": "boolean DEFAULT false"
+        }
+      },
+      "successCount": 11,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "entity-structure",
+      "patternKey": "ticket-entity-fields",
+      "patternValue": {
+        "recommended": [
+          "title",
+          "description",
+          "priority",
+          "status",
+          "assigneeId",
+          "reporterId",
+          "category"
+        ],
+        "optional": [
+          "dueDate",
+          "resolution",
+          "tags",
+          "attachments",
+          "estimatedHours",
+          "actualHours"
+        ],
+        "fieldTypes": {
+          "priority": "enum(low,medium,high,critical)",
+          "status": "enum(open,in-progress,review,resolved,closed)",
+          "estimatedHours": "decimal(6,1)",
+          "actualHours": "decimal(6,1)"
+        }
+      },
+      "successCount": 16,
+      "failureCount": 1,
+      "reliability": 0.94
+    },
+    {
+      "patternType": "entity-structure",
+      "patternKey": "employee-entity-fields",
+      "patternValue": {
+        "recommended": [
+          "firstName",
+          "lastName",
+          "email",
+          "department",
+          "position",
+          "hireDate",
+          "status"
+        ],
+        "optional": [
+          "phone",
+          "managerId",
+          "salary",
+          "employeeId",
+          "address",
+          "emergencyContact"
+        ],
+        "fieldTypes": {
+          "salary": "decimal(12,2)",
+          "status": "enum(active,on-leave,terminated)",
+          "hireDate": "date",
+          "employeeId": "text UNIQUE"
+        }
+      },
+      "successCount": 13,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "workflow-design",
+      "patternKey": "order-fulfillment-flow",
+      "patternValue": {
+        "name": "Order Fulfillment",
+        "steps": [
+          "order_placed",
+          "payment_verified",
+          "inventory_reserved",
+          "packed",
+          "shipped",
+          "delivered"
+        ],
+        "triggers": {
+          "order_placed": "customer_checkout",
+          "payment_verified": "payment_gateway_callback",
+          "shipped": "carrier_pickup"
+        },
+        "sideEffects": {
+          "payment_verified": [
+            "send_confirmation_email",
+            "update_inventory"
+          ],
+          "shipped": [
+            "send_tracking_email"
+          ],
+          "delivered": [
+            "request_review"
+          ]
+        }
+      },
+      "successCount": 14,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "workflow-design",
+      "patternKey": "content-publishing-flow",
+      "patternValue": {
+        "name": "Content Publishing",
+        "steps": [
+          "draft",
+          "review",
+          "revision",
+          "approved",
+          "scheduled",
+          "published"
+        ],
+        "triggers": {
+          "review": "author_submit",
+          "approved": "reviewer_approve",
+          "published": "schedule_trigger"
+        },
+        "sideEffects": {
+          "published": [
+            "notify_subscribers",
+            "update_sitemap",
+            "post_social_media"
+          ],
+          "approved": [
+            "notify_author"
+          ]
+        }
+      },
+      "successCount": 11,
+      "failureCount": 1,
+      "reliability": 0.92
+    },
+    {
+      "patternType": "workflow-design",
+      "patternKey": "support-ticket-flow",
+      "patternValue": {
+        "name": "Support Ticket Resolution",
+        "steps": [
+          "submitted",
+          "triaged",
+          "assigned",
+          "investigating",
+          "resolved",
+          "closed"
+        ],
+        "triggers": {
+          "submitted": "customer_form",
+          "triaged": "auto_classification",
+          "assigned": "dispatcher"
+        },
+        "sideEffects": {
+          "submitted": [
+            "send_acknowledgement",
+            "auto_categorize"
+          ],
+          "resolved": [
+            "send_resolution_email",
+            "request_satisfaction_survey"
+          ],
+          "closed": [
+            "archive_ticket"
+          ]
+        }
+      },
+      "successCount": 13,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "workflow-design",
+      "patternKey": "employee-onboarding-flow",
+      "patternValue": {
+        "name": "Employee Onboarding",
+        "steps": [
+          "offer_accepted",
+          "documents_submitted",
+          "it_setup",
+          "orientation",
+          "training",
+          "active"
+        ],
+        "triggers": {
+          "offer_accepted": "hr_confirmation",
+          "it_setup": "documents_verified"
+        },
+        "sideEffects": {
+          "offer_accepted": [
+            "create_employee_record",
+            "send_welcome_packet"
+          ],
+          "it_setup": [
+            "provision_accounts",
+            "assign_equipment"
+          ],
+          "active": [
+            "add_to_directory"
+          ]
+        }
+      },
+      "successCount": 10,
+      "failureCount": 1,
+      "reliability": 0.91
+    },
+    {
+      "patternType": "workflow-design",
+      "patternKey": "invoice-payment-flow",
+      "patternValue": {
+        "name": "Invoice Payment",
+        "steps": [
+          "created",
+          "sent",
+          "viewed",
+          "payment_received",
+          "reconciled"
+        ],
+        "triggers": {
+          "sent": "batch_send_or_manual",
+          "viewed": "client_opens_link",
+          "payment_received": "payment_gateway"
+        },
+        "sideEffects": {
+          "sent": [
+            "start_due_date_timer"
+          ],
+          "payment_received": [
+            "send_receipt",
+            "update_accounting"
+          ],
+          "reconciled": [
+            "close_invoice"
+          ]
+        }
+      },
+      "successCount": 12,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "workflow-design",
+      "patternKey": "appointment-booking-flow",
+      "patternValue": {
+        "name": "Appointment Booking",
+        "steps": [
+          "requested",
+          "confirmed",
+          "reminder_sent",
+          "checked_in",
+          "in_progress",
+          "completed"
+        ],
+        "triggers": {
+          "requested": "client_booking",
+          "confirmed": "provider_approval_or_auto",
+          "reminder_sent": "24h_before_cron"
+        },
+        "sideEffects": {
+          "confirmed": [
+            "send_confirmation",
+            "block_calendar_slot"
+          ],
+          "reminder_sent": [
+            "send_sms_and_email"
+          ],
+          "completed": [
+            "send_followup",
+            "request_review"
+          ]
+        }
+      },
+      "successCount": 11,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "ui-layout",
+      "patternKey": "dashboard-kpi-layout",
+      "patternValue": {
+        "layout": "top-kpi-cards + chart-row + recent-table",
+        "components": [
+          "StatCard",
+          "BarChart",
+          "LineChart",
+          "DataTable"
+        ],
+        "gridPattern": "4-col KPI row, 2-col chart row, full-width table",
+        "responsive": {
+          "mobile": "1-col stack",
+          "tablet": "2-col KPI grid",
+          "desktop": "4-col KPI grid"
+        },
+        "bestFor": [
+          "admin dashboards",
+          "analytics views",
+          "reporting pages"
+        ]
+      },
+      "successCount": 16,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "ui-layout",
+      "patternKey": "master-detail-layout",
+      "patternValue": {
+        "layout": "sidebar-list + main-detail-pane",
+        "components": [
+          "SearchableList",
+          "DetailPanel",
+          "Breadcrumb"
+        ],
+        "gridPattern": "30/70 split with collapsible sidebar",
+        "responsive": {
+          "mobile": "full-screen list with slide-over detail",
+          "tablet": "25/75 split",
+          "desktop": "30/70 split"
+        },
+        "bestFor": [
+          "email clients",
+          "contact managers",
+          "document viewers",
+          "chat apps"
+        ]
+      },
+      "successCount": 14,
+      "failureCount": 1,
+      "reliability": 0.93
+    },
+    {
+      "patternType": "ui-layout",
+      "patternKey": "kanban-board-layout",
+      "patternValue": {
+        "layout": "horizontal-scrollable-columns with draggable cards",
+        "components": [
+          "KanbanColumn",
+          "TaskCard",
+          "AddCardForm",
+          "ColumnHeader"
+        ],
+        "gridPattern": "horizontal scroll, fixed-width columns, vertical scroll per column",
+        "responsive": {
+          "mobile": "1-column with tab switcher per status",
+          "tablet": "2-3 visible columns",
+          "desktop": "all columns visible"
+        },
+        "bestFor": [
+          "project management",
+          "task boards",
+          "pipeline views",
+          "recruitment tracking"
+        ]
+      },
+      "successCount": 15,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "ui-layout",
+      "patternKey": "calendar-schedule-layout",
+      "patternValue": {
+        "layout": "toolbar + month/week/day views + event-detail-modal",
+        "components": [
+          "CalendarGrid",
+          "EventCard",
+          "DatePicker",
+          "ViewToggle",
+          "EventModal"
+        ],
+        "gridPattern": "7-col month grid, 24-row day grid, sidebar for event details",
+        "responsive": {
+          "mobile": "day/agenda view only",
+          "tablet": "week view",
+          "desktop": "month view default"
+        },
+        "bestFor": [
+          "appointment scheduling",
+          "event management",
+          "resource booking",
+          "team calendars"
+        ]
+      },
+      "successCount": 12,
+      "failureCount": 1,
+      "reliability": 0.92
+    },
+    {
+      "patternType": "ui-layout",
+      "patternKey": "crud-table-layout",
+      "patternValue": {
+        "layout": "toolbar-filters + data-table + inline-add-form + pagination",
+        "components": [
+          "FilterBar",
+          "DataTable",
+          "InlineForm",
+          "Pagination",
+          "BulkActions",
+          "ExportButton"
+        ],
+        "gridPattern": "full-width with sticky header and horizontal scroll for many columns",
+        "responsive": {
+          "mobile": "card-list view with expandable rows",
+          "tablet": "reduced columns",
+          "desktop": "full table with all columns"
+        },
+        "bestFor": [
+          "inventory management",
+          "user admin",
+          "data-heavy CRUD",
+          "log viewers"
+        ]
+      },
+      "successCount": 17,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "ui-layout",
+      "patternKey": "settings-form-layout",
+      "patternValue": {
+        "layout": "sidebar-nav + scrollable-section-forms + save-bar",
+        "components": [
+          "SettingsNav",
+          "FormSection",
+          "ToggleSwitch",
+          "SaveBar"
+        ],
+        "gridPattern": "20/80 split, form sections with clear headings and dividers",
+        "responsive": {
+          "mobile": "full-screen form, top tabs for navigation",
+          "tablet": "collapsible sidebar",
+          "desktop": "persistent sidebar"
+        },
+        "bestFor": [
+          "app settings",
+          "profile pages",
+          "configuration panels",
+          "preferences"
+        ]
+      },
+      "successCount": 13,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "tech-choice",
+      "patternKey": "state-management-selection",
+      "patternValue": {
+        "recommendation": "TanStack Query for server state, React Context for UI state",
+        "reasoning": "Separating server state (async data) from UI state (local interactions) reduces complexity and improves cache management",
+        "alternatives": {
+          "zustand": "for complex client state beyond Context",
+          "redux": "only for very large apps needing time-travel debugging"
+        },
+        "avoidWhen": "simple apps with <5 entities — Context alone is sufficient"
+      },
+      "successCount": 18,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "tech-choice",
+      "patternKey": "form-handling-selection",
+      "patternValue": {
+        "recommendation": "react-hook-form + zod for validation",
+        "reasoning": "react-hook-form minimizes re-renders, zod provides TypeScript-first schema validation shared between frontend and backend",
+        "alternatives": {
+          "formik": "legacy choice, heavier re-render cost",
+          "native-forms": "for simple 1-2 field forms"
+        },
+        "avoidWhen": "single input forms like search bars — use controlled input directly"
+      },
+      "successCount": 15,
+      "failureCount": 1,
+      "reliability": 0.94
+    },
+    {
+      "patternType": "tech-choice",
+      "patternKey": "date-library-selection",
+      "patternValue": {
+        "recommendation": "date-fns for utility, dayjs for display formatting",
+        "reasoning": "date-fns is tree-shakable and functional; dayjs is lighter than moment.js with similar API",
+        "alternatives": {
+          "luxon": "for complex timezone handling",
+          "temporal-api": "future standard, not yet widely supported"
+        },
+        "avoidWhen": "only formatting dates — use Intl.DateTimeFormat natively"
+      },
+      "successCount": 12,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "tech-choice",
+      "patternKey": "auth-strategy-selection",
+      "patternValue": {
+        "recommendation": "passport.js with express-session and bcrypt",
+        "reasoning": "Session-based auth simpler for full-stack apps; passport supports multiple strategies; bcrypt for password hashing",
+        "alternatives": {
+          "jwt": "for stateless APIs or mobile backends",
+          "oauth-only": "for apps without own user registration"
+        },
+        "avoidWhen": "microservice architecture — prefer JWT with refresh tokens"
+      },
+      "successCount": 14,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "tech-choice",
+      "patternKey": "charting-library-selection",
+      "patternValue": {
+        "recommendation": "recharts for React apps, chart.js for lightweight needs",
+        "reasoning": "Recharts is built on React components with declarative API; good for dashboards. Chart.js for simpler use cases",
+        "alternatives": {
+          "d3": "for custom/complex visualizations",
+          "nivo": "for animated/interactive dashboards",
+          "visx": "for low-level D3 + React"
+        },
+        "avoidWhen": "3D or map visualizations — use deck.gl or mapbox instead"
+      },
+      "successCount": 11,
+      "failureCount": 1,
+      "reliability": 0.92
+    },
+    {
+      "patternType": "tech-choice",
+      "patternKey": "file-upload-strategy",
+      "patternValue": {
+        "recommendation": "multer for server-side, presigned URLs for large files",
+        "reasoning": "Multer handles multipart uploads easily; presigned URLs offload bandwidth for large files to object storage",
+        "alternatives": {
+          "busboy": "for streaming uploads",
+          "tus": "for resumable large file uploads"
+        },
+        "avoidWhen": "simple text/JSON APIs without file uploads"
+      },
+      "successCount": 10,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "validation-rule",
+      "patternKey": "email-validation-pattern",
+      "patternValue": {
+        "zodSchema": "z.string().email().max(255).toLowerCase()",
+        "htmlPattern": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+        "dbConstraint": "CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$')",
+        "normalize": "lowercase before storage"
+      },
+      "successCount": 18,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "validation-rule",
+      "patternKey": "phone-validation-pattern",
+      "patternValue": {
+        "zodSchema": "z.string().regex(/^\\+?[1-9]\\d{1,14}$/).optional()",
+        "htmlPattern": "E.164 format recommended",
+        "dbConstraint": "varchar(20)",
+        "normalize": "strip spaces, dashes, parentheses before storage"
+      },
+      "successCount": 14,
+      "failureCount": 1,
+      "reliability": 0.93
+    },
+    {
+      "patternType": "validation-rule",
+      "patternKey": "password-validation-pattern",
+      "patternValue": {
+        "zodSchema": "z.string().min(8).max(128).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])/)",
+        "rules": [
+          "min 8 chars",
+          "1 uppercase",
+          "1 lowercase",
+          "1 digit",
+          "1 special char"
+        ],
+        "storage": "bcrypt hash with 12 salt rounds",
+        "neverStore": "plaintext password"
+      },
+      "successCount": 16,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "validation-rule",
+      "patternKey": "currency-validation-pattern",
+      "patternValue": {
+        "zodSchema": "z.number().positive().multipleOf(0.01).max(999999999.99)",
+        "dbType": "decimal(12,2)",
+        "display": "Intl.NumberFormat with currency code",
+        "calculation": "use integer cents internally to avoid floating point errors"
+      },
+      "successCount": 13,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "validation-rule",
+      "patternKey": "slug-url-validation-pattern",
+      "patternValue": {
+        "zodSchema": "z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(2).max(100)",
+        "generation": "toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')",
+        "dbConstraint": "UNIQUE index on slug column",
+        "seoNote": "keep under 60 chars for best SEO"
+      },
+      "successCount": 11,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "validation-rule",
+      "patternKey": "date-range-validation-pattern",
+      "patternValue": {
+        "zodSchema": "z.object({ startDate: z.coerce.date(), endDate: z.coerce.date() }).refine(d => d.endDate > d.startDate, 'End date must be after start date')",
+        "dbConstraint": "CHECK (end_date > start_date)",
+        "uiPattern": "date range picker with min/max constraints",
+        "timezone": "store in UTC, display in user timezone"
+      },
+      "successCount": 12,
+      "failureCount": 1,
+      "reliability": 0.92
+    },
+    {
+      "patternType": "page-structure",
+      "patternKey": "entity-list-page-structure",
+      "patternValue": {
+        "sections": [
+          "PageHeader with title + Add button",
+          "FilterBar with search + filters",
+          "DataTable with sortable columns",
+          "Pagination footer",
+          "AddEditModal/SlideOver"
+        ],
+        "hooks": [
+          "useQuery for data fetching",
+          "useMutation for CRUD",
+          "useSearchParams for filter state"
+        ],
+        "errorStates": [
+          "loading skeleton",
+          "empty state with CTA",
+          "error with retry"
+        ]
+      },
+      "successCount": 17,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "page-structure",
+      "patternKey": "entity-detail-page-structure",
+      "patternValue": {
+        "sections": [
+          "Breadcrumb navigation",
+          "Header with entity name + actions (edit, delete)",
+          "TabGroup for related data",
+          "Activity/history timeline",
+          "Related entities sidebar"
+        ],
+        "hooks": [
+          "useQuery with entity ID param",
+          "useMutation for updates",
+          "useParams for routing"
+        ],
+        "errorStates": [
+          "loading skeleton",
+          "404 not found",
+          "permission denied"
+        ]
+      },
+      "successCount": 14,
+      "failureCount": 1,
+      "reliability": 0.93
+    },
+    {
+      "patternType": "page-structure",
+      "patternKey": "dashboard-page-structure",
+      "patternValue": {
+        "sections": [
+          "Welcome header with date range picker",
+          "KPI stat cards row",
+          "Charts section (2-col grid)",
+          "Recent activity table",
+          "Quick actions panel"
+        ],
+        "hooks": [
+          "useQuery for dashboard stats",
+          "useQuery for recent items",
+          "useDateRange for filtering"
+        ],
+        "errorStates": [
+          "loading skeletons for each section independently",
+          "empty state for new users",
+          "partial load on API failure"
+        ]
+      },
+      "successCount": 15,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "page-structure",
+      "patternKey": "auth-page-structure",
+      "patternValue": {
+        "sections": [
+          "Centered card layout",
+          "Logo/brand header",
+          "Form with email + password",
+          "Submit button with loading state",
+          "Link to register/forgot password",
+          "Social login buttons (optional)"
+        ],
+        "hooks": [
+          "useMutation for auth request",
+          "useAuth context for session",
+          "useNavigate for redirect"
+        ],
+        "errorStates": [
+          "inline field errors",
+          "toast for server errors",
+          "rate limit message"
+        ]
+      },
+      "successCount": 16,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "page-structure",
+      "patternKey": "settings-page-structure",
+      "patternValue": {
+        "sections": [
+          "Settings sidebar navigation",
+          "Profile section with avatar upload",
+          "Notification preferences",
+          "Security section (password change, 2FA)",
+          "Danger zone (account deletion)"
+        ],
+        "hooks": [
+          "useQuery for current settings",
+          "useMutation for each section",
+          "useForm for each settings group"
+        ],
+        "errorStates": [
+          "save confirmation toast",
+          "unsaved changes warning on navigate",
+          "permission check for admin sections"
+        ]
+      },
+      "successCount": 12,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "page-structure",
+      "patternKey": "onboarding-wizard-page-structure",
+      "patternValue": {
+        "sections": [
+          "Progress stepper/indicator",
+          "Step content area",
+          "Navigation buttons (back/next/skip)",
+          "Final summary/confirmation step"
+        ],
+        "hooks": [
+          "useWizardState for step management",
+          "useMutation for final submission",
+          "useLocalStorage for draft persistence"
+        ],
+        "errorStates": [
+          "per-step validation",
+          "save draft on browser close",
+          "resume from last completed step"
+        ]
+      },
+      "successCount": 10,
+      "failureCount": 1,
+      "reliability": 0.91
+    },
+    {
+      "patternType": "field-naming",
+      "patternKey": "timestamp-field-naming",
+      "patternValue": {
+        "convention": "camelCase with action + At suffix",
+        "examples": {
+          "creation": "createdAt",
+          "update": "updatedAt",
+          "deletion": "deletedAt",
+          "completion": "completedAt",
+          "expiry": "expiresAt",
+          "last_login": "lastLoginAt"
+        },
+        "dbColumn": "snake_case equivalent: created_at, updated_at",
+        "type": "timestamp with time zone DEFAULT NOW()"
+      },
+      "successCount": 18,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "field-naming",
+      "patternKey": "boolean-field-naming",
+      "patternValue": {
+        "convention": "camelCase with is/has/can prefix",
+        "examples": {
+          "active": "isActive",
+          "verified": "isVerified",
+          "admin": "isAdmin",
+          "published": "isPublished",
+          "premium": "hasPremium",
+          "edit_access": "canEdit"
+        },
+        "dbColumn": "boolean DEFAULT false",
+        "avoidNames": [
+          "active (ambiguous)",
+          "flag (unclear)",
+          "enabled (prefer isEnabled)"
+        ]
+      },
+      "successCount": 16,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "field-naming",
+      "patternKey": "foreign-key-field-naming",
+      "patternValue": {
+        "convention": "camelCase: relatedEntity + Id",
+        "examples": {
+          "user_owner": "userId",
+          "assigned_person": "assigneeId",
+          "parent_org": "organizationId",
+          "created_by": "createdById",
+          "category": "categoryId"
+        },
+        "dbColumn": "integer REFERENCES related_table(id)",
+        "indexing": "always add index on foreign key columns"
+      },
+      "successCount": 17,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "field-naming",
+      "patternKey": "enum-status-field-naming",
+      "patternValue": {
+        "convention": "lowercase kebab-case values, field named 'status' or 'type'",
+        "examples": {
+          "order": "pending|processing|shipped|delivered|cancelled",
+          "user": "active|inactive|suspended|banned",
+          "content": "draft|review|published|archived",
+          "payment": "pending|completed|failed|refunded"
+        },
+        "dbColumn": "varchar(50) with CHECK constraint or custom enum type",
+        "uiPattern": "Badge component with color coding per status value"
+      },
+      "successCount": 15,
+      "failureCount": 1,
+      "reliability": 0.94
+    },
+    {
+      "patternType": "field-naming",
+      "patternKey": "address-field-naming",
+      "patternValue": {
+        "convention": "flat fields for simple apps, nested object for complex",
+        "flat": {
+          "line1": "addressLine1",
+          "line2": "addressLine2",
+          "city": "city",
+          "state": "state",
+          "zip": "zipCode",
+          "country": "country"
+        },
+        "nested": "address: { line1, line2, city, state, zipCode, country }",
+        "dbPattern": "separate columns for flat; jsonb for nested",
+        "validation": "zipCode requires country-specific regex"
+      },
+      "successCount": 12,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "field-naming",
+      "patternKey": "metadata-field-naming",
+      "patternValue": {
+        "convention": "use 'metadata' or 'config' as jsonb columns for extensible data",
+        "examples": {
+          "user_prefs": "preferences: jsonb",
+          "extra_data": "metadata: jsonb",
+          "settings": "config: jsonb",
+          "tracking": "analyticsData: jsonb"
+        },
+        "dbColumn": "jsonb DEFAULT '{}'",
+        "validation": "validate shape with zod but allow unknown keys via passthrough()"
+      },
+      "successCount": 11,
+      "failureCount": 1,
+      "reliability": 0.92
+    },
+    {
+      "patternType": "domain-mapping",
+      "patternKey": "ecommerce-domain-entities",
+      "patternValue": {
+        "domain": "ecommerce",
+        "coreEntities": [
+          "Product",
+          "Category",
+          "Order",
+          "OrderItem",
+          "Customer",
+          "Cart",
+          "CartItem",
+          "Payment",
+          "Review",
+          "Coupon"
+        ],
+        "relationships": {
+          "Product": [
+            "belongsTo Category",
+            "hasMany Review",
+            "hasMany OrderItem"
+          ],
+          "Order": [
+            "belongsTo Customer",
+            "hasMany OrderItem",
+            "hasOne Payment"
+          ],
+          "Cart": [
+            "belongsTo Customer",
+            "hasMany CartItem"
+          ]
+        },
+        "requiredFeatures": [
+          "product catalog",
+          "cart management",
+          "checkout flow",
+          "order tracking",
+          "inventory management"
+        ]
+      },
+      "successCount": 16,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "domain-mapping",
+      "patternKey": "healthcare-domain-entities",
+      "patternValue": {
+        "domain": "healthcare",
+        "coreEntities": [
+          "Patient",
+          "Provider",
+          "Appointment",
+          "MedicalRecord",
+          "Prescription",
+          "Insurance",
+          "Billing",
+          "Department"
+        ],
+        "relationships": {
+          "Patient": [
+            "hasMany Appointment",
+            "hasMany MedicalRecord",
+            "hasMany Prescription"
+          ],
+          "Provider": [
+            "hasMany Appointment",
+            "belongsTo Department"
+          ],
+          "Appointment": [
+            "belongsTo Patient",
+            "belongsTo Provider"
+          ]
+        },
+        "requiredFeatures": [
+          "patient registration",
+          "appointment scheduling",
+          "medical records",
+          "prescription management",
+          "billing"
+        ]
+      },
+      "successCount": 12,
+      "failureCount": 1,
+      "reliability": 0.92
+    },
+    {
+      "patternType": "domain-mapping",
+      "patternKey": "education-domain-entities",
+      "patternValue": {
+        "domain": "education",
+        "coreEntities": [
+          "Student",
+          "Teacher",
+          "Course",
+          "Enrollment",
+          "Assignment",
+          "Grade",
+          "Schedule",
+          "Department"
+        ],
+        "relationships": {
+          "Student": [
+            "hasMany Enrollment",
+            "hasMany Grade"
+          ],
+          "Course": [
+            "belongsTo Teacher",
+            "belongsTo Department",
+            "hasMany Assignment"
+          ],
+          "Enrollment": [
+            "belongsTo Student",
+            "belongsTo Course"
+          ]
+        },
+        "requiredFeatures": [
+          "student management",
+          "course catalog",
+          "enrollment",
+          "grade tracking",
+          "assignment submission",
+          "attendance"
+        ]
+      },
+      "successCount": 13,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "domain-mapping",
+      "patternKey": "real-estate-domain-entities",
+      "patternValue": {
+        "domain": "real-estate",
+        "coreEntities": [
+          "Property",
+          "Listing",
+          "Agent",
+          "Client",
+          "Showing",
+          "Offer",
+          "Transaction",
+          "Document"
+        ],
+        "relationships": {
+          "Property": [
+            "hasMany Listing",
+            "hasMany Showing"
+          ],
+          "Listing": [
+            "belongsTo Property",
+            "belongsTo Agent",
+            "hasMany Offer"
+          ],
+          "Agent": [
+            "hasMany Listing",
+            "hasMany Client"
+          ]
+        },
+        "requiredFeatures": [
+          "property listings",
+          "search with filters",
+          "appointment scheduling",
+          "offer management",
+          "document management",
+          "agent profiles"
+        ]
+      },
+      "successCount": 11,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "domain-mapping",
+      "patternKey": "restaurant-domain-entities",
+      "patternValue": {
+        "domain": "restaurant",
+        "coreEntities": [
+          "MenuItem",
+          "Category",
+          "Order",
+          "OrderItem",
+          "Table",
+          "Reservation",
+          "Customer",
+          "Staff"
+        ],
+        "relationships": {
+          "MenuItem": [
+            "belongsTo Category",
+            "hasMany OrderItem"
+          ],
+          "Order": [
+            "hasMany OrderItem",
+            "belongsTo Table",
+            "belongsTo Customer"
+          ],
+          "Reservation": [
+            "belongsTo Table",
+            "belongsTo Customer"
+          ]
+        },
+        "requiredFeatures": [
+          "menu management",
+          "table management",
+          "order taking",
+          "reservation system",
+          "kitchen display",
+          "bill generation"
+        ]
+      },
+      "successCount": 12,
+      "failureCount": 1,
+      "reliability": 0.92
+    },
+    {
+      "patternType": "domain-mapping",
+      "patternKey": "fitness-domain-entities",
+      "patternValue": {
+        "domain": "fitness",
+        "coreEntities": [
+          "Member",
+          "Trainer",
+          "Class",
+          "ClassSchedule",
+          "Membership",
+          "Workout",
+          "Exercise",
+          "Payment"
+        ],
+        "relationships": {
+          "Member": [
+            "hasOne Membership",
+            "hasMany Workout",
+            "hasMany ClassSchedule"
+          ],
+          "Class": [
+            "belongsTo Trainer",
+            "hasMany ClassSchedule"
+          ],
+          "Workout": [
+            "belongsTo Member",
+            "hasMany Exercise"
+          ]
+        },
+        "requiredFeatures": [
+          "member management",
+          "class scheduling",
+          "workout tracking",
+          "membership plans",
+          "trainer profiles",
+          "check-in system"
+        ]
+      },
+      "successCount": 10,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "error-prevention",
+      "patternKey": "missing-import-prevention",
+      "patternValue": {
+        "errorType": "Module not found / Cannot find module",
+        "prevention": "Always verify import paths match actual file locations; use index.ts barrel exports",
+        "commonCauses": [
+          "typo in import path",
+          "missing file extension in ESM",
+          "circular dependency",
+          "case-sensitive file system mismatch"
+        ],
+        "fix": "Check file exists at path, add .js extension for ESM, break circular deps with lazy imports"
+      },
+      "successCount": 18,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "error-prevention",
+      "patternKey": "react-hooks-rules-prevention",
+      "patternValue": {
+        "errorType": "React hooks called conditionally or in loops",
+        "prevention": "Always call hooks at top level of component, never inside conditions or loops",
+        "commonCauses": [
+          "conditional useEffect",
+          "hook inside if statement",
+          "hook inside map/forEach",
+          "early return before hook call"
+        ],
+        "fix": "Move hook to top level, use condition inside the hook's callback, or split into separate components"
+      },
+      "successCount": 15,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "error-prevention",
+      "patternKey": "async-error-handling-prevention",
+      "patternValue": {
+        "errorType": "Unhandled promise rejection / async error",
+        "prevention": "Wrap all async operations in try/catch, use error boundaries in React",
+        "commonCauses": [
+          "missing await",
+          "no try/catch on fetch",
+          "no error boundary for async components",
+          "unhandled promise in useEffect"
+        ],
+        "fix": "Add try/catch, use .catch() on promises, add React ErrorBoundary, clean up async effects"
+      },
+      "successCount": 16,
+      "failureCount": 1,
+      "reliability": 0.94
+    },
+    {
+      "patternType": "error-prevention",
+      "patternKey": "null-undefined-access-prevention",
+      "patternValue": {
+        "errorType": "Cannot read properties of null/undefined",
+        "prevention": "Use optional chaining (?.), nullish coalescing (??), and TypeScript strict null checks",
+        "commonCauses": [
+          "accessing nested object before data loads",
+          "API returning null for optional fields",
+          "array methods on undefined",
+          "destructuring null response"
+        ],
+        "fix": "Add optional chaining, provide default values with ??, check loading states before render, use TypeScript strict mode"
+      },
+      "successCount": 19,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "error-prevention",
+      "patternKey": "cors-and-proxy-prevention",
+      "patternValue": {
+        "errorType": "CORS policy blocked / Mixed content",
+        "prevention": "Configure CORS middleware properly, use same-origin API calls, serve frontend and backend from same domain",
+        "commonCauses": [
+          "missing CORS headers",
+          "frontend calling localhost instead of relative URL",
+          "mixed http/https",
+          "credentials mode mismatch"
+        ],
+        "fix": "Add cors() middleware with proper origin config, use relative API paths (/api/...), ensure consistent protocol, set credentials: 'include' with allowed origin"
+      },
+      "successCount": 14,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "error-prevention",
+      "patternKey": "key-prop-missing-prevention",
+      "patternValue": {
+        "errorType": "Warning: Each child in a list should have a unique key prop",
+        "prevention": "Always provide stable, unique key prop when rendering lists with .map()",
+        "commonCauses": [
+          "using array index as key with mutable lists",
+          "missing key entirely",
+          "duplicate keys from non-unique data",
+          "key on wrong element (not the outermost)"
+        ],
+        "fix": "Use entity ID as key, generate stable keys with nanoid if no ID, never use index for sortable/filterable lists, place key on the root element returned from map"
+      },
+      "successCount": 17,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "error-prevention",
+      "patternKey": "memory-leak-prevention",
+      "patternValue": {
+        "errorType": "Memory leak: Can't perform state update on unmounted component",
+        "prevention": "Clean up subscriptions, timers, and async operations in useEffect return",
+        "commonCauses": [
+          "missing useEffect cleanup",
+          "setInterval without clearInterval",
+          "event listener not removed",
+          "setState called after unmount"
+        ],
+        "fix": "Return cleanup function from useEffect, use AbortController for fetch, use isMounted ref pattern, clean up WebSocket connections"
+      },
+      "successCount": 13,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "entity-structure",
+      "patternKey": "project-entity-fields",
+      "patternValue": {
+        "recommended": [
+          "name",
+          "description",
+          "ownerId",
+          "status",
+          "startDate",
+          "endDate",
+          "priority"
+        ],
+        "optional": [
+          "budget",
+          "completionPercent",
+          "tags",
+          "teamMembers",
+          "clientId",
+          "category"
+        ],
+        "fieldTypes": {
+          "status": "enum(planning,active,on-hold,completed,cancelled)",
+          "priority": "enum(low,medium,high)",
+          "budget": "decimal(12,2)",
+          "completionPercent": "integer DEFAULT 0 CHECK (completion_percent BETWEEN 0 AND 100)"
+        }
+      },
+      "successCount": 14,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "workflow-design",
+      "patternKey": "project-lifecycle-flow",
+      "patternValue": {
+        "name": "Project Lifecycle",
+        "steps": [
+          "initiation",
+          "planning",
+          "execution",
+          "monitoring",
+          "closure"
+        ],
+        "triggers": {
+          "initiation": "project_approved",
+          "planning": "kickoff_meeting",
+          "execution": "plan_approved",
+          "monitoring": "parallel_with_execution"
+        },
+        "sideEffects": {
+          "initiation": [
+            "create_workspace",
+            "assign_pm"
+          ],
+          "planning": [
+            "create_timeline",
+            "allocate_resources"
+          ],
+          "closure": [
+            "archive_project",
+            "collect_retrospective",
+            "release_resources"
+          ]
+        }
+      },
+      "successCount": 11,
+      "failureCount": 0,
+      "reliability": 1
+    }
+  ],
+  "preferences": [
+    {
+      "preferenceKey": "code-style-typescript",
+      "preferenceValue": {
+        "strict": true,
+        "noImplicitAny": true,
+        "preferConst": true,
+        "arrowFunctions": true
+      },
+      "frequency": 20
+    }
+  ],
+  "stats": {
+    "totalPatterns": 78,
+    "reliablePatterns": 76,
+    "totalPreferences": 1
+  }
+}

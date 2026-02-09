@@ -105,5 +105,14 @@ Recognizes 16 common application patterns to bypass clarification and immediatel
 -   Conversation Phase Handler: 520 lines, 6-phase state machine with orchestrator integration
 -   Vite Error Fixer: 1,526 lines, 23 error type analyzers (11 build-time + 12 runtime)
 
+### Generation Learning Engine (Portable Knowledge)
+-   **Persistence**: Learning data stored in PostgreSQL (`generation_patterns`, `generation_outcomes`, `user_preferences` tables) AND in `learning-data.json` file for portability.
+-   **File-based portability**: `learning-data.json` at project root is automatically pushed to GitHub and loaded on startup, ensuring knowledge carries to any deployment.
+-   **Pattern types**: entity-structure, workflow-design, ui-layout, tech-choice, validation-rule, page-structure, field-naming, domain-mapping, error-prevention.
+-   **API endpoints**: `GET /api/learning/stats`, `GET /api/learning/export`, `POST /api/learning/import`, `POST /api/learning/save`, `GET /api/learning/patterns`, `GET /api/learning/entity/:name`.
+-   **Integration**: `recordGenerationOutcome()` called from Pipeline Orchestrator stage 16, records entity patterns, workflow designs, page layouts, file structures, domain mappings, quality scores, and error patterns.
+-   **Application**: `applyLearnedPatterns()` called in both Pipeline Orchestrator (stage 3) and conversation-phase-handler to enhance plans with proven patterns.
+
 ## Recent Changes
 -   **Feb 2026**: Added 6 new specialized AI modules (Architecture Planner, Schema Designer, API Designer, Component Composer, Code Quality Engine, Dependency Resolver) and Pipeline Orchestrator. Integrated orchestrator into conversation-phase-handler for 16-stage coordinated generation. Added fallback to direct generation on orchestrator failure. Test files now merged into final output. Learning engine records orchestration metrics.
+-   **Feb 2026**: Fixed Generation Learning Engine portability — added `recordGenerationOutcome()` method, file-based persistence (`learning-data.json`), REST API for export/import, and `ensureReady()` for reliable DB loading. Knowledge now carries across deployments via file + GitHub push.

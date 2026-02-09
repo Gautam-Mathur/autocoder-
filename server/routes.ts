@@ -27,6 +27,9 @@ import { learnFromInteraction, getContextPreferences, applyContextPreferences, g
 import { analyzeCode, diagnoseError, formatAnalysisAsMarkdown, autoFixCode } from "./modules/live-code-analysis";
 import { findPatterns, getPattern, getAllPatterns } from "./modules/framework-patterns";
 
+// Generation Learning Engine
+import { learningEngine } from "./modules/generation-learning-engine";
+
 // Claude-level capabilities
 import { analyzeNLU, classifyIntent, extractEntities, parseSemantics, analyzeSentiment, formatNLUAsMarkdown } from "./modules/natural-language-understanding";
 import { explainCode, detectPatterns, summarizeCode, formatExplanationAsMarkdown } from "./modules/code-explanation-engine";
@@ -4834,6 +4837,87 @@ Output ONLY the fixed code. No explanations.`;
       res.json({ success: true, path });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get learning path';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Generation Learning Engine - Stats
+  app.get("/api/learning/stats", async (_req, res) => {
+    try {
+      await learningEngine.ensureReady();
+      const stats = await learningEngine.getLearningStats();
+      res.json({ success: true, ...stats });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get learning stats';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Generation Learning Engine - Export all data (portable)
+  app.get("/api/learning/export", async (_req, res) => {
+    try {
+      await learningEngine.ensureReady();
+      const data = learningEngine.getFullExport();
+      res.json({ success: true, ...data });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to export learning data';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Generation Learning Engine - Import data (portable)
+  app.post("/api/learning/import", async (req, res) => {
+    try {
+      await learningEngine.ensureReady();
+      const { patterns, preferences } = req.body;
+      const result = learningEngine.importFullData({ patterns, preferences });
+      res.json({ success: true, ...result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to import learning data';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Generation Learning Engine - Save to file (for repo persistence)
+  app.post("/api/learning/save", async (_req, res) => {
+    try {
+      await learningEngine.ensureReady();
+      learningEngine.persistToFile();
+      res.json({ success: true, message: 'Learning data saved to file' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save learning data';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Generation Learning Engine - Get patterns by type
+  app.get("/api/learning/patterns", async (req, res) => {
+    try {
+      await learningEngine.ensureReady();
+      const minReliability = parseFloat(req.query.minReliability as string) || 0;
+      const patternType = req.query.type as string | undefined;
+      let patterns = minReliability > 0
+        ? learningEngine.getReliablePatterns(minReliability)
+        : learningEngine.exportPatterns();
+      if (patternType) {
+        patterns = patterns.filter(p => p.patternType === patternType);
+      }
+      res.json({ success: true, count: patterns.length, patterns });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get patterns';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Generation Learning Engine - Get entity recommendations
+  app.get("/api/learning/entity/:name", async (req, res) => {
+    try {
+      await learningEngine.ensureReady();
+      const recommendations = learningEngine.getEntityRecommendations(req.params.name);
+      const workflow = learningEngine.getWorkflowRecommendation(req.params.name);
+      res.json({ success: true, entity: req.params.name, recommendations, workflow });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get entity recommendations';
       res.status(500).json({ error: message });
     }
   });
