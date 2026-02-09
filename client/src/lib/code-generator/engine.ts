@@ -1286,21 +1286,22 @@ function applyAutoFixes(code: string, errors: CodeError[]): { code: string; fixe
   
   // ========== HTML SYNTAX FIXES ==========
   
-  // 1. Add DOCTYPE if missing
-  if (fixedCode.includes('<html') && !fixedCode.trim().toLowerCase().startsWith('<!doctype')) {
+  // 1. Add DOCTYPE if missing (only for actual HTML files, not React/JSX components)
+  const looksLikeHtmlFile = /^\s*<(!doctype|html[\s>])/im.test(fixedCode) && !/(import\s+|export\s+(default\s+)?function|from\s+['"]react)/m.test(fixedCode);
+  if (looksLikeHtmlFile && !fixedCode.trim().toLowerCase().startsWith('<!doctype')) {
     fixedCode = '<!DOCTYPE html>\n' + fixedCode;
     fixes.push('Added <!DOCTYPE html>');
   }
   
-  // 2. Add lang to <html> if missing
-  if (/<html(?![^>]*lang\s*=)[^>]*>/i.test(fixedCode)) {
+  // 2. Add lang to <html> if missing (only for actual HTML files)
+  if (looksLikeHtmlFile && /<html(?![^>]*lang\s*=)[^>]*>/i.test(fixedCode)) {
     const before = fixedCode;
     fixedCode = fixedCode.replace(/<html(?![^>]*lang)([^>]*)>/gi, '<html lang="en"$1>');
     trackFix(before, fixedCode, 'Added lang="en" to <html>');
   }
   
-  // 3. Add <head> if missing but has <html>
-  if (fixedCode.includes('<html') && !fixedCode.includes('<head')) {
+  // 3. Add <head> if missing but has <html> (only for actual HTML files)
+  if (looksLikeHtmlFile && fixedCode.includes('<html') && !fixedCode.includes('<head')) {
     fixedCode = fixedCode.replace(/<html([^>]*)>/i, '<html$1>\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n<title>Page</title>\n</head>');
     fixes.push('Added missing <head> section');
   }
@@ -1489,10 +1490,10 @@ function applyAutoFixes(code: string, errors: CodeError[]): { code: string; fixe
   
   // ========== ACCESSIBILITY FIXES ==========
   
-  // 24. Add type="button" to buttons without type
-  if (/<button(?![^>]*type\s*=)[^>]*>/i.test(fixedCode)) {
+  // 24. Add type="button" to lowercase <button> tags without type (skip React <Button> components)
+  if (/<button(?![^>]*type\s*=)[^>]*>/.test(fixedCode)) {
     const before = fixedCode;
-    fixedCode = fixedCode.replace(/<button(?![^>]*type\s*=)([^>]*)>/gi, '<button type="button"$1>');
+    fixedCode = fixedCode.replace(/<button(?![^>]*type\s*=)([^>]*)>/g, '<button type="button"$1>');
     trackFix(before, fixedCode, 'Added type="button" to buttons');
   }
   

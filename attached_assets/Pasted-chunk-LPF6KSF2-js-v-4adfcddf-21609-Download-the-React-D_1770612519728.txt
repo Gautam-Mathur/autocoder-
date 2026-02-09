@@ -1,0 +1,305 @@
+chunk-LPF6KSF2.js?v=4adfcddf:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+VM4 sandbox_bundle:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ VM4 sandbox_bundle:2
+logSecurityWarnings @ VM4 sandbox_bundle:2
+(anonymous) @ VM4 sandbox_bundle:2
+logger.ts:175 ── PRE-WARM START ──────────────────────────────
+logger.ts:115 10:16:10.207 ● INFO  PreWarm [booting] Starting WebContainer environment...
+logger.ts:115 10:16:10.208 ● INFO  WebContainer Booting WebContainer...
+logger.ts:122   └─ coep: require-corp  ·  crossOriginIsolated: true  ·  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
+logger.ts:115 10:16:11.472 ✓ SUCCESS WebContainer WebContainer booted successfully 1.3s
+logger.ts:115 10:16:11.472 ✓ SUCCESS PreWarm WebContainer booted 1.3s
+logger.ts:115 10:16:11.472 ● INFO  PreWarm [booting] Environment ready
+logger.ts:115 10:16:11.472 ● INFO  PreWarm Installing 13 deps + 6 devDeps
+logger.ts:122   └─ dependencies: react, react-dom, wouter, @tanstack/react-query, lucide-react, recharts, date-fns, clsx, tailwind-merge, zod, react-hook-form, @hookform/resolvers, framer-motion  ·  devDependencies: vite, @vitejs/plugin-react, tailwindcss, postcss, autoprefixer, fast-glob
+logger.ts:115 10:16:11.472 ● INFO  PreWarm [installing] Pre-installing 19 core packages...
+logger.ts:115 10:16:12.245 · DEBUG FileSystem Wrote pre-warm package.json
+logger.ts:122   └─ size: 732 bytes
+logger.ts:115 10:16:12.249 · DEBUG FileSystem Wrote pre-warm vite.config.ts
+logger.ts:115 10:16:12.263 ● INFO  NPM Spawned npm install for pre-warm
+logger.ts:122   └─ flags: --prefer-offline --no-audit --no-fund --loglevel=http  ·  timeout: 180s  ·  stallTimeout: 60s
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.e5af05b3.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+logger.ts:115 10:16:18.273 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 10:16:19.294 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 10:16:19.506 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 10:16:20.499 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 10:16:23.938 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 10:16:25.229 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 10:16:25.871 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 10:16:26.240 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 10:16:26.681 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 10:16:26.993 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 10:16:27.436 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 10:16:28.029 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 10:16:28.405 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 10:16:29.021 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 10:16:29.888 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 10:16:30.511 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 10:16:31.664 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 10:16:33.431 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:16:33.706 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:16:34.148 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:16:34.414 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:16:35.103 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:115 10:16:35.277 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 10:16:35.636 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 10:16:35.733 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 10:16:36.648 ● INFO  NPM 📦 190 packages downloaded...
+logger.ts:115 10:16:37.242 ● INFO  NPM 📦 200 packages downloaded...
+logger.ts:115 10:16:37.901 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:115 10:16:38.357 ● INFO  NPM 📦 220 packages downloaded...
+logger.ts:115 10:16:39.066 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 10:16:45.406 ● INFO  NPM |/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-
+logger.ts:115 10:16:45.406 ✓ SUCCESS NPM added 180 packages in 32s
+logger.ts:115 10:16:45.406 ● INFO  PreWarm [installing] added 180 packages in 32s
+logger.ts:115 10:16:45.415 ✓ SUCCESS PreWarm Pre-warm complete! 19 packages cached 35.2s
+logger.ts:122   └─ npmInstallTime: 33166ms  ·  totalTime: 35208ms  ·  exitCode: 0
+logger.ts:175 ── PRE-WARM DONE ───────────────────────────────
+logger.ts:115 10:16:45.415 ● INFO  PreWarm [ready] Core packages pre-installed
+logger.ts:115 10:17:05.418 ● INFO  FileSystem Mounting 39 files...
+logger.ts:115 10:17:05.439 ✓ SUCCESS FileSystem Mounted 39 files 21ms
+logger.ts:175 ── NPM INSTALL ─────────────────────────────────
+logger.ts:115 10:17:05.440 ● INFO  NPM Checking npm registry connectivity...
+logger.ts:115 10:17:06.717 ✓ SUCCESS NPM Registry reachable (npmjs.org) 1.3s
+logger.ts:115 10:17:06.717 ● INFO  NPM Install attempt 1/3
+logger.ts:122   └─ timeout: 180s  ·  stallTimeout: 45s  ·  flags: --prefer-offline --no-audit --no-fund --loglevel=http --fetch-retries=2 --fetch-timeout=30000
+logger.ts:115 10:17:08.653 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 10:17:15.180 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 10:17:17.458 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 10:17:21.376 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 10:17:28.086 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 10:17:28.566 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 10:17:33.854 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 10:17:40.677 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 10:17:43.032 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 10:17:43.478 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 10:17:44.145 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 10:17:44.748 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 10:17:45.043 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 10:17:45.396 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 10:17:45.891 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 10:17:46.761 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 10:17:48.453 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 10:17:49.818 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 10:17:50.803 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:17:50.817 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:17:51.652 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:115 10:17:52.605 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 10:17:52.620 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 10:17:53.391 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 10:17:54.753 ● INFO  NPM 📦 190 packages downloaded...
+logger.ts:115 10:17:57.387 ● INFO  NPM 📦 200 packages downloaded...
+logger.ts:115 10:17:59.521 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:115 10:17:59.533 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:115 10:17:59.830 ● INFO  NPM 📦 220 packages downloaded...
+logger.ts:115 10:18:00.352 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 10:18:02.413 ● INFO  NPM 📦 240 packages downloaded...
+logger.ts:115 10:18:03.386 ● INFO  NPM 📦 250 packages downloaded...
+logger.ts:115 10:18:04.789 ● INFO  NPM 📦 260 packages downloaded...
+logger.ts:115 10:18:04.796 ● INFO  NPM 📦 260 packages downloaded...
+logger.ts:115 10:18:04.803 ● INFO  NPM 📦 260 packages downloaded...
+logger.ts:115 10:18:05.662 ● INFO  NPM 📦 270 packages downloaded...
+logger.ts:115 10:18:08.009 ● INFO  NPM 📦 280 packages downloaded...
+logger.ts:114 10:18:08.588 ▲ WARN  NPM /-npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:140
+logger.ts:115 10:18:12.491 ● INFO  NPM -\|/-\|/-\|/-\|/-\|/-\|/-
+logger.ts:115 10:18:12.491 ✓ SUCCESS NPM added 264 packages, and removed 41 packages in 1m
+logger.ts:115 10:18:12.501 ✓ SUCCESS NPM Dependencies installed successfully on attempt 1 1m7s
+logger.ts:122   └─ attemptTime: 65784ms  ·  totalTime: 67061ms
+logger.ts:175 ── NPM INSTALL DONE ────────────────────────────
+logger.ts:175 ── DEV SERVER START ────────────────────────────
+logger.ts:115 10:18:12.502 ● INFO  DevServer Starting development server (npm run dev)...
+logger.ts:115 10:18:12.510 · DEBUG DevServer Dev server process spawned
+logger.ts:115 10:18:13.421 · DEBUG DevServer > projectflow@1.0.0 dev
+> vite
+logger.ts:115 10:18:13.425 · DEBUG DevServer [1G
+logger.ts:115 10:18:13.475 · DEBUG DevServer [0K
+logger.ts:115 10:18:17.369 · DEBUG DevServer [1;1H
+logger.ts:115 10:18:17.369 · DEBUG DevServer [0J
+logger.ts:115 10:18:17.369 ✓ SUCCESS DevServer VITE v5.4.21  ready in 3161 ms
+logger.ts:115 10:18:17.369 ✓ SUCCESS DevServer ➜  Local:   http://localhost:5200/
+logger.ts:115 10:18:17.370 · DEBUG DevServer ➜  Network: http://192.168.1.104:5200/
+logger.ts:115 10:18:17.370 · DEBUG DevServer   ➜  press h + enter to show help
+logger.ts:115 10:18:17.376 ✓ SUCCESS DevServer Server ready at https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5200--e5af05b3.local-corp.webcontainer-api.io (port 5200) 4.9s
+logger.ts:122   └─ port: 5200  ·  url: https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5200--e5af05b3.local-corp.webcontainer-api.io
+logger.ts:175 ── DEV SERVER READY ────────────────────────────
+logger.ts:113 10:18:18.717 ✖ ERROR DevServer Error:   Failed to scan for dependencies from entries:
+  /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/index.html
+
+  ✘ [ERROR] Expected identifier but found "!"
+
+    src/components/ui/badge.tsx:1:1:
+      1 │ <!DOCTYPE html>
+        ╵  ^
+
+
+✘ [ERROR] Expected identifier but found "!"
+
+    src/components/ui/card.tsx:1:1:
+      1 │ <!DOCTYPE html>
+        ╵  ^
+
+
+✘ [ERROR] Unexpected closing "Button" tag does not match opening "button" tag
+
+    src/pages/board-view.tsx:73:12:
+      73 │           </Button>
+         │             ~~~~~~
+         ╵             button
+
+  The opening "button" tag is here:
+
+    src/pages/board-view.tsx:71:11:
+      71 │           <button type="button" variant="ghost" size="icon" data-t...
+         ╵            ~~~~~~
+
+
+✘ [ERROR] Unexpected closing "Button" tag does not match opening "button" tag
+
+    src/pages/board-view.tsx:86:12:
+      86 │           </Button>
+         │             ~~~~~~
+         ╵             button
+
+  The opening "button" tag is here:
+
+    src/pages/board-view.tsx:78:11:
+      78 │           <button type="button"
+         ╵            ~~~~~~
+
+
+✘ [ERROR] Unexpected closing "Button" tag does not match opening "button" tag
+
+    src/pages/board-view.tsx:141:12:
+      141 │           </Button>
+          │             ~~~~~~
+          ╵             button
+
+  The opening "button" tag is here:
+
+    src/pages/board-view.tsx:139:11:
+      139 │           <button type="button" size="sm" variant="outline" onCli...
+          ╵            ~~~~~~
+
+
+✘ [ERROR] Unexpected closing "Button" tag does not match opening "button" tag
+
+    src/pages/board-view.tsx:151:114:
+      151 │ ..."ghost" onClick={() => setShowCommentForm(false)}>Cancel</Button>
+          │                                                              ~~~~~~
+          ╵                                                              button
+
+  The opening "button" tag is here:
+
+    src/pages/board-view.tsx:151:17:
+      151 │                 <button type="button" size="sm" variant="ghost" o...
+          ╵                  ~~~~~~
+
+
+✘ [ERROR] Unexpected closing "Button" tag does not match opening "button" tag
+
+    src/pages/board-view.tsx:158:18:
+      158 │                 </Button>
+          │                   ~~~~~~
+          ╵                   button
+
+  The opening "button" tag is here:
+
+    src/pages/board-view.tsx:152:17:
+      152 │                 <button type="button" size="sm" onClick={() => cr...
+          ╵                  ~~~~~~
+
+
+✘ [ERROR] Unexpected closing "Button" tag does not match opening "button" tag
+
+    src/pages/list-view.tsx:73:12:
+      73 │           </Button>
+         │             ~~~~~~
+         ╵             button
+
+  The opening "button" tag is here:
+
+    src/pages/list-view.tsx:71:11:
+      71 │           <button type="button" variant="ghost" size="icon" data-t...
+         ╵            ~~~~~~
+
+
+✘ [ERROR] Unexpected closing "Button" tag does not match opening "button" tag
+
+    src/pages/list-view.tsx:86:12:
+      86 │           </Button>
+         │             ~~~~~~
+         ╵             button
+
+  The opening "button" tag is here:
+
+    src/pages/list-view.tsx:78:11:
+      78 │           <button type="button"
+         ╵            ~~~~~~
+
+
+✘ [ERROR] Unexpected closing "Button" tag does not match opening "button" tag
+
+    src/pages/list-view.tsx:141:12:
+      141 │           </Button>
+          │             ~~~~~~
+          ╵             button
+
+  The opening "button" tag is here:
+
+    src/pages/list-view.tsx:139:11:
+      139 │           <button type="button" size="sm" variant="outline" onCli...
+          ╵            ~~~~~~
+
+
+✘ [ERROR] Unexpected closing "Button" tag does not match opening "button" tag
+
+    src/pages/list-view.tsx:151:114:
+      151 │ ..."ghost" onClick={() => setShowCommentForm(false)}>Cancel</Button>
+          │                                                              ~~~~~~
+          ╵                                                              button
+
+  The opening "button" tag is here:
+
+    src/pages/list-view.tsx:151:17:
+      151 │                 <button type="button" size="sm" variant="ghost" o...
+          ╵                  ~~~~~~
+
+
+✘ [ERROR] Unexpected closing "Button" tag does not match opening "button" tag
+
+    src/pages/list-view.tsx:158:18:
+      158 │                 </Button>
+          │                   ~~~~~~
+          ╵                   button
+
+  The opening "button" tag is here:
+
+    src/pages/list-view.tsx:152:17:
+      152 │                 <button type="button" size="sm" onClick={() => cr...
+          ╵                  ~~~~~~
+
+
+    at failureErrorWithLog (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:1462:15)
+    at eval (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:935:25)
+    at runOnEndCallbacks (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:1305:45)
+    at buildResponseToResult (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:933:7)
+    at eval (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:945:9)
+    at requestCallbacks.on-end (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:944:54)
+    at handleRequest (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:637:17)
+    at handleIncomingPacket (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:662:7)
+    at Socket.readFromStdout (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:590:7)
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
