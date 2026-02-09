@@ -343,7 +343,8 @@ export const queryClient = new QueryClient({
 }
 
 function generateHookUseToast(): GeneratedFile {
-  const content = `import { useState, useCallback } from "react";
+  const content = `// @generated
+import { useState, useCallback } from "react";
 
 type ToastVariant = "default" | "destructive";
 
@@ -542,7 +543,8 @@ export { Badge };
 }
 
 function generateUiToaster(): GeneratedFile {
-  const content = `import { useToast } from "@/hooks/use-toast";
+  const content = `// @generated
+import { useToast } from "@/hooks/use-toast";
 
 export function Toaster() {
   const { toasts, dismiss } = useToast();

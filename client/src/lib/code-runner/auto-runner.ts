@@ -304,11 +304,13 @@ let activeRunPromise: Promise<{ success: boolean; previewUrl: string | null; err
 const CRITICAL_UI_FILES: Record<string, { exports: string[]; content: string }> = {
   'src/components/ui/toaster.tsx': {
     exports: ['Toaster'],
-    content: `import { useToast } from "@/hooks/use-toast";\n\nexport function Toaster() {\n  const { toasts, dismiss } = useToast();\n\n  if (toasts.length === 0) return null;\n\n  return (\n    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">\n      {toasts.map((toast) => (\n        <div\n          key={toast.id}\n          className={\n            "rounded-lg border p-4 shadow-lg transition-all " +\n            (toast.variant === "destructive"\n              ? "bg-red-600 text-white border-red-700"\n              : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700")\n          }\n          role="alert"\n        >\n          {toast.title && <div className="font-semibold text-sm">{toast.title}</div>}\n          {toast.description && <div className="text-sm mt-1 opacity-90">{toast.description}</div>}\n          <button\n            onClick={() => dismiss(toast.id)}\n            className="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100"\n          >\n            x\n          </button>\n        </div>\n      ))}\n    </div>\n  );\n}\n`,
+    content: `// @generated
+import { useToast } from "@/hooks/use-toast";\n\nexport function Toaster() {\n  const { toasts, dismiss } = useToast();\n\n  if (toasts.length === 0) return null;\n\n  return (\n    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">\n      {toasts.map((toast) => (\n        <div\n          key={toast.id}\n          className={\n            "rounded-lg border p-4 shadow-lg transition-all " +\n            (toast.variant === "destructive"\n              ? "bg-red-600 text-white border-red-700"\n              : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700")\n          }\n          role="alert"\n        >\n          {toast.title && <div className="font-semibold text-sm">{toast.title}</div>}\n          {toast.description && <div className="text-sm mt-1 opacity-90">{toast.description}</div>}\n          <button\n            onClick={() => dismiss(toast.id)}\n            className="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100"\n          >\n            x\n          </button>\n        </div>\n      ))}\n    </div>\n  );\n}\n`,
   },
   'src/hooks/use-toast.ts': {
     exports: ['useToast', 'toast'],
-    content: `import { useState, useCallback } from "react";\n\ninterface Toast {\n  id: string;\n  title?: string;\n  description?: string;\n  variant?: "default" | "destructive";\n}\n\nlet toastCount = 0;\nlet globalToasts: Toast[] = [];\nlet listeners: Array<() => void> = [];\n\nfunction notify() { listeners.forEach(l => l()); }\n\nexport function toast({ title, description, variant = "default" }: Omit<Toast, "id">) {\n  const id = String(++toastCount);\n  globalToasts = [...globalToasts, { id, title, description, variant }];\n  notify();\n  setTimeout(() => {\n    globalToasts = globalToasts.filter(t => t.id !== id);\n    notify();\n  }, 5000);\n  return { id, dismiss: () => { globalToasts = globalToasts.filter(t => t.id !== id); notify(); } };\n}\n\nexport function useToast() {\n  const [, setTick] = useState(0);\n  const rerender = useCallback(() => setTick(t => t + 1), []);\n\n  useState(() => { listeners.push(rerender); });\n\n  return {\n    toasts: globalToasts,\n    toast,\n    dismiss: (id: string) => { globalToasts = globalToasts.filter(t => t.id !== id); notify(); },\n  };\n}\n`,
+    content: `// @generated
+import { useState, useCallback } from "react";\n\ninterface Toast {\n  id: string;\n  title?: string;\n  description?: string;\n  variant?: "default" | "destructive";\n}\n\nlet toastCount = 0;\nlet globalToasts: Toast[] = [];\nlet listeners: Array<() => void> = [];\n\nfunction notify() { listeners.forEach(l => l()); }\n\nexport function toast({ title, description, variant = "default" }: Omit<Toast, "id">) {\n  const id = String(++toastCount);\n  globalToasts = [...globalToasts, { id, title, description, variant }];\n  notify();\n  setTimeout(() => {\n    globalToasts = globalToasts.filter(t => t.id !== id);\n    notify();\n  }, 5000);\n  return { id, dismiss: () => { globalToasts = globalToasts.filter(t => t.id !== id); notify(); } };\n}\n\nexport function useToast() {\n  const [, setTick] = useState(0);\n  const rerender = useCallback(() => setTick(t => t + 1), []);\n\n  useState(() => { listeners.push(rerender); });\n\n  return {\n    toasts: globalToasts,\n    toast,\n    dismiss: (id: string) => { globalToasts = globalToasts.filter(t => t.id !== id); notify(); },\n  };\n}\n`,
   },
 };
 
@@ -355,15 +357,18 @@ async function preFlightVerifyCriticalFiles(
     const projectFile = projectFiles.find(f => f.path === filePath);
     if (!projectFile) continue;
 
-    if (!isOverwriteSafe(projectFile.content)) {
-      runnerLog.debug('PreFlight', `Skipping ${filePath}: appears to be user-customized`);
+    const missingExports = spec.exports.filter(name => !hasExport(projectFile.content, name));
+    if (missingExports.length === 0) {
+      runnerLog.debug('PreFlight', `${filePath}: all exports present, OK`);
       continue;
     }
 
-    const missingExports = spec.exports.filter(name => !hasExport(projectFile.content, name));
-    if (missingExports.length === 0) continue;
+    if (hasUserMarkers(projectFile.content)) {
+      runnerLog.warn('PreFlight', `${filePath}: missing export(s) "${missingExports.join(', ')}" but has user markers, skipping`);
+      continue;
+    }
 
-    runnerLog.warn('PreFlight', `Missing export(s) "${missingExports.join(', ')}" in ${filePath}`);
+    runnerLog.warn('PreFlight', `Missing export(s) "${missingExports.join(', ')}" in ${filePath}, fixing...`);
     try {
       await writeFile(filePath, spec.content);
       fixCount++;
