@@ -38,6 +38,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
       'tailwindcss': '^3.4.1',
       'postcss': '^8.4.35',
       'autoprefixer': '^10.4.17',
+      'picomatch': '^4.0.2',
       'typescript': '^5.3.0',
       '@types/react': '^18.2.0',
       '@types/react-dom': '^18.2.0',
