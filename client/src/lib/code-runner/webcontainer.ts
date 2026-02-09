@@ -404,7 +404,37 @@ async function runBatchInstall(
 
   let installOutput = '';
   let lastRealProgress = Date.now();
-  const SPINNER_PATTERN = /^[\s\x1b\[\]0-9;]*[|/\-\\]+[\s\x1b\[\]0-9;GK]*$/;
+  let lastAnyOutput = Date.now();
+  let isTabVisible = typeof document !== 'undefined' ? !document.hidden : true;
+  let stallPausedAt: number | null = null;
+
+  const CRASH_SILENCE_MS = 60000;
+
+  function stripAnsi(str: string): string {
+    return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1b\][^\x07]*\x07/g, '');
+  }
+  function isSpinnerOnly(line: string): boolean {
+    const clean = stripAnsi(line).replace(/[\s\x00-\x1f]/g, '');
+    return clean.length === 0 || /^[|/\-\\]+$/.test(clean);
+  }
+
+  const handleVisibilityChange = () => {
+    isTabVisible = !document.hidden;
+    if (!isTabVisible) {
+      stallPausedAt = Date.now();
+      runnerLog.debug('PreWarm', `${batchLabel}: tab hidden, pausing stall timer`);
+    } else if (stallPausedAt) {
+      const pauseDuration = Date.now() - stallPausedAt;
+      lastRealProgress += pauseDuration;
+      lastAnyOutput += pauseDuration;
+      stallPausedAt = null;
+      runnerLog.debug('PreWarm', `${batchLabel}: tab visible, resumed stall timer (paused ${Math.round(pauseDuration / 1000)}s)`);
+    }
+  };
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  }
+
   const parser = new NpmOutputParser((line, level) => {
     if (level === 'success') notifyPreWarm('installing', `${batchLabel}: ${line}`);
   });
@@ -412,8 +442,9 @@ async function runBatchInstall(
     new WritableStream({
       write(data) {
         installOutput += data;
+        lastAnyOutput = Date.now();
         const lines = data.split('\n').filter((l: string) => l.trim().length > 0);
-        const hasRealOutput = lines.some((l: string) => !SPINNER_PATTERN.test(l));
+        const hasRealOutput = lines.some((l: string) => !isSpinnerOnly(l));
         if (hasRealOutput) {
           lastRealProgress = Date.now();
         }
@@ -423,9 +454,19 @@ async function runBatchInstall(
   );
 
   const stallCheck = setInterval(() => {
-    const silentMs = Date.now() - lastRealProgress;
-    if (silentMs > stallTimeoutMs) {
-      runnerLog.warn('PreWarm', `${batchLabel}: npm stall — no real progress for ${Math.round(silentMs / 1000)}s, killing`);
+    if (!isTabVisible) return;
+
+    const silenceMs = Date.now() - lastAnyOutput;
+    if (silenceMs > CRASH_SILENCE_MS) {
+      runnerLog.error('PreWarm', `${batchLabel}: WebContainer crash detected — total silence for ${Math.round(silenceMs / 1000)}s, killing`);
+      clearInterval(stallCheck);
+      try { installProcess.kill(); } catch {}
+      return;
+    }
+
+    const stallMs = Date.now() - lastRealProgress;
+    if (stallMs > stallTimeoutMs) {
+      runnerLog.warn('PreWarm', `${batchLabel}: npm stall — no real progress for ${Math.round(stallMs / 1000)}s (spinner only), killing`);
       clearInterval(stallCheck);
       try { installProcess.kill(); } catch {}
     }
@@ -444,6 +485,9 @@ async function runBatchInstall(
   ]);
   if (timeoutId !== null) clearTimeout(timeoutId);
   clearInterval(stallCheck);
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }
   preWarmProcess = null;
   parser.flush();
   const npmTime = runnerLog.endTimer(`prewarm-npm-${batchLabel}`);
@@ -509,22 +553,26 @@ export default defineConfig({
       await container.fs.writeFile('vite.config.ts', viteConfig);
       runnerLog.debug('FileSystem', 'Wrote pre-warm vite.config.ts');
 
-      let accDeps: Record<string, string> = {};
-      let accDevDeps: Record<string, string> = {};
       let completedBatches = 0;
+      let cachedPackages = 0;
 
       for (let i = 0; i < totalBatches; i++) {
         const batch = PREWARM_BATCHES[i];
-        accDeps = { ...accDeps, ...batch.deps };
-        accDevDeps = { ...accDevDeps, ...batch.devDeps };
         const batchPkgCount = Object.keys(batch.deps).length + Object.keys(batch.devDeps).length;
         notifyPreWarm('installing', `Batch ${i + 1}/${totalBatches}: Installing ${batchPkgCount} packages...`);
 
-        const result = await runBatchInstall(container, accDeps, accDevDeps, batch.label, 180000, 90000);
+        let result = await runBatchInstall(container, batch.deps, batch.devDeps, batch.label, 180000, 90000);
+
+        if (!result.success && i === 0) {
+          runnerLog.warn('PreWarm', `Batch 1 failed, retrying once...`);
+          notifyPreWarm('installing', `Batch 1 failed, retrying...`);
+          result = await runBatchInstall(container, batch.deps, batch.devDeps, `${batch.label}-retry`, 180000, 90000);
+        }
 
         if (result.success) {
           completedBatches++;
-          runnerLog.info('PreWarm', `Batch ${i + 1}/${totalBatches} succeeded`);
+          cachedPackages += batchPkgCount;
+          runnerLog.info('PreWarm', `Batch ${i + 1}/${totalBatches} succeeded (${cachedPackages} packages cached)`);
         } else {
           runnerLog.warn('PreWarm', `Batch ${i + 1}/${totalBatches} (${batch.label}) failed`);
           if (completedBatches === 0) {
@@ -532,19 +580,16 @@ export default defineConfig({
             preWarmPromise = null;
             runnerLog.endTimer('prewarm-total');
             runnerLog.separator('PRE-WARM FAILED');
-            notifyPreWarm('failed', 'Batch 1 failed, will install on demand');
+            notifyPreWarm('failed', 'Batch 1 failed after retry, will install on demand');
             return false;
           }
-          const cachedCount = PREWARM_BATCHES.slice(0, completedBatches).reduce(
-            (sum, b) => sum + Object.keys(b.deps).length + Object.keys(b.devDeps).length, 0
-          );
           preWarmStatus = 'ready';
           const totalTime = runnerLog.endTimer('prewarm-total');
-          runnerLog.warn('PreWarm', `Partial pre-warm: ${completedBatches}/${totalBatches} batches (${cachedCount} packages)`, {
+          runnerLog.warn('PreWarm', `Partial pre-warm: ${completedBatches}/${totalBatches} batches (${cachedPackages} packages)`, {
             totalTime: `${totalTime}ms`,
           });
           runnerLog.separator('PRE-WARM PARTIAL');
-          notifyPreWarm('ready', `${cachedCount} packages cached (some extras may install on demand)`);
+          notifyPreWarm('ready', `${cachedPackages} packages cached (some extras may install on demand)`);
           return true;
         }
       }
