@@ -798,6 +798,10 @@ function fixUnclosedTags(content: string, filePath: string): string {
 
   while ((tagMatch = tagStartRegex.exec(content)) !== null) {
     const tag = tagMatch[1];
+    // Skip TypeScript generic type parameters (e.g., React.HTMLAttributes<HTMLDivElement>)
+    // In JSX, opening tags are never directly preceded by a word character
+    const charBefore = tagMatch.index > 0 ? content[tagMatch.index - 1] : '';
+    if (/\w/.test(charBefore)) continue;
     const baseName = tag.split('.')[0].toLowerCase();
     if (VOID_ELEMENTS.includes(baseName)) continue;
     if (CONTAINER_TAGS_HANDLED.includes(tag)) continue;

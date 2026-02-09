@@ -777,7 +777,7 @@ export async function runNpmInstall(
   packages: string[],
   isDev: boolean = false,
   onOutput?: (data: string) => void,
-  timeoutMs: number = 60000
+  timeoutMs: number = 120000
 ): Promise<RunResult> {
   const container = await getWebContainer();
   const output: string[] = [];
@@ -804,11 +804,14 @@ export async function runNpmInstall(
   }
   
   return new Promise(async (resolve) => {
+    let processRef: { kill: () => void } | null = null;
+    
     const timeoutId = setTimeout(() => {
       runnerLog.error('NPM', `Package install timed out after ${Math.round(timeoutMs / 1000)}s`, {
         packages: pkgList,
         type: installType,
       });
+      try { processRef?.kill(); } catch {}
       resolve({
         success: false,
         output,
@@ -822,6 +825,7 @@ export async function runNpmInstall(
         if (level !== 'debug') onOutput?.(line + '\n');
       });
       const process = await container.spawn('npm', args);
+      processRef = process;
       
       process.output.pipeTo(
         new WritableStream({
