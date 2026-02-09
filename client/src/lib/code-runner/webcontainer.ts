@@ -26,27 +26,34 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
       'react-dom': '^18.3.1',
       'wouter': '^3.0.0',
       '@tanstack/react-query': '^5.0.0',
-      'lucide-react': '^0.344.0',
-      'clsx': '^2.1.0',
-      'tailwind-merge': '^2.2.0',
-      'class-variance-authority': '^0.7.0',
       'zod': '^3.22.0',
     },
     devDeps: {
       'vite': '^5.1.0',
       '@vitejs/plugin-react': '^4.2.0',
-      'tailwindcss': '^3.4.1',
-      'postcss': '^8.4.35',
-      'autoprefixer': '^10.4.17',
-      'picomatch': '^4.0.2',
       'typescript': '^5.3.0',
       '@types/react': '^18.2.0',
       '@types/react-dom': '^18.2.0',
-      '@types/node': '^20.10.0',
     },
   },
   {
     label: 'batch-2',
+    deps: {
+      'lucide-react': '^0.344.0',
+      'clsx': '^2.1.0',
+      'tailwind-merge': '^2.2.0',
+      'class-variance-authority': '^0.7.0',
+    },
+    devDeps: {
+      'tailwindcss': '^3.4.1',
+      'postcss': '^8.4.35',
+      'autoprefixer': '^10.4.17',
+      'picomatch': '^4.0.2',
+      '@types/node': '^20.10.0',
+    },
+  },
+  {
+    label: 'batch-3',
     deps: {
       'express': '^4.18.2',
       'cors': '^2.8.5',
@@ -65,7 +72,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     },
   },
   {
-    label: 'batch-3',
+    label: 'batch-4',
     deps: {
       '@radix-ui/react-dialog': '^1.0.5',
       '@radix-ui/react-select': '^2.0.0',
@@ -85,7 +92,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-4',
+    label: 'batch-5',
     deps: {
       '@radix-ui/react-avatar': '^1.0.4',
       '@radix-ui/react-alert-dialog': '^1.0.5',
@@ -109,7 +116,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
     devDeps: {},
   },
   {
-    label: 'batch-5',
+    label: 'batch-6',
     deps: {
       'date-fns': '^3.3.1',
       'uuid': '^9.0.0',
@@ -396,7 +403,8 @@ async function runBatchInstall(
   });
 
   let installOutput = '';
-  let lastActivity = Date.now();
+  let lastRealProgress = Date.now();
+  const SPINNER_PATTERN = /^[\s\x1b\[\]0-9;]*[|/\-\\]+[\s\x1b\[\]0-9;GK]*$/;
   const parser = new NpmOutputParser((line, level) => {
     if (level === 'success') notifyPreWarm('installing', `${batchLabel}: ${line}`);
   });
@@ -404,16 +412,20 @@ async function runBatchInstall(
     new WritableStream({
       write(data) {
         installOutput += data;
-        lastActivity = Date.now();
+        const lines = data.split('\n').filter((l: string) => l.trim().length > 0);
+        const hasRealOutput = lines.some((l: string) => !SPINNER_PATTERN.test(l));
+        if (hasRealOutput) {
+          lastRealProgress = Date.now();
+        }
         parser.feed(data);
       },
     })
   );
 
   const stallCheck = setInterval(() => {
-    const silentMs = Date.now() - lastActivity;
+    const silentMs = Date.now() - lastRealProgress;
     if (silentMs > stallTimeoutMs) {
-      runnerLog.warn('PreWarm', `${batchLabel}: npm stall — no output for ${Math.round(silentMs / 1000)}s, killing`);
+      runnerLog.warn('PreWarm', `${batchLabel}: npm stall — no real progress for ${Math.round(silentMs / 1000)}s, killing`);
       clearInterval(stallCheck);
       try { installProcess.kill(); } catch {}
     }
@@ -508,7 +520,7 @@ export default defineConfig({
         const batchPkgCount = Object.keys(batch.deps).length + Object.keys(batch.devDeps).length;
         notifyPreWarm('installing', `Batch ${i + 1}/${totalBatches}: Installing ${batchPkgCount} packages...`);
 
-        const result = await runBatchInstall(container, accDeps, accDevDeps, batch.label, 300000, 120000);
+        const result = await runBatchInstall(container, accDeps, accDevDeps, batch.label, 180000, 90000);
 
         if (result.success) {
           completedBatches++;
