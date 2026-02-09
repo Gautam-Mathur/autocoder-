@@ -1,0 +1,40 @@
+chunk-LPF6KSF2.js?v=2f52575b:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+logger.ts:175 ── PRE-WARM START ──────────────────────────────
+logger.ts:115 12:38:34.155 ● INFO  PreWarm [booting] Starting WebContainer environment...
+logger.ts:115 12:38:34.156 ● INFO  WebContainer Booting WebContainer...
+logger.ts:122   └─ coep: require-corp  ·  crossOriginIsolated: true  ·  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
+VM4 sandbox_bundle:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ VM4 sandbox_bundle:2
+logSecurityWarnings @ VM4 sandbox_bundle:2
+(anonymous) @ VM4 sandbox_bundle:2
+logger.ts:115 12:38:34.880 ✓ SUCCESS WebContainer WebContainer booted successfully 724ms
+logger.ts:115 12:38:34.880 ✓ SUCCESS PreWarm WebContainer booted 724ms
+logger.ts:115 12:38:34.880 ● INFO  PreWarm [booting] Environment ready
+logger.ts:115 12:38:34.880 ● INFO  PreWarm Installing 66 deps + 23 devDeps in 2 batches
+logger.ts:115 12:38:34.880 ● INFO  PreWarm [installing] Pre-installing 89 packages in 2 batches...
+logger.ts:115 12:38:35.608 · DEBUG FileSystem Wrote pre-warm vite.config.ts
+logger.ts:115 12:38:35.608 ● INFO  PreWarm [installing] Batch 1/2: Installing 42 essential packages...
+logger.ts:115 12:38:35.611 · DEBUG FileSystem Wrote batch-1 package.json
+logger.ts:122   └─ size: 1599 bytes
+logger.ts:115 12:38:35.660 ● INFO  NPM batch-1: installing 42 packages
+logger.ts:122   └─ timeout: 150s  ·  stallTimeout: 90s
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.e5af05b3.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+logger.ts:114 12:41:05.662 ▲ WARN  PreWarm batch-1: npm install timed out after 150s, killing
+emit @ logger.ts:114
+warn @ logger.ts:139
+(anonymous) @ webcontainer.ts:399
+logger.ts:115 12:41:05.664 ● INFO  NPM \|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/
+logger.ts:113 12:41:05.664 ✖ ERROR PreWarm batch-1 failed
+emit @ logger.ts:113
+error @ logger.ts:143
+runBatchInstall @ webcontainer.ts:413
+logger.ts:122   └─ exitCode: -1  ·  npmTime: 150053ms  ·  output: [0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/
+logger.ts:175 ── PRE-WARM FAILED ─────────────────────────────
+logger.ts:115 12:41:05.665 ● INFO  PreWarm [failed] Batch 1 failed, will install on demand
