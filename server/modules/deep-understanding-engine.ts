@@ -141,14 +141,14 @@ const APP_TYPE_PATTERNS: Record<string, string[]> = {
 };
 
 const WELL_KNOWN_APP_PATTERNS: Record<string, { domain: string; modules: string[]; description: string }> = {
-  'task manager': { domain: 'project-management', modules: ['Tasks', 'Projects', 'Dashboard'], description: 'Task management application' },
-  'task tracker': { domain: 'project-management', modules: ['Tasks', 'Projects', 'Dashboard'], description: 'Task tracking application' },
-  'todo app': { domain: 'project-management', modules: ['Tasks', 'Dashboard'], description: 'Todo list application' },
-  'todo list': { domain: 'project-management', modules: ['Tasks', 'Dashboard'], description: 'Todo list application' },
+  'task manager': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Team', 'Dashboard'], description: 'Task management application' },
+  'task tracker': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Team', 'Dashboard'], description: 'Task tracking application' },
+  'todo app': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Dashboard'], description: 'Todo list application' },
+  'todo list': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Dashboard'], description: 'Todo list application' },
   'project manager': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Team', 'Dashboard'], description: 'Project management application' },
-  'project tracker': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Dashboard'], description: 'Project tracking application' },
-  'issue tracker': { domain: 'project-management', modules: ['Tasks', 'Projects', 'Dashboard'], description: 'Issue tracking application' },
-  'kanban board': { domain: 'project-management', modules: ['Tasks', 'Projects', 'Dashboard'], description: 'Kanban board application' },
+  'project tracker': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Team', 'Dashboard'], description: 'Project tracking application' },
+  'issue tracker': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Team', 'Dashboard'], description: 'Issue tracking application' },
+  'kanban board': { domain: 'project-management', modules: ['Projects', 'Tasks', 'Dashboard'], description: 'Kanban board application' },
   'blog': { domain: 'project-management', modules: ['Tasks'], description: 'Blog platform' },
   'crm': { domain: 'crm', modules: ['Contacts', 'Deals', 'Pipeline', 'Dashboard'], description: 'CRM application' },
   'inventory manager': { domain: 'inventory', modules: ['Products', 'Stock', 'Dashboard'], description: 'Inventory management application' },

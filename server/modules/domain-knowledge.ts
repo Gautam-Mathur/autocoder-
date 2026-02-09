@@ -1164,8 +1164,9 @@ const INDUSTRY_DOMAINS: Record<string, IndustryDomain> = {
         { name: 'Project Detail', path: '/projects/:id', description: 'Project overview, tasks, team', features: ['overview', 'task-board', 'timeline', 'team-members', 'files'] },
       ], kpis: ['Active Projects', 'On-Track %', 'Overdue Tasks'] },
       { name: 'Tasks', description: 'Task management with Kanban board', entities: ['Task', 'Comment'], pages: [
-        { name: 'Board View', path: '/projects/:id/board', description: 'Kanban task board', features: ['drag-drop-columns', 'assignee-filter', 'priority-filter', 'create-task', 'labels'] },
-        { name: 'List View', path: '/projects/:id/list', description: 'Task list with sorting', features: ['sort', 'filter', 'bulk-actions', 'due-date-highlight'] },
+        { name: 'Tasks', path: '/tasks', description: 'All tasks with filtering and sorting', features: ['search', 'status-filter', 'priority-filter', 'assignee-filter', 'sort', 'create-task'] },
+        { name: 'Task Detail', path: '/tasks/:id', description: 'Task details with comments and activity', features: ['edit-task', 'status-update', 'comments', 'assignee', 'due-date', 'priority', 'labels'] },
+        { name: 'Board View', path: '/board', description: 'Kanban task board', features: ['drag-drop-columns', 'assignee-filter', 'priority-filter', 'create-task', 'labels'] },
         { name: 'My Tasks', path: '/my-tasks', description: 'Personal task dashboard', features: ['grouped-by-project', 'due-today', 'overdue', 'quick-status-update'] },
       ], kpis: ['Tasks Due Today', 'Completed This Week', 'In Progress'] },
       { name: 'Team', description: 'Team members and workload', entities: ['TeamMember'], pages: [
@@ -1198,7 +1199,23 @@ const INDUSTRY_DOMAINS: Record<string, IndustryDomain> = {
         { name: 'role', type: 'enum:owner,admin,member,viewer', required: true }, { name: 'avatar', type: 'string' },
       ]},
     ],
-    workflows: [],
+    workflows: [
+      { name: 'Task Lifecycle', entity: 'Task', states: ['backlog', 'todo', 'in-progress', 'review', 'done'], transitions: [
+        { from: 'backlog', to: 'todo', action: 'Move to Todo', role: 'member' },
+        { from: 'todo', to: 'in-progress', action: 'Start Work', role: 'member' },
+        { from: 'in-progress', to: 'review', action: 'Submit for Review', role: 'member' },
+        { from: 'review', to: 'done', action: 'Approve & Complete', role: 'manager' },
+        { from: 'review', to: 'in-progress', action: 'Request Changes', role: 'manager' },
+        { from: 'todo', to: 'backlog', action: 'Move to Backlog', role: 'member' },
+      ]},
+      { name: 'Project Lifecycle', entity: 'Project', states: ['planning', 'active', 'on-hold', 'completed', 'archived'], transitions: [
+        { from: 'planning', to: 'active', action: 'Start Project', role: 'manager' },
+        { from: 'active', to: 'on-hold', action: 'Pause Project', role: 'manager' },
+        { from: 'on-hold', to: 'active', action: 'Resume Project', role: 'manager' },
+        { from: 'active', to: 'completed', action: 'Complete Project', role: 'manager' },
+        { from: 'completed', to: 'archived', action: 'Archive', role: 'admin' },
+      ]},
+    ],
     roles: [
       { name: 'Admin', permissions: ['all'], description: 'Full system access' },
       { name: 'Project Manager', permissions: ['manage-projects', 'assign-tasks', 'view-reports', 'manage-team'], description: 'Project lead' },
