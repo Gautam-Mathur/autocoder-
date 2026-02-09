@@ -172,7 +172,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'AutoCoder: Improve install stability (batch retry, non-accumulative batching, crash detection, visibility handling) and marker-based file protection',
+      message: 'AutoCoder: Fix @vitejs/plugin-react missing in WebContainer - consolidation install after batches, dev dependency routing in validator',
       tree: newTree.sha,
       parents: [latestSha]
     });
