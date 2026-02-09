@@ -18,109 +18,133 @@ const ALTERNATIVE_REGISTRIES = [
   'https://registry.npmjs.org',
 ];
 
-const BATCH1_DEPS: Record<string, string> = {
-  'react': '^18.3.1',
-  'react-dom': '^18.3.1',
-  'wouter': '^3.0.0',
-  '@tanstack/react-query': '^5.0.0',
-  'lucide-react': '^0.344.0',
-  'clsx': '^2.1.0',
-  'tailwind-merge': '^2.2.0',
-  'zod': '^3.22.0',
-  'react-hook-form': '^7.50.0',
-  '@hookform/resolvers': '^3.3.0',
-  'class-variance-authority': '^0.7.0',
-  'express': '^4.18.2',
-  'cors': '^2.8.5',
-  'drizzle-orm': '^0.29.0',
-  'drizzle-zod': '^0.5.0',
-  '@neondatabase/serverless': '^0.7.0',
-  '@radix-ui/react-dialog': '^1.0.5',
-  '@radix-ui/react-select': '^2.0.0',
-  '@radix-ui/react-label': '^2.0.2',
-  '@radix-ui/react-tabs': '^1.0.4',
-  '@radix-ui/react-tooltip': '^1.0.7',
-  '@radix-ui/react-popover': '^1.0.7',
-  '@radix-ui/react-dropdown-menu': '^2.0.6',
-  '@radix-ui/react-checkbox': '^1.0.4',
-  '@radix-ui/react-separator': '^1.0.3',
-  '@radix-ui/react-scroll-area': '^1.0.5',
-  '@radix-ui/react-switch': '^1.0.3',
-  '@radix-ui/react-slot': '^1.0.2',
-  '@radix-ui/react-toast': '^1.1.5',
-  '@radix-ui/react-icons': '^1.3.0',
-};
+const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<string, string>; label: string }> = [
+  {
+    label: 'batch-1',
+    deps: {
+      'react': '^18.3.1',
+      'react-dom': '^18.3.1',
+      'wouter': '^3.0.0',
+      '@tanstack/react-query': '^5.0.0',
+      'lucide-react': '^0.344.0',
+      'clsx': '^2.1.0',
+      'tailwind-merge': '^2.2.0',
+      'class-variance-authority': '^0.7.0',
+      'zod': '^3.22.0',
+    },
+    devDeps: {
+      'vite': '^5.1.0',
+      '@vitejs/plugin-react': '^4.2.0',
+      'tailwindcss': '^3.4.1',
+      'postcss': '^8.4.35',
+      'autoprefixer': '^10.4.17',
+      'typescript': '^5.3.0',
+      '@types/react': '^18.2.0',
+      '@types/react-dom': '^18.2.0',
+      '@types/node': '^20.10.0',
+    },
+  },
+  {
+    label: 'batch-2',
+    deps: {
+      'express': '^4.18.2',
+      'cors': '^2.8.5',
+      'drizzle-orm': '^0.29.0',
+      'drizzle-zod': '^0.5.0',
+      '@neondatabase/serverless': '^0.7.0',
+      'react-hook-form': '^7.50.0',
+      '@hookform/resolvers': '^3.3.0',
+      'body-parser': '^1.20.0',
+    },
+    devDeps: {
+      'fast-glob': '^3.3.2',
+      '@types/express': '^4.17.21',
+      '@types/cors': '^2.8.17',
+      'drizzle-kit': '^0.20.0',
+    },
+  },
+  {
+    label: 'batch-3',
+    deps: {
+      '@radix-ui/react-dialog': '^1.0.5',
+      '@radix-ui/react-select': '^2.0.0',
+      '@radix-ui/react-label': '^2.0.2',
+      '@radix-ui/react-tabs': '^1.0.4',
+      '@radix-ui/react-tooltip': '^1.0.7',
+      '@radix-ui/react-popover': '^1.0.7',
+      '@radix-ui/react-dropdown-menu': '^2.0.6',
+      '@radix-ui/react-checkbox': '^1.0.4',
+      '@radix-ui/react-separator': '^1.0.3',
+      '@radix-ui/react-scroll-area': '^1.0.5',
+      '@radix-ui/react-switch': '^1.0.3',
+      '@radix-ui/react-slot': '^1.0.2',
+      '@radix-ui/react-toast': '^1.1.5',
+      '@radix-ui/react-icons': '^1.3.0',
+    },
+    devDeps: {},
+  },
+  {
+    label: 'batch-4',
+    deps: {
+      '@radix-ui/react-avatar': '^1.0.4',
+      '@radix-ui/react-alert-dialog': '^1.0.5',
+      '@radix-ui/react-accordion': '^1.1.2',
+      '@radix-ui/react-progress': '^1.0.3',
+      '@radix-ui/react-radio-group': '^1.1.3',
+      '@radix-ui/react-slider': '^1.1.2',
+      '@radix-ui/react-toggle': '^1.0.3',
+      '@radix-ui/react-toggle-group': '^1.0.4',
+      '@radix-ui/react-context-menu': '^2.1.5',
+      '@radix-ui/react-menubar': '^1.0.4',
+      '@radix-ui/react-navigation-menu': '^1.1.4',
+      '@radix-ui/react-hover-card': '^1.0.7',
+      '@radix-ui/react-collapsible': '^1.0.3',
+      '@radix-ui/react-aspect-ratio': '^1.0.3',
+      'recharts': '^2.12.0',
+      'chart.js': '^4.4.0',
+      'react-chartjs-2': '^5.2.0',
+      'framer-motion': '^11.0.0',
+    },
+    devDeps: {},
+  },
+  {
+    label: 'batch-5',
+    deps: {
+      'date-fns': '^3.3.1',
+      'uuid': '^9.0.0',
+      'nanoid': '^5.0.0',
+      'cmdk': '^0.2.0',
+      'axios': '^1.6.0',
+      'jsonwebtoken': '^9.0.0',
+      'bcryptjs': '^2.4.3',
+      'lodash': '^4.17.21',
+      'dayjs': '^1.11.0',
+      'moment': '^2.29.0',
+      'swr': '^2.2.0',
+      'zustand': '^4.4.0',
+      'react-router-dom': '^6.20.0',
+      '@reduxjs/toolkit': '^2.0.0',
+      'react-redux': '^9.0.0',
+      'jotai': '^2.6.0',
+      'recoil': '^0.7.7',
+    },
+    devDeps: {
+      'tsx': '^4.7.0',
+      'vitest': '^1.3.0',
+      '@testing-library/react': '^14.2.0',
+      '@testing-library/jest-dom': '^6.4.0',
+      '@testing-library/user-event': '^14.5.0',
+      'jsdom': '^24.0.0',
+      '@types/uuid': '^9.0.7',
+      '@types/jsonwebtoken': '^9.0.5',
+      '@types/bcryptjs': '^2.4.6',
+      '@types/lodash': '^4.14.202',
+    },
+  },
+];
 
-const BATCH1_DEV_DEPS: Record<string, string> = {
-  'vite': '^5.1.0',
-  '@vitejs/plugin-react': '^4.2.0',
-  'tailwindcss': '^3.4.1',
-  'postcss': '^8.4.35',
-  'autoprefixer': '^10.4.17',
-  'fast-glob': '^3.3.2',
-  'typescript': '^5.3.0',
-  '@types/react': '^18.2.0',
-  '@types/react-dom': '^18.2.0',
-  '@types/node': '^20.10.0',
-  '@types/express': '^4.17.21',
-  '@types/cors': '^2.8.17',
-};
-
-const BATCH2_DEPS: Record<string, string> = {
-  'recharts': '^2.12.0',
-  'date-fns': '^3.3.1',
-  'framer-motion': '^11.0.0',
-  'uuid': '^9.0.0',
-  'nanoid': '^5.0.0',
-  'cmdk': '^0.2.0',
-  'axios': '^1.6.0',
-  'jsonwebtoken': '^9.0.0',
-  'bcryptjs': '^2.4.3',
-  'lodash': '^4.17.21',
-  'dayjs': '^1.11.0',
-  'swr': '^2.2.0',
-  'zustand': '^4.4.0',
-  'react-router-dom': '^6.20.0',
-  'chart.js': '^4.4.0',
-  'react-chartjs-2': '^5.2.0',
-  '@reduxjs/toolkit': '^2.0.0',
-  'react-redux': '^9.0.0',
-  'jotai': '^2.6.0',
-  'recoil': '^0.7.7',
-  'moment': '^2.29.0',
-  'body-parser': '^1.20.0',
-  '@radix-ui/react-avatar': '^1.0.4',
-  '@radix-ui/react-alert-dialog': '^1.0.5',
-  '@radix-ui/react-accordion': '^1.1.2',
-  '@radix-ui/react-progress': '^1.0.3',
-  '@radix-ui/react-radio-group': '^1.1.3',
-  '@radix-ui/react-slider': '^1.1.2',
-  '@radix-ui/react-toggle': '^1.0.3',
-  '@radix-ui/react-toggle-group': '^1.0.4',
-  '@radix-ui/react-context-menu': '^2.1.5',
-  '@radix-ui/react-menubar': '^1.0.4',
-  '@radix-ui/react-navigation-menu': '^1.1.4',
-  '@radix-ui/react-hover-card': '^1.0.7',
-  '@radix-ui/react-collapsible': '^1.0.3',
-  '@radix-ui/react-aspect-ratio': '^1.0.3',
-};
-
-const BATCH2_DEV_DEPS: Record<string, string> = {
-  'tsx': '^4.7.0',
-  'vitest': '^1.3.0',
-  '@testing-library/react': '^14.2.0',
-  '@testing-library/jest-dom': '^6.4.0',
-  '@testing-library/user-event': '^14.5.0',
-  'jsdom': '^24.0.0',
-  'drizzle-kit': '^0.20.0',
-  '@types/uuid': '^9.0.7',
-  '@types/jsonwebtoken': '^9.0.5',
-  '@types/bcryptjs': '^2.4.6',
-  '@types/lodash': '^4.14.202',
-};
-
-const CORE_PACKAGES: Record<string, string> = { ...BATCH1_DEPS, ...BATCH2_DEPS };
-const CORE_DEV_PACKAGES: Record<string, string> = { ...BATCH1_DEV_DEPS, ...BATCH2_DEV_DEPS };
+const CORE_PACKAGES: Record<string, string> = PREWARM_BATCHES.reduce((acc, b) => ({ ...acc, ...b.deps }), {} as Record<string, string>);
+const CORE_DEV_PACKAGES: Record<string, string> = PREWARM_BATCHES.reduce((acc, b) => ({ ...acc, ...b.devDeps }), {} as Record<string, string>);
 
 export interface RunResult {
   success: boolean;
@@ -358,6 +382,7 @@ async function runBatchInstall(
     '--prefer-offline',
     '--no-audit',
     '--no-fund',
+    '--legacy-peer-deps',
     '--loglevel=http',
     '--fetch-retries=2',
     '--fetch-timeout=30000'
@@ -433,6 +458,8 @@ export async function preWarmWebContainer(): Promise<boolean> {
   runnerLog.startTimer('prewarm-total');
   preWarmStartTime = Date.now();
 
+  const totalBatches = PREWARM_BATCHES.length;
+
   preWarmPromise = (async () => {
     try {
       preWarmStatus = 'booting';
@@ -447,8 +474,8 @@ export async function preWarmWebContainer(): Promise<boolean> {
       preWarmStatus = 'installing';
       const totalDeps = Object.keys(CORE_PACKAGES).length;
       const totalDevDeps = Object.keys(CORE_DEV_PACKAGES).length;
-      runnerLog.info('PreWarm', `Installing ${totalDeps} deps + ${totalDevDeps} devDeps in 2 batches`);
-      notifyPreWarm('installing', `Pre-installing ${totalDeps + totalDevDeps} packages in 2 batches...`);
+      runnerLog.info('PreWarm', `Installing ${totalDeps} deps + ${totalDevDeps} devDeps in ${totalBatches} batches`);
+      notifyPreWarm('installing', `Pre-installing ${totalDeps + totalDevDeps} packages in ${totalBatches} batches...`);
 
       const viteConfig = `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -465,44 +492,54 @@ export default defineConfig({
       await container.fs.writeFile('vite.config.ts', viteConfig);
       runnerLog.debug('FileSystem', 'Wrote pre-warm vite.config.ts');
 
-      const b1Count = Object.keys(BATCH1_DEPS).length + Object.keys(BATCH1_DEV_DEPS).length;
-      notifyPreWarm('installing', `Batch 1/2: Installing ${b1Count} essential packages...`);
-      const batch1 = await runBatchInstall(container, BATCH1_DEPS, BATCH1_DEV_DEPS, 'batch-1', 150000, 90000);
+      let accDeps: Record<string, string> = {};
+      let accDevDeps: Record<string, string> = {};
+      let completedBatches = 0;
 
-      if (!batch1.success) {
-        preWarmStatus = 'failed';
-        preWarmPromise = null;
-        runnerLog.endTimer('prewarm-total');
-        runnerLog.separator('PRE-WARM FAILED');
-        notifyPreWarm('failed', 'Batch 1 failed, will install on demand');
-        return false;
+      for (let i = 0; i < totalBatches; i++) {
+        const batch = PREWARM_BATCHES[i];
+        accDeps = { ...accDeps, ...batch.deps };
+        accDevDeps = { ...accDevDeps, ...batch.devDeps };
+        const batchPkgCount = Object.keys(batch.deps).length + Object.keys(batch.devDeps).length;
+        notifyPreWarm('installing', `Batch ${i + 1}/${totalBatches}: Installing ${batchPkgCount} packages...`);
+
+        const result = await runBatchInstall(container, accDeps, accDevDeps, batch.label, 300000, 120000);
+
+        if (result.success) {
+          completedBatches++;
+          runnerLog.info('PreWarm', `Batch ${i + 1}/${totalBatches} succeeded`);
+        } else {
+          runnerLog.warn('PreWarm', `Batch ${i + 1}/${totalBatches} (${batch.label}) failed`);
+          if (completedBatches === 0) {
+            preWarmStatus = 'failed';
+            preWarmPromise = null;
+            runnerLog.endTimer('prewarm-total');
+            runnerLog.separator('PRE-WARM FAILED');
+            notifyPreWarm('failed', 'Batch 1 failed, will install on demand');
+            return false;
+          }
+          const cachedCount = PREWARM_BATCHES.slice(0, completedBatches).reduce(
+            (sum, b) => sum + Object.keys(b.deps).length + Object.keys(b.devDeps).length, 0
+          );
+          preWarmStatus = 'ready';
+          const totalTime = runnerLog.endTimer('prewarm-total');
+          runnerLog.warn('PreWarm', `Partial pre-warm: ${completedBatches}/${totalBatches} batches (${cachedCount} packages)`, {
+            totalTime: `${totalTime}ms`,
+          });
+          runnerLog.separator('PRE-WARM PARTIAL');
+          notifyPreWarm('ready', `${cachedCount} packages cached (some extras may install on demand)`);
+          return true;
+        }
       }
 
-      const allDeps = { ...BATCH1_DEPS, ...BATCH2_DEPS };
-      const allDevDeps = { ...BATCH1_DEV_DEPS, ...BATCH2_DEV_DEPS };
-      const b2Count = Object.keys(BATCH2_DEPS).length + Object.keys(BATCH2_DEV_DEPS).length;
-      notifyPreWarm('installing', `Batch 2/2: Installing ${b2Count} additional packages...`);
-      const batch2 = await runBatchInstall(container, allDeps, allDevDeps, 'batch-2', 150000, 90000);
-
-      if (batch2.success) {
-        preWarmStatus = 'ready';
-        const totalTime = runnerLog.endTimer('prewarm-total');
-        runnerLog.success('PreWarm', `Pre-warm complete! All ${totalDeps + totalDevDeps} packages cached`, {
-          totalTime: `${totalTime}ms`,
-        }, totalTime);
-        runnerLog.separator('PRE-WARM DONE');
-        notifyPreWarm('ready', 'All packages pre-installed');
-        return true;
-      } else {
-        preWarmStatus = 'ready';
-        const totalTime = runnerLog.endTimer('prewarm-total');
-        runnerLog.warn('PreWarm', `Batch 2 failed but batch 1 cached — partial pre-warm (${b1Count} packages)`, {
-          totalTime: `${totalTime}ms`,
-        });
-        runnerLog.separator('PRE-WARM PARTIAL');
-        notifyPreWarm('ready', `${b1Count} essential packages cached (some extras may install on demand)`);
-        return true;
-      }
+      preWarmStatus = 'ready';
+      const totalTime = runnerLog.endTimer('prewarm-total');
+      runnerLog.success('PreWarm', `Pre-warm complete! All ${totalDeps + totalDevDeps} packages cached in ${totalBatches} batches`, {
+        totalTime: `${totalTime}ms`,
+      }, totalTime);
+      runnerLog.separator('PRE-WARM DONE');
+      notifyPreWarm('ready', 'All packages pre-installed');
+      return true;
     } catch (err) {
       preWarmStatus = 'failed';
       preWarmPromise = null;
