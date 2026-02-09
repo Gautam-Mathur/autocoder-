@@ -72,6 +72,8 @@ The system employs a multi-phase intelligent approach:
 ### Code Runner System (Client-side)
 -   Supports two modes: WebContainer for browser-based runtime and Electron for native file system access.
 -   Features live preview with auto-fix, zip export, and test generation/execution.
+-   **Singleton Guard**: Module-level `activeRunId`/`activeRunPromise` prevents concurrent `autoRunProject()` calls; duplicate calls return the existing promise. Guard resets via `finally()` and `resetAutoRunGuard()` on stop/unmount.
+-   **Pre-flight Verification**: Between npm install and dev server start, `preFlightVerifyCriticalFiles()` checks that critical UI files (toaster.tsx, use-toast.ts) have correct exports. Only fixes small generated files (< 3000 chars, no `// custom` or `// @user` markers) to avoid clobbering user content.
 
 ## External Dependencies
 
