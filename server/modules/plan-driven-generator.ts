@@ -1273,7 +1273,7 @@ function generateIndexCss(plan: ProjectPlan): GeneratedFile {
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
   body {
     @apply bg-background text-foreground;

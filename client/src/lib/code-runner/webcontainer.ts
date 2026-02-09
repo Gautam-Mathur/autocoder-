@@ -9,6 +9,8 @@ let preWarmStatus: 'idle' | 'booting' | 'installing' | 'ready' | 'failed' = 'idl
 let preWarmListeners: Array<(status: string, message: string) => void> = [];
 let preWarmProcess: { kill: () => void } | null = null;
 let preWarmStartTime: number = 0;
+let activeDevServer: { url: string; process: any } | null = null;
+let devServerPromise: Promise<{ url: string; process: any }> | null = null;
 
 const STALL_TIMEOUT_MS = 45000;
 const ALTERNATIVE_REGISTRIES = [
@@ -302,7 +304,15 @@ export async function preWarmWebContainer(): Promise<boolean> {
 
       const viteConfig = `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-export default defineConfig({ plugins: [react()] });
+import path from 'path';
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+});
 `;
       await container.fs.writeFile('vite.config.ts', viteConfig);
       runnerLog.debug('FileSystem', 'Wrote pre-warm vite.config.ts');
@@ -891,47 +901,76 @@ export async function startDevServer(
   onOutput?: (data: string) => void,
   onServerReady?: (url: string) => void
 ): Promise<{ url: string; process: any }> {
-  const container = await getWebContainer();
-  
-  runnerLog.separator('DEV SERVER START');
-  runnerLog.info('DevServer', 'Starting development server (npm run dev)...');
-  runnerLog.startTimer('dev-server-startup');
-  
-  const process = await container.spawn('npm', ['run', 'dev']);
-  runnerLog.debug('DevServer', 'Dev server process spawned');
-  
-  process.output.pipeTo(
-    new WritableStream({
-      write(data) {
-        onOutput?.(data);
-        const trimmed = data.trim();
-        if (trimmed) {
-          if (trimmed.includes('error') || trimmed.includes('Error') || trimmed.includes('ERR')) {
-            runnerLog.error('DevServer', trimmed);
-          } else if (trimmed.includes('warn') || trimmed.includes('WARN')) {
-            runnerLog.warn('DevServer', trimmed);
-          } else if (trimmed.includes('ready') || trimmed.includes('localhost') || trimmed.includes('Local:')) {
-            runnerLog.success('DevServer', trimmed);
-          } else {
-            runnerLog.debug('DevServer', trimmed);
+  if (activeDevServer) {
+    runnerLog.info('DevServer', `Dev server already running at ${activeDevServer.url}, reusing`);
+    onServerReady?.(activeDevServer.url);
+    return activeDevServer;
+  }
+
+  if (devServerPromise) {
+    runnerLog.info('DevServer', 'Dev server already starting, waiting for it...');
+    const result = await devServerPromise;
+    onServerReady?.(result.url);
+    return result;
+  }
+
+  devServerPromise = (async () => {
+    const container = await getWebContainer();
+    
+    runnerLog.separator('DEV SERVER START');
+    runnerLog.info('DevServer', 'Starting development server (npm run dev)...');
+    runnerLog.startTimer('dev-server-startup');
+    
+    const process = await container.spawn('npm', ['run', 'dev']);
+    runnerLog.debug('DevServer', 'Dev server process spawned');
+    
+    process.output.pipeTo(
+      new WritableStream({
+        write(data) {
+          onOutput?.(data);
+          const trimmed = data.trim();
+          if (trimmed) {
+            if (trimmed.includes('error') || trimmed.includes('Error') || trimmed.includes('ERR')) {
+              runnerLog.error('DevServer', trimmed);
+            } else if (trimmed.includes('warn') || trimmed.includes('WARN')) {
+              runnerLog.warn('DevServer', trimmed);
+            } else if (trimmed.includes('ready') || trimmed.includes('localhost') || trimmed.includes('Local:')) {
+              runnerLog.success('DevServer', trimmed);
+            } else {
+              runnerLog.debug('DevServer', trimmed);
+            }
           }
-        }
-      },
-    })
-  );
-  
-  return new Promise((resolve) => {
-    container.on('server-ready', (port, url) => {
-      const startupMs = runnerLog.endTimer('dev-server-startup');
-      runnerLog.success('DevServer', `Server ready at ${url} (port ${port})`, {
-        port,
-        url,
-      }, startupMs);
-      runnerLog.separator('DEV SERVER READY');
-      onServerReady?.(url);
-      resolve({ url, process });
+        },
+      })
+    );
+    
+    process.exit.then((exitCode: number) => {
+      runnerLog.info('DevServer', `Dev server process exited with code ${exitCode}`);
+      activeDevServer = null;
+      devServerPromise = null;
     });
-  });
+
+    return new Promise<{ url: string; process: any }>((resolve) => {
+      container.on('server-ready', (port, url) => {
+        const startupMs = runnerLog.endTimer('dev-server-startup');
+        runnerLog.success('DevServer', `Server ready at ${url} (port ${port})`, {
+          port,
+          url,
+        }, startupMs);
+        runnerLog.separator('DEV SERVER READY');
+        activeDevServer = { url, process };
+        onServerReady?.(url);
+        resolve({ url, process });
+      });
+    });
+  })();
+
+  try {
+    return await devServerPromise;
+  } catch (err) {
+    devServerPromise = null;
+    throw err;
+  }
 }
 
 export function isWebContainerSupported(): boolean {
@@ -951,6 +990,8 @@ export async function teardown(): Promise<void> {
     preWarmStatus = 'idle';
     preWarmPromise = null;
     lastPackageJsonHash = null;
+    activeDevServer = null;
+    devServerPromise = null;
   } else {
     runnerLog.debug('WebContainer', 'Teardown called but no instance exists');
   }
