@@ -26,6 +26,10 @@ interface ElectronAPI {
   getLogs: (count?: number) => Promise<LogEntry[]>;
   getLogFile: () => Promise<string>;
   setLogLevel: (level: 'debug' | 'info' | 'warn' | 'error') => Promise<{ success: boolean }>;
+  npmCacheGetStats: () => Promise<{ ready: boolean; packageCount: number; cachePath: string; sizeBytes: number }>;
+  npmCacheHasPackage: (packageName: string) => Promise<boolean>;
+  npmCacheGetPath: () => Promise<string>;
+  npmCacheIsReady: () => Promise<boolean>;
 }
 
 const electronAPI: ElectronAPI = {
@@ -88,6 +92,18 @@ const electronAPI: ElectronAPI = {
   
   setLogLevel: (level: 'debug' | 'info' | 'warn' | 'error') => 
     ipcRenderer.invoke('logger:setLevel', level),
+
+  npmCacheGetStats: () =>
+    ipcRenderer.invoke('npmCache:getStats'),
+
+  npmCacheHasPackage: (packageName: string) =>
+    ipcRenderer.invoke('npmCache:hasPackage', packageName),
+
+  npmCacheGetPath: () =>
+    ipcRenderer.invoke('npmCache:getCachePath'),
+
+  npmCacheIsReady: () =>
+    ipcRenderer.invoke('npmCache:isReady'),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

@@ -1,7 +1,8 @@
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from './logger.js';
+import { npmCache } from './npm-cache.js';
 
 export type LogCallback = (log: string) => void;
 export type ProgressCallback = (percent: number, message: string) => void;
@@ -55,6 +56,105 @@ export class LocalRunner {
     }
   }
 
+  private preSeedFromCache(projectPath: string, onLog: LogCallback, onProgress?: ProgressCallback): { seeded: number; missing: string[] } {
+    if (!npmCache.ready) {
+      logger.info('NpmCache', 'Offline cache not ready, skipping pre-seed');
+      return { seeded: 0, missing: [] };
+    }
+
+    const depInfo = this.countDependencies(projectPath);
+    if (depInfo.total === 0) return { seeded: 0, missing: [] };
+
+    const nodeModulesDest = path.join(projectPath, 'node_modules');
+    if (!fs.existsSync(nodeModulesDest)) {
+      fs.mkdirSync(nodeModulesDest, { recursive: true });
+    }
+
+    const cachePath = npmCache.cachePath;
+    let seeded = 0;
+    const missing: string[] = [];
+
+    logger.info('NpmCache', `Pre-seeding node_modules from offline cache (${depInfo.total} packages requested)`);
+    onLog('[AutoCoder] 📦 Using offline package cache for faster install...');
+    onProgress?.(5, 'Copying cached packages...');
+
+    for (const pkgName of depInfo.names) {
+      const srcPkg = path.join(cachePath, pkgName);
+      const destPkg = path.join(nodeModulesDest, pkgName);
+
+      if (!fs.existsSync(srcPkg)) {
+        missing.push(pkgName);
+        continue;
+      }
+
+      try {
+        if (pkgName.startsWith('@')) {
+          const scopeDir = path.dirname(destPkg);
+          if (!fs.existsSync(scopeDir)) {
+            fs.mkdirSync(scopeDir, { recursive: true });
+          }
+        }
+
+        if (!fs.existsSync(destPkg)) {
+          this.copyDirRecursive(srcPkg, destPkg);
+          seeded++;
+        }
+      } catch (err) {
+        logger.debug('NpmCache', `Failed to copy ${pkgName}: ${err}`);
+        missing.push(pkgName);
+      }
+
+      if (seeded % 20 === 0 && depInfo.total > 0) {
+        const pct = Math.min(Math.round((seeded / depInfo.total) * 40) + 5, 45);
+        onProgress?.(pct, `Copied ${seeded}/${depInfo.total} cached packages...`);
+      }
+    }
+
+    this.seedNestedDependencies(cachePath, nodeModulesDest);
+
+    logger.info('NpmCache', `Pre-seeded ${seeded}/${depInfo.total} packages from cache, ${missing.length} need network`);
+    onLog(`[AutoCoder] ✓ Loaded ${seeded} packages from cache${missing.length > 0 ? `, ${missing.length} need downloading` : ''}`);
+
+    return { seeded, missing };
+  }
+
+  private seedNestedDependencies(cacheSrc: string, destModules: string) {
+    try {
+      const entries = fs.readdirSync(cacheSrc, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const destPath = path.join(destModules, entry.name);
+        if (fs.existsSync(destPath)) continue;
+
+        if (entry.name.startsWith('@')) {
+          const scopeSrc = path.join(cacheSrc, entry.name);
+          const scopedEntries = fs.readdirSync(scopeSrc, { withFileTypes: true });
+          for (const scopedEntry of scopedEntries) {
+            if (!scopedEntry.isDirectory()) continue;
+            const scopedDest = path.join(destModules, entry.name, scopedEntry.name);
+            if (!fs.existsSync(scopedDest)) {
+              const scopeDir = path.join(destModules, entry.name);
+              if (!fs.existsSync(scopeDir)) fs.mkdirSync(scopeDir, { recursive: true });
+              this.copyDirRecursive(path.join(scopeSrc, scopedEntry.name), scopedDest);
+            }
+          }
+        } else {
+          this.copyDirRecursive(path.join(cacheSrc, entry.name), destPath);
+        }
+      }
+    } catch (err) {
+      logger.debug('NpmCache', `Nested dependency seeding error (non-fatal): ${err}`);
+    }
+  }
+
+  private copyDirRecursive(src: string, dest: string) {
+    if (process.platform === 'win32') {
+      execSync(`xcopy "${src}" "${dest}" /E /I /Q /Y >nul 2>&1`, { timeout: 30000 });
+    } else {
+      execSync(`cp -r "${src}" "${dest}"`, { timeout: 30000 });
+    }
+  }
+
   async npmInstall(
     projectPath: string, 
     onLog: LogCallback,
@@ -72,18 +172,29 @@ export class LocalRunner {
         packages: depInfo.names.slice(0, 20).join(', ') + (depInfo.names.length > 20 ? `... +${depInfo.names.length - 20} more` : ''),
       });
 
+      const cacheResult = this.preSeedFromCache(projectPath, onLog, onProgress);
+      if (cacheResult.seeded > 0) {
+        lastPercent = 45;
+      }
+
       onLog('[AutoCoder] Running npm install...');
-      onProgress?.(0, `Starting installation (${depInfo.total} packages)...`);
+      onProgress?.(lastPercent || 0, cacheResult.seeded > 0
+        ? `Running npm install for ${cacheResult.missing.length} remaining packages...`
+        : `Starting installation (${depInfo.total} packages)...`);
       
       const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-      const child = spawn(npm, ['install', '--progress'], {
+      const npmArgs = ['install', '--progress'];
+      if (cacheResult.seeded > 0) {
+        npmArgs.push('--prefer-offline');
+      }
+      const child = spawn(npm, npmArgs, {
         cwd: projectPath,
         shell: true,
         env: { ...process.env, FORCE_COLOR: '1' },
       });
 
       logger.debug('Process', `Spawned npm install (PID: ${child.pid})`, {
-        command: `${npm} install --progress`,
+        command: `${npm} ${npmArgs.join(' ')}`,
         cwd: projectPath,
       });
 
