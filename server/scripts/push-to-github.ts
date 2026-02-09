@@ -172,7 +172,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'AutoCoder: Add Node.js LTS version requirement (engines field) and Electron startup version check warning for non-LTS versions',
+      message: 'AutoCoder: Improve install stability (batch retry, non-accumulative batching, crash detection, visibility handling) and marker-based file protection',
       tree: newTree.sha,
       parents: [latestSha]
     });
