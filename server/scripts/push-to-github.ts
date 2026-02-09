@@ -172,7 +172,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'AutoCoder: Update documentation with verified metrics, pipeline orchestrator details, and 13 AI module descriptions',
+      message: 'AutoCoder: Real-time thinking step streaming, per-message persistence in chat history',
       tree: newTree.sha,
       parents: [latestSha]
     });

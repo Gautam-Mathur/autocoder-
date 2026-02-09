@@ -38,14 +38,19 @@ export interface ConversationState {
   generationStartTime?: number;
 }
 
+export type OnStepCallback = (step: ThinkingStep) => void;
+
 export function handleMessage(
   userMessage: string,
   state: ConversationState,
-  conversationHistory?: string
+  conversationHistory?: string,
+  onStep?: OnStepCallback
 ): PhaseHandlerResult {
   const thinkingSteps: ThinkingStep[] = [];
   const emitStep = (phase: string, label: string, detail?: string) => {
-    thinkingSteps.push({ phase, label, detail, timestamp: Date.now() });
+    const step: ThinkingStep = { phase, label, detail, timestamp: Date.now() };
+    thinkingSteps.push(step);
+    if (onStep) onStep(step);
   };
 
   const currentPhase = state.phase || 'initial';
@@ -63,7 +68,7 @@ export function handleMessage(
         lower === 'build it' || lower === 'do it' || lower === 'proceed' ||
         lower.includes('approve') || lower.includes('go ahead') || lower.includes('looks good') ||
         lower.includes('generate') || lower.includes('build it') || lower.includes('start building')) {
-      return handleGeneration(state, thinkingSteps, emitStep);
+      return handleGeneration(state, thinkingSteps, emitStep, onStep);
     }
 
     if (lower.includes('change') || lower.includes('modify') || lower.includes('add') ||
@@ -93,29 +98,51 @@ function handleInitialRequest(
   emitStep: (phase: string, label: string, detail?: string) => void,
   conversationHistory?: string
 ): PhaseHandlerResult {
-  emitStep('understanding', 'Analyzing your request', 'Deep understanding engine activated');
-  emitStep('understanding', 'Level 1: Intent Decomposition', 'Identifying what you need built');
+  emitStep('understanding', 'Deep Understanding Engine activated', `Analyzing your request through 5 levels of decomposition to fully grasp what you need built`);
+  emitStep('understanding', 'Why multi-level analysis', 'A single pass would miss nuances — each level builds on the previous, from raw intent through domain expertise to specific entity structures and workflows');
+
+  emitStep('understanding', 'Level 1: Intent Decomposition', 'Breaking down your request into primary goal, secondary features, and implied requirements');
 
   const understanding = analyzeRequest(userMessage, conversationHistory);
 
+  emitStep('understanding', 'Intent identified', `Primary goal: "${understanding.level1_intent?.primaryGoal || userMessage.slice(0, 60)}" | Complexity: ${(understanding.level1_intent as any)?.complexity || 'moderate'}`);
+
   emitStep('understanding', 'Level 2: Domain Detection',
     understanding.level2_domain.primaryDomain
-      ? `Detected: ${understanding.level2_domain.primaryDomain.name} (${Math.round(understanding.level2_domain.confidence * 100)}% confidence)`
-      : 'No specific industry detected yet'
+      ? `Detected "${understanding.level2_domain.primaryDomain.name}" domain with ${Math.round(understanding.level2_domain.confidence * 100)}% confidence — this activates domain-specific entity templates, vocabulary, and best practices`
+      : 'No specific industry pattern detected — will use general-purpose application templates'
   );
+  if (understanding.level2_domain.primaryDomain) {
+    emitStep('understanding', 'Why domain matters', `The "${understanding.level2_domain.primaryDomain.name}" domain has known entity patterns, standard workflows, and industry-specific field types that produce more accurate code than generic templates`);
+  }
 
+  const mentionedCount = understanding.level3_entities.mentionedEntities.length;
+  const inferredCount = understanding.level3_entities.inferredEntities.length;
   emitStep('understanding', 'Level 3: Entity Extraction',
-    `Found ${understanding.level3_entities.mentionedEntities.length} mentioned + ${understanding.level3_entities.inferredEntities.length} inferred data types`
+    `Found ${mentionedCount} explicitly mentioned data types + ${inferredCount} inferred from context`
   );
+  if (mentionedCount > 0) {
+    emitStep('understanding', 'Mentioned entities', understanding.level3_entities.mentionedEntities.slice(0, 5).join(', ') + (mentionedCount > 5 ? ` + ${mentionedCount - 5} more` : ''));
+  }
+  if (inferredCount > 0) {
+    emitStep('understanding', 'Inferred entities', `${understanding.level3_entities.inferredEntities.slice(0, 4).join(', ')} — these weren't explicitly mentioned but are needed for the app to function properly`);
+  }
 
+  const workflowCount = understanding.level4_workflows.inferredWorkflows.length;
   emitStep('understanding', 'Level 4: Workflow Detection',
-    `${understanding.level4_workflows.inferredWorkflows.length} business workflows identified`
+    `${workflowCount} business workflows identified${workflowCount > 0 ? ' — these define how data flows through the system and what actions trigger what effects' : ''}`
   );
+  if (workflowCount > 0) {
+    const sampleWorkflows = understanding.level4_workflows.inferredWorkflows.slice(0, 3).map((w: any) => w.name || w.description || w).join(', ');
+    emitStep('understanding', 'Key workflows', sampleWorkflows);
+  }
 
   if (understanding.level5_clarification.needsClarification) {
+    const questionCount = understanding.level5_clarification.questions.length;
     emitStep('understanding', 'Level 5: Need more information',
-      `${understanding.level5_clarification.questions.length} clarifying questions generated`
+      `${questionCount} clarifying questions generated — asking now prevents building the wrong thing later`
     );
+    emitStep('understanding', 'Why we ask questions', 'Ambiguous requirements lead to wasted generation cycles — a few targeted questions now save significant rework later');
 
     const responseContent = formatUnderstandingResponse(understanding);
     return {
@@ -126,7 +153,7 @@ function handleInitialRequest(
     };
   }
 
-  emitStep('understanding', 'Level 5: Ready for planning', 'Have enough context to generate a detailed plan');
+  emitStep('understanding', 'Level 5: Requirements sufficient', `Confidence: ${Math.round(understanding.confidence * 100)}% — enough context gathered to produce a comprehensive plan without further questions`);
   return generatePlanFromUnderstanding(understanding, thinkingSteps, emitStep);
 }
 
@@ -137,7 +164,8 @@ function handleClarificationResponse(
   emitStep: (phase: string, label: string, detail?: string) => void
 ): PhaseHandlerResult {
   const currentRound = (state.clarificationRound || 0) + 1;
-  emitStep('understanding', 'Processing your answers', `Clarification round ${currentRound}`);
+  emitStep('understanding', 'Processing your clarification answers', `Round ${currentRound} — integrating your responses to build a more precise understanding`);
+  emitStep('understanding', 'Why iterative clarification works', 'Each answer narrows down ambiguity — the system re-analyzes with your new context to produce increasingly accurate entity structures and feature specifications');
 
   const previousQuestions = state.understandingData?.level5_clarification.questions || [];
   const parsedAnswers = parseAnswersFromResponse(
@@ -203,14 +231,24 @@ function generatePlanFromUnderstanding(
   thinkingSteps: ThinkingStep[],
   emitStep: (phase: string, label: string, detail?: string) => void
 ): PhaseHandlerResult {
-  emitStep('planning', 'Generating detailed project plan', 'Creating architecture, data model, and page blueprints');
+  emitStep('planning', 'Plan Generator activated', 'Converting understanding into a detailed project blueprint — deciding tech stack, modules, pages, data model, APIs, and file structure');
+  emitStep('planning', 'Why a plan comes first', 'Generating code without a plan produces inconsistent files — the plan ensures every page has backing API routes, every API route has a database table, and every table has proper relationships');
 
   let plan = generatePlan(understanding);
 
-  emitStep('planning', 'Applying learned patterns', 'Enhancing plan with successful patterns from previous generations');
-  plan = learningEngine.applyLearnedPatterns(plan);
+  emitStep('planning', 'Initial plan created', `Project: "${plan.projectName}" | ${plan.modules?.length || 0} modules, ${plan.pages?.length || 0} pages, ${plan.dataModel?.length || 0} entities, ${plan.apiEndpoints?.length || 0} endpoints`);
+  if (plan.pages?.length > 0) {
+    emitStep('planning', 'Pages planned', plan.pages.slice(0, 5).map(p => p.name).join(', ') + (plan.pages.length > 5 ? ` + ${plan.pages.length - 5} more` : ''));
+  }
+  if (plan.dataModel?.length > 0) {
+    emitStep('planning', 'Data model', plan.dataModel.slice(0, 5).map(e => `${e.name} (${e.fields?.length || 0} fields)`).join(', '));
+  }
 
-  emitStep('planning', 'Running contextual analysis', 'Analyzing entity relationships, field semantics, and business rules');
+  emitStep('planning', 'Consulting learning engine', 'Checking if similar projects were generated before — if so, applying proven patterns for naming, structure, and feature selection');
+  plan = learningEngine.applyLearnedPatterns(plan);
+  emitStep('planning', 'Learned patterns applied', 'Enhanced field types, naming conventions, and relationship patterns based on past successful generations');
+
+  emitStep('planning', 'Running contextual semantic analysis', 'The reasoning engine now examines every entity to discover hidden relationships, computed fields, and business rules implied by the domain');
   const reasoning = analyzeSemantics(plan);
 
   plan = enrichPlanWithReasoning(plan, reasoning);
@@ -220,12 +258,19 @@ function generatePlanFromUnderstanding(
   const businessRuleCount = reasoning.businessRules.length;
   const uiPatternCount = reasoning.uiPatterns.length;
 
-  emitStep('planning', 'Contextual reasoning applied',
-    `Enriched plan with ${relationshipCount} entity relationships, ${computedFieldCount} computed fields, ${businessRuleCount} business rules, ${uiPatternCount} UI patterns`
+  emitStep('planning', 'Semantic enrichment complete',
+    `Discovered ${relationshipCount} entity relationships, ${computedFieldCount} computed fields, ${businessRuleCount} business rules, ${uiPatternCount} UI display patterns`
   );
+  if (relationshipCount > 0) {
+    const relExamples = reasoning.relationships.slice(0, 3).map(r => `${r.from} → ${r.to}`).join(', ');
+    emitStep('planning', 'Key relationships', `${relExamples}${relationshipCount > 3 ? ` + ${relationshipCount - 3} more` : ''} — these become foreign keys and cascade behaviors in the database`);
+  }
+  if (businessRuleCount > 0) {
+    emitStep('planning', 'Business rules', `${reasoning.businessRules.slice(0, 2).map(r => r.ruleName).join(', ')} — these become validation logic in API endpoints`);
+  }
 
-  emitStep('planning', 'Plan complete',
-    `${plan.modules.length} modules, ${plan.pages.length} pages, ${plan.dataModel.length} data tables, ${plan.apiEndpoints.length} API endpoints`
+  emitStep('planning', 'Final plan ready',
+    `${plan.modules.length} modules, ${plan.pages.length} pages, ${plan.dataModel.length} data tables, ${plan.apiEndpoints.length} API endpoints — all cross-referenced and validated`
   );
 
   const responseContent = formatPlanAsMessage(plan);
@@ -242,7 +287,8 @@ function generatePlanFromUnderstanding(
 function handleGeneration(
   state: ConversationState,
   thinkingSteps: ThinkingStep[],
-  emitStep: (phase: string, label: string, detail?: string) => void
+  emitStep: (phase: string, label: string, detail?: string) => void,
+  onStep?: OnStepCallback
 ): PhaseHandlerResult {
   const plan = state.planData;
   if (!plan) {
@@ -253,12 +299,13 @@ function handleGeneration(
     };
   }
 
-  emitStep('orchestrator', 'Pipeline Orchestrator activated', `Coordinating 16 specialized AI modules for ${plan.projectName}`);
-  emitStep('orchestrator', 'Team assembled', 'Product Manager → Architect → Designer → Schema Engineer → API Architect → UI Composer → Full-Stack Developer → DevOps → QA → Code Reviewer → Release Engineer');
+  emitStep('orchestrator', 'Pipeline Orchestrator activated', `Coordinating 16 specialized AI modules for "${plan.projectName}" — each module acts as a dedicated team member`);
+  emitStep('orchestrator', 'Dev team assembled', 'Product Manager → Project Manager → Senior Advisor → Technical Analyst → System Architect → UI/UX Designer → Feature Analyst → Database Engineer → API Architect → UI Engineer → Full-Stack Developer → DevOps Engineer → Code Reviewer → QA Engineer → Release Engineer → Knowledge Manager');
+  emitStep('orchestrator', 'Why a 16-stage pipeline', 'Each stage enriches the project context — understanding feeds planning, planning feeds architecture, architecture guides design, design informs components, and all of it flows into code generation for internally-consistent output');
 
   let orchestrationResult: OrchestrationResult;
   try {
-    orchestrationResult = orchestrateGeneration(plan, state.understandingData);
+    orchestrationResult = orchestrateGeneration(plan, state.understandingData, onStep);
   } catch (err) {
     emitStep('orchestrator', 'Pipeline encountered critical error, falling back to direct generation');
     const rawFiles = generateProjectFromPlan(plan);
@@ -379,7 +426,8 @@ function handlePlanModification(
   thinkingSteps: ThinkingStep[],
   emitStep: (phase: string, label: string, detail?: string) => void
 ): PhaseHandlerResult {
-  emitStep('planning', 'Processing your feedback', 'Updating the plan based on your changes');
+  emitStep('planning', 'Processing your modification request', 'Re-analyzing the project with your feedback incorporated — the system will merge your changes with the existing plan and re-run semantic analysis');
+  emitStep('planning', 'Why full re-analysis', 'A modification can cascade — adding a new entity may require new API routes, new pages, new relationships, and updated navigation, so we re-process the entire plan to catch all implications');
 
   const previousUnderstanding = state.understandingData;
   const combinedContext = previousUnderstanding

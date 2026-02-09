@@ -823,9 +823,11 @@ export default function Chat() {
                           thinkingSteps={
                             message.id === -1 && isStreaming
                               ? streamingThinkingSteps
-                              : message.role === "assistant" && activeConversationId && index === displayMessages.length - 1
-                                ? completedThinkingSteps.get(activeConversationId) as ThinkingStep[] | undefined
-                                : undefined
+                              : message.role === "assistant" && (message as any).thinkingSteps && Array.isArray((message as any).thinkingSteps) && ((message as any).thinkingSteps as any[]).length > 0
+                                ? (message as any).thinkingSteps as ThinkingStep[]
+                                : message.role === "assistant" && activeConversationId && index === displayMessages.length - 1
+                                  ? completedThinkingSteps.get(activeConversationId) as ThinkingStep[] | undefined
+                                  : undefined
                           }
                           showApproval={message.id === approvalMessageId}
                           onSendMessage={handleSendMessage}

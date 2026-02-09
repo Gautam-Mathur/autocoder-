@@ -625,13 +625,13 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
           ? existingFiles.map((f: any) => f.content).join(' ').slice(0, 500)
           : '';
 
-        const result = handlePhaseMessage(content, convState, conversationHistory);
+        const onStep = (step: { phase: string; label: string; detail?: string; timestamp?: number }) => {
+          try {
+            res.write(`data: ${JSON.stringify({ type: 'thinking', step })}\n\n`);
+          } catch {}
+        };
 
-        // Stream thinking steps live
-        for (const step of result.thinkingSteps) {
-          res.write(`data: ${JSON.stringify({ type: 'thinking', step })}\n\n`);
-          await new Promise(resolve => setTimeout(resolve, 50));
-        }
+        const result = handlePhaseMessage(content, convState, conversationHistory, onStep);
 
         // If files were generated, validate, auto-fix, and save them
         if (result.generatedFiles && result.generatedFiles.length > 0) {
@@ -2914,12 +2914,13 @@ You're not just a code generator - you're a thinking partner who builds exactly 
           : '';
 
         try {
-          const result = handlePhaseMessage(content, convState, conversationHistory);
+          const onStep2 = (step: { phase: string; label: string; detail?: string; timestamp?: number }) => {
+            try {
+              res.write(`data: ${JSON.stringify({ type: 'thinking', step })}\n\n`);
+            } catch {}
+          };
 
-          for (const step of result.thinkingSteps) {
-            res.write(`data: ${JSON.stringify({ type: 'thinking', step })}\n\n`);
-            await new Promise(resolve => setTimeout(resolve, 50));
-          }
+          const result = handlePhaseMessage(content, convState, conversationHistory, onStep2);
 
           if (result.generatedFiles && result.generatedFiles.length > 0) {
             const validation = validateGeneratedCode(
