@@ -18,37 +18,23 @@ const ALTERNATIVE_REGISTRIES = [
   'https://registry.npmjs.org',
 ];
 
-const CORE_PACKAGES: Record<string, string> = {
+const BATCH1_DEPS: Record<string, string> = {
   'react': '^18.3.1',
   'react-dom': '^18.3.1',
   'wouter': '^3.0.0',
   '@tanstack/react-query': '^5.0.0',
   'lucide-react': '^0.344.0',
-  'recharts': '^2.12.0',
-  'date-fns': '^3.3.1',
   'clsx': '^2.1.0',
   'tailwind-merge': '^2.2.0',
   'zod': '^3.22.0',
   'react-hook-form': '^7.50.0',
   '@hookform/resolvers': '^3.3.0',
-  'framer-motion': '^11.0.0',
+  'class-variance-authority': '^0.7.0',
   'express': '^4.18.2',
+  'cors': '^2.8.5',
   'drizzle-orm': '^0.29.0',
   'drizzle-zod': '^0.5.0',
   '@neondatabase/serverless': '^0.7.0',
-  'class-variance-authority': '^0.7.0',
-  'uuid': '^9.0.0',
-  'nanoid': '^5.0.0',
-  'cmdk': '^0.2.0',
-  'axios': '^1.6.0',
-  'cors': '^2.8.5',
-  'jsonwebtoken': '^9.0.0',
-  'bcryptjs': '^2.4.3',
-  'lodash': '^4.17.21',
-  'dayjs': '^1.11.0',
-  'swr': '^2.2.0',
-  'zustand': '^4.4.0',
-  'react-router-dom': '^6.20.0',
   '@radix-ui/react-dialog': '^1.0.5',
   '@radix-ui/react-select': '^2.0.0',
   '@radix-ui/react-label': '^2.0.2',
@@ -61,11 +47,51 @@ const CORE_PACKAGES: Record<string, string> = {
   '@radix-ui/react-scroll-area': '^1.0.5',
   '@radix-ui/react-switch': '^1.0.3',
   '@radix-ui/react-slot': '^1.0.2',
+  '@radix-ui/react-toast': '^1.1.5',
+  '@radix-ui/react-icons': '^1.3.0',
+};
+
+const BATCH1_DEV_DEPS: Record<string, string> = {
+  'vite': '^5.1.0',
+  '@vitejs/plugin-react': '^4.2.0',
+  'tailwindcss': '^3.4.1',
+  'postcss': '^8.4.35',
+  'autoprefixer': '^10.4.17',
+  'fast-glob': '^3.3.2',
+  'typescript': '^5.3.0',
+  '@types/react': '^18.2.0',
+  '@types/react-dom': '^18.2.0',
+  '@types/node': '^20.10.0',
+  '@types/express': '^4.17.21',
+  '@types/cors': '^2.8.17',
+};
+
+const BATCH2_DEPS: Record<string, string> = {
+  'recharts': '^2.12.0',
+  'date-fns': '^3.3.1',
+  'framer-motion': '^11.0.0',
+  'uuid': '^9.0.0',
+  'nanoid': '^5.0.0',
+  'cmdk': '^0.2.0',
+  'axios': '^1.6.0',
+  'jsonwebtoken': '^9.0.0',
+  'bcryptjs': '^2.4.3',
+  'lodash': '^4.17.21',
+  'dayjs': '^1.11.0',
+  'swr': '^2.2.0',
+  'zustand': '^4.4.0',
+  'react-router-dom': '^6.20.0',
+  'chart.js': '^4.4.0',
+  'react-chartjs-2': '^5.2.0',
+  '@reduxjs/toolkit': '^2.0.0',
+  'react-redux': '^9.0.0',
+  'jotai': '^2.6.0',
+  'recoil': '^0.7.7',
+  'moment': '^2.29.0',
+  'body-parser': '^1.20.0',
   '@radix-ui/react-avatar': '^1.0.4',
   '@radix-ui/react-alert-dialog': '^1.0.5',
   '@radix-ui/react-accordion': '^1.1.2',
-  '@radix-ui/react-icons': '^1.3.0',
-  '@radix-ui/react-toast': '^1.1.5',
   '@radix-ui/react-progress': '^1.0.3',
   '@radix-ui/react-radio-group': '^1.1.3',
   '@radix-ui/react-slider': '^1.1.2',
@@ -77,41 +103,24 @@ const CORE_PACKAGES: Record<string, string> = {
   '@radix-ui/react-hover-card': '^1.0.7',
   '@radix-ui/react-collapsible': '^1.0.3',
   '@radix-ui/react-aspect-ratio': '^1.0.3',
-  'chart.js': '^4.4.0',
-  'react-chartjs-2': '^5.2.0',
-  '@reduxjs/toolkit': '^2.0.0',
-  'react-redux': '^9.0.0',
-  'jotai': '^2.6.0',
-  'recoil': '^0.7.7',
-  'moment': '^2.29.0',
-  'body-parser': '^1.20.0',
 };
 
-const CORE_DEV_PACKAGES: Record<string, string> = {
-  'vite': '^5.1.0',
-  '@vitejs/plugin-react': '^4.2.0',
-  'tailwindcss': '^3.4.1',
-  'postcss': '^8.4.35',
-  'autoprefixer': '^10.4.17',
-  'fast-glob': '^3.3.2',
+const BATCH2_DEV_DEPS: Record<string, string> = {
+  'tsx': '^4.7.0',
   'vitest': '^1.3.0',
   '@testing-library/react': '^14.2.0',
   '@testing-library/jest-dom': '^6.4.0',
   '@testing-library/user-event': '^14.5.0',
   'jsdom': '^24.0.0',
-  'typescript': '^5.3.0',
-  'tsx': '^4.7.0',
-  '@types/react': '^18.2.0',
-  '@types/react-dom': '^18.2.0',
-  '@types/node': '^20.10.0',
-  '@types/express': '^4.17.21',
+  'drizzle-kit': '^0.20.0',
   '@types/uuid': '^9.0.7',
-  '@types/cors': '^2.8.17',
   '@types/jsonwebtoken': '^9.0.5',
   '@types/bcryptjs': '^2.4.6',
   '@types/lodash': '^4.14.202',
-  'drizzle-kit': '^0.20.0',
 };
+
+const CORE_PACKAGES: Record<string, string> = { ...BATCH1_DEPS, ...BATCH2_DEPS };
+const CORE_DEV_PACKAGES: Record<string, string> = { ...BATCH1_DEV_DEPS, ...BATCH2_DEV_DEPS };
 
 export interface RunResult {
   success: boolean;
@@ -322,6 +331,94 @@ export async function awaitPreWarm(timeoutMs: number = 120000): Promise<boolean>
   }
 }
 
+async function runBatchInstall(
+  container: WebContainer,
+  deps: Record<string, string>,
+  devDeps: Record<string, string>,
+  batchLabel: string,
+  timeoutMs: number = 150000,
+  stallTimeoutMs: number = 90000,
+): Promise<{ success: boolean; output: string }> {
+  const pkgJson = JSON.stringify({
+    name: 'prewarm-cache',
+    private: true,
+    version: '1.0.0',
+    type: 'module',
+    scripts: { dev: 'vite' },
+    dependencies: deps,
+    devDependencies: devDeps,
+  }, null, 2);
+
+  await container.fs.writeFile('package.json', pkgJson);
+  runnerLog.debug('FileSystem', `Wrote ${batchLabel} package.json`, { size: `${pkgJson.length} bytes` });
+
+  runnerLog.startTimer(`prewarm-npm-${batchLabel}`);
+  const installProcess = await container.spawn('npm', [
+    'install',
+    '--prefer-offline',
+    '--no-audit',
+    '--no-fund',
+    '--loglevel=http',
+    '--fetch-retries=2',
+    '--fetch-timeout=30000'
+  ]);
+  preWarmProcess = installProcess;
+  const totalPkgs = Object.keys(deps).length + Object.keys(devDeps).length;
+  runnerLog.info('NPM', `${batchLabel}: installing ${totalPkgs} packages`, {
+    timeout: `${timeoutMs / 1000}s`,
+    stallTimeout: `${stallTimeoutMs / 1000}s`,
+  });
+
+  let installOutput = '';
+  let lastActivity = Date.now();
+  const parser = new NpmOutputParser((line, level) => {
+    if (level === 'success') notifyPreWarm('installing', `${batchLabel}: ${line}`);
+  });
+  installProcess.output.pipeTo(
+    new WritableStream({
+      write(data) {
+        installOutput += data;
+        lastActivity = Date.now();
+        parser.feed(data);
+      },
+    })
+  );
+
+  const stallCheck = setInterval(() => {
+    const silentMs = Date.now() - lastActivity;
+    if (silentMs > stallTimeoutMs) {
+      runnerLog.warn('PreWarm', `${batchLabel}: npm stall — no output for ${Math.round(silentMs / 1000)}s, killing`);
+      clearInterval(stallCheck);
+      try { installProcess.kill(); } catch {}
+    }
+  }, 10000);
+
+  const exitCode = await Promise.race([
+    installProcess.exit,
+    new Promise<number>((resolve) => setTimeout(() => {
+      runnerLog.warn('PreWarm', `${batchLabel}: npm install timed out after ${timeoutMs / 1000}s, killing`);
+      try { installProcess.kill(); } catch {}
+      resolve(-1);
+    }, timeoutMs)),
+  ]);
+  clearInterval(stallCheck);
+  preWarmProcess = null;
+  parser.flush();
+  const npmTime = runnerLog.endTimer(`prewarm-npm-${batchLabel}`);
+
+  if (exitCode === 0) {
+    runnerLog.success('PreWarm', `${batchLabel} complete (${totalPkgs} packages)`, { npmTime: `${npmTime}ms` }, npmTime);
+    return { success: true, output: installOutput };
+  } else {
+    runnerLog.error('PreWarm', `${batchLabel} failed`, {
+      exitCode,
+      npmTime: `${npmTime}ms`,
+      output: installOutput.slice(-500),
+    });
+    return { success: false, output: installOutput };
+  }
+}
+
 export async function preWarmWebContainer(): Promise<boolean> {
   if (preWarmStatus === 'ready') {
     runnerLog.debug('PreWarm', 'Already warmed, skipping');
@@ -348,29 +445,10 @@ export async function preWarmWebContainer(): Promise<boolean> {
       notifyPreWarm('booting', 'Environment ready');
 
       preWarmStatus = 'installing';
-      const depCount = Object.keys(CORE_PACKAGES).length;
-      const devDepCount = Object.keys(CORE_DEV_PACKAGES).length;
-      runnerLog.info('PreWarm', `Installing ${depCount} deps + ${devDepCount} devDeps`, {
-        dependencies: Object.keys(CORE_PACKAGES).join(', '),
-        devDependencies: Object.keys(CORE_DEV_PACKAGES).join(', '),
-      });
-      notifyPreWarm('installing', `Pre-installing ${depCount + devDepCount} core packages...`);
-
-      const allDeps = { ...CORE_PACKAGES };
-      const allDevDeps = { ...CORE_DEV_PACKAGES };
-
-      const minimalPkg = JSON.stringify({
-        name: 'prewarm-cache',
-        private: true,
-        version: '1.0.0',
-        type: 'module',
-        scripts: { dev: 'vite' },
-        dependencies: allDeps,
-        devDependencies: allDevDeps,
-      }, null, 2);
-
-      await container.fs.writeFile('package.json', minimalPkg);
-      runnerLog.debug('FileSystem', 'Wrote pre-warm package.json', { size: `${minimalPkg.length} bytes` });
+      const totalDeps = Object.keys(CORE_PACKAGES).length;
+      const totalDevDeps = Object.keys(CORE_DEV_PACKAGES).length;
+      runnerLog.info('PreWarm', `Installing ${totalDeps} deps + ${totalDevDeps} devDeps in 2 batches`);
+      notifyPreWarm('installing', `Pre-installing ${totalDeps + totalDevDeps} packages in 2 batches...`);
 
       const viteConfig = `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -387,85 +465,43 @@ export default defineConfig({
       await container.fs.writeFile('vite.config.ts', viteConfig);
       runnerLog.debug('FileSystem', 'Wrote pre-warm vite.config.ts');
 
-      runnerLog.startTimer('prewarm-npm');
-      const PREWARM_TIMEOUT = 180000;
-      const PREWARM_STALL_TIMEOUT = 60000;
-      const installProcess = await container.spawn('npm', [
-        'install',
-        '--prefer-offline',
-        '--no-audit',
-        '--no-fund',
-        '--loglevel=http',
-        '--fetch-retries=2',
-        '--fetch-timeout=30000'
-      ]);
-      preWarmProcess = installProcess;
-      runnerLog.info('NPM', 'Spawned npm install for pre-warm', {
-        flags: '--prefer-offline --no-audit --no-fund --loglevel=http',
-        timeout: `${PREWARM_TIMEOUT / 1000}s`,
-        stallTimeout: `${PREWARM_STALL_TIMEOUT / 1000}s`,
-      });
+      const b1Count = Object.keys(BATCH1_DEPS).length + Object.keys(BATCH1_DEV_DEPS).length;
+      notifyPreWarm('installing', `Batch 1/2: Installing ${b1Count} essential packages...`);
+      const batch1 = await runBatchInstall(container, BATCH1_DEPS, BATCH1_DEV_DEPS, 'batch-1', 150000, 90000);
 
-      let installOutput = '';
-      let lastPrewarmActivity = Date.now();
-      const prewarmParser = new NpmOutputParser((line, level) => {
-        if (level === 'success') notifyPreWarm('installing', line);
-      });
-      installProcess.output.pipeTo(
-        new WritableStream({
-          write(data) {
-            installOutput += data;
-            lastPrewarmActivity = Date.now();
-            prewarmParser.feed(data);
-          },
-        })
-      );
-
-      const stallCheckInterval = setInterval(() => {
-        const silentMs = Date.now() - lastPrewarmActivity;
-        if (silentMs > PREWARM_STALL_TIMEOUT) {
-          runnerLog.warn('PreWarm', `npm stall detected — no output for ${Math.round(silentMs / 1000)}s, killing`);
-          clearInterval(stallCheckInterval);
-          try { installProcess.kill(); } catch {}
-        }
-      }, 10000);
-
-      const exitCode = await Promise.race([
-        installProcess.exit,
-        new Promise<number>((resolve) => setTimeout(() => {
-          runnerLog.warn('PreWarm', `npm install timed out after ${PREWARM_TIMEOUT / 1000}s, killing process`);
-          try { installProcess.kill(); } catch {}
-          resolve(-1);
-        }, PREWARM_TIMEOUT)),
-      ]);
-      clearInterval(stallCheckInterval);
-      preWarmProcess = null;
-      prewarmParser.flush();
-      const npmTime = runnerLog.endTimer('prewarm-npm');
-
-      if (exitCode === 0) {
-        preWarmStatus = 'ready';
-        const totalTime = runnerLog.endTimer('prewarm-total');
-        runnerLog.success('PreWarm', `Pre-warm complete! ${depCount + devDepCount} packages cached`, {
-          npmInstallTime: `${npmTime}ms`,
-          totalTime: `${totalTime}ms`,
-          exitCode,
-        }, totalTime);
-        runnerLog.separator('PRE-WARM DONE');
-        notifyPreWarm('ready', 'Core packages pre-installed');
-        return true;
-      } else {
+      if (!batch1.success) {
         preWarmStatus = 'failed';
         preWarmPromise = null;
         runnerLog.endTimer('prewarm-total');
-        runnerLog.error('PreWarm', 'npm install failed during pre-warm', {
-          exitCode,
-          npmTime: `${npmTime}ms`,
-          output: installOutput.slice(-500),
-        });
         runnerLog.separator('PRE-WARM FAILED');
-        notifyPreWarm('failed', `Pre-install failed (exit code ${exitCode}), will install on demand`);
+        notifyPreWarm('failed', 'Batch 1 failed, will install on demand');
         return false;
+      }
+
+      const allDeps = { ...BATCH1_DEPS, ...BATCH2_DEPS };
+      const allDevDeps = { ...BATCH1_DEV_DEPS, ...BATCH2_DEV_DEPS };
+      const b2Count = Object.keys(BATCH2_DEPS).length + Object.keys(BATCH2_DEV_DEPS).length;
+      notifyPreWarm('installing', `Batch 2/2: Installing ${b2Count} additional packages...`);
+      const batch2 = await runBatchInstall(container, allDeps, allDevDeps, 'batch-2', 150000, 90000);
+
+      if (batch2.success) {
+        preWarmStatus = 'ready';
+        const totalTime = runnerLog.endTimer('prewarm-total');
+        runnerLog.success('PreWarm', `Pre-warm complete! All ${totalDeps + totalDevDeps} packages cached`, {
+          totalTime: `${totalTime}ms`,
+        }, totalTime);
+        runnerLog.separator('PRE-WARM DONE');
+        notifyPreWarm('ready', 'All packages pre-installed');
+        return true;
+      } else {
+        preWarmStatus = 'ready';
+        const totalTime = runnerLog.endTimer('prewarm-total');
+        runnerLog.warn('PreWarm', `Batch 2 failed but batch 1 cached — partial pre-warm (${b1Count} packages)`, {
+          totalTime: `${totalTime}ms`,
+        });
+        runnerLog.separator('PRE-WARM PARTIAL');
+        notifyPreWarm('ready', `${b1Count} essential packages cached (some extras may install on demand)`);
+        return true;
       }
     } catch (err) {
       preWarmStatus = 'failed';
