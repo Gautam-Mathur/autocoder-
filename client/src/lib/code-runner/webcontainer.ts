@@ -410,12 +410,24 @@ async function runBatchInstall(
 
   const CRASH_SILENCE_MS = 60000;
 
-  function stripAnsi(str: string): string {
-    return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1b\][^\x07]*\x07/g, '');
-  }
-  function isSpinnerOnly(line: string): boolean {
-    const clean = stripAnsi(line).replace(/[\s\x00-\x1f]/g, '');
-    return clean.length === 0 || /^[|/\-\\]+$/.test(clean);
+  let outputBuffer = '';
+  function hasRealNpmProgress(data: string): boolean {
+    outputBuffer += data;
+    const lines = outputBuffer.split(/[\r\n]+/);
+    outputBuffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const clean = line
+        .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
+        .replace(/\x1b\][^\x07]*\x07/g, '')
+        .replace(/\x9b[0-9;]*[a-zA-Z]/g, '')
+        .replace(/[\x00-\x1f]/g, '')
+        .replace(/\[[\d;]*[A-Za-z]/g, '')
+        .replace(/[|/\-\\]/g, '')
+        .trim();
+      if (clean.length >= 3) return true;
+    }
+    return false;
   }
 
   const handleVisibilityChange = () => {
@@ -443,9 +455,7 @@ async function runBatchInstall(
       write(data) {
         installOutput += data;
         lastAnyOutput = Date.now();
-        const lines = data.split('\n').filter((l: string) => l.trim().length > 0);
-        const hasRealOutput = lines.some((l: string) => !isSpinnerOnly(l));
-        if (hasRealOutput) {
+        if (hasRealNpmProgress(data)) {
           lastRealProgress = Date.now();
         }
         parser.feed(data);
@@ -561,12 +571,20 @@ export default defineConfig({
         const batchPkgCount = Object.keys(batch.deps).length + Object.keys(batch.devDeps).length;
         notifyPreWarm('installing', `Batch ${i + 1}/${totalBatches}: Installing ${batchPkgCount} packages...`);
 
-        let result = await runBatchInstall(container, batch.deps, batch.devDeps, batch.label, 180000, 90000);
+        let result = await runBatchInstall(container, batch.deps, batch.devDeps, batch.label, 120000, 60000);
 
         if (!result.success && i === 0) {
           runnerLog.warn('PreWarm', `Batch 1 failed, retrying once...`);
-          notifyPreWarm('installing', `Batch 1 failed, retrying...`);
-          result = await runBatchInstall(container, batch.deps, batch.devDeps, `${batch.label}-retry`, 180000, 90000);
+          notifyPreWarm('installing', `Batch 1 failed, cleaning up and retrying...`);
+          try {
+            await container.fs.rm('node_modules', { recursive: true });
+            runnerLog.debug('PreWarm', 'Cleared node_modules before retry');
+          } catch {}
+          try {
+            await container.fs.rm('package-lock.json');
+            runnerLog.debug('PreWarm', 'Cleared package-lock.json before retry');
+          } catch {}
+          result = await runBatchInstall(container, batch.deps, batch.devDeps, `${batch.label}-retry`, 120000, 60000);
         }
 
         if (result.success) {
@@ -597,7 +615,7 @@ export default defineConfig({
       if (consolidatedCount > 0) {
         notifyPreWarm('installing', 'Final consolidation install...');
         runnerLog.info('PreWarm', `Running consolidated install with ${consolidatedCount} packages from ${completedBatches} batches`);
-        const finalResult = await runBatchInstall(container, allDeps, allDevDeps, 'consolidate', 180000, 90000);
+        const finalResult = await runBatchInstall(container, allDeps, allDevDeps, 'consolidate', 120000, 60000);
         if (!finalResult.success) {
           runnerLog.warn('PreWarm', 'Consolidation install failed, packages may be cache-only');
         }
