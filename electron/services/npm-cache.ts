@@ -171,6 +171,46 @@ export class NpmCacheManager {
     return [];
   }
 
+  getAllCachedPackageNames(): Set<string> {
+    if (!this.isReady || !fs.existsSync(this.nodeModulesDir)) return new Set();
+
+    const manifest = this.readManifest();
+    if (manifest?.packages) {
+      return new Set(Object.keys(manifest.packages));
+    }
+
+    const names = new Set<string>();
+    try {
+      const entries = fs.readdirSync(this.nodeModulesDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+        if (entry.name.startsWith('@')) {
+          const scopeDir = path.join(this.nodeModulesDir, entry.name);
+          const scopedEntries = fs.readdirSync(scopeDir, { withFileTypes: true });
+          for (const scoped of scopedEntries) {
+            if (scoped.isDirectory()) {
+              names.add(`${entry.name}/${scoped.name}`);
+            }
+          }
+        } else {
+          names.add(entry.name);
+        }
+      }
+    } catch {}
+    return names;
+  }
+
+  verifyInstalledPackage(nodeModulesDir: string, pkgName: string, _requiredRange: string): boolean {
+    try {
+      const pkgJsonPath = path.join(nodeModulesDir, pkgName, 'package.json');
+      if (!fs.existsSync(pkgJsonPath)) return false;
+      const installed = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+      return !!installed.version;
+    } catch {
+      return false;
+    }
+  }
+
   getCacheStats(): { ready: boolean; packageCount: number; cachePath: string; sizeBytes: number } {
     const manifest = this.readManifest();
     let sizeBytes = 0;
