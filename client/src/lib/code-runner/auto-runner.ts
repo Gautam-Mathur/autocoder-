@@ -298,6 +298,85 @@ export interface AutoRunOptions {
   forceInstall?: boolean;         // If true, always run npm install even if cached
 }
 
+let activeRunId: string | null = null;
+let activeRunPromise: Promise<{ success: boolean; previewUrl: string | null; error: string | null }> | null = null;
+
+const CRITICAL_UI_FILES: Record<string, { exports: string[]; content: string }> = {
+  'src/components/ui/toaster.tsx': {
+    exports: ['Toaster'],
+    content: `import { useToast } from "@/hooks/use-toast";\n\nexport function Toaster() {\n  const { toasts, dismiss } = useToast();\n\n  if (toasts.length === 0) return null;\n\n  return (\n    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">\n      {toasts.map((toast) => (\n        <div\n          key={toast.id}\n          className={\n            "rounded-lg border p-4 shadow-lg transition-all " +\n            (toast.variant === "destructive"\n              ? "bg-red-600 text-white border-red-700"\n              : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700")\n          }\n          role="alert"\n        >\n          {toast.title && <div className="font-semibold text-sm">{toast.title}</div>}\n          {toast.description && <div className="text-sm mt-1 opacity-90">{toast.description}</div>}\n          <button\n            onClick={() => dismiss(toast.id)}\n            className="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100"\n          >\n            x\n          </button>\n        </div>\n      ))}\n    </div>\n  );\n}\n`,
+  },
+  'src/hooks/use-toast.ts': {
+    exports: ['useToast', 'toast'],
+    content: `import { useState, useCallback } from "react";\n\ninterface Toast {\n  id: string;\n  title?: string;\n  description?: string;\n  variant?: "default" | "destructive";\n}\n\nlet toastCount = 0;\nlet globalToasts: Toast[] = [];\nlet listeners: Array<() => void> = [];\n\nfunction notify() { listeners.forEach(l => l()); }\n\nexport function toast({ title, description, variant = "default" }: Omit<Toast, "id">) {\n  const id = String(++toastCount);\n  globalToasts = [...globalToasts, { id, title, description, variant }];\n  notify();\n  setTimeout(() => {\n    globalToasts = globalToasts.filter(t => t.id !== id);\n    notify();\n  }, 5000);\n  return { id, dismiss: () => { globalToasts = globalToasts.filter(t => t.id !== id); notify(); } };\n}\n\nexport function useToast() {\n  const [, setTick] = useState(0);\n  const rerender = useCallback(() => setTick(t => t + 1), []);\n\n  useState(() => { listeners.push(rerender); });\n\n  return {\n    toasts: globalToasts,\n    toast,\n    dismiss: (id: string) => { globalToasts = globalToasts.filter(t => t.id !== id); notify(); },\n  };\n}\n`,
+  },
+};
+
+function hasExport(content: string, exportName: string): boolean {
+  const patterns = [
+    new RegExp(`export\\s+(?:function|const|class)\\s+${exportName}\\b`),
+    new RegExp(`export\\s+default\\s+(?:function\\s+)?${exportName}\\b`),
+    new RegExp(`export\\s*\\{[^}]*\\b${exportName}\\b[^}]*\\}`),
+  ];
+  return patterns.some(p => p.test(content));
+}
+
+function isSmallGeneratedFile(content: string): boolean {
+  const trimmed = content.trim();
+  return trimmed.length < 3000 && !trimmed.includes('// custom') && !trimmed.includes('// @user');
+}
+
+async function preFlightVerifyCriticalFiles(
+  projectFiles: { path: string; content: string }[],
+  log: (msg: string) => void
+): Promise<number> {
+  let fixCount = 0;
+
+  for (const [filePath, spec] of Object.entries(CRITICAL_UI_FILES)) {
+    const projectFile = projectFiles.find(f => f.path === filePath);
+    if (!projectFile) continue;
+
+    if (!isSmallGeneratedFile(projectFile.content)) {
+      runnerLog.debug('PreFlight', `Skipping ${filePath}: appears to be user-customized`);
+      continue;
+    }
+
+    const missingExports = spec.exports.filter(name => !hasExport(projectFile.content, name));
+    if (missingExports.length === 0) continue;
+
+    runnerLog.warn('PreFlight', `Missing export(s) "${missingExports.join(', ')}" in ${filePath}`);
+    try {
+      await writeFile(filePath, spec.content);
+      fixCount++;
+      runnerLog.success('PreFlight', `Fixed ${filePath} with correct exports`);
+      log(`🔧 Pre-flight: fixed ${filePath}`);
+    } catch (err) {
+      runnerLog.error('PreFlight', `Failed to fix ${filePath}: ${err}`);
+    }
+  }
+
+  const filePathsInProject = projectFiles.map(f => f.path);
+  for (const [filePath, spec] of Object.entries(CRITICAL_UI_FILES)) {
+    if (filePathsInProject.includes(filePath)) continue;
+
+    const isReferenced = projectFiles.some(f =>
+      f.content.includes(filePath.replace(/^src\//, '@/').replace(/\.tsx?$/, ''))
+    );
+    if (!isReferenced) continue;
+
+    try {
+      await writeFile(filePath, spec.content);
+      fixCount++;
+      runnerLog.success('PreFlight', `Created missing referenced file ${filePath}`);
+      log(`🔧 Pre-flight: created missing ${filePath}`);
+    } catch (err) {
+      runnerLog.error('PreFlight', `Failed to create ${filePath}: ${err}`);
+    }
+  }
+
+  return fixCount;
+}
+
 // Main auto-run pipeline
 export async function autoRunProject(
   files: { path: string; content: string }[],
@@ -305,6 +384,17 @@ export async function autoRunProject(
   callbacks: Partial<AutoRunCallbacks> = {},
   options: AutoRunOptions = {}
 ): Promise<{ success: boolean; previewUrl: string | null; error: string | null }> {
+  const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+  if (activeRunId && activeRunPromise) {
+    runnerLog.warn('AutoRunner', `Duplicate autoRunProject call blocked (active: ${activeRunId}, attempted: ${runId})`);
+    runnerLog.info('AutoRunner', `Returning result of active run ${activeRunId}`);
+    return activeRunPromise;
+  }
+
+  activeRunId = runId;
+  activeRunPromise = null;
+
   const state: RunnerState = {
     status: 'idle',
     progress: 0,
@@ -323,9 +413,10 @@ export async function autoRunProject(
     state.logs.push(message);
     callbacks.onLog?.(message);
   };
-  
+
+  const runPipeline = async (): Promise<{ success: boolean; previewUrl: string | null; error: string | null }> => {
   try {
-    runnerLog.separator(`AUTO-RUN: ${projectName}`);
+    runnerLog.separator(`AUTO-RUN: ${projectName} [${runId}]`);
     runnerLog.startTimer('auto-run-total');
     
     if (!isWebContainerSupported()) {
@@ -771,6 +862,16 @@ export default {
       }
     }
     
+    // Step 4.5: Pre-flight verify critical UI files before dev server start
+    runnerLog.separator('PRE-FLIGHT CHECK');
+    updateState({ progress: 75, message: 'Verifying critical files...' });
+    const preFlightFixes = await preFlightVerifyCriticalFiles(projectFiles, log);
+    if (preFlightFixes > 0) {
+      runnerLog.success('PreFlight', `Fixed ${preFlightFixes} critical file(s) before dev server start`);
+    } else {
+      runnerLog.success('PreFlight', 'All critical files verified OK');
+    }
+
     // Step 5: Start dev server
     runnerLog.separator('DEV SERVER');
     updateState({ status: 'starting', progress: 80, message: 'Starting development server...' });
@@ -820,6 +921,19 @@ export default {
     
     return { success: false, previewUrl: null, error: errorMessage };
   }
+  };
+
+  activeRunPromise = runPipeline().finally(() => {
+    activeRunId = null;
+    activeRunPromise = null;
+  });
+
+  return activeRunPromise;
+}
+
+export function resetAutoRunGuard() {
+  activeRunId = null;
+  activeRunPromise = null;
 }
 
 export async function quickRun(

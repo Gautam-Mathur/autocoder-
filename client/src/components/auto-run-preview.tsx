@@ -7,6 +7,7 @@ import {
   autoRunProject, 
   isRunnableProject, 
   estimateInstallTime,
+  resetAutoRunGuard,
   type RunnerState,
   type RunnerStatus,
   type AutoRunOptions
@@ -332,6 +333,7 @@ export function AutoRunPreview({
   }, [runProject]);
 
   const stopProject = useCallback(async () => {
+    resetAutoRunGuard();
     await teardown();
     setAutoFix({ active: false, attempt: 0, maxAttempts: MAX_AUTO_FIX_ATTEMPTS, status: 'idle', fixesApplied: 0, errorsDetected: [] });
     autoFixInProgress.current = false;
@@ -362,6 +364,12 @@ export function AutoRunPreview({
       runProject();
     }
   }, [autoStart, isRunnable, isSupported, state.status, runProject]);
+
+  useEffect(() => {
+    return () => {
+      resetAutoRunGuard();
+    };
+  }, []);
 
   const config = statusConfig[state.status];
   const StatusIcon = config.icon;
