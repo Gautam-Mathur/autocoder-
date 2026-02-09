@@ -68,6 +68,7 @@ The system employs a multi-phase intelligent approach:
 -   **Bulk Cache Install**: On code generation, the entire pre-built `node_modules` cache is bulk-copied into the project directory via `fs.cpSync`, then a lightweight `npm install --prefer-offline` verifies the dependency tree. This reduces install time from ~50s to ~5s for typical projects.
 -   **3-Path Install Flow**: (1) All deps cached → bulk copy + quick verify, (2) Some missing → bulk copy + `npm install --prefer-offline`, (3) No cache → full `npm install`.
 -   **Adaptive Pre-warm Timeout**: WebContainer pre-warm uses `max(60s, 90s - elapsed)` adaptive timeout instead of hard 10s to avoid killing in-progress installs.
+-   **Pre-warm Batching**: 90 packages split into 6 batches (10, 9, 12, 14, 18, 21 packages). Stall detection filters npm spinner chars (`|/-\`) so only real progress resets the 90s stall timer. Per-batch timeout: 180s.
 
 ### Code Runner System (Client-side)
 -   Supports two modes: WebContainer for browser-based runtime and Electron for native file system access.
