@@ -490,9 +490,24 @@ export function autoFixFiles(files: GeneratedFile[], issues: ValidationIssue[]):
               '@radix-ui/react-alert-dialog': '^1.0.0',
               '@radix-ui/react-accordion': '^1.0.0',
             };
-            pkg.dependencies[basePkg] = KNOWN_VERSIONS[basePkg] || 'latest';
-            pkgFile.content = JSON.stringify(pkg, null, 2);
-            fixesApplied.push(`Added "${basePkg}" to package.json dependencies`);
+            const DEV_ONLY_PACKAGES = new Set([
+              '@vitejs/plugin-react', 'vite', 'typescript', 'tailwindcss', 'postcss', 'autoprefixer',
+              '@types/react', '@types/react-dom', '@types/node', '@types/express', '@types/cors',
+              'vitest', '@testing-library/react', '@testing-library/jest-dom', '@testing-library/user-event',
+              'jsdom', 'picomatch', 'fast-glob', 'drizzle-kit', 'tsx',
+            ]);
+            if (DEV_ONLY_PACKAGES.has(basePkg)) {
+              if (!pkg.devDependencies) pkg.devDependencies = {};
+              if (!pkg.devDependencies[basePkg]) {
+                pkg.devDependencies[basePkg] = KNOWN_VERSIONS[basePkg] || 'latest';
+                pkgFile.content = JSON.stringify(pkg, null, 2);
+                fixesApplied.push(`Added "${basePkg}" to package.json devDependencies`);
+              }
+            } else {
+              pkg.dependencies[basePkg] = KNOWN_VERSIONS[basePkg] || 'latest';
+              pkgFile.content = JSON.stringify(pkg, null, 2);
+              fixesApplied.push(`Added "${basePkg}" to package.json dependencies`);
+            }
           }
         } catch {}
       }

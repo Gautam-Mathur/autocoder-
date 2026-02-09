@@ -583,24 +583,42 @@ export default defineConfig({
             notifyPreWarm('failed', 'Batch 1 failed after retry, will install on demand');
             return false;
           }
-          preWarmStatus = 'ready';
-          const totalTime = runnerLog.endTimer('prewarm-total');
-          runnerLog.warn('PreWarm', `Partial pre-warm: ${completedBatches}/${totalBatches} batches (${cachedPackages} packages)`, {
-            totalTime: `${totalTime}ms`,
-          });
-          runnerLog.separator('PRE-WARM PARTIAL');
-          notifyPreWarm('ready', `${cachedPackages} packages cached (some extras may install on demand)`);
-          return true;
+          break;
         }
       }
 
+      const allDeps: Record<string, string> = {};
+      const allDevDeps: Record<string, string> = {};
+      for (let j = 0; j < Math.min(completedBatches, PREWARM_BATCHES.length); j++) {
+        Object.assign(allDeps, PREWARM_BATCHES[j].deps);
+        Object.assign(allDevDeps, PREWARM_BATCHES[j].devDeps);
+      }
+      const consolidatedCount = Object.keys(allDeps).length + Object.keys(allDevDeps).length;
+      if (consolidatedCount > 0) {
+        notifyPreWarm('installing', 'Final consolidation install...');
+        runnerLog.info('PreWarm', `Running consolidated install with ${consolidatedCount} packages from ${completedBatches} batches`);
+        const finalResult = await runBatchInstall(container, allDeps, allDevDeps, 'consolidate', 180000, 90000);
+        if (!finalResult.success) {
+          runnerLog.warn('PreWarm', 'Consolidation install failed, packages may be cache-only');
+        }
+      }
+
+      const isPartial = completedBatches < totalBatches;
       preWarmStatus = 'ready';
       const totalTime = runnerLog.endTimer('prewarm-total');
-      runnerLog.success('PreWarm', `Pre-warm complete! All ${totalDeps + totalDevDeps} packages cached in ${totalBatches} batches`, {
-        totalTime: `${totalTime}ms`,
-      }, totalTime);
-      runnerLog.separator('PRE-WARM DONE');
-      notifyPreWarm('ready', 'All packages pre-installed');
+      if (isPartial) {
+        runnerLog.warn('PreWarm', `Partial pre-warm: ${completedBatches}/${totalBatches} batches (${cachedPackages} packages)`, {
+          totalTime: `${totalTime}ms`,
+        });
+        runnerLog.separator('PRE-WARM PARTIAL');
+        notifyPreWarm('ready', `${cachedPackages} packages cached (some extras may install on demand)`);
+      } else {
+        runnerLog.success('PreWarm', `Pre-warm complete! All ${totalDeps + totalDevDeps} packages cached in ${totalBatches} batches`, {
+          totalTime: `${totalTime}ms`,
+        }, totalTime);
+        runnerLog.separator('PRE-WARM DONE');
+        notifyPreWarm('ready', 'All packages pre-installed');
+      }
       return true;
     } catch (err) {
       preWarmStatus = 'failed';
