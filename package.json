@@ -12,6 +12,7 @@
     "start": "cross-env NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "db:push": "drizzle-kit push",
+    "test:buildability": "tsx server/tests/codegen-buildability-test.ts",
     "build:electron": "tsx scripts/build-electron.ts",
     "electron:dev": "npm run build:electron && cross-env NODE_ENV=development npx electron dist-electron/main.js"
   },

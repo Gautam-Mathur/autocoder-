@@ -1276,7 +1276,8 @@ function generateIndexCss(plan: ProjectPlan): GeneratedFile {
     border-color: hsl(var(--border));
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
