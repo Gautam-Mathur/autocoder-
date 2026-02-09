@@ -418,14 +418,18 @@ async function runBatchInstall(
     }
   }, 10000);
 
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   const exitCode = await Promise.race([
     installProcess.exit,
-    new Promise<number>((resolve) => setTimeout(() => {
-      runnerLog.warn('PreWarm', `${batchLabel}: npm install timed out after ${timeoutMs / 1000}s, killing`);
-      try { installProcess.kill(); } catch {}
-      resolve(-1);
-    }, timeoutMs)),
+    new Promise<number>((resolve) => {
+      timeoutId = setTimeout(() => {
+        runnerLog.warn('PreWarm', `${batchLabel}: npm install timed out after ${timeoutMs / 1000}s, killing`);
+        try { installProcess.kill(); } catch {}
+        resolve(-1);
+      }, timeoutMs);
+    }),
   ]);
+  if (timeoutId !== null) clearTimeout(timeoutId);
   clearInterval(stallCheck);
   preWarmProcess = null;
   parser.flush();

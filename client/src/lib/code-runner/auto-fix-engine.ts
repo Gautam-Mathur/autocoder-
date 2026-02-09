@@ -76,6 +76,60 @@ const AUTO_FIX_HANDLERS: { pattern: RegExp; handler: AutoFixHandler }[] = [
     },
   },
   {
+    pattern: /No matching export in "([^"]+)" for import "([^"]+)"/,
+    handler: (error, ctx) => {
+      const match = error.match(/No matching export in "([^"]+)" for import "([^"]+)"/);
+      if (!match) return null;
+
+      const [, rawPath, exportName] = match;
+      const filePath = rawPath.replace(/^.*?\/(?=src\/)/, '');
+      ctx.addTerminalLine("warn", `Missing export "${exportName}" in ${filePath}`);
+
+      const KNOWN_UI_FILES: Record<string, Record<string, string>> = {
+        'src/components/ui/toaster.tsx': {
+          'Toaster': `import { useToast } from "@/hooks/use-toast";\n\nexport function Toaster() {\n  const { toasts, dismiss } = useToast();\n\n  if (toasts.length === 0) return null;\n\n  return (\n    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">\n      {toasts.map((toast) => (\n        <div\n          key={toast.id}\n          className={\n            "rounded-lg border p-4 shadow-lg transition-all " +\n            (toast.variant === "destructive"\n              ? "bg-red-600 text-white border-red-700"\n              : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700")\n          }\n          role="alert"\n        >\n          {toast.title && <div className="font-semibold text-sm">{toast.title}</div>}\n          {toast.description && <div className="text-sm mt-1 opacity-90">{toast.description}</div>}\n          <button\n            onClick={() => dismiss(toast.id)}\n            className="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100"\n          >\n            x\n          </button>\n        </div>\n      ))}\n    </div>\n  );\n}\n`,
+        },
+      };
+
+      const knownFile = KNOWN_UI_FILES[filePath];
+      if (knownFile && knownFile[exportName]) {
+        ctx.addTerminalLine("info", `Auto-fix: Regenerating ${filePath} with correct "${exportName}" export...`);
+        const targetFile = ctx.files.find(f => f.path === filePath);
+        return {
+          error,
+          fixed: true,
+          action: `Regenerated ${filePath} with correct "${exportName}" export`,
+          codeChanges: [{ file: filePath, original: targetFile?.content || '', fixed: knownFile[exportName] }],
+        };
+      }
+
+      const targetFile = ctx.files.find(f => f.path === filePath);
+      if (targetFile) {
+        const hasExport = new RegExp(`export\\s+(?:const|function|class|let|var|type|interface)\\s+${exportName}\\b`).test(targetFile.content);
+        if (!hasExport) {
+          ctx.addTerminalLine("info", `Auto-fix: Adding stub export "${exportName}" to ${filePath}...`);
+          const hasDefault = /export\s+default\s/.test(targetFile.content);
+          const stub = hasDefault
+            ? `\nexport const ${exportName} = {} as any;\n`
+            : `\nexport function ${exportName}() { return null; }\n`;
+          return {
+            error,
+            fixed: true,
+            action: `Added missing export "${exportName}" to ${filePath}`,
+            codeChanges: [{ file: filePath, original: targetFile.content, fixed: targetFile.content + stub }],
+          };
+        }
+      }
+
+      return {
+        error,
+        fixed: false,
+        action: `Missing export "${exportName}" in ${filePath}`,
+        details: `The file doesn't export a member named "${exportName}". Check the file and add the export.`,
+      };
+    },
+  },
+  {
     pattern: /ENOENT.*package\.json|no such file.*package\.json/i,
     handler: (error, ctx) => {
       ctx.addTerminalLine("warn", "No package.json found.");
