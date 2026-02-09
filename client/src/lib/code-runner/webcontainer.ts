@@ -8,6 +8,7 @@ let preWarmPromise: Promise<boolean> | null = null;
 let preWarmStatus: 'idle' | 'booting' | 'installing' | 'ready' | 'failed' = 'idle';
 let preWarmListeners: Array<(status: string, message: string) => void> = [];
 let preWarmProcess: { kill: () => void } | null = null;
+let preWarmStartTime: number = 0;
 
 const STALL_TIMEOUT_MS = 45000;
 const ALTERNATIVE_REGISTRIES = [
@@ -261,6 +262,7 @@ export async function preWarmWebContainer(): Promise<boolean> {
 
   runnerLog.separator('PRE-WARM START');
   runnerLog.startTimer('prewarm-total');
+  preWarmStartTime = Date.now();
 
   preWarmPromise = (async () => {
     try {
@@ -521,15 +523,20 @@ export async function installDependencies(
   let registryArg: string | null = null;
   
   if (preWarmProcess || (preWarmStatus === 'installing' && preWarmPromise)) {
-    runnerLog.info('NPM', 'Pre-warm npm install is still running, giving it 10s to finish...');
-    onOutput?.('⏳ Waiting for background package cache to finish...\n');
-    const preWarmDone = await awaitPreWarm(10000);
+    const elapsedMs = preWarmStartTime ? Date.now() - preWarmStartTime : 0;
+    const elapsedS = Math.round(elapsedMs / 1000);
+    const adaptiveTimeout = Math.max(60000, 90000 - elapsedMs);
+    const adaptiveTimeoutS = Math.round(adaptiveTimeout / 1000);
+    
+    runnerLog.info('NPM', `Pre-warm npm install is still running (${elapsedS}s elapsed), giving it ${adaptiveTimeoutS}s to finish...`);
+    onOutput?.(`⏳ Background package cache is ${elapsedS}s in, waiting up to ${adaptiveTimeoutS}s for it to finish...\n`);
+    const preWarmDone = await awaitPreWarm(adaptiveTimeout);
     
     if (preWarmDone) {
       runnerLog.success('NPM', 'Pre-warm completed! Cached packages will speed up install.');
       onOutput?.('✓ Background cache complete, proceeding with install\n');
     } else if (preWarmProcess) {
-      runnerLog.warn('NPM', 'Pre-warm did not finish in time, killing it');
+      runnerLog.warn('NPM', `Pre-warm did not finish in time (${elapsedS + adaptiveTimeoutS}s total), killing it`);
       onOutput?.('⚠ Cache still running, stopping it to proceed...\n');
       try { preWarmProcess.kill(); } catch {}
       preWarmProcess = null;
