@@ -1002,14 +1002,10 @@ if (cacheResult.seeded > 0) {
 }
 ```
 
-Cross-platform directory copy:
+Cross-platform directory copy (uses Node.js built-in `fs.cpSync`, no shell commands):
 ```typescript
 private copyDirRecursive(src: string, dest: string) {
-  if (process.platform === 'win32') {
-    execSync(`xcopy "${src}" "${dest}" /E /I /Q /Y >nul 2>&1`, { timeout: 30000 });
-  } else {
-    execSync(`cp -r "${src}" "${dest}"`, { timeout: 30000 });
-  }
+  fs.cpSync(src, dest, { recursive: true, force: true });
 }
 ```
 
@@ -1040,6 +1036,33 @@ private copyDirRecursive(src: string, dest: string) {
 | First project overhead | None | ~30s cache unpack (one-time) |
 | Disk usage | None | ~370MB in userData |
 
+#### Cross-Platform Safety
+
+All zip/file operations use Node-native libraries — no shell commands (`zip`, `unzip`, `cat`, `cp`, `xcopy`, `du`) are used anywhere in the cache pipeline:
+
+| Operation | Before (Shell) | After (Node-native) |
+|-----------|---------------|---------------------|
+| Zip creation | `cat file.txt \| zip -@ chunk.zip` | `archiver` (npm package) |
+| Zip extraction | `unzip -o -q chunk.zip -d dest/` | `adm-zip` (npm package) |
+| Directory copy | `cp -r` / `xcopy` | `fs.cpSync()` (Node.js built-in) |
+| Directory size | `du -sb` | Recursive `fs.statSync()` |
+
+This ensures the cache system works identically on Windows, macOS, and Linux without requiring Git Bash, WSL, or any external tools.
+
+#### Integrity Verification
+
+Each zip chunk has a SHA256 checksum computed during build and stored in `manifest.json`:
+```json
+{
+  "chunkChecksums": {
+    "cache-part-01.zip": "a3f8d2...",
+    "cache-part-02.zip": "7b1c4e..."
+  }
+}
+```
+
+During restore, each chunk's SHA256 is verified before extraction. If a checksum doesn't match (corrupted file, incomplete download), the cache manager logs the mismatch and aborts rather than producing a silently broken `node_modules`.
+
 **Prevention:**
 - Always cache the most commonly used packages for the platform's generated projects
 - Use a manifest to track cached packages and versions, enabling cache updates
@@ -1047,6 +1070,8 @@ private copyDirRecursive(src: string, dest: string) {
 - Use `--prefer-offline` to avoid unnecessary network requests when packages are already available
 - Fall back gracefully to full network install when cache is unavailable
 - Periodically update the cache contents as the platform's template dependencies evolve
+- Never use shell commands for file operations in cross-platform code — use Node-native libraries instead
+- Always include integrity checksums (SHA256) for cached artifacts to detect corruption early
 
 ---
 

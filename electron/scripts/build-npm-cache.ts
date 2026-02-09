@@ -1,7 +1,9 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import archiver from 'archiver';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -204,14 +206,7 @@ async function main() {
   console.log(`\n✅ Installed ${totalPackages} packages`);
   console.log(`   node_modules size: ${(installedSize / 1024 / 1024).toFixed(1)} MB`);
 
-  console.log('\n📦 Creating manifest...');
-  const manifest = createManifest(nodeModulesPath);
-  fs.writeFileSync(
-    path.join(CACHE_DIR, 'manifest.json'),
-    JSON.stringify(manifest, null, 2)
-  );
-
-  console.log(`\n🗜️  Splitting node_modules into ~${CHUNK_SIZE_MB}MB zip chunks...`);
+  console.log(`\n🗜️  Splitting node_modules into ~${CHUNK_SIZE_MB}MB zip chunks (using archiver)...`);
 
   for (const f of fs.readdirSync(CACHE_DIR)) {
     if (f.startsWith('cache-part-') && f.endsWith('.zip')) {
@@ -225,6 +220,7 @@ async function main() {
   let chunkIndex = 1;
   let currentSize = 0;
   let currentFiles: string[] = [];
+  const chunkHashes: Record<string, string> = {};
 
   for (const file of allFiles) {
     const fullPath = path.join(nodeModulesPath, file);
@@ -233,7 +229,10 @@ async function main() {
     currentSize += stat.size;
 
     if (currentSize >= CHUNK_SIZE_BYTES) {
-      await writeChunk(chunkIndex, currentFiles, nodeModulesPath);
+      const hash = await writeChunk(chunkIndex, currentFiles, nodeModulesPath);
+      if (hash) {
+        chunkHashes[`cache-part-${String(chunkIndex).padStart(2, '0')}.zip`] = hash;
+      }
       chunkIndex++;
       currentFiles = [];
       currentSize = 0;
@@ -241,7 +240,10 @@ async function main() {
   }
 
   if (currentFiles.length > 0) {
-    await writeChunk(chunkIndex, currentFiles, nodeModulesPath);
+    const hash = await writeChunk(chunkIndex, currentFiles, nodeModulesPath);
+    if (hash) {
+      chunkHashes[`cache-part-${String(chunkIndex).padStart(2, '0')}.zip`] = hash;
+    }
     chunkIndex++;
   }
 
@@ -258,11 +260,19 @@ async function main() {
   console.log(`   Total compressed size: ${(totalZipSize / 1024 / 1024).toFixed(1)} MB`);
   console.log(`   Location: ${CACHE_DIR}/`);
 
+  console.log('\n📦 Creating manifest...');
+  const manifest = createManifest(nodeModulesPath, chunkHashes);
+  fs.writeFileSync(
+    path.join(CACHE_DIR, 'manifest.json'),
+    JSON.stringify(manifest, null, 2)
+  );
+
   console.log('\n🧹 Cleaning up temp directory...');
   fs.rmSync(TEMP_DIR, { recursive: true });
 
   console.log('\n✅ Done! Offline npm cache is ready.');
   console.log(`   ${totalChunks} chunks × ~${CHUNK_SIZE_MB}MB = ${(totalZipSize / 1024 / 1024).toFixed(1)} MB total`);
+  console.log(`   SHA256 checksums included in manifest.json for integrity verification`);
 }
 
 function getDirSize(dirPath: string): number {
@@ -294,7 +304,7 @@ function getAllFiles(dir: string, root: string): string[] {
   return files;
 }
 
-function createManifest(nodeModulesPath: string) {
+function createManifest(nodeModulesPath: string, chunkHashes: Record<string, string>) {
   const packages: Record<string, { version: string; files: number }> = {};
   const entries = fs.readdirSync(nodeModulesPath, { withFileTypes: true });
 
@@ -330,6 +340,7 @@ function createManifest(nodeModulesPath: string) {
     npmVersion: execSync('npm --version').toString().trim(),
     totalPackages: Object.keys(packages).length,
     requestedPackages: Object.keys(ALL_PACKAGES).length + Object.keys(ALL_DEV_PACKAGES).length,
+    chunkChecksums: chunkHashes,
     packages,
   };
 }
@@ -358,22 +369,41 @@ function countFiles(dir: string): number {
   return count;
 }
 
-async function writeChunk(index: number, files: string[], rootDir: string) {
+async function writeChunk(index: number, files: string[], rootDir: string): Promise<string | null> {
   const chunkName = `cache-part-${String(index).padStart(2, '0')}.zip`;
   const chunkPath = path.join(CACHE_DIR, chunkName);
 
-  const fileListPath = path.join(TEMP_DIR, `chunk-${index}.txt`);
-  fs.writeFileSync(fileListPath, files.join('\n'));
+  return new Promise((resolve) => {
+    const output = fs.createWriteStream(chunkPath);
+    const archive = archiver('zip', { zlib: { level: 6 } });
 
-  try {
-    execSync(`cd "${rootDir}" && cat "${fileListPath}" | zip -@ "${chunkPath}" -q`, {
-      timeout: 120000,
+    output.on('close', () => {
+      const hash = crypto.createHash('sha256');
+      const stream = fs.createReadStream(chunkPath);
+      stream.on('data', (chunk) => hash.update(chunk));
+      stream.on('end', () => {
+        const sha256 = hash.digest('hex');
+        const size = fs.statSync(chunkPath).size;
+        console.log(`   ✅ ${chunkName}: ${(size / 1024 / 1024).toFixed(1)} MB (${files.length} files) [SHA256: ${sha256.slice(0, 16)}...]`);
+        resolve(sha256);
+      });
+      stream.on('error', () => resolve(null));
     });
-    const size = fs.statSync(chunkPath).size;
-    console.log(`   ✅ ${chunkName}: ${(size / 1024 / 1024).toFixed(1)} MB (${files.length} files)`);
-  } catch (err) {
-    console.error(`   ❌ Failed to create ${chunkName}:`, err);
-  }
+
+    archive.on('error', (err) => {
+      console.error(`   ❌ Failed to create ${chunkName}:`, err);
+      resolve(null);
+    });
+
+    archive.pipe(output);
+
+    for (const file of files) {
+      const fullPath = path.join(rootDir, file);
+      archive.file(fullPath, { name: file });
+    }
+
+    archive.finalize();
+  });
 }
 
 main().catch(console.error);

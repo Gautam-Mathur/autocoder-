@@ -1,8 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import * as crypto from 'crypto';
 import { app } from 'electron';
 import { logger } from './logger.js';
+import AdmZip from 'adm-zip';
 
 const CACHE_READY_FILE = '.cache-unpacked';
 
@@ -76,15 +77,27 @@ export class NpmCacheManager {
         return false;
       }
 
+      const manifest = this.readSourceManifest();
+      const checksums: Record<string, string> = manifest?.chunkChecksums || {};
+
       logger.info('NpmCache', `Found ${zipFiles.length} cache chunks to unpack`);
 
       for (const zipFile of zipFiles) {
         const zipPath = path.join(this.zipSourceDir, zipFile);
         logger.info('NpmCache', `Unpacking ${zipFile}...`);
+
+        if (checksums[zipFile]) {
+          const actualHash = await this.computeFileHash(zipPath);
+          if (actualHash !== checksums[zipFile]) {
+            logger.error('NpmCache', `Integrity check failed for ${zipFile}: expected ${checksums[zipFile].slice(0, 16)}..., got ${actualHash.slice(0, 16)}...`);
+            return false;
+          }
+          logger.info('NpmCache', `✓ ${zipFile} integrity verified`);
+        }
+
         try {
-          execSync(`unzip -o -q "${zipPath}" -d "${this.nodeModulesDir}"`, {
-            timeout: 120000,
-          });
+          const zip = new AdmZip(zipPath);
+          zip.extractAllTo(this.nodeModulesDir, true);
         } catch (err) {
           logger.error('NpmCache', `Failed to unpack ${zipFile}: ${err}`);
           return false;
@@ -101,8 +114,8 @@ export class NpmCacheManager {
         JSON.stringify({ unpackedAt: new Date().toISOString(), chunks: zipFiles.length })
       );
 
-      const manifest = this.readManifest();
-      const pkgCount = manifest?.totalPackages || 'unknown';
+      const cachedManifest = this.readManifest();
+      const pkgCount = cachedManifest?.totalPackages || 'unknown';
       logger.info('NpmCache', `Cache unpacked successfully: ${pkgCount} packages ready`);
       this.isReady = true;
       return true;
@@ -110,6 +123,16 @@ export class NpmCacheManager {
       logger.error('NpmCache', `Cache unpack failed: ${err}`);
       return false;
     }
+  }
+
+  private readSourceManifest(): any {
+    try {
+      const manifestPath = path.join(this.zipSourceDir, 'manifest.json');
+      if (fs.existsSync(manifestPath)) {
+        return JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+      }
+    } catch {}
+    return null;
   }
 
   private readManifest(): any {
@@ -153,8 +176,7 @@ export class NpmCacheManager {
     let sizeBytes = 0;
     if (this.isReady && fs.existsSync(this.nodeModulesDir)) {
       try {
-        const result = execSync(`du -sb "${this.nodeModulesDir}" 2>/dev/null || echo "0"`, { timeout: 10000 });
-        sizeBytes = parseInt(result.toString().split('\t')[0], 10) || 0;
+        sizeBytes = this.getDirSizeSync(this.nodeModulesDir);
       } catch {}
     }
     return {
@@ -163,6 +185,32 @@ export class NpmCacheManager {
       cachePath: this.nodeModulesDir,
       sizeBytes,
     };
+  }
+
+  private computeFileHash(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const hash = crypto.createHash('sha256');
+      const stream = fs.createReadStream(filePath);
+      stream.on('data', (chunk) => hash.update(chunk));
+      stream.on('end', () => resolve(hash.digest('hex')));
+      stream.on('error', reject);
+    });
+  }
+
+  private getDirSizeSync(dirPath: string): number {
+    let size = 0;
+    try {
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+          size += this.getDirSizeSync(fullPath);
+        } else {
+          size += fs.statSync(fullPath).size;
+        }
+      }
+    } catch {}
+    return size;
   }
 }
 

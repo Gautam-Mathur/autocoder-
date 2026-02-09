@@ -1,4 +1,4 @@
-import { spawn, ChildProcess, execSync } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from './logger.js';
@@ -148,11 +148,7 @@ export class LocalRunner {
   }
 
   private copyDirRecursive(src: string, dest: string) {
-    if (process.platform === 'win32') {
-      execSync(`xcopy "${src}" "${dest}" /E /I /Q /Y >nul 2>&1`, { timeout: 30000 });
-    } else {
-      execSync(`cp -r "${src}" "${dest}"`, { timeout: 30000 });
-    }
+    fs.cpSync(src, dest, { recursive: true, force: true });
   }
 
   async npmInstall(
