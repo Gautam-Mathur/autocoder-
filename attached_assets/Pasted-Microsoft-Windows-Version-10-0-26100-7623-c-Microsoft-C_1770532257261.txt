@@ -1,0 +1,242 @@
+Microsoft Windows [Version 10.0.26100.7623]       
+(c) Microsoft Corporation. All rights reserved.   
+
+C:\Users\Lenovo\Downloads\autocoder- (2)>cd C:\Users\Lenovo\Downloads\autocoder- (2)\autocoder-
+
+C:\Users\Lenovo\Downloads\autocoder- (2)\autocoder->npm run electron:dev
+
+> rest-express@1.0.0 electron:dev
+> npm run build:electron && cross-env NODE_ENV=development npx electron dist-electron/main.js
+
+
+> rest-express@1.0.0 build:electron
+> tsx scripts/build-electron.ts
+
+Building Electron main process...
+Building Electron preload script...
+Electron build complete! Output in dist-electron/
+
+11:43:51.914 ΓùÅ INF [Logger      ] Logger initialized
+                          Γöö logFile: C:\Users\Lenovo\AppData\Roaming\Electron\logs\autocoder-2026-02-08.log
+11:43:51.949 ΓùÅ INF [App         ] Electron app ready
+                          Γöö version: 40.2.1
+                          Γöö platform: win32     
+                          Γöö arch: x64
+                          Γöö nodeVersion: v24.11.1
+11:43:51.950 ΓùÅ INF [App         ] Creating main window
+                          Γöö isDev: true
+11:43:51.998 ΓùÅ INF [App         ] Loading dev URL: http://localhost:5200
+(node:31964) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `electron --trace-deprecation ...` to show where the warning was created)
+(electron) 'console-message' arguments are deprecated and will be removed. Please use Event<WebContentsConsoleMessageEventParams> object instead.     
+11:43:54.640 ΓöÇ DBG [Renderer    ] [vite] connecting...
+                          Γöö line: 733
+                          Γöö sourceId: http://localhost:5200/@vite/client
+11:43:54.990 ΓöÇ DBG [Renderer    ] [vite] connected.
+                          Γöö line: 827
+alhost:5200/@fs/C:/Users/Lenovo/Downloads/autocoder-%20(2)/autocoder-/node_modules/.vite/deps/chunk-LPF6KSF2.js?v=77e17e32
+11:43:55.296 ΓùÅ INF [App         ] Page loaded successfully
+11:43:55.487 ΓÜá WRN [Renderer    ] %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of       
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+                          Γöö line: 2
+                          Γöö sourceId: node:electron/js2c/sandbox_bundle        
+11:44:11.616 ΓùÅ INF [Renderer    ] %cΓöÇΓöÇ PRE-WARM START ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ color:#334155;font-size:11px
+                          Γöö line: 145
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:11.617 ΓùÅ INF [Renderer    ] %c11:44:11.617%c %cΓùÅ INFO %c %cPreWarm%c [booting] Starting WebContainer environment... color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#172554;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:11.618 ΓùÅ INF [Renderer    ] %c11:44:11.617%c %cΓùÅ INFO %c %cWebContainer%c Booting WebContainer... color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#1e1b4b;color:#a78bfa;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:11.620 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ coep: require-corp  ┬╖  crossOriginIsolated: true  ┬╖  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:15.129 ΓÜá WRN [Renderer    ] The resource https://w-corp-staticblitz.com/fetch.worker.e5af05b3.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+                          Γöö line: 0
+                          Γöö sourceId: https://stackblitz.com/headless?version=1.6.1
+11:44:26.506 ΓùÅ INF [Renderer    ] %c11:44:26.507%c %cΓ£ô SUCCESS%c %cWebContainer%c WebContainer booted successfully 14.9s color:#475569;font-size:11px;font-family:monospace  background:#14532d;color:#4ade80;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#1e1b4b;color:#a78bfa;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#86efac
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:26.509 ΓùÅ INF [Renderer    ] %c11:44:26.507%c %cΓ£ô SUCCESS%c %cPreWarm%c WebContainer booted 14.9s color:#475569;font-size:11px;font-family:monospace  background:#14532d;color:#4ade80;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#172554;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#86efac
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:26.522 ΓùÅ INF [Renderer    ] %c11:44:26.507%c %cΓùÅ INFO %c %cPreWarm%c [booting] Environment ready color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#172554;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:26.523 ΓùÅ INF [Renderer    ] %c11:44:26.508%c %cΓùÅ INFO %c %cPreWarm%c Installing 13 deps + 6 devDeps color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#172554;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:26.525 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ dependencies: react, react-dom, wouter, @tanstack/react-query, lucide-react, recharts, date-fns, clsx, tailwind-merge, zod, react-hook-form, @hookform/resolvers, framer-motion  ┬╖  devDependencies: vite, @vitejs/plugin-react, tailwindcss, postcss, autoprefixer, fast-glob color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:26.526 ΓùÅ INF [Renderer    ] %c11:44:26.508%c %cΓùÅ INFO %c %cPreWarm%c [installing] Pre-installing 19 core packages... color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#172554;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:27.129 ΓÜá WRN [Renderer    ] The resource https://w-corp-staticblitz.com/fetch.worker.e5af05b3.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+                          Γöö line: 0
+                          Γöö sourceId: https://stackblitz.com/headless?version=1.6.1
+11:44:39.178 ΓùÅ INF [Renderer    ] %c11:44:39.179%c %c┬╖ DEBUG%c %cFileSystem%c Wrote pre-warm package.json color:#475569;font-size:11px;font-family:monospace  background:#1e293b;color:#64748b;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#1c1917;color:#a8a29e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#94a3b8
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:39.180 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ size: 732 bytes color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:39.181 ΓùÅ INF [Renderer    ] %c11:44:39.181%c %c┬╖ DEBUG%c %cFileSystem%c Wrote pre-warm vite.config.ts color:#475569;font-size:11px;font-family:monospace  background:#1e293b;color:#64748b;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#1c1917;color:#a8a29e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#94a3b8
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:39.185 ΓùÅ INF [Renderer    ] %c11:44:39.186%c %cΓùÅ INFO %c %cNPM%c Spawned npm install for pre-warm color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:44:39.187 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ flags: --prefer-offline --no-audit --no-fund --loglevel=error  ┬╖  timeout: 180s color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:04.297 ΓùÅ INF [Renderer    ] %c11:45:04.297%c %cΓùÅ INFO %c %cFileSystem%c Mounting 39 files... color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#1c1917;color:#a8a29e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:04.335 ΓùÅ INF [Renderer    ] %c11:45:04.335%c %cΓ£ô SUCCESS%c %cFileSystem%c Mounted 39 files 37ms color:#475569;font-size:11px;font-family:monospace  background:#14532d;color:#4ade80;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#1c1917;color:#a8a29e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#86efac
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:04.336 ΓÜá WRN [Renderer    ] %c11:45:04.336%c %cΓû▓ WARN %c %cNPM%c Killing stalled pre-warm npm process before main install color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:04.349 ΓùÅ INF [Renderer    ] %c11:45:04.349%c %cΓùÅ INFO %c %cNPM%c \|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/ color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:04.351 Γ£ÿ ERR [Renderer    ] %c11:45:04.350%c %cΓ£û ERROR%c %cPreWarm%c npm install failed during pre-warm color:#475569;font-size:11px;font-family:monospace  background:#7f1d1d;color:#f87171;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#172554;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fca5a5
+                          Γöö line: 92
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:04.353 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ exitCode: 143  ┬╖  npmTime: 25168m/ color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:04.354 ΓùÅ INF [Renderer    ] %cΓöÇΓöÇ PRE-WARM FAILED ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ color:#334155;font-size:11px
+                          Γöö line: 145
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:04.355 ΓùÅ INF [Renderer    ] %c11:45:04.350%c %cΓùÅ INFO %c %cPreWarm%c [failed] Pre-install failed (exit code 143), will install on demand color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#172554;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:05.303 ΓùÅ INF [Renderer    ] %cΓöÇΓöÇ NPM INSTALL ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ color:#334155;font-size:11px
+                          Γöö line: 145
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:05.304 ΓùÅ INF [Renderer    ] %c11:45:05.302%c %cΓùÅ INFO %c %cNPM%c Install attempt 1/3 color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:45:05.306 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ timeout: 180s  ┬╖  flags: --prefer-offline --no-audit --no-fund --loglevel=http color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:47:39.301 ΓÜá WRN [Renderer    ] %c11:47:39.301%c %cΓû▓ WARN %c %cPreWarm%c npm install timed out after 180s, killing process color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#172554;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:48:05.312 ΓÜá WRN [Renderer    ] %c11:48:05.311%c %cΓû▓ WARN %c %cNPM%c Attempt 1 timed out after 180s color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:48:05.314 ΓÜá WRN [Renderer    ] %c11:48:05.313%c %cΓû▓ WARN %c %cNPM%c Attempt 1 failed color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:48:05.315 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ exitCode: -1  ┬╖  timedOut: true  ┬╖  attemptTime: 180009ms  ┬╖  reason: timeout color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:48:05.316 ΓùÅ INF [Renderer    ] %c11:48:05.314%c %cΓùÅ INFO %c %cNPM%c Retrying in 1s... color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:48:06.321 ΓùÅ INF [Renderer    ] %c11:48:06.320%c %cΓùÅ INFO %c %cNPM%c Install attempt 2/3 color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:48:06.326 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ timeout: 180s  ┬╖  flags: --prefer-offline --no-audit --no-fund --loglevel=http color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:51:07.298 ΓÜá WRN [Renderer    ] %c11:51:07.299%c %cΓû▓ WARN %c %cNPM%c Attempt 2 timed out after 180s color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:51:07.303 ΓÜá WRN [Renderer    ] %c11:51:07.304%c %cΓû▓ WARN %c %cNPM%c Attempt 2 failed color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:51:07.304 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ exitCode: -1  ┬╖  timedOut: true  ┬╖  attemptTime: 180983ms  ┬╖  reason: timeout color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:51:07.306 ΓùÅ INF [Renderer    ] %c11:51:07.305%c %cΓùÅ INFO %c %cNPM%c Retrying in 2s... color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:51:10.295 ΓùÅ INF [Renderer    ] %c11:51:10.297%c %cΓùÅ INFO %c %cNPM%c Install attempt 3/3 color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:51:10.297 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ timeout: 180s  ┬╖  flags: --prefer-offline --no-audit --no-fund --loglevel=http color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:54:11.295 ΓÜá WRN [Renderer    ] %c11:54:11.295%c %cΓû▓ WARN %c %cNPM%c Attempt 3 timed out after 180s color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:54:11.300 ΓÜá WRN [Renderer    ] %c11:54:11.300%c %cΓû▓ WARN %c %cNPM%c Attempt 3 failed color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:54:11.301 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ exitCode: -1  ┬╖  timedOut: true  ┬╖  attemptTime: 181002ms  ┬╖  reason: timeout color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:54:11.302 ΓÜá WRN [Renderer    ] %c11:54:11.300%c %cΓû▓ WARN %c %cNPM%c Standard install failed after all retries, trying minimal install... color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:54:11.304 ΓùÅ INF [Renderer    ] %c11:54:11.304%c %cΓùÅ INFO %c %cNPM%c Trying --ignore-scripts fallback color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:12.304 Γ£ÿ ERR [Renderer    ] %c11:55:12.305%c %cΓ£û ERROR%c %cNPM%c Minimal install timed out (60s) color:#475569;font-size:11px;font-family:monospace  background:#7f1d1d;color:#f87171;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fca5a5
+                          Γöö line: 92
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:12.305 Γ£ÿ ERR [Renderer    ] %c11:55:12.305%c %cΓ£û ERROR%c %cNPM%c Minimal install also failed color:#475569;font-size:11px;font-family:monospace  background:#7f1d1d;color:#f87171;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fca5a5
+                          Γöö line: 92
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:12.307 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ minimalTime: 61001ms color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:12.308 Γ£ÿ ERR [Renderer    ] %c11:55:12.305%c %cΓ£û ERROR%c %cNPM%c All install attempts exhausted color:#475569;font-size:11px;font-family:monospace  background:#7f1d1d;color:#f87171;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fca5a5
+                          Γöö line: 92
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:12.309 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ totalAttempts: 4  ┬╖  errors: [] color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:12.311 ΓùÅ INF [Renderer    ] %cΓöÇΓöÇ NPM INSTALL FAILED ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ color:#334155;font-size:11px
+                          Γöö line: 145
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:39.953 ΓùÅ INF [Renderer    ] %c11:55:39.954%c %cΓùÅ INFO %c %cFileSystem%c Mounting 39 files... color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#1c1917;color:#a8a29e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:39.974 ΓùÅ INF [Renderer    ] %c11:55:39.975%c %cΓ£ô SUCCESS%c %cFileSystem%c Mounted 39 files 21ms color:#475569;font-size:11px;font-family:monospace  background:#14532d;color:#4ade80;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#1c1917;color:#a8a29e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#86efac
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:39.976 ΓùÅ INF [Renderer    ] %cΓöÇΓöÇ NPM INSTALL ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ color:#334155;font-size:11px
+                          Γöö line: 145
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:39.977 ΓùÅ INF [Renderer    ] %c11:55:39.976%c %cΓùÅ INFO %c %cNPM%c Install attempt 1/3 color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:55:39.993 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ timeout: 180s  ┬╖  flags: --prefer-offline --no-audit --no-fund --loglevel=http color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:58:40.294 ΓÜá WRN [Renderer    ] %c11:58:40.294%c %cΓû▓ WARN %c %cNPM%c Attempt 1 timed out after 180s color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:58:40.299 ΓÜá WRN [Renderer    ] %c11:58:40.299%c %cΓû▓ WARN %c %cNPM%c Attempt 1 failed color:#475569;font-size:11px;font-family:monospace  background:#78350f;color:#fbbf24;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#fcd34d
+                          Γöö line: 95
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:58:40.300 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ exitCode: -1  ┬╖  timedOut: true  ┬╖  attemptTime: 180323ms  ┬╖  reason: timeout color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:58:40.302 ΓùÅ INF [Renderer    ] %c11:58:40.300%c %cΓùÅ INFO %c %cNPM%c Retrying in 1s... color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:58:42.295 ΓùÅ INF [Renderer    ] %c11:58:42.295%c %cΓùÅ INFO %c %cNPM%c Install attempt 2/3 color:#475569;font-size:11px;font-family:monospace  background:#0c4a6e;color:#38bdf8;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px  background:#431407;color:#fb923c;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px color:#7dd3fc
+                          Γöö line: 98
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:58:42.296 ΓùÅ INF [Renderer    ] %c  ΓööΓöÇ timeout: 180s  ┬╖  flags: --prefer-offline --no-audit --no-fund --loglevel=http color:#475569;font-size:11px;font-style:italic;padding-left:8px
+                          Γöö line: 102
+                          Γöö sourceId: http://localhost:5200/src/lib/code-runner/logger.ts
+11:59:24.036 ΓùÅ INF [App         ] Window closed
+11:59:24.037 ΓùÅ INF [Runner      ] Cleaning up runner resources
+11:59:24.038 ΓùÅ INF [App         ] All windows closed
+11:59:24.039 ΓùÅ INF [App         ] App quitting
+11:59:24.040 ΓùÅ INF [Runner      ] Cleaning up runner resources

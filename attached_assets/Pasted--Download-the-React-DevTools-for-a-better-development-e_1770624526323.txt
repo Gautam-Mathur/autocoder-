@@ -1,0 +1,413 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ ── PRE-WARM START ──────────────────────────────
+ 13:32:51.806 ● INFO  PreWarm [booting] Starting WebContainer environment...
+ 13:32:51.806 ● INFO  WebContainer Booting WebContainer...
+   └─ coep: require-corp  ·  crossOriginIsolated: true  ·  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
+ Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ node:electron/js2c/sandbox_bundle:2
+logSecurityWarnings @ node:electron/js2c/sandbox_bundle:2
+(anonymous) @ node:electron/js2c/sandbox_bundle:2
+ 13:32:52.803 ✓ SUCCESS WebContainer WebContainer booted successfully 997ms
+ 13:32:52.803 ✓ SUCCESS PreWarm WebContainer booted 997ms
+ 13:32:52.803 ● INFO  PreWarm [booting] Environment ready
+ 13:32:52.804 ● INFO  PreWarm Installing 66 deps + 24 devDeps in 5 batches
+ 13:32:52.804 ● INFO  PreWarm [installing] Pre-installing 90 packages in 5 batches...
+ 13:32:53.567 · DEBUG FileSystem Wrote pre-warm vite.config.ts
+ 13:32:53.567 ● INFO  PreWarm [installing] Batch 1/5: Installing 19 packages...
+ 13:32:53.570 · DEBUG FileSystem Wrote batch-1 package.json
+   └─ size: 743 bytes
+ 13:32:53.575 ● INFO  NPM batch-1: installing 19 packages
+   └─ timeout: 300s  ·  stallTimeout: 120s
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.e5af05b3.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+ 13:33:08.730 ● INFO  NPM 📦 1 packages downloaded...
+ 13:33:09.080 ● INFO  NPM 📦 2 packages downloaded...
+ 13:33:09.173 ● INFO  NPM 📦 3 packages downloaded...
+ 13:33:17.011 ● INFO  NPM 📦 10 packages downloaded...
+ 13:33:26.666 ● INFO  NPM 📦 20 packages downloaded...
+ 13:33:27.705 ● INFO  NPM 📦 30 packages downloaded...
+ 13:33:28.644 ● INFO  NPM 📦 40 packages downloaded...
+ 13:33:29.983 ● INFO  NPM 📦 50 packages downloaded...
+ 13:33:30.814 ● INFO  NPM 📦 60 packages downloaded...
+ 13:33:33.111 ● INFO  NPM 📦 70 packages downloaded...
+ 13:33:34.185 ● INFO  NPM 📦 80 packages downloaded...
+ 13:33:36.455 ● INFO  NPM 📦 90 packages downloaded...
+ 13:33:37.149 ● INFO  NPM 📦 100 packages downloaded...
+ 13:33:50.358 ● INFO  NPM 📦 110 packages downloaded...
+ 13:33:51.042 ● INFO  NPM 📦 120 packages downloaded...
+ 13:33:53.438 ● INFO  NPM 📦 130 packages downloaded...
+ 13:33:56.680 ● INFO  NPM 📦 140 packages downloaded...
+ 13:33:57.941 ● INFO  NPM 📦 150 packages downloaded...
+ 13:33:58.913 ● INFO  NPM 📦 160 packages downloaded...
+ 13:33:59.728 ● INFO  NPM 📦 170 packages downloaded...
+ 13:34:00.381 ● INFO  NPM 📦 180 packages downloaded...
+ 13:34:00.655 ● INFO  NPM 📦 190 packages downloaded...
+ 13:34:03.664 ● INFO  NPM |/-\|/-\|/-\|/-\|/-\|/
+ 13:34:03.664 ✓ SUCCESS NPM added 147 packages in 1m
+ 13:34:03.665 ● INFO  PreWarm [installing] batch-1: added 147 packages in 1m
+ 13:34:03.683 ✓ SUCCESS PreWarm batch-1 complete (19 packages) 1m10s
+   └─ npmTime: 70113ms
+ 13:34:03.683 ● INFO  PreWarm Batch 1/5 succeeded
+ 13:34:03.683 ● INFO  PreWarm [installing] Batch 2/5: Installing 12 packages...
+ 13:34:03.706 · DEBUG FileSystem Wrote batch-2 package.json
+   └─ size: 1114 bytes
+ 13:34:03.716 ● INFO  NPM batch-2: installing 31 packages
+   └─ timeout: 300s  ·  stallTimeout: 120s
+ 13:34:05.379 ● INFO  NPM 📦 1 packages downloaded...
+ 13:34:06.161 ● INFO  NPM 📦 2 packages downloaded...
+ 13:34:12.086 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 13:34:19.714 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 13:34:21.801 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 13:34:22.450 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 13:34:23.008 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 13:34:23.862 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 13:34:23.882 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 13:34:24.617 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 13:34:26.053 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 13:34:26.057 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 13:34:28.792 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 13:34:28.795 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 13:34:28.800 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 13:34:29.684 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 13:34:29.836 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 13:34:30.021 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 13:34:30.054 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 13:34:30.073 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 13:34:32.353 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 13:34:34.470 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 13:34:37.231 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 13:34:39.534 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 13:34:41.084 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:114 13:34:46.993 ▲ WARN  NPM /-npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:408
+logger.ts:114 13:34:46.994 ▲ WARN  NPM -npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:408
+logger.ts:114 13:34:46.995 ▲ WARN  NPM -npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:408
+logger.ts:114 13:34:46.997 ▲ WARN  NPM -npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:408
+logger.ts:115 13:34:50.387 ● INFO  NPM -\|/-\|/-\|/-\|/-\|/-\|
+logger.ts:115 13:34:50.387 ✓ SUCCESS NPM added 156 packages in 46s
+logger.ts:115 13:34:50.387 ● INFO  PreWarm [installing] batch-2: added 156 packages in 46s
+logger.ts:115 13:34:50.399 ✓ SUCCESS PreWarm batch-2 complete (31 packages) 46.7s
+logger.ts:122   └─ npmTime: 46693ms
+logger.ts:115 13:34:50.399 ● INFO  PreWarm Batch 2/5 succeeded
+logger.ts:115 13:34:50.399 ● INFO  PreWarm [installing] Batch 3/5: Installing 14 packages...
+logger.ts:115 13:34:50.411 · DEBUG FileSystem Wrote batch-3 package.json
+logger.ts:122   └─ size: 1686 bytes
+logger.ts:115 13:34:50.417 ● INFO  NPM batch-3: installing 45 packages
+logger.ts:122   └─ timeout: 300s  ·  stallTimeout: 120s
+logger.ts:115 13:35:01.816 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 13:35:02.780 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 13:35:03.791 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 13:35:14.775 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 13:35:19.578 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 13:35:20.782 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 13:35:22.667 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 13:35:24.575 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 13:35:28.799 ● INFO  NPM /-\|/-\|/-\|/-\|/-
+logger.ts:115 13:35:28.799 ✓ SUCCESS NPM added 63 packages in 38s
+logger.ts:115 13:35:28.800 ● INFO  PreWarm [installing] batch-3: added 63 packages in 38s
+logger.ts:115 13:35:28.808 ✓ SUCCESS PreWarm batch-3 complete (45 packages) 38.4s
+logger.ts:122   └─ npmTime: 38396ms
+logger.ts:115 13:35:28.808 ● INFO  PreWarm Batch 3/5 succeeded
+logger.ts:115 13:35:28.808 ● INFO  PreWarm [installing] Batch 4/5: Installing 18 packages...
+logger.ts:115 13:35:28.816 · DEBUG FileSystem Wrote batch-4 package.json
+logger.ts:122   └─ size: 2417 bytes
+logger.ts:115 13:35:28.824 ● INFO  NPM batch-4: installing 63 packages
+logger.ts:122   └─ timeout: 300s  ·  stallTimeout: 120s
+logger.ts:115 13:35:30.670 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 13:35:31.215 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 13:35:31.727 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 13:35:36.773 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 13:35:42.866 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 13:35:44.162 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 13:35:45.556 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 13:35:46.977 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 13:35:47.220 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 13:35:51.183 ● INFO  NPM \|/-\|/-\|/-\|/
+logger.ts:115 13:35:51.183 ✓ SUCCESS NPM added 63 packages in 22s
+logger.ts:115 13:35:51.183 ● INFO  PreWarm [installing] batch-4: added 63 packages in 22s
+logger.ts:115 13:35:51.191 ✓ SUCCESS PreWarm batch-4 complete (63 packages) 22.4s
+logger.ts:122   └─ npmTime: 22375ms
+logger.ts:115 13:35:51.191 ● INFO  PreWarm Batch 4/5 succeeded
+logger.ts:115 13:35:51.191 ● INFO  PreWarm [installing] Batch 5/5: Installing 27 packages...
+logger.ts:115 13:35:51.194 · DEBUG FileSystem Wrote batch-5 package.json
+logger.ts:122   └─ size: 3188 bytes
+logger.ts:115 13:35:51.205 ● INFO  NPM batch-5: installing 90 packages
+logger.ts:122   └─ timeout: 300s  ·  stallTimeout: 120s
+logger.ts:115 13:35:53.344 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 13:35:54.170 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 13:35:54.205 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 13:35:58.040 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 13:36:07.739 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 13:36:14.145 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 13:36:15.046 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 13:36:16.055 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 13:36:16.480 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 13:36:17.318 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 13:36:18.491 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 13:36:19.159 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 13:36:22.103 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 13:36:24.133 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 13:36:24.365 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 13:36:26.201 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 13:36:27.958 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 13:36:30.155 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 13:36:30.297 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:115 13:36:30.686 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 13:36:32.170 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 13:36:32.624 ● INFO  NPM 📦 190 packages downloaded...
+logger.ts:115 13:36:34.864 ● INFO  NPM 📦 200 packages downloaded...
+logger.ts:115 13:36:38.167 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:115 13:36:39.014 ● INFO  NPM 📦 220 packages downloaded...
+logger.ts:115 13:36:40.134 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 13:36:40.150 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 13:36:40.910 ● INFO  NPM 📦 240 packages downloaded...
+logger.ts:115 13:36:44.327 ● INFO  NPM 📦 250 packages downloaded...
+logger.ts:114 13:36:47.348 ▲ WARN  NPM -\|npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:408
+logger.ts:115 13:36:52.514 ● INFO  NPM |/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-
+logger.ts:115 13:36:52.514 ✓ SUCCESS NPM added 239 packages, and changed 1 package in 1m
+logger.ts:115 13:36:52.514 ● INFO  PreWarm [installing] batch-5: added 239 packages, and changed 1 package in 1m
+logger.ts:115 13:36:52.525 ✓ SUCCESS PreWarm batch-5 complete (90 packages) 1m1s
+logger.ts:122   └─ npmTime: 61331ms
+logger.ts:115 13:36:52.525 ● INFO  PreWarm Batch 5/5 succeeded
+logger.ts:115 13:36:52.525 ✓ SUCCESS PreWarm Pre-warm complete! All 90 packages cached in 5 batches 4m1s
+logger.ts:122   └─ totalTime: 240720ms
+logger.ts:175 ── PRE-WARM DONE ───────────────────────────────
+logger.ts:115 13:36:52.525 ● INFO  PreWarm [ready] All packages pre-installed
+logger.ts:115 13:37:49.113 ● INFO  FileSystem Mounting 39 files...
+logger.ts:115 13:37:49.135 ✓ SUCCESS FileSystem Mounted 39 files 22ms
+logger.ts:175 ── NPM INSTALL ─────────────────────────────────
+logger.ts:115 13:37:49.136 ● INFO  NPM Checking npm registry connectivity...
+logger.ts:115 13:37:50.650 ✓ SUCCESS NPM Registry reachable (npmjs.org) 1.5s
+logger.ts:115 13:37:50.651 ● INFO  NPM Install attempt 1/3
+logger.ts:122   └─ timeout: 180s  ·  stallTimeout: 45s  ·  flags: --prefer-offline --no-audit --no-fund --loglevel=http --fetch-retries=2 --fetch-timeout=30000
+logger.ts:115 13:37:54.274 ● INFO  NPM \|/-\|/
+logger.ts:115 13:37:54.275 ● INFO  NPM removed 259 packages in 3s
+logger.ts:115 13:37:54.283 ✓ SUCCESS NPM Dependencies installed successfully on attempt 1 5.1s
+logger.ts:122   └─ attemptTime: 3632ms  ·  totalTime: 5147ms
+logger.ts:175 ── NPM INSTALL DONE ────────────────────────────
+logger.ts:175 ── DEV SERVER START ────────────────────────────
+logger.ts:115 13:37:54.283 ● INFO  DevServer Starting development server (npm run dev)...
+logger.ts:115 13:37:54.291 · DEBUG DevServer Dev server process spawned
+logger.ts:115 13:37:55.165 · DEBUG DevServer > projectflow@1.0.0 dev
+> vite
+logger.ts:115 13:37:55.169 · DEBUG DevServer [1G
+logger.ts:115 13:37:55.224 · DEBUG DevServer [0K
+logger.ts:115 13:37:59.856 · DEBUG DevServer [1;1H
+logger.ts:115 13:37:59.864 · DEBUG DevServer [0J
+logger.ts:115 13:37:59.865 ✓ SUCCESS DevServer VITE v5.4.21  ready in 4140 ms
+logger.ts:115 13:37:59.884 ✓ SUCCESS DevServer ➜  Local:   http://localhost:5200/
+logger.ts:115 13:37:59.891 · DEBUG DevServer ➜  Network: http://192.168.1.104:5200/
+logger.ts:115 13:37:59.892 · DEBUG DevServer   ➜  press h + enter to show help
+logger.ts:115 13:37:59.899 ✓ SUCCESS DevServer Server ready at https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io (port 5200) 5.6s
+logger.ts:122   └─ port: 5200  ·  url: https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io
+logger.ts:175 ── DEV SERVER READY ────────────────────────────
+logger.ts:113 13:38:03.235 ✖ ERROR DevServer Error:   Failed to scan for dependencies from entries:
+  /home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/index.html
+
+  ✘ [ERROR] No matching export in "src/components/ui/toaster.tsx" for import "Toaster"
+
+    src/App.tsx:4:9:
+      4 │ import { Toaster } from "@/components/ui/toaster";
+        ╵          ~~~~~~~
+
+
+    at failureErrorWithLog (/home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/node_modules/esbuild/lib/main.js:1462:15)
+    at eval (/home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/node_modules/esbuild/lib/main.js:935:25)
+    at runOnEndCallbacks (/home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/node_modules/esbuild/lib/main.js:1305:45)
+    at buildResponseToResult (/home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/node_modules/esbuild/lib/main.js:933:7)
+    at eval (/home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/node_modules/esbuild/lib/main.js:945:9)
+    at requestCallbacks.on-end (/home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/node_modules/esbuild/lib/main.js:944:54)
+    at handleRequest (/home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/node_modules/esbuild/lib/main.js:637:17)
+    at handleIncomingPacket (/home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/node_modules/esbuild/lib/main.js:662:7)
+    at Socket.readFromStdout (/home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/node_modules/esbuild/lib/main.js:590:7)
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:1082
+logger.ts:115 13:38:03.245 · DEBUG FileSystem Wrote file: src/components/ui/toaster.tsx
+logger.ts:122   └─ size: 1054 bytes
+logger.ts:115 13:38:03.312 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:03.312 · DEBUG DevServer [0J
+logger.ts:115 13:38:03.312 · DEBUG DevServer 1:38:03 PM [vite] page reload src/components/ui/toaster.tsx
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.e5af05b3.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+logger.ts:175 ── AUTO-RUN: package.json ──────────────────────
+logger.ts:115 13:38:04.550 ✓ SUCCESS AutoRunner WebContainer support confirmed
+logger.ts:115 13:38:04.551 ● INFO  Pipeline Project analysis complete
+logger.ts:122   └─ type: vite  ·  typescript: true  ·  entryFile: default  ·  devCommand: npm run dev  ·  totalFiles: 39
+logger.ts:115 13:38:04.553 ✓ SUCCESS Pipeline Enhanced package.json: 12 deps, 14 devDeps
+logger.ts:114 13:38:04.553 ▲ WARN  Pipeline Installing 26 packages - this may take longer than usual
+emit @ logger.ts:114
+warn @ logger.ts:139
+autoRunProject @ auto-runner.ts:397
+(anonymous) @ auto-run-preview.tsx:322
+(anonymous) @ auto-run-preview.tsx:362
+commitHookEffectListMount @ chunk-LPF6KSF2.js?v=6d8d5bec:16963
+commitPassiveMountOnFiber @ chunk-LPF6KSF2.js?v=6d8d5bec:18206
+commitPassiveMountEffects_complete @ chunk-LPF6KSF2.js?v=6d8d5bec:18179
+commitPassiveMountEffects_begin @ chunk-LPF6KSF2.js?v=6d8d5bec:18169
+commitPassiveMountEffects @ chunk-LPF6KSF2.js?v=6d8d5bec:18159
+flushPassiveEffectsImpl @ chunk-LPF6KSF2.js?v=6d8d5bec:19543
+flushPassiveEffects @ chunk-LPF6KSF2.js?v=6d8d5bec:19500
+commitRootImpl @ chunk-LPF6KSF2.js?v=6d8d5bec:19469
+commitRoot @ chunk-LPF6KSF2.js?v=6d8d5bec:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=6d8d5bec:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=6d8d5bec:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=6d8d5bec:18677
+logger.ts:115 13:38:04.553 ● INFO  Pipeline Tailwind CSS detected, adding config files
+logger.ts:175 ── MOUNTING FILES ──────────────────────────────
+logger.ts:115 13:38:04.553 ● INFO  Pipeline Mounting 40 project files
+logger.ts:115 13:38:04.554 ● INFO  FileSystem Mounting 39 files...
+logger.ts:115 13:38:04.576 ✓ SUCCESS FileSystem Mounted 39 files 22ms
+logger.ts:115 13:38:04.581 · DEBUG FileSystem Wrote file: package.json
+logger.ts:122   └─ size: 1052 bytes
+logger.ts:115 13:38:04.592 · DEBUG FileSystem Read file: package.json
+logger.ts:122   └─ size: 1052 bytes
+logger.ts:175 ── DEPENDENCY INSTALL ──────────────────────────
+logger.ts:115 13:38:04.593 ● INFO  Cache package.json hash changed: (none) → -a60qs3
+logger.ts:115 13:38:04.593 · DEBUG DevServer 1:38:04 PM [vite] changed tsconfig file detected: /home/6ysoii09v6ugampqlyt14i1r9gsqtn-eoob/tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+logger.ts:115 13:38:04.598 · DEBUG FileSystem node_modules check: 344 entries found
+logger.ts:115 13:38:04.598 ● INFO  Pipeline Dependency install decision
+logger.ts:122   └─ hasExistingModules: true  ·  pkgChanged: true  ·  forceInstall: false  ·  useBatchedInstall: false  ·  isPreWarmed: true  ·  preWarmStatus: ready  ·  decision: PRE-WARM (install extras only)
+logger.ts:115 13:38:04.598 ● INFO  Pipeline Using pre-warmed packages, checking for extras...
+logger.ts:115 13:38:04.598 ● INFO  Pipeline Pre-warm diff: 0 extra deps, 0 extra devDeps
+logger.ts:122   └─ extraDeps: (none)  ·  extraDevDeps: (none)  ·  cachedDeps: 66  ·  cachedDevDeps: 24
+logger.ts:115 13:38:04.598 ✓ SUCCESS Pipeline All packages already pre-installed, no extras needed
+logger.ts:175 ── DEV SERVER ──────────────────────────────────
+logger.ts:115 13:38:04.599 ● INFO  Pipeline Starting dev server...
+logger.ts:115 13:38:04.599 ● INFO  DevServer Dev server already running at https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io, reusing
+logger.ts:115 13:38:04.599 ✓ SUCCESS AutoRunner Project "package.json" running at https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io 49ms
+logger.ts:122   └─ totalTime: 49ms  ·  totalFiles: 39  ·  projectType: vite  ·  url: https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io
+logger.ts:175 ── AUTO-RUN COMPLETE ───────────────────────────
+logger.ts:115 13:38:04.615 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.615 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.616 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/index.css, /src/components/ui/toaster.tsx, /src/pages/board-view.tsx, /src/pages/list-view.tsx
+logger.ts:115 13:38:04.616 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.616 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.617 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/index.css, /src/App.tsx, /src/pages/board-view.tsx, /src/pages/list-view.tsx
+logger.ts:115 13:38:04.617 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.617 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.618 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/index.css, /src/App.tsx, /src/components/ui/card.tsx, /src/components/ui/button.tsx, /src/components/status-badge.tsx, /src/components/ui/badge.tsx
+logger.ts:115 13:38:04.618 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.618 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.618 · DEBUG DevServer 1:38:04 PM [vite] page reload src/main.tsx
+logger.ts:115 13:38:04.619 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.619 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.619 · DEBUG DevServer 1:38:04 PM [vite] page reload src/components/ui/select.tsx
+logger.ts:115 13:38:04.619 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.619 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.620 · DEBUG DevServer 1:38:04 PM [vite] page reload src/components/ui/textarea.tsx
+logger.ts:115 13:38:04.621 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.621 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.625 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/components/ui/button.tsx, /src/index.css
+logger.ts:115 13:38:04.642 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.643 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.643 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/components/ui/toaster.tsx, /src/index.css
+logger.ts:115 13:38:04.644 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.645 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.645 · DEBUG DevServer 1:38:04 PM [vite] page reload src/components/ui/label.tsx
+logger.ts:115 13:38:04.647 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.647 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.648 · DEBUG DevServer 1:38:04 PM [vite] page reload src/components/ui/tabs.tsx
+logger.ts:115 13:38:04.648 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.649 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.649 · DEBUG DevServer 1:38:04 PM [vite] page reload src/components/ui/input.tsx
+logger.ts:115 13:38:04.650 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.652 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.653 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/components/ui/badge.tsx, /src/index.css
+logger.ts:115 13:38:04.653 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.653 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.654 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/components/ui/card.tsx, /src/index.css
+logger.ts:115 13:38:04.656 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.656 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.656 · DEBUG DevServer 1:38:04 PM [vite] page reload src/components/ui/dialog.tsx
+logger.ts:115 13:38:04.657 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.658 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.662 · DEBUG DevServer 1:38:04 PM [vite] page reload src/components/kpi-card.tsx
+logger.ts:115 13:38:04.663 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.664 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.664 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/components/status-badge.tsx, /src/index.css
+logger.ts:115 13:38:04.664 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.665 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.665 · DEBUG DevServer 1:38:04 PM [vite] page reload src/components/data-table.tsx
+logger.ts:115 13:38:04.665 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.666 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.666 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/App.tsx, /src/index.css
+logger.ts:115 13:38:04.668 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.670 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.670 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/pages/board-view.tsx, /src/index.css
+logger.ts:115 13:38:04.670 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.671 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.671 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/pages/my-tasks.tsx, /src/index.css
+logger.ts:115 13:38:04.671 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.671 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.672 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/pages/list-view.tsx, /src/index.css
+logger.ts:115 13:38:04.672 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.672 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.673 · DEBUG DevServer 1:38:04 PM [vite] page reload src/__tests__/validation.test.ts
+logger.ts:115 13:38:04.673 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.673 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.673 · DEBUG DevServer 1:38:04 PM [vite] page reload src/__tests__/relationships.test.ts
+logger.ts:115 13:38:04.674 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.674 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.674 · DEBUG DevServer 1:38:04 PM [vite] page reload src/__tests__/components.test.ts
+logger.ts:115 13:38:04.674 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.675 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.675 · DEBUG DevServer 1:38:04 PM [vite] page reload src/__tests__/api.test.ts
+logger.ts:115 13:38:04.676 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.677 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.677 · DEBUG DevServer 1:38:04 PM [vite] page reload src/__tests__/setup.ts
+logger.ts:115 13:38:04.677 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.678 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.678 · DEBUG DevServer 1:38:04 PM [vite] hmr update /src/index.css
+logger.ts:115 13:38:04.678 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.679 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.679 · DEBUG DevServer 1:38:04 PM [vite] vite.config.ts changed, restarting server...
+logger.ts:115 13:38:04.680 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.680 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.681 · DEBUG DevServer 1:38:04 PM [vite] page reload index.html
+logger.ts:115 13:38:04.681 · DEBUG DevServer [1;1H
+logger.ts:115 13:38:04.681 · DEBUG DevServer [0J
+logger.ts:115 13:38:04.681 · DEBUG DevServer 1:38:04 PM [vite] page reload tailwind.config.ts
+(index):9  GET https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io/@vite/client net::ERR_ABORTED 504 (Outdated Request)
+(index):9  GET https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io/@vite/client net::ERR_ABORTED 504 (Outdated Request)
+(index):17  GET https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io/src/main.tsx?t=1770624484680 net::ERR_ABORTED 504 (Outdated Request)
+(index):17  GET https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io/src/main.tsx?t=1770624484680 net::ERR_ABORTED 504 (Outdated Request)
+(index):4  GET https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io/@react-refresh net::ERR_ABORTED 504 (Outdated Request)
+(index):4  GET https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io/@react-refresh net::ERR_ABORTED 504 (Outdated Request)
+logger.ts:113 13:38:05.549 ✖ ERROR DevServer ✘ [ERROR] The build was canceled
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:1082
+logger.ts:115 13:38:05.687 · DEBUG DevServer 1:38:05 PM [vite] server restarted.
+logger.ts:115 13:38:05.689 ✓ SUCCESS DevServer Server ready at https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io (port 5200) <1ms
+logger.ts:122   └─ port: 5200  ·  url: https://6ysoii09v6ugampqlyt14i1r9gsqtn-eoob--5200--e5af05b3.local-corp.webcontainer-api.io
+logger.ts:175 ── DEV SERVER READY ────────────────────────────

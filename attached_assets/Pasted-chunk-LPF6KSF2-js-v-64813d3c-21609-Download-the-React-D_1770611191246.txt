@@ -1,0 +1,203 @@
+chunk-LPF6KSF2.js?v=64813d3c:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+VM4 sandbox_bundle:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ VM4 sandbox_bundle:2
+logSecurityWarnings @ VM4 sandbox_bundle:2
+(anonymous) @ VM4 sandbox_bundle:2
+logger.ts:175 ── PRE-WARM START ──────────────────────────────
+logger.ts:115 09:33:31.282 ● INFO  PreWarm [booting] Starting WebContainer environment...
+logger.ts:115 09:33:31.282 ● INFO  WebContainer Booting WebContainer...
+logger.ts:122   └─ coep: require-corp  ·  crossOriginIsolated: true  ·  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
+logger.ts:115 09:33:32.012 ✓ SUCCESS WebContainer WebContainer booted successfully 729ms
+logger.ts:115 09:33:32.012 ✓ SUCCESS PreWarm WebContainer booted 730ms
+logger.ts:115 09:33:32.012 ● INFO  PreWarm [booting] Environment ready
+logger.ts:115 09:33:32.013 ● INFO  PreWarm Installing 13 deps + 6 devDeps
+logger.ts:122   └─ dependencies: react, react-dom, wouter, @tanstack/react-query, lucide-react, recharts, date-fns, clsx, tailwind-merge, zod, react-hook-form, @hookform/resolvers, framer-motion  ·  devDependencies: vite, @vitejs/plugin-react, tailwindcss, postcss, autoprefixer, fast-glob
+logger.ts:115 09:33:32.013 ● INFO  PreWarm [installing] Pre-installing 19 core packages...
+logger.ts:115 09:33:32.688 · DEBUG FileSystem Wrote pre-warm package.json
+logger.ts:122   └─ size: 732 bytes
+logger.ts:115 09:33:32.692 · DEBUG FileSystem Wrote pre-warm vite.config.ts
+logger.ts:115 09:33:32.750 ● INFO  NPM Spawned npm install for pre-warm
+logger.ts:122   └─ flags: --prefer-offline --no-audit --no-fund --loglevel=http  ·  timeout: 180s  ·  stallTimeout: 60s
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.e5af05b3.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+logger.ts:115 09:33:57.476 ● INFO  FileSystem Mounting 39 files...
+logger.ts:115 09:33:57.495 ✓ SUCCESS FileSystem Mounted 39 files 19ms
+logger.ts:115 09:33:57.495 ● INFO  NPM Pre-warm npm install is still running, giving it 10s to finish...
+logger.ts:115 09:33:57.495 ● INFO  PreWarm Awaiting pre-warm completion (status: installing, timeout: 10s)...
+logger.ts:115 09:34:00.995 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 09:34:02.797 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 09:34:03.026 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 09:34:04.055 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 09:34:07.152 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:114 09:34:07.504 ▲ WARN  PreWarm Pre-warm did not complete in time (10s)
+emit @ logger.ts:114
+warn @ logger.ts:139
+awaitPreWarm @ webcontainer.ts:243
+await in awaitPreWarm
+installDependencies @ webcontainer.ts:526
+await in installDependencies
+(anonymous) @ vscode-ide.tsx:776
+await in (anonymous)
+(anonymous) @ vscode-ide.tsx:876
+setTimeout
+(anonymous) @ vscode-ide.tsx:862
+commitHookEffectListMount @ chunk-LPF6KSF2.js?v=64813d3c:16963
+commitPassiveMountOnFiber @ chunk-LPF6KSF2.js?v=64813d3c:18206
+commitPassiveMountEffects_complete @ chunk-LPF6KSF2.js?v=64813d3c:18179
+commitPassiveMountEffects_begin @ chunk-LPF6KSF2.js?v=64813d3c:18169
+commitPassiveMountEffects @ chunk-LPF6KSF2.js?v=64813d3c:18159
+flushPassiveEffectsImpl @ chunk-LPF6KSF2.js?v=64813d3c:19543
+flushPassiveEffects @ chunk-LPF6KSF2.js?v=64813d3c:19500
+commitRootImpl @ chunk-LPF6KSF2.js?v=64813d3c:19469
+commitRoot @ chunk-LPF6KSF2.js?v=64813d3c:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=64813d3c:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=64813d3c:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=64813d3c:18677
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=9cbce564:537
+flush @ @tanstack_react-query.js?v=9cbce564:551
+batch @ @tanstack_react-query.js?v=9cbce564:569
+#dispatch @ @tanstack_react-query.js?v=9cbce564:963
+setData @ @tanstack_react-query.js?v=9cbce564:672
+onSuccess @ @tanstack_react-query.js?v=9cbce564:865
+resolve @ @tanstack_react-query.js?v=9cbce564:442
+Promise.then
+run @ @tanstack_react-query.js?v=9cbce564:481
+start @ @tanstack_react-query.js?v=9cbce564:518
+fetch @ @tanstack_react-query.js?v=9cbce564:893
+(anonymous) @ @tanstack_react-query.js?v=9cbce564:1670
+(anonymous) @ @tanstack_react-query.js?v=9cbce564:1669
+batch @ @tanstack_react-query.js?v=9cbce564:565
+refetchQueries @ @tanstack_react-query.js?v=9cbce564:1668
+(anonymous) @ @tanstack_react-query.js?v=9cbce564:1660
+batch @ @tanstack_react-query.js?v=9cbce564:565
+invalidateQueries @ @tanstack_react-query.js?v=9cbce564:1649
+sendMessageToConversation @ chat.tsx:549
+await in sendMessageToConversation
+handleSendMessage @ chat.tsx:381
+onClick @ chat-message.tsx:53
+callCallback2 @ chunk-LPF6KSF2.js?v=64813d3c:3680
+invokeGuardedCallbackDev @ chunk-LPF6KSF2.js?v=64813d3c:3705
+invokeGuardedCallback @ chunk-LPF6KSF2.js?v=64813d3c:3739
+invokeGuardedCallbackAndCatchFirstError @ chunk-LPF6KSF2.js?v=64813d3c:3742
+executeDispatch @ chunk-LPF6KSF2.js?v=64813d3c:7046
+processDispatchQueueItemsInOrder @ chunk-LPF6KSF2.js?v=64813d3c:7066
+processDispatchQueue @ chunk-LPF6KSF2.js?v=64813d3c:7075
+dispatchEventsForPlugins @ chunk-LPF6KSF2.js?v=64813d3c:7083
+(anonymous) @ chunk-LPF6KSF2.js?v=64813d3c:7206
+batchedUpdates$1 @ chunk-LPF6KSF2.js?v=64813d3c:18966
+batchedUpdates @ chunk-LPF6KSF2.js?v=64813d3c:3585
+dispatchEventForPluginEventSystem @ chunk-LPF6KSF2.js?v=64813d3c:7205
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-LPF6KSF2.js?v=64813d3c:5484
+dispatchEvent @ chunk-LPF6KSF2.js?v=64813d3c:5478
+dispatchDiscreteEvent @ chunk-LPF6KSF2.js?v=64813d3c:5455
+logger.ts:114 09:34:07.505 ▲ WARN  NPM Pre-warm did not finish in time, killing it
+emit @ logger.ts:114
+warn @ logger.ts:139
+installDependencies @ webcontainer.ts:532
+await in installDependencies
+(anonymous) @ vscode-ide.tsx:776
+await in (anonymous)
+(anonymous) @ vscode-ide.tsx:876
+setTimeout
+(anonymous) @ vscode-ide.tsx:862
+commitHookEffectListMount @ chunk-LPF6KSF2.js?v=64813d3c:16963
+commitPassiveMountOnFiber @ chunk-LPF6KSF2.js?v=64813d3c:18206
+commitPassiveMountEffects_complete @ chunk-LPF6KSF2.js?v=64813d3c:18179
+commitPassiveMountEffects_begin @ chunk-LPF6KSF2.js?v=64813d3c:18169
+commitPassiveMountEffects @ chunk-LPF6KSF2.js?v=64813d3c:18159
+flushPassiveEffectsImpl @ chunk-LPF6KSF2.js?v=64813d3c:19543
+flushPassiveEffects @ chunk-LPF6KSF2.js?v=64813d3c:19500
+commitRootImpl @ chunk-LPF6KSF2.js?v=64813d3c:19469
+commitRoot @ chunk-LPF6KSF2.js?v=64813d3c:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=64813d3c:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=64813d3c:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=64813d3c:18677
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=9cbce564:537
+flush @ @tanstack_react-query.js?v=9cbce564:551
+batch @ @tanstack_react-query.js?v=9cbce564:569
+#dispatch @ @tanstack_react-query.js?v=9cbce564:963
+setData @ @tanstack_react-query.js?v=9cbce564:672
+onSuccess @ @tanstack_react-query.js?v=9cbce564:865
+resolve @ @tanstack_react-query.js?v=9cbce564:442
+Promise.then
+run @ @tanstack_react-query.js?v=9cbce564:481
+start @ @tanstack_react-query.js?v=9cbce564:518
+fetch @ @tanstack_react-query.js?v=9cbce564:893
+(anonymous) @ @tanstack_react-query.js?v=9cbce564:1670
+(anonymous) @ @tanstack_react-query.js?v=9cbce564:1669
+batch @ @tanstack_react-query.js?v=9cbce564:565
+refetchQueries @ @tanstack_react-query.js?v=9cbce564:1668
+(anonymous) @ @tanstack_react-query.js?v=9cbce564:1660
+batch @ @tanstack_react-query.js?v=9cbce564:565
+invalidateQueries @ @tanstack_react-query.js?v=9cbce564:1649
+sendMessageToConversation @ chat.tsx:549
+await in sendMessageToConversation
+handleSendMessage @ chat.tsx:381
+onClick @ chat-message.tsx:53
+callCallback2 @ chunk-LPF6KSF2.js?v=64813d3c:3680
+invokeGuardedCallbackDev @ chunk-LPF6KSF2.js?v=64813d3c:3705
+invokeGuardedCallback @ chunk-LPF6KSF2.js?v=64813d3c:3739
+invokeGuardedCallbackAndCatchFirstError @ chunk-LPF6KSF2.js?v=64813d3c:3742
+executeDispatch @ chunk-LPF6KSF2.js?v=64813d3c:7046
+processDispatchQueueItemsInOrder @ chunk-LPF6KSF2.js?v=64813d3c:7066
+processDispatchQueue @ chunk-LPF6KSF2.js?v=64813d3c:7075
+dispatchEventsForPlugins @ chunk-LPF6KSF2.js?v=64813d3c:7083
+(anonymous) @ chunk-LPF6KSF2.js?v=64813d3c:7206
+batchedUpdates$1 @ chunk-LPF6KSF2.js?v=64813d3c:18966
+batchedUpdates @ chunk-LPF6KSF2.js?v=64813d3c:3585
+dispatchEventForPluginEventSystem @ chunk-LPF6KSF2.js?v=64813d3c:7205
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-LPF6KSF2.js?v=64813d3c:5484
+dispatchEvent @ chunk-LPF6KSF2.js?v=64813d3c:5478
+dispatchDiscreteEvent @ chunk-LPF6KSF2.js?v=64813d3c:5455
+logger.ts:115 09:34:07.505 ● INFO  NPM Waiting for pre-warm process to fully terminate...
+logger.ts:113 09:34:07.512 ✖ ERROR PreWarm npm install failed during pre-warm
+emit @ logger.ts:113
+error @ logger.ts:143
+(anonymous) @ webcontainer.ts:379
+logger.ts:122   └─ exitCode: 143  ·  npmTime: 34820ms  ·  output: -[1G[0Knpm http fetch GET 200 https://registry.npmjs.org/stylus 38ms (cache miss)
+[1G[0K-[1G[0Knpm http fetch GET 200 https://registry.npmjs.org/sugarss 35ms (cache miss)
+[1G[0K\[1G[0Knpm http fetch GET 200 https://registry.npmjs.org/postcss 36ms (cache miss)
+[1G[0K\[1G[0Knpm http fetch GET 200 https://registry.npmjs.org/terser 41ms (cache miss)
+[1G[0K\[1G[0K|
+logger.ts:175 ── PRE-WARM FAILED ─────────────────────────────
+logger.ts:115 09:34:07.513 ● INFO  PreWarm [failed] Pre-install failed (exit code 143), will install on demand
+logger.ts:115 09:34:10.513 ● INFO  NPM Cleaning up npm lock files after pre-warm kill...
+logger.ts:114 09:36:33.680 ▲ WARN  PreWarm npm install timed out after 180s, killing process
+emit @ logger.ts:114
+warn @ logger.ts:139
+(anonymous) @ webcontainer.ts:354
+logger.ts:175 ── AUTO-RUN: package.json ──────────────────────
+logger.ts:115 09:56:11.998 ✓ SUCCESS AutoRunner WebContainer support confirmed
+logger.ts:115 09:56:11.998 ● INFO  Pipeline Project analysis complete
+logger.ts:122   └─ type: vite  ·  typescript: true  ·  entryFile: default  ·  devCommand: npm run dev  ·  totalFiles: 39
+logger.ts:115 09:56:12.000 ✓ SUCCESS Pipeline Enhanced package.json: 12 deps, 13 devDeps
+logger.ts:114 09:56:12.000 ▲ WARN  Pipeline Installing 25 packages - this may take longer than usual
+emit @ logger.ts:114
+warn @ logger.ts:139
+autoRunProject @ auto-runner.ts:397
+(anonymous) @ auto-run-preview.tsx:322
+(anonymous) @ auto-run-preview.tsx:362
+commitHookEffectListMount @ chunk-LPF6KSF2.js?v=64813d3c:16963
+commitPassiveMountOnFiber @ chunk-LPF6KSF2.js?v=64813d3c:18206
+commitPassiveMountEffects_complete @ chunk-LPF6KSF2.js?v=64813d3c:18179
+commitPassiveMountEffects_begin @ chunk-LPF6KSF2.js?v=64813d3c:18169
+commitPassiveMountEffects @ chunk-LPF6KSF2.js?v=64813d3c:18159
+flushPassiveEffectsImpl @ chunk-LPF6KSF2.js?v=64813d3c:19543
+flushPassiveEffects @ chunk-LPF6KSF2.js?v=64813d3c:19500
+commitRootImpl @ chunk-LPF6KSF2.js?v=64813d3c:19469
+commitRoot @ chunk-LPF6KSF2.js?v=64813d3c:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=64813d3c:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=64813d3c:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=64813d3c:18677
+logger.ts:115 09:56:12.000 ● INFO  Pipeline Tailwind CSS detected, adding config files
+logger.ts:175 ── MOUNTING FILES ──────────────────────────────
+logger.ts:115 09:56:12.001 ● INFO  Pipeline Mounting 40 project files
+logger.ts:115 09:56:12.001 ● INFO  FileSystem Mounting 39 files...

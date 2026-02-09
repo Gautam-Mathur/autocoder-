@@ -1,0 +1,608 @@
+chunk-LPF6KSF2.js?v=0959af60:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+VM4 sandbox_bundle:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ VM4 sandbox_bundle:2
+logSecurityWarnings @ VM4 sandbox_bundle:2
+(anonymous) @ VM4 sandbox_bundle:2
+logger.ts:175 ── PRE-WARM START ──────────────────────────────
+logger.ts:115 10:27:34.210 ● INFO  PreWarm [booting] Starting WebContainer environment...
+logger.ts:115 10:27:34.211 ● INFO  WebContainer Booting WebContainer...
+logger.ts:122   └─ coep: require-corp  ·  crossOriginIsolated: true  ·  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
+logger.ts:115 10:27:35.510 ✓ SUCCESS WebContainer WebContainer booted successfully 1.3s
+logger.ts:115 10:27:35.510 ✓ SUCCESS PreWarm WebContainer booted 1.3s
+logger.ts:115 10:27:35.510 ● INFO  PreWarm [booting] Environment ready
+logger.ts:115 10:27:35.510 ● INFO  PreWarm Installing 13 deps + 6 devDeps
+logger.ts:122   └─ dependencies: react, react-dom, wouter, @tanstack/react-query, lucide-react, recharts, date-fns, clsx, tailwind-merge, zod, react-hook-form, @hookform/resolvers, framer-motion  ·  devDependencies: vite, @vitejs/plugin-react, tailwindcss, postcss, autoprefixer, fast-glob
+logger.ts:115 10:27:35.510 ● INFO  PreWarm [installing] Pre-installing 19 core packages...
+logger.ts:115 10:27:36.251 · DEBUG FileSystem Wrote pre-warm package.json
+logger.ts:122   └─ size: 732 bytes
+logger.ts:115 10:27:36.253 · DEBUG FileSystem Wrote pre-warm vite.config.ts
+logger.ts:115 10:27:36.259 ● INFO  NPM Spawned npm install for pre-warm
+logger.ts:122   └─ flags: --prefer-offline --no-audit --no-fund --loglevel=http  ·  timeout: 180s  ·  stallTimeout: 60s
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.e5af05b3.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+logger.ts:115 10:27:51.615 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 10:27:54.232 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 10:27:54.403 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 10:27:55.511 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 10:27:58.435 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 10:28:00.180 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 10:28:00.996 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 10:28:01.286 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 10:28:01.633 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 10:28:01.947 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 10:28:02.319 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 10:28:03.413 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 10:28:04.250 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 10:28:05.281 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 10:28:06.244 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 10:28:07.227 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 10:28:08.347 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 10:28:09.042 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:28:09.299 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:28:09.760 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:28:10.059 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:28:11.636 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:115 10:28:11.813 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 10:28:13.067 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 10:28:13.168 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 10:28:14.841 ● INFO  NPM 📦 190 packages downloaded...
+logger.ts:115 10:28:15.482 ● INFO  NPM 📦 200 packages downloaded...
+logger.ts:115 10:28:16.344 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:115 10:28:17.838 ● INFO  NPM 📦 220 packages downloaded...
+logger.ts:115 10:28:18.839 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 10:28:23.629 ● INFO  NPM -\|/-\|/-\|/-\|/-\|/-\|/-\|/
+logger.ts:115 10:28:23.629 ✓ SUCCESS NPM added 180 packages in 46s
+logger.ts:115 10:28:23.629 ● INFO  PreWarm [installing] added 180 packages in 46s
+logger.ts:115 10:28:23.640 ✓ SUCCESS PreWarm Pre-warm complete! 19 packages cached 49.4s
+logger.ts:122   └─ npmInstallTime: 47387ms  ·  totalTime: 49430ms  ·  exitCode: 0
+logger.ts:175 ── PRE-WARM DONE ───────────────────────────────
+logger.ts:115 10:28:23.641 ● INFO  PreWarm [ready] Core packages pre-installed
+logger.ts:115 10:29:04.074 ● INFO  FileSystem Mounting 39 files...
+logger.ts:115 10:29:04.097 ✓ SUCCESS FileSystem Mounted 39 files 22ms
+logger.ts:175 ── NPM INSTALL ─────────────────────────────────
+logger.ts:115 10:29:04.098 ● INFO  NPM Checking npm registry connectivity...
+logger.ts:115 10:29:05.989 ✓ SUCCESS NPM Registry reachable (npmjs.org) 1.9s
+logger.ts:115 10:29:05.989 ● INFO  NPM Install attempt 1/3
+logger.ts:122   └─ timeout: 180s  ·  stallTimeout: 45s  ·  flags: --prefer-offline --no-audit --no-fund --loglevel=http --fetch-retries=2 --fetch-timeout=30000
+logger.ts:115 10:29:07.716 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 10:29:14.671 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:175 ── AUTO-RUN: package.json ──────────────────────
+logger.ts:115 10:29:15.413 ✓ SUCCESS AutoRunner WebContainer support confirmed
+logger.ts:115 10:29:15.413 ● INFO  Pipeline Project analysis complete
+logger.ts:122   └─ type: vite  ·  typescript: true  ·  entryFile: default  ·  devCommand: npm run dev  ·  totalFiles: 39
+logger.ts:115 10:29:15.415 ✓ SUCCESS Pipeline Enhanced package.json: 12 deps, 13 devDeps
+logger.ts:114 10:29:15.415 ▲ WARN  Pipeline Installing 25 packages - this may take longer than usual
+emit @ logger.ts:114
+warn @ logger.ts:139
+autoRunProject @ auto-runner.ts:397
+(anonymous) @ auto-run-preview.tsx:322
+(anonymous) @ auto-run-preview.tsx:362
+commitHookEffectListMount @ chunk-LPF6KSF2.js?v=0959af60:16963
+commitPassiveMountOnFiber @ chunk-LPF6KSF2.js?v=0959af60:18206
+commitPassiveMountEffects_complete @ chunk-LPF6KSF2.js?v=0959af60:18179
+commitPassiveMountEffects_begin @ chunk-LPF6KSF2.js?v=0959af60:18169
+commitPassiveMountEffects @ chunk-LPF6KSF2.js?v=0959af60:18159
+flushPassiveEffectsImpl @ chunk-LPF6KSF2.js?v=0959af60:19543
+flushPassiveEffects @ chunk-LPF6KSF2.js?v=0959af60:19500
+commitRootImpl @ chunk-LPF6KSF2.js?v=0959af60:19469
+commitRoot @ chunk-LPF6KSF2.js?v=0959af60:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=0959af60:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=0959af60:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=0959af60:18677
+logger.ts:115 10:29:15.415 ● INFO  Pipeline Tailwind CSS detected, adding config files
+logger.ts:175 ── MOUNTING FILES ──────────────────────────────
+logger.ts:115 10:29:15.415 ● INFO  Pipeline Mounting 40 project files
+logger.ts:115 10:29:15.415 ● INFO  FileSystem Mounting 39 files...
+logger.ts:115 10:29:15.430 ✓ SUCCESS FileSystem Mounted 39 files 15ms
+logger.ts:115 10:29:15.439 · DEBUG FileSystem Wrote file: package.json
+logger.ts:122   └─ size: 1025 bytes
+logger.ts:115 10:29:15.445 · DEBUG FileSystem Read file: package.json
+logger.ts:122   └─ size: 1025 bytes
+logger.ts:175 ── DEPENDENCY INSTALL ──────────────────────────
+logger.ts:115 10:29:15.445 ● INFO  Cache package.json hash changed: (none) → -69z4m5
+logger.ts:115 10:29:15.451 · DEBUG FileSystem node_modules check: 140 entries found
+logger.ts:115 10:29:15.451 ● INFO  Pipeline Dependency install decision
+logger.ts:122   └─ hasExistingModules: true  ·  pkgChanged: true  ·  forceInstall: false  ·  useBatchedInstall: false  ·  isPreWarmed: true  ·  preWarmStatus: ready  ·  decision: PRE-WARM (install extras only)
+logger.ts:115 10:29:15.451 ● INFO  Pipeline Using pre-warmed packages, checking for extras...
+logger.ts:115 10:29:15.452 ● INFO  Pipeline Pre-warm diff: 4 extra deps, 7 extra devDeps
+logger.ts:122   └─ extraDeps: express, drizzle-orm, drizzle-zod, @neondatabase/serverless  ·  extraDevDeps: vitest, @testing-library/react, @testing-library/jest-dom, jsdom, typescript, tsx, @types/node  ·  cachedDeps: 13  ·  cachedDevDeps: 6
+logger.ts:115 10:29:15.452 ● INFO  NPM Installing 4 dependency packages: express, drizzle-orm, drizzle-zod, @neondatabase/serverless
+logger.ts:115 10:29:16.475 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 10:29:16.945 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 10:29:17.246 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 10:29:17.387 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 10:29:20.034 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 10:29:21.828 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 10:29:24.350 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 10:29:25.881 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 10:29:26.403 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 10:29:31.411 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 10:29:31.787 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 10:29:38.860 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 10:29:39.901 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 10:29:46.494 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 10:29:48.382 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 10:29:52.209 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 10:29:53.352 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 10:29:55.975 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 10:29:57.198 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 10:29:59.124 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 10:30:00.995 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 10:30:05.697 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 10:30:07.285 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 10:30:07.961 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:30:07.967 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:30:08.751 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:115 10:30:10.090 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 10:30:10.301 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 10:30:10.404 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 10:30:10.553 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 10:30:10.659 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 10:30:10.844 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 10:30:10.975 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 10:30:11.187 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 10:30:11.827 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 10:30:12.185 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 10:30:12.434 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:30:12.645 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:115 10:30:12.780 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 10:30:12.815 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 10:30:12.843 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 10:30:13.043 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 10:30:13.906 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 10:30:14.953 ● INFO  NPM 📦 190 packages downloaded...
+logger.ts:113 10:30:15.456 ✖ ERROR NPM Package install timed out after 60s
+emit @ logger.ts:113
+error @ logger.ts:143
+(anonymous) @ webcontainer.ts:808
+logger.ts:122   └─ packages: express, drizzle-orm, drizzle-zod, @neondatabase/serverless  ·  type: dependency
+logger.ts:114 10:30:15.456 ▲ WARN  Pipeline Some extra dependency packages failed
+emit @ logger.ts:114
+warn @ logger.ts:139
+autoRunProject @ auto-runner.ts:640
+logger.ts:115 10:30:15.456 ● INFO  NPM Installing 7 devDependency packages: vitest, @testing-library/react, @testing-library/jest-dom, jsdom, typescript, tsx, @types/node
+logger.ts:115 10:30:15.662 ● INFO  NPM 📦 190 packages downloaded...
+logger.ts:115 10:30:16.829 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 10:30:16.869 ● INFO  NPM 📦 200 packages downloaded...
+logger.ts:115 10:30:17.134 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 10:30:17.272 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 10:30:18.048 ● INFO  NPM 📦 200 packages downloaded...
+logger.ts:115 10:30:19.684 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:115 10:30:19.831 ● INFO  NPM 📦 220 packages downloaded...
+logger.ts:115 10:30:20.027 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 10:30:20.641 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:115 10:30:20.966 ● INFO  NPM 📦 240 packages downloaded...
+logger.ts:115 10:30:21.032 ● INFO  NPM 📦 220 packages downloaded...
+logger.ts:115 10:30:21.130 ● INFO  NPM 📦 250 packages downloaded...
+logger.ts:115 10:30:21.628 ● INFO  NPM 📦 260 packages downloaded...
+logger.ts:115 10:30:22.007 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 10:30:22.198 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 10:30:22.759 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 10:30:24.303 ● INFO  NPM 📦 270 packages downloaded...
+logger.ts:115 10:30:24.695 ● INFO  NPM 📦 240 packages downloaded...
+logger.ts:115 10:30:24.896 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 10:30:25.446 ● INFO  NPM 📦 280 packages downloaded...
+logger.ts:115 10:30:25.583 ● INFO  NPM 📦 250 packages downloaded...
+logger.ts:115 10:30:26.715 ● INFO  NPM 📦 290 packages downloaded...
+logger.ts:115 10:30:26.734 ● INFO  NPM 📦 260 packages downloaded...
+logger.ts:115 10:30:27.138 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 10:30:27.407 ● INFO  NPM 📦 300 packages downloaded...
+logger.ts:115 10:30:27.421 ● INFO  NPM 📦 270 packages downloaded...
+logger.ts:115 10:30:28.625 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 10:30:28.820 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 10:30:28.925 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 10:30:29.077 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 10:30:29.196 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 10:30:29.376 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 10:30:29.509 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 10:30:29.732 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 10:30:29.926 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 10:30:30.137 ● INFO  NPM 📦 310 packages downloaded...
+logger.ts:115 10:30:30.300 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 10:30:30.557 ● INFO  NPM 📦 280 packages downloaded...
+logger.ts:115 10:30:30.599 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 10:30:30.854 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:115 10:30:31.009 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 10:30:31.216 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 10:30:31.432 ● INFO  NPM 📦 190 packages downloaded...
+logger.ts:115 10:30:31.619 ● INFO  NPM 📦 200 packages downloaded...
+logger.ts:114 10:30:31.836 ▲ WARN  NPM /-npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:140
+logger.ts:115 10:30:31.975 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:114 10:30:32.010 ▲ WARN  NPM \|/npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:830
+logger.ts:115 10:30:32.163 ● INFO  NPM 📦 220 packages downloaded...
+logger.ts:115 10:30:32.314 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 10:30:32.611 ● INFO  NPM 📦 240 packages downloaded...
+logger.ts:115 10:30:32.795 ● INFO  NPM 📦 250 packages downloaded...
+logger.ts:115 10:30:32.908 ● INFO  NPM 📦 260 packages downloaded...
+logger.ts:115 10:30:33.140 ● INFO  NPM 📦 270 packages downloaded...
+logger.ts:115 10:30:33.357 ● INFO  NPM 📦 280 packages downloaded...
+logger.ts:115 10:30:33.579 ● INFO  NPM 📦 290 packages downloaded...
+logger.ts:115 10:30:34.525 ● INFO  NPM 📦 300 packages downloaded...
+logger.ts:115 10:30:34.712 ● INFO  NPM 📦 310 packages downloaded...
+logger.ts:113 10:30:35.146 ✖ ERROR NPM \|npm error code ENOTEMPTY
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:830
+logger.ts:113 10:30:35.151 ✖ ERROR NPM |npm error syscall rename
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:830
+logger.ts:113 10:30:35.151 ✖ ERROR NPM |npm error path /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/lucide-react
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:830
+logger.ts:113 10:30:35.156 ✖ ERROR NPM |npm error dest /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/.lucide-react-V1C5EwMH
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:830
+logger.ts:113 10:30:35.158 ✖ ERROR NPM |npm error errno -39
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:830
+logger.ts:113 10:30:35.159 ✖ ERROR NPM |npm error ENOTEMPTY: directory not empty, rename '/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/lucide-react' -> '/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/.lucide-react-V1C5EwMH'
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:830
+logger.ts:113 10:30:35.164 ✖ ERROR NPM |npm error A complete log of this run can be found in: /home/.npm/_logs/2026-02-09T05_00_16_217Z-debug-0.log
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:830
+logger.ts:115 10:30:35.165 ● INFO  NPM |jsh: spawn npm ENOTEMPTY
+logger.ts:113 10:30:35.170 ✖ ERROR NPM Failed to install devDependency packages
+emit @ logger.ts:113
+error @ logger.ts:143
+(anonymous) @ webcontainer.ts:847
+logger.ts:122   └─ packages: vitest, @testing-library/react, @testing-library/jest-dom, jsdom, typescript, tsx, @types/node  ·  exitCode: 1  ·  lastOutput: [0Kjsh: spawn npm ENOTEMPTY
+logger.ts:114 10:30:35.170 ▲ WARN  Pipeline Some extra devDependency packages failed
+emit @ logger.ts:114
+warn @ logger.ts:139
+autoRunProject @ auto-runner.ts:647
+logger.ts:115 10:30:35.170 ✓ SUCCESS Pipeline Extra packages installed
+logger.ts:175 ── DEV SERVER ──────────────────────────────────
+logger.ts:115 10:30:35.170 ● INFO  Pipeline Starting dev server...
+logger.ts:175 ── DEV SERVER START ────────────────────────────
+logger.ts:115 10:30:35.171 ● INFO  DevServer Starting development server (npm run dev)...
+logger.ts:115 10:30:35.183 · DEBUG DevServer Dev server process spawned
+logger.ts:115 10:30:35.897 ● INFO  NPM \|/-\|/-\|/-\|/-\|/-\|/-\
+logger.ts:115 10:30:35.897 ✓ SUCCESS NPM added 264 packages, and removed 41 packages in 1m
+logger.ts:115 10:30:35.907 ✓ SUCCESS NPM Dependencies installed successfully on attempt 1 1m32s
+logger.ts:122   └─ attemptTime: 89918ms  ·  totalTime: 91809ms
+logger.ts:175 ── NPM INSTALL DONE ────────────────────────────
+logger.ts:175 ── DEV SERVER START ────────────────────────────
+logger.ts:115 10:30:35.907 ● INFO  DevServer Starting development server (npm run dev)...
+logger.ts:115 10:30:35.914 · DEBUG DevServer Dev server process spawned
+logger.ts:115 10:30:36.158 · DEBUG DevServer > projectflow@1.0.0 dev
+> vite
+logger.ts:115 10:30:36.163 · DEBUG DevServer [1G
+logger.ts:115 10:30:36.198 · DEBUG DevServer [0K
+logger.ts:114 10:30:36.261 ▲ WARN  PreWarm npm install timed out after 180s, killing process
+emit @ logger.ts:114
+warn @ logger.ts:139
+(anonymous) @ webcontainer.ts:356
+logger.ts:115 10:30:37.541 · DEBUG DevServer > projectflow@1.0.0 dev
+> vite
+logger.ts:115 10:30:37.543 · DEBUG DevServer [1G
+logger.ts:115 10:30:37.543 · DEBUG DevServer [0K
+logger.ts:115 10:30:37.798 ● INFO  NPM -\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/
+logger.ts:115 10:30:37.798 ✓ SUCCESS NPM added 270 packages, removed 41 packages, and changed 1 package in 1m
+logger.ts:115 10:30:37.808 ✓ SUCCESS NPM Installed 4 dependency packages 1m22s
+logger.ts:122   └─ packages: express, drizzle-orm, drizzle-zod, @neondatabase/serverless
+logger.ts:115 10:30:41.257 · DEBUG DevServer [1;1H
+logger.ts:115 10:30:41.261 · DEBUG DevServer [0J
+logger.ts:115 10:30:41.262 ✓ SUCCESS DevServer VITE v5.4.21  ready in 3934 ms
+logger.ts:115 10:30:41.262 ✓ SUCCESS DevServer ➜  Local:   http://localhost:5200/
+logger.ts:115 10:30:41.262 · DEBUG DevServer ➜  Network: http://192.168.1.104:5200/
+logger.ts:115 10:30:41.262 · DEBUG DevServer   ➜  press h + enter to show help
+logger.ts:115 10:30:41.264 ✓ SUCCESS DevServer Server ready at https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5200--e5af05b3.local-corp.webcontainer-api.io (port 5200) 5.4s
+logger.ts:122   └─ port: 5200  ·  url: https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5200--e5af05b3.local-corp.webcontainer-api.io
+logger.ts:175 ── DEV SERVER READY ────────────────────────────
+logger.ts:115 10:30:41.264 ✓ SUCCESS AutoRunner Project "package.json" running at https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5200--e5af05b3.local-corp.webcontainer-api.io 1m26s
+logger.ts:122   └─ totalTime: 85852ms  ·  totalFiles: 39  ·  projectType: vite  ·  url: https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5200--e5af05b3.local-corp.webcontainer-api.io
+logger.ts:175 ── AUTO-RUN COMPLETE ───────────────────────────
+logger.ts:115 10:30:41.282 ✓ SUCCESS DevServer Server ready at https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5200--e5af05b3.local-corp.webcontainer-api.io (port 5200) <1ms
+logger.ts:122   └─ port: 5200  ·  url: https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5200--e5af05b3.local-corp.webcontainer-api.io
+logger.ts:175 ── DEV SERVER READY ────────────────────────────
+logger.ts:115 10:30:41.776 · DEBUG DevServer Port 5200 is in use, trying another one...
+logger.ts:115 10:30:41.784 · DEBUG DevServer [1;1H
+logger.ts:115 10:30:41.785 · DEBUG DevServer [0J
+logger.ts:115 10:30:41.785 ✓ SUCCESS DevServer VITE v5.4.21  ready in 3492 ms
+logger.ts:115 10:30:41.786 ✓ SUCCESS DevServer ➜  Local:   http://localhost:5201/
+logger.ts:115 10:30:41.786 · DEBUG DevServer ➜  Network: http://192.168.1.104:5201/
+logger.ts:115 10:30:41.786 · DEBUG DevServer   ➜  press h + enter to show help
+logger.ts:115 10:30:41.790 ✓ SUCCESS DevServer Server ready at https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5201--e5af05b3.local-corp.webcontainer-api.io (port 5201) <1ms
+logger.ts:122   └─ port: 5201  ·  url: https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5201--e5af05b3.local-corp.webcontainer-api.io
+logger.ts:175 ── DEV SERVER READY ────────────────────────────
+logger.ts:115 10:30:41.790 ✓ SUCCESS DevServer Server ready at https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5201--e5af05b3.local-corp.webcontainer-api.io (port 5201) <1ms
+logger.ts:122   └─ port: 5201  ·  url: https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5201--e5af05b3.local-corp.webcontainer-api.io
+logger.ts:175 ── DEV SERVER READY ────────────────────────────
+.localservice@service.worker.e5af05b3.js:26 TypeError: Cannot navigate to URL: https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5200--e5af05b3.local-corp.webcontainer-api.io/
+_refreshClients @ .localservice@service.worker.e5af05b3.js:26
+await in _refreshClients
+serverReady @ .localservice@service.worker.e5af05b3.js:26
+await in serverReady
+checkIfServerIsReady @ .localservice@service.worker.e5af05b3.js:26
+await in checkIfServerIsReady
+connectToProject @ .localservice@service.worker.e5af05b3.js:26
+_0x442773 @ .localservice@service.worker.e5af05b3.js:1
+logger.ts:113 10:30:44.142 ✖ ERROR DevServer 10:30:44 AM [vite] Pre-transform error: [postcss] /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/index.css:1:1: The `border-border` class does not exist. If `border-border` is a custom class, make sure it is defined within a `@layer` directive.
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:44.505 ✖ ERROR DevServer Error:   Failed to scan for dependencies from entries:
+  /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/index.html
+
+  ✘ [ERROR] Expected identifier but found "/"
+
+    src/components/ui/badge.tsx:3:68:
+      3 │ ...ops extends React.HTMLAttributes<HTMLDivElement> {</HTMLDivElement>
+        ╵                                                       ^
+
+
+✘ [ERROR] Expected identifier but found "/"
+
+    src/components/ui/button.tsx:4:78:
+      4 │ ...React.ButtonHTMLAttributes<HTMLButtonElement> {</HTMLButtonElement>
+        ╵                                                    ^
+
+
+✘ [ERROR] Expected identifier but found "/"
+
+    src/components/ui/card.tsx:3:79:
+      3 │ .....props }: React.HTMLAttributes<HTMLDivElement>) {</HTMLDivElement>
+        ╵                                                       ^
+
+
+    at failureErrorWithLog (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:1462:15)
+    at eval (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:935:25)
+    at runOnEndCallbacks (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:1305:45)
+    at buildResponseToResult (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:933:7)
+    at eval (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:945:9)
+    at requestCallbacks.on-end (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:944:54)
+    at handleRequest (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:637:17)
+    at handleIncomingPacket (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:662:7)
+    at Socket.readFromStdout (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:590:7)
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:44.727 ✖ ERROR DevServer 10:30:44 AM [vite] Pre-transform error: [postcss] /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/index.css:1:1: The `border-border` class does not exist. If `border-border` is a custom class, make sure it is defined within a `@layer` directive.
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:44.868 ✖ ERROR DevServer 10:30:44 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/card.tsx: Unexpected token (3:79)
+
+  1 | import { cn } from "@/lib/utils";
+  2 |
+> 3 | function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {</HTMLDivElement>
+    |                                                                                ^
+  4 |   return (
+  5 |     <div
+  6 |       className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:44.875 ✖ ERROR DevServer 10:30:44 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/button.tsx: Unexpected token (4:78)
+
+  2 | import { cn } from "@/lib/utils";
+  3 |
+> 4 | interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {</HTMLButtonElement>
+    |                                                                               ^
+  5 |   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  6 |   size?: "default" | "sm" | "lg" | "icon";
+  7 | }
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:44.968 ✖ ERROR DevServer 10:30:44 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/card.tsx: Unexpected token (3:79)
+
+  1 | import { cn } from "@/lib/utils";
+  2 |
+> 3 | function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {</HTMLDivElement>
+    |                                                                                ^
+  4 |   return (
+  5 |     <div
+  6 |       className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:115 10:30:44.977 · DEBUG DevServer [1;1H
+logger.ts:115 10:30:44.982 · DEBUG DevServer [0J
+logger.ts:113 10:30:44.982 ✖ ERROR DevServer 10:30:44 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/card.tsx: Unexpected token (3:79)
+
+  1 | import { cn } from "@/lib/utils";
+  2 |
+> 3 | function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {</HTMLDivElement>
+    |                                                                                ^
+  4 |   return (
+  5 |     <div
+  6 |       className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} (x2)
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:44.983 ✖ ERROR DevServer 10:30:44 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/button.tsx: Unexpected token (4:78)
+
+  2 | import { cn } from "@/lib/utils";
+  3 |
+> 4 | interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {</HTMLButtonElement>
+    |                                                                               ^
+  5 |   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  6 |   size?: "default" | "sm" | "lg" | "icon";
+  7 | }
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:44.983 ✖ ERROR DevServer 10:30:44 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/badge.tsx: Unexpected token (3:68)
+
+  1 | import { cn } from "@/lib/utils";
+  2 |
+> 3 | interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {</HTMLDivElement>
+    |                                                                     ^
+  4 |   variant?: "default" | "secondary" | "destructive" | "outline";
+  5 | }
+  6 |
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:45.073 ✖ ERROR DevServer Error:   Failed to scan for dependencies from entries:
+  /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/index.html
+
+  ✘ [ERROR] Expected identifier but found "/"
+
+    src/components/ui/badge.tsx:3:68:
+      3 │ ...ops extends React.HTMLAttributes<HTMLDivElement> {</HTMLDivElement>
+        ╵                                                       ^
+
+
+✘ [ERROR] Expected identifier but found "/"
+
+    src/components/ui/button.tsx:4:78:
+      4 │ ...React.ButtonHTMLAttributes<HTMLButtonElement> {</HTMLButtonElement>
+        ╵                                                    ^
+
+
+✘ [ERROR] Expected identifier but found "/"
+
+    src/components/ui/card.tsx:3:79:
+      3 │ .....props }: React.HTMLAttributes<HTMLDivElement>) {</HTMLDivElement>
+        ╵                                                       ^
+
+
+    at failureErrorWithLog (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:1462:15)
+    at eval (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:935:25)
+    at runOnEndCallbacks (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:1305:45)
+    at buildResponseToResult (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:933:7)
+    at eval (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:945:9)
+    at requestCallbacks.on-end (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:944:54)
+    at handleRequest (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:637:17)
+    at handleIncomingPacket (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:662:7)
+    at Socket.readFromStdout (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/esbuild/lib/main.js:590:7)
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:115 10:30:45.234 · DEBUG DevServer [1;1H
+logger.ts:115 10:30:45.234 · DEBUG DevServer [0J
+logger.ts:113 10:30:45.235 ✖ ERROR DevServer 10:30:45 AM [vite] Internal server error: [postcss] /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/index.css:1:1: The `border-border` class does not exist. If `border-border` is a custom class, make sure it is defined within a `@layer` directive.
+  Plugin: vite:css
+  File: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/index.css:1:0
+  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;
+      at Input.error (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/postcss/lib/input.js:135:16)
+      at AtRule.error (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/postcss/lib/node.js:146:32)
+      at processApply (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/tailwindcss/lib/lib/expandApplyAtRules.js:380:29)
+      at eval (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/tailwindcss/lib/lib/expandApplyAtRules.js:551:9)
+      at eval (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/tailwindcss/lib/processTailwindFeatures.js:55:50)
+      at async plugins (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/tailwindcss/lib/plugin.js:38:17)
+      at async LazyResult.runAsync (/home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/postcss/lib/lazy-result.js:293:11)
+      at async compileCSS (file:///home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36948:21)
+      at async TransformPluginContext.transform (file:///home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36221:11)
+      at async PluginContainer.transform (file:///home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49149:18)
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+main.tsx:4  GET https://6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt--5201--e5af05b3.local-corp.webcontainer-api.io/src/index.css net::ERR_ABORTED 500 (Internal Server Error)
+logger.ts:113 10:30:45.374 ✖ ERROR DevServer 10:30:45 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/card.tsx: Unexpected token (3:79)
+
+  1 | import { cn } from "@/lib/utils";
+  2 |
+> 3 | function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {</HTMLDivElement>
+    |                                                                                ^
+  4 |   return (
+  5 |     <div
+  6 |       className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:45.374 ✖ ERROR DevServer 10:30:45 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/button.tsx: Unexpected token (4:78)
+
+  2 | import { cn } from "@/lib/utils";
+  3 |
+> 4 | interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {</HTMLButtonElement>
+    |                                                                               ^
+  5 |   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  6 |   size?: "default" | "sm" | "lg" | "icon";
+  7 | }
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:45.502 ✖ ERROR DevServer 10:30:45 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/card.tsx: Unexpected token (3:79)
+
+  1 | import { cn } from "@/lib/utils";
+  2 |
+> 3 | function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {</HTMLDivElement>
+    |                                                                                ^
+  4 |   return (
+  5 |     <div
+  6 |       className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:115 10:30:45.503 · DEBUG DevServer [1;1H
+logger.ts:115 10:30:45.504 · DEBUG DevServer [0J
+logger.ts:113 10:30:45.504 ✖ ERROR DevServer 10:30:45 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/card.tsx: Unexpected token (3:79)
+
+  1 | import { cn } from "@/lib/utils";
+  2 |
+> 3 | function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {</HTMLDivElement>
+    |                                                                                ^
+  4 |   return (
+  5 |     <div
+  6 |       className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} (x2)
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:45.504 ✖ ERROR DevServer 10:30:45 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/button.tsx: Unexpected token (4:78)
+
+  2 | import { cn } from "@/lib/utils";
+  3 |
+> 4 | interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {</HTMLButtonElement>
+    |                                                                               ^
+  5 |   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  6 |   size?: "default" | "sm" | "lg" | "icon";
+  7 | }
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+logger.ts:113 10:30:45.505 ✖ ERROR DevServer 10:30:45 AM [vite] Pre-transform error: /home/6lgtawoxdl6ed5s4ah09cgfzi8jm1c-uzzt/src/components/ui/badge.tsx: Unexpected token (3:68)
+
+  1 | import { cn } from "@/lib/utils";
+  2 |
+> 3 | interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {</HTMLDivElement>
+    |                                                                     ^
+  4 |   variant?: "default" | "secondary" | "destructive" | "outline";
+  5 | }
+  6 |
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:906
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.e5af05b3.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
