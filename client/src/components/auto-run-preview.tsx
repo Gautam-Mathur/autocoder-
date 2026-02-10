@@ -365,11 +365,7 @@ export function AutoRunPreview({
     }
   }, [autoStart, isRunnable, isSupported, state.status, runProject]);
 
-  useEffect(() => {
-    return () => {
-      resetAutoRunGuard();
-    };
-  }, []);
+  
 
   const config = statusConfig[state.status];
   const StatusIcon = config.icon;

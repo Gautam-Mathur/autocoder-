@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-02-10T03:45:03.593Z",
+  "exportedAt": "2026-02-10T04:49:19.749Z",
   "patterns": [
     {
       "patternType": "entity-structure",
@@ -444,7 +444,7 @@
           "commentCount"
         ]
       },
-      "successCount": 7,
+      "successCount": 9,
       "failureCount": 0,
       "reliability": 1
     },
@@ -468,7 +468,7 @@
           "content"
         ]
       },
-      "successCount": 7,
+      "successCount": 9,
       "failureCount": 0,
       "reliability": 1
     },
@@ -510,7 +510,7 @@
         ],
         "pageCount": 3
       },
-      "successCount": 6,
+      "successCount": 7,
       "failureCount": 0,
       "reliability": 1
     },
@@ -565,7 +565,7 @@
           }
         ]
       },
-      "successCount": 5,
+      "successCount": 7,
       "failureCount": 0,
       "reliability": 1
     },
@@ -2246,7 +2246,7 @@
         ],
         "qualityScore": 84
       },
-      "successCount": 2,
+      "successCount": 3,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16162,6 +16162,7 @@
       "reliability": 1
     },
     {
+      "id": 1022,
       "patternType": "page-structure",
       "patternKey": "page-layout-tasks",
       "patternValue": {
@@ -16177,11 +16178,12 @@
           "form-wizard view"
         ]
       },
-      "successCount": 1,
+      "successCount": 2,
       "failureCount": 0,
       "reliability": 1
     },
     {
+      "id": 1025,
       "patternType": "page-structure",
       "patternKey": "page-layout-task-detail",
       "patternValue": {
@@ -16196,11 +16198,12 @@
           "labels"
         ]
       },
-      "successCount": 1,
+      "successCount": 2,
       "failureCount": 0,
       "reliability": 1
     },
     {
+      "id": 1024,
       "patternType": "page-structure",
       "patternKey": "page-layout-board-view",
       "patternValue": {
@@ -16213,11 +16216,12 @@
           "labels"
         ]
       },
-      "successCount": 1,
+      "successCount": 2,
       "failureCount": 0,
       "reliability": 1
     },
     {
+      "id": 1023,
       "patternType": "page-structure",
       "patternKey": "page-layout-my-tasks",
       "patternValue": {
@@ -16229,7 +16233,7 @@
           "quick-status-update"
         ]
       },
-      "successCount": 1,
+      "successCount": 2,
       "failureCount": 0,
       "reliability": 1
     }
@@ -16249,7 +16253,7 @@
       "key": "quality-score-general",
       "value": "88",
       "category": "architecture",
-      "frequency": 2
+      "frequency": 3
     }
   ],
   "stats": {

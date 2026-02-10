@@ -1007,7 +1007,20 @@ export async function getWebContainer(): Promise<WebContainer> {
   
   if (bootPromise) {
     runnerLog.debug('WebContainer', 'Waiting for existing boot promise...');
-    return bootPromise;
+    try {
+      const instance = await bootPromise;
+      if (instance) {
+        webcontainerInstance = instance;
+        return instance;
+      }
+    } catch (err) {
+      runnerLog.warn('WebContainer', 'Previous boot promise failed, will retry', { error: String(err) });
+      bootPromise = null;
+    }
+  }
+  
+  if (webcontainerInstance) {
+    return webcontainerInstance;
   }
   
   const isIsolated = typeof window !== 'undefined' && window.crossOriginIsolated;
@@ -1021,10 +1034,19 @@ export async function getWebContainer(): Promise<WebContainer> {
   }
   runnerLog.startTimer('wc-boot');
   bootPromise = WebContainer.boot();
-  webcontainerInstance = await bootPromise;
-  const bootMs = runnerLog.endTimer('wc-boot');
-  runnerLog.success('WebContainer', 'WebContainer booted successfully', undefined, bootMs);
-  return webcontainerInstance;
+  try {
+    webcontainerInstance = await bootPromise;
+    const bootMs = runnerLog.endTimer('wc-boot');
+    runnerLog.success('WebContainer', 'WebContainer booted successfully', undefined, bootMs);
+    return webcontainerInstance;
+  } catch (err) {
+    const errorStr = String(err);
+    if (errorStr.includes('single') || errorStr.includes('already') || errorStr.includes('Only')) {
+      runnerLog.warn('WebContainer', 'Boot rejected (singleton already exists). This is a browser-level limitation - page reload required for a fresh instance.');
+    }
+    bootPromise = null;
+    throw err;
+  }
 }
 
 export async function mountFiles(files: FileSystemTree): Promise<void> {

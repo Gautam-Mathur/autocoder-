@@ -300,6 +300,8 @@ export interface AutoRunOptions {
 
 let activeRunId: string | null = null;
 let activeRunPromise: Promise<{ success: boolean; previewUrl: string | null; error: string | null }> | null = null;
+let lastSuccessfulPreviewUrl: string | null = null;
+let sessionProjectHash: string | null = null;
 
 const CRITICAL_UI_FILES: Record<string, { exports: string[]; content: string }> = {
   'src/components/ui/toaster.tsx': {
@@ -414,6 +416,22 @@ export async function autoRunProject(
     runnerLog.warn('AutoRunner', `Duplicate autoRunProject call blocked (active: ${activeRunId}, attempted: ${runId})`);
     runnerLog.info('AutoRunner', `Returning result of active run ${activeRunId}`);
     return activeRunPromise;
+  }
+
+  const projectHash = files.map(f => f.path + ':' + f.content.length).join('|');
+  if (lastSuccessfulPreviewUrl && sessionProjectHash === projectHash) {
+    runnerLog.info('AutoRunner', `Reusing existing preview for same project (hash match), url: ${lastSuccessfulPreviewUrl}`);
+    const cachedResult = { success: true, previewUrl: lastSuccessfulPreviewUrl, error: null };
+    callbacks.onStatusChange?.({
+      status: 'running',
+      progress: 100,
+      message: 'Preview ready (reconnected)',
+      logs: ['Reconnected to existing preview session'],
+      previewUrl: lastSuccessfulPreviewUrl,
+      error: null
+    });
+    callbacks.onPreviewReady?.(lastSuccessfulPreviewUrl);
+    return cachedResult;
   }
 
   activeRunId = runId;
@@ -928,6 +946,8 @@ export default {
     runnerLog.separator('AUTO-RUN COMPLETE');
     log(`🎉 Application running at ${url}`);
     
+    lastSuccessfulPreviewUrl = url;
+    sessionProjectHash = projectHash;
     return { success: true, previewUrl: url, error: null };
     
   } catch (error) {
@@ -958,6 +978,8 @@ export default {
 export function resetAutoRunGuard() {
   activeRunId = null;
   activeRunPromise = null;
+  lastSuccessfulPreviewUrl = null;
+  sessionProjectHash = null;
 }
 
 export async function quickRun(
