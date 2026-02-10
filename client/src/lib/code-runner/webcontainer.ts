@@ -908,8 +908,8 @@ export default defineConfig({
         const batchPkgCount = Object.keys(batch.deps).length + Object.keys(batch.devDeps).length;
         notifyPreWarm('installing', `Batch ${i + 1}/${totalBatches}: Installing ${batchPkgCount} packages...`);
 
-        const batchStallTimeout = i < 3 ? 180000 : i < 10 ? 120000 : 90000;
-        const batchTimeout = i < 3 ? 240000 : 180000;
+        const batchStallTimeout = i < 3 ? 180000 : i < 10 ? 150000 : 90000;
+        const batchTimeout = i < 3 ? 240000 : i < 10 ? 210000 : 180000;
         let result = await runBatchInstall(container, batch.deps, batch.devDeps, batch.label, batchTimeout, batchStallTimeout);
 
         if (!result.success && i === 0) {
@@ -954,6 +954,11 @@ export default defineConfig({
       if (consolidatedCount > 0) {
         notifyPreWarm('installing', 'Final consolidation install...');
         runnerLog.info('PreWarm', `Running consolidated install with ${consolidatedCount} packages from ${completedBatches} batches`);
+        try {
+          runnerLog.info('PreWarm', 'Cleaning node_modules before consolidation to prevent ENOTEMPTY');
+          await container.fs.rm('node_modules', { recursive: true });
+          try { await container.fs.rm('package-lock.json'); } catch {}
+        } catch {}
         const finalResult = await runBatchInstall(container, allDeps, allDevDeps, 'consolidate', 180000, 90000);
         if (!finalResult.success) {
           runnerLog.warn('PreWarm', 'Consolidation install failed, packages may be cache-only');
@@ -1227,11 +1232,14 @@ export async function installDependencies(
 
     if (result.stalledOut) stallCount++;
     
+    const outputText = result.output.join('\n') + '\n' + result.errors.join('\n');
+    const hasEnotempty = outputText.includes('ENOTEMPTY') || outputText.includes('directory not empty');
+    
     runnerLog.warn('NPM', `Attempt ${attempt} failed`, {
       exitCode: result.exitCode,
       stalledOut: result.stalledOut,
       attemptTime: `${attemptMs}ms`,
-      reason: result.stalledOut ? 'stall (no output)' : result.exitCode === -1 ? 'timeout' : `exit code ${result.exitCode}`,
+      reason: result.stalledOut ? 'stall (no output)' : hasEnotempty ? 'ENOTEMPTY (directory conflict)' : result.exitCode === -1 ? 'timeout' : `exit code ${result.exitCode}`,
     });
     allOutput.push(...result.output);
     allErrors.push(...result.errors);
@@ -1248,8 +1256,8 @@ export async function installDependencies(
         const rmPkgLock = await container.spawn('rm', ['-rf', 'node_modules/.package-lock.json']);
         await rmPkgLock.exit;
         
-        if (attempt >= 2 || stallCount >= 2) {
-          runnerLog.info('NPM', 'Removing node_modules for clean install');
+        if (attempt >= 2 || stallCount >= 2 || hasEnotempty) {
+          runnerLog.info('NPM', hasEnotempty ? 'ENOTEMPTY detected, removing node_modules for clean install' : 'Removing node_modules for clean install');
           onOutput?.('🧹 Cleaning node_modules for fresh install...\n');
           const rmModules = await container.spawn('rm', ['-rf', 'node_modules']);
           await rmModules.exit;
