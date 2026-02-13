@@ -47,7 +47,7 @@ const basePackageJson = {
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
-    "tailwindcss": "^3.4.0",
+    "tailwindcss": "3.4.17",
     "typescript": "^5.2.0",
     "vite": "^5.0.0"
   }

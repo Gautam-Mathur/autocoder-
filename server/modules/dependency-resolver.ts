@@ -51,7 +51,7 @@ const PACKAGE_REGISTRY: Record<string, PackageInfo> = {
   'wouter': { version: '^3.3.5', size: 4, treeShakeable: true, category: 'ui', isDev: false },
   '@tanstack/react-query': { version: '^5.60.5', size: 40, treeShakeable: true, category: 'state', isDev: false },
   'zod': { version: '^3.23.8', size: 13, treeShakeable: true, category: 'utility', isDev: false },
-  'tailwindcss': { version: '^3.4.15', size: 0, treeShakeable: false, category: 'build', isDev: true },
+  'tailwindcss': { version: '3.4.17', size: 0, treeShakeable: false, category: 'build', isDev: true },
   'lucide-react': { version: '^0.460.0', size: 0.5, treeShakeable: true, category: 'ui', isDev: false },
   'class-variance-authority': { version: '^0.7.1', size: 2, treeShakeable: true, category: 'ui', isDev: false },
   'clsx': { version: '^2.1.1', size: 0.5, treeShakeable: true, category: 'utility', isDev: false },

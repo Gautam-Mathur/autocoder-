@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-02-13T09:57:44.551Z",
+  "exportedAt": "2026-02-13T10:24:46.370Z",
   "patterns": [
     {
       "patternType": "entity-structure",
@@ -444,7 +444,7 @@
           "commentCount"
         ]
       },
-      "successCount": 19,
+      "successCount": 23,
       "failureCount": 0,
       "reliability": 1
     },
@@ -468,7 +468,7 @@
           "content"
         ]
       },
-      "successCount": 19,
+      "successCount": 23,
       "failureCount": 0,
       "reliability": 1
     },
@@ -510,7 +510,7 @@
         ],
         "pageCount": 3
       },
-      "successCount": 12,
+      "successCount": 14,
       "failureCount": 0,
       "reliability": 1
     },
@@ -565,7 +565,7 @@
           }
         ]
       },
-      "successCount": 17,
+      "successCount": 21,
       "failureCount": 0,
       "reliability": 1
     },
@@ -2211,7 +2211,7 @@
       "patternType": "tech-choice",
       "patternKey": "file-structure-general",
       "patternValue": {
-        "fileCount": 38,
+        "fileCount": 45,
         "recentPaths": [
           "package.json",
           "index.html",
@@ -2240,13 +2240,13 @@
           "server/routes.ts",
           "src/App.tsx",
           "src/index.css",
-          "src/pages/dashboard.tsx",
-          "src/components/data-table.tsx",
-          "src/components/kpi-card.tsx"
+          "src/pages/projects.tsx",
+          "src/pages/project-detail.tsx",
+          "src/pages/tasks.tsx"
         ],
         "qualityScore": 84
       },
-      "successCount": 8,
+      "successCount": 10,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16178,7 +16178,7 @@
           "form-wizard view"
         ]
       },
-      "successCount": 6,
+      "successCount": 8,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16198,7 +16198,7 @@
           "labels"
         ]
       },
-      "successCount": 6,
+      "successCount": 8,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16216,7 +16216,7 @@
           "labels"
         ]
       },
-      "successCount": 6,
+      "successCount": 8,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16233,7 +16233,7 @@
           "quick-status-update"
         ]
       },
-      "successCount": 6,
+      "successCount": 8,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16595,7 +16595,7 @@
           "taskCount"
         ]
       },
-      "successCount": 10,
+      "successCount": 12,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16621,7 +16621,7 @@
           "avatar"
         ]
       },
-      "successCount": 10,
+      "successCount": 12,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16670,7 +16670,7 @@
           }
         ]
       },
-      "successCount": 10,
+      "successCount": 12,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16692,7 +16692,7 @@
           "dashboard-widget view"
         ]
       },
-      "successCount": 4,
+      "successCount": 5,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16710,7 +16710,7 @@
           "files"
         ]
       },
-      "successCount": 4,
+      "successCount": 5,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16728,7 +16728,7 @@
           "card-grid view"
         ]
       },
-      "successCount": 4,
+      "successCount": 5,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16745,7 +16745,7 @@
           "upcoming-deadlines"
         ]
       },
-      "successCount": 5,
+      "successCount": 6,
       "failureCount": 0,
       "reliability": 1
     }
@@ -16765,7 +16765,7 @@
       "key": "quality-score-general",
       "value": "94",
       "category": "architecture",
-      "frequency": 8
+      "frequency": 10
     }
   ],
   "stats": {

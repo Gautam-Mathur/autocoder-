@@ -220,7 +220,7 @@ const COMMON_PACKAGES: Record<string, string> = {
   '@radix-ui/react-scroll-area': '^1.0.5',
   '@radix-ui/react-avatar': '^1.0.4',
   '@radix-ui/react-popover': '^1.0.7',
-  'tailwindcss': '^3.3.0',
+  'tailwindcss': '3.4.17',
   'autoprefixer': '^10.4.0',
   'postcss': '^8.4.0',
 };

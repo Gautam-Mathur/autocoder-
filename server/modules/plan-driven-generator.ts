@@ -90,7 +90,7 @@ const AVAILABLE_DEPS: Record<string, string> = {
 const AVAILABLE_DEV_DEPS: Record<string, string> = {
   'vite': '^5.1.0',
   '@vitejs/plugin-react': '^4.2.0',
-  'tailwindcss': '^3.4.1',
+  'tailwindcss': '3.4.17',
   'postcss': '^8.4.35',
   'autoprefixer': '^10.4.17',
   'picomatch': '^4.0.2',
@@ -573,7 +573,7 @@ export function Toaster() {
         >
           {toast.title && <div className="font-semibold text-sm">{toast.title}</div>}
           {toast.description && <div className="text-sm mt-1 opacity-90">{toast.description}</div>}
-          <button
+          <button type="button"
             onClick={() => dismiss(toast.id)}
             className="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100"
           >
@@ -584,6 +584,8 @@ export function Toaster() {
     </div>
   );
 }
+
+export default Toaster;
 `;
   return { path: 'src/components/ui/toaster.tsx', content, language: 'tsx' };
 }

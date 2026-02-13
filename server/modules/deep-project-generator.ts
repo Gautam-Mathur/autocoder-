@@ -1834,7 +1834,7 @@ function generateConfigFiles(blueprint: ProjectBlueprint, options: GenerationOpt
         'react-hook-form': '^7.48.0',
         wouter: '^3.0.0',
         'lucide-react': '^0.300.0',
-        'tailwindcss': '^3.4.0',
+        'tailwindcss': '3.4.17',
         ...(blueprint.techStack.database === 'postgresql' && { 'drizzle-orm': '^0.29.0' }),
       },
       devDependencies: {

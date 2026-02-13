@@ -747,14 +747,15 @@ export default {
         log('⚡ Core packages pre-installed, checking for extras...');
 
         const { deps: preWarmedDeps, devDeps: preWarmedDevDeps } = getPreWarmedPackages();
+        const allPreWarmed = { ...preWarmedDeps, ...preWarmedDevDeps };
 
         try {
           const currentPkg = pkgContent ? JSON.parse(pkgContent || '{}') : {};
           const projectDeps = currentPkg.dependencies || {};
           const projectDevDeps = currentPkg.devDependencies || {};
 
-          const extraDeps = Object.keys(projectDeps).filter(d => !preWarmedDeps[d]);
-          const extraDevDeps = Object.keys(projectDevDeps).filter(d => !preWarmedDevDeps[d]);
+          const extraDeps = Object.keys(projectDeps).filter(d => !allPreWarmed[d]);
+          const extraDevDeps = Object.keys(projectDevDeps).filter(d => !allPreWarmed[d]);
 
           runnerLog.info('Pipeline', `Pre-warm diff: ${extraDeps.length} extra deps, ${extraDevDeps.length} extra devDeps`, {
             extraDeps: extraDeps.join(', ') || '(none)',

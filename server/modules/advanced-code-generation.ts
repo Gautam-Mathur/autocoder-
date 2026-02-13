@@ -56,7 +56,7 @@ const PROJECT_TEMPLATES: Record<string, (ctx: GenerationContext) => Partial<Proj
     dependencies: {
       'react': '^18.2.0',
       'react-dom': '^18.2.0',
-      ...(ctx.styling === 'tailwind' ? { 'tailwindcss': '^3.4.0' } : {}),
+      ...(ctx.styling === 'tailwind' ? { 'tailwindcss': '3.4.17' } : {}),
       ...(ctx.auth ? { '@auth/react': '^0.1.0' } : {}),
     },
     devDependencies: {
@@ -411,47 +411,47 @@ function generateGoHandler(name: string, framework: string): string {
     return `package handlers
 
 import (
-	"net/http"
-	"github.com/gin-gonic/gin"
+        "net/http"
+        "github.com/gin-gonic/gin"
 )
 
 type ${name}Handler struct {
-	// Add dependencies here
+        // Add dependencies here
 }
 
 func New${name}Handler() *${name}Handler {
-	return &${name}Handler{}
+        return &${name}Handler{}
 }
 
 func (h *${name}Handler) List(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"data": []interface{}{},
-	})
+        c.JSON(http.StatusOK, gin.H{
+                "data": []interface{}{},
+        })
 }
 
 func (h *${name}Handler) Create(c *gin.Context) {
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Created",
-	})
+        c.JSON(http.StatusCreated, gin.H{
+                "message": "Created",
+        })
 }
 
 func (h *${name}Handler) Get(c *gin.Context) {
-	id := c.Param("id")
-	c.JSON(http.StatusOK, gin.H{
-		"id": id,
-	})
+        id := c.Param("id")
+        c.JSON(http.StatusOK, gin.H{
+                "id": id,
+        })
 }
 
 func (h *${name}Handler) Update(c *gin.Context) {
-	id := c.Param("id")
-	c.JSON(http.StatusOK, gin.H{
-		"id": id,
-		"message": "Updated",
-	})
+        id := c.Param("id")
+        c.JSON(http.StatusOK, gin.H{
+                "id": id,
+                "message": "Updated",
+        })
 }
 
 func (h *${name}Handler) Delete(c *gin.Context) {
-	c.JSON(http.StatusNoContent, nil)
+        c.JSON(http.StatusNoContent, nil)
 }
 `;
   }
@@ -784,25 +784,25 @@ ${Object.entries(template.dependencies || {}).map(([pkg, ver]) => `\t${pkg} ${ve
       content: `package main
 
 import (
-	"github.com/gin-gonic/gin"
+        "github.com/gin-gonic/gin"
 )
 
 func main() {
-	r := gin.Default()
+        r := gin.Default()
 
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "Welcome to the API",
-		})
-	})
+        r.GET("/", func(c *gin.Context) {
+                c.JSON(200, gin.H{
+                        "message": "Welcome to the API",
+                })
+        })
 
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "ok",
-		})
-	})
+        r.GET("/health", func(c *gin.Context) {
+                c.JSON(200, gin.H{
+                        "status": "ok",
+                })
+        })
 
-	r.Run(":8080")
+        r.Run(":8080")
 }
 `,
       language: 'go',

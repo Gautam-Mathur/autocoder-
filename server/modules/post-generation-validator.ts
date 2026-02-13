@@ -462,7 +462,7 @@ export function autoFixFiles(files: GeneratedFile[], issues: ValidationIssue[]):
               'recharts': '^2.12.0', 'date-fns': '^3.3.1', 'clsx': '^2.1.0',
               'tailwind-merge': '^2.2.0', 'express': '^4.18.0', 'drizzle-orm': '^0.29.0',
               'zod': '^3.22.0', '@vitejs/plugin-react': '^4.2.0',
-              'tailwindcss': '^3.4.0', 'postcss': '^8.4.0', 'autoprefixer': '^10.4.0',
+              'tailwindcss': '3.4.17', 'postcss': '^8.4.0', 'autoprefixer': '^10.4.0',
               '@hookform/resolvers': '^3.3.0',
               'react-hook-form': '^7.50.0',
               'class-variance-authority': '^0.7.0',
