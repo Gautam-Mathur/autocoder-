@@ -1,0 +1,1550 @@
+import { ProjectContextManager } from './project-context-manager.js';
+import type { FileMetadata } from './project-context-manager.js';
+
+export interface EditRequest {
+  userMessage: string;
+  projectFiles: { path: string; content: string; language: string }[];
+  conversationHistory?: string;
+}
+
+export interface FileEdit {
+  filePath: string;
+  editType: 'modify' | 'create' | 'delete';
+  oldContent?: string;
+  newContent: string;
+  description: string;
+  linesChanged: number;
+}
+
+export interface EditResult {
+  edits: FileEdit[];
+  summary: string;
+  thinkingSteps: { phase: string; label: string; detail?: string }[];
+  affectedFiles: string[];
+  editType: 'style' | 'content' | 'structure' | 'feature' | 'fix' | 'refactor';
+}
+
+type EditType = EditResult['editType'];
+
+interface ThinkingStep {
+  phase: string;
+  label: string;
+  detail?: string;
+}
+
+interface ClassifiedIntent {
+  editType: EditType;
+  confidence: number;
+  keywords: string[];
+  targets: TargetHint[];
+}
+
+interface TargetHint {
+  kind: 'component' | 'page' | 'schema' | 'style' | 'route' | 'api' | 'config' | 'file';
+  name: string;
+  raw: string;
+}
+
+const STYLE_KEYWORDS = [
+  'color', 'background', 'font', 'size', 'spacing', 'padding', 'margin',
+  'border', 'rounded', 'shadow', 'dark', 'light', 'theme', 'opacity',
+  'width', 'height', 'gap', 'align', 'justify', 'layout', 'flex', 'grid',
+  'text-sm', 'text-lg', 'text-xl', 'bold', 'italic', 'underline',
+  'bg-', 'text-', 'p-', 'm-', 'w-', 'h-', 'rounded-', 'shadow-',
+  'blue', 'red', 'green', 'yellow', 'purple', 'pink', 'orange', 'gray',
+  'white', 'black', 'indigo', 'teal', 'cyan', 'slate', 'zinc', 'neutral',
+  'bigger', 'smaller', 'larger', 'wider', 'narrower', 'taller', 'shorter',
+  'transparent', 'gradient',
+];
+
+const CONTENT_KEYWORDS = [
+  'title', 'heading', 'text', 'label', 'placeholder', 'description',
+  'name', 'copy', 'wording', 'string', 'message', 'tooltip', 'caption',
+  'subtitle', 'paragraph', 'headline', 'tagline', 'slogan',
+  'change the text', 'update the text', 'rename', 'change the title',
+  'change the label', 'update the label', 'change the heading',
+];
+
+const STRUCTURE_KEYWORDS = [
+  'add page', 'new page', 'add route', 'new route', 'add section',
+  'new section', 'add tab', 'new tab', 'remove page', 'delete page',
+  'add navigation', 'add nav', 'add link', 'add menu', 'sidebar',
+  'reorder', 'move', 'reorganize', 'restructure',
+];
+
+const FEATURE_KEYWORDS = [
+  'add field', 'new field', 'add column', 'new column', 'add button',
+  'new button', 'add form', 'new form', 'add input', 'add select',
+  'add dropdown', 'add checkbox', 'add table', 'add endpoint',
+  'add api', 'new api', 'add filter', 'add search', 'add sort',
+  'add modal', 'add dialog', 'add card', 'add list', 'add grid',
+  'add feature', 'add functionality', 'add validation', 'add export',
+  'add import', 'add upload', 'add download', 'add pagination',
+  'add notification', 'add toast', 'add badge', 'add icon',
+  'add toggle', 'add switch', 'add slider', 'add progress',
+  'add chart', 'add graph', 'add counter', 'add timer',
+];
+
+const FIX_KEYWORDS = [
+  'fix', 'broken', 'error', 'bug', 'issue', 'wrong', 'incorrect',
+  'not working', 'crash', 'fail', 'missing', 'undefined', 'null',
+  'import error', 'type error', 'syntax error', 'reference error',
+  'cannot find', 'does not exist', 'not found', 'unresolved',
+  'not rendering', 'blank page', 'white screen', 'not showing',
+  'layout broken', 'overflow', 'overlapping',
+];
+
+const REFACTOR_KEYWORDS = [
+  'refactor', 'rename', 'extract', 'move to', 'separate', 'split',
+  'combine', 'merge', 'consolidate', 'reorganize', 'clean up',
+  'simplify', 'optimize', 'deduplicate', 'dry', 'abstract',
+];
+
+const TARGET_PATTERNS: { pattern: RegExp; kind: TargetHint['kind'] }[] = [
+  { pattern: /(?:the|in|on|to)\s+(?:the\s+)?header/i, kind: 'component' },
+  { pattern: /(?:the|in|on|to)\s+(?:the\s+)?footer/i, kind: 'component' },
+  { pattern: /(?:the|in|on|to)\s+(?:the\s+)?sidebar/i, kind: 'component' },
+  { pattern: /(?:the|in|on|to)\s+(?:the\s+)?navbar?/i, kind: 'component' },
+  { pattern: /(?:the|in|on|to)\s+(?:the\s+)?hero\s*(?:section)?/i, kind: 'component' },
+  { pattern: /(?:the|in|on|to)\s+(?:the\s+)?modal/i, kind: 'component' },
+  { pattern: /(?:the|in|on|to)\s+(?:the\s+)?dialog/i, kind: 'component' },
+  { pattern: /(?:the|in|on|to)\s+(?:the\s+)?form/i, kind: 'component' },
+  { pattern: /(?:the|in|on|to)\s+(?:the\s+)?table/i, kind: 'component' },
+  { pattern: /(?:the|in|on|to)\s+(?:the\s+)?card/i, kind: 'component' },
+  { pattern: /(?:the|in|on)\s+(?:the\s+)?(\w+)\s*page/i, kind: 'page' },
+  { pattern: /(?:the|in|on)\s+(?:the\s+)?(\w+)\s*view/i, kind: 'page' },
+  { pattern: /(?:the|in|on)\s+(?:the\s+)?(\w+)\s*screen/i, kind: 'page' },
+  { pattern: /(?:the|in)\s+(?:the\s+)?(\w+)\s*schema/i, kind: 'schema' },
+  { pattern: /(?:the|in)\s+(?:the\s+)?(\w+)\s*model/i, kind: 'schema' },
+  { pattern: /(?:the|in)\s+(?:the\s+)?(\w+)\s*table/i, kind: 'schema' },
+  { pattern: /(?:the|in)\s+(?:the\s+)?(\w+)\s*(?:css|styles?|stylesheet)/i, kind: 'style' },
+  { pattern: /(?:the|in)\s+(?:the\s+)?(\w+)\s*(?:route|endpoint|api)/i, kind: 'api' },
+  { pattern: /(?:the|in)\s+(?:the\s+)?(\w+)\s*component/i, kind: 'component' },
+  { pattern: /(?:the|in)\s+(?:the\s+)?(\w+)\s*(?:config|configuration)/i, kind: 'config' },
+];
+
+const TAILWIND_COLOR_MAP: Record<string, string> = {
+  blue: 'blue', red: 'red', green: 'green', yellow: 'yellow',
+  purple: 'purple', pink: 'pink', orange: 'orange', gray: 'gray',
+  white: 'white', black: 'black', indigo: 'indigo', teal: 'teal',
+  cyan: 'cyan', slate: 'slate', zinc: 'zinc', neutral: 'neutral',
+  emerald: 'emerald', violet: 'violet', rose: 'rose', amber: 'amber',
+  lime: 'lime', sky: 'sky', fuchsia: 'fuchsia', stone: 'stone',
+};
+
+const TAILWIND_SIZE_SCALE = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl', '8xl', '9xl'];
+const TAILWIND_SPACING_SCALE = ['0', '0.5', '1', '1.5', '2', '2.5', '3', '3.5', '4', '5', '6', '7', '8', '9', '10', '11', '12', '14', '16', '20', '24', '28', '32', '36', '40', '44', '48', '52', '56', '60', '64', '72', '80', '96'];
+
+function classifyIntent(message: string): ClassifiedIntent {
+  const lower = message.toLowerCase();
+  const scores: Record<EditType, number> = {
+    style: 0,
+    content: 0,
+    structure: 0,
+    feature: 0,
+    fix: 0,
+    refactor: 0,
+  };
+  const matchedKeywords: string[] = [];
+
+  for (const kw of STYLE_KEYWORDS) {
+    if (lower.includes(kw)) {
+      scores.style += kw.includes(' ') ? 2 : 1;
+      matchedKeywords.push(kw);
+    }
+  }
+  for (const kw of CONTENT_KEYWORDS) {
+    if (lower.includes(kw)) {
+      scores.content += kw.includes(' ') ? 3 : 1;
+      matchedKeywords.push(kw);
+    }
+  }
+  for (const kw of STRUCTURE_KEYWORDS) {
+    if (lower.includes(kw)) {
+      scores.structure += kw.includes(' ') ? 3 : 1;
+      matchedKeywords.push(kw);
+    }
+  }
+  for (const kw of FEATURE_KEYWORDS) {
+    if (lower.includes(kw)) {
+      scores.feature += kw.includes(' ') ? 3 : 1;
+      matchedKeywords.push(kw);
+    }
+  }
+  for (const kw of FIX_KEYWORDS) {
+    if (lower.includes(kw)) {
+      scores.fix += kw.includes(' ') ? 3 : 1;
+      matchedKeywords.push(kw);
+    }
+  }
+  for (const kw of REFACTOR_KEYWORDS) {
+    if (lower.includes(kw)) {
+      scores.refactor += kw.includes(' ') ? 3 : 1;
+      matchedKeywords.push(kw);
+    }
+  }
+
+  if (/make\s+(?:it\s+)?(?:the\s+)?(?:\w+\s+)?(?:bigger|smaller|larger|wider|narrower|taller|shorter)/i.test(message)) {
+    scores.style += 3;
+  }
+  if (/change\s+(?:the\s+)?(?:background|bg)\s+(?:color\s+)?(?:to|of)/i.test(message)) {
+    scores.style += 3;
+  }
+  if (/change\s+(?:the\s+)?(?:text|title|heading|label|name)\s+(?:to|of|from)/i.test(message)) {
+    scores.content += 3;
+  }
+  if (/add\s+(?:a\s+)?(?:new\s+)?(?:\w+\s+)?(?:field|column|input|button|endpoint)/i.test(message)) {
+    scores.feature += 3;
+  }
+  if (/add\s+(?:a\s+)?(?:new\s+)?(?:\w+\s+)?page/i.test(message)) {
+    scores.structure += 3;
+  }
+
+  const targets = extractTargets(message);
+
+  let bestType: EditType = 'feature';
+  let bestScore = 0;
+  for (const [type, score] of Object.entries(scores) as [EditType, number][]) {
+    if (score > bestScore) {
+      bestScore = score;
+      bestType = type;
+    }
+  }
+
+  const total = Object.values(scores).reduce((a, b) => a + b, 0);
+  const confidence = total > 0 ? bestScore / total : 0.5;
+
+  return {
+    editType: bestType,
+    confidence,
+    keywords: Array.from(new Set(matchedKeywords)),
+    targets,
+  };
+}
+
+function extractTargets(message: string): TargetHint[] {
+  const targets: TargetHint[] = [];
+  const seen = new Set<string>();
+
+  for (const { pattern, kind } of TARGET_PATTERNS) {
+    const match = message.match(pattern);
+    if (match) {
+      const name = (match[1] || match[0]).replace(/^(?:the|in|on|to)\s+(?:the\s+)?/i, '').trim();
+      const key = `${kind}:${name.toLowerCase()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        targets.push({ kind, name, raw: match[0] });
+      }
+    }
+  }
+
+  const fileRefMatch = message.match(/(?:file|in)\s+[`"']([^`"']+)[`"']/i);
+  if (fileRefMatch) {
+    targets.push({ kind: 'file', name: fileRefMatch[1], raw: fileRefMatch[0] });
+  }
+
+  return targets;
+}
+
+function findTargetFiles(
+  intent: ClassifiedIntent,
+  contextManager: ProjectContextManager,
+  files: { path: string; content: string; language: string }[]
+): { path: string; content: string; language: string; meta: FileMetadata }[] {
+  const results: Map<string, { path: string; content: string; language: string; meta: FileMetadata }> = new Map();
+  const fileIndex = contextManager.getFileIndex();
+
+  const addFile = (path: string) => {
+    if (results.has(path)) return;
+    const meta = fileIndex.get(path);
+    const file = files.find(f => f.path === path);
+    if (file && meta) {
+      results.set(path, { ...file, meta });
+    }
+  };
+
+  for (const target of intent.targets) {
+    const lowerName = target.name.toLowerCase();
+
+    if (target.kind === 'file') {
+      const exact = files.find(f => f.path === target.name || f.path.endsWith(target.name));
+      if (exact) addFile(exact.path);
+      continue;
+    }
+
+    if (target.kind === 'page') {
+      const pageFiles = contextManager.getFilesByType('page');
+      for (const pf of pageFiles) {
+        if (pf.path.toLowerCase().includes(lowerName)) {
+          addFile(pf.path);
+        }
+      }
+    }
+
+    if (target.kind === 'component') {
+      const componentFiles = contextManager.getFilesByType('component');
+      for (const cf of componentFiles) {
+        const pathLower = cf.path.toLowerCase();
+        const hasName = pathLower.includes(lowerName) ||
+          cf.components.some(c => c.toLowerCase().includes(lowerName));
+        if (hasName) {
+          addFile(cf.path);
+        }
+      }
+      if (results.size === 0) {
+        for (const file of files) {
+          if (file.content.toLowerCase().includes(lowerName)) {
+            addFile(file.path);
+          }
+        }
+      }
+    }
+
+    if (target.kind === 'schema') {
+      const schemaFiles = contextManager.getFilesByType('schema');
+      for (const sf of schemaFiles) {
+        addFile(sf.path);
+      }
+    }
+
+    if (target.kind === 'style') {
+      const styleFiles = contextManager.getFilesByType('style');
+      for (const sf of styleFiles) {
+        addFile(sf.path);
+      }
+    }
+
+    if (target.kind === 'api' || target.kind === 'route') {
+      const apiFiles = contextManager.getFilesByType('api');
+      for (const af of apiFiles) {
+        addFile(af.path);
+      }
+    }
+  }
+
+  if (results.size === 0) {
+    if (intent.editType === 'style') {
+      const styleFiles = contextManager.getFilesByType('style');
+      for (const sf of styleFiles) addFile(sf.path);
+      if (results.size === 0) {
+        for (const file of files) {
+          if (/className[=]/.test(file.content) || /tailwind|css/i.test(file.path)) {
+            addFile(file.path);
+          }
+        }
+      }
+    }
+
+    if (intent.editType === 'content') {
+      for (const file of files) {
+        if (/\.(tsx|jsx)$/.test(file.path) && /<[A-Za-z]/.test(file.content)) {
+          addFile(file.path);
+        }
+      }
+    }
+
+    if (intent.editType === 'fix') {
+      for (const file of files) {
+        if (/\.(tsx?|jsx?)$/.test(file.path)) {
+          addFile(file.path);
+        }
+      }
+    }
+
+    if (intent.editType === 'feature') {
+      const schemaFiles = contextManager.getFilesByType('schema');
+      const apiFiles = contextManager.getFilesByType('api');
+      const componentFiles = contextManager.getFilesByType('component');
+      for (const f of schemaFiles) addFile(f.path);
+      for (const f of apiFiles) addFile(f.path);
+      for (const f of componentFiles.slice(0, 5)) addFile(f.path);
+    }
+
+    if (intent.editType === 'structure') {
+      for (const file of files) {
+        if (/App\.(tsx|jsx)$/.test(file.path) || /routes?\.(tsx?|jsx?)$/.test(file.path)) {
+          addFile(file.path);
+        }
+      }
+      const componentFiles = contextManager.getFilesByType('component');
+      for (const cf of componentFiles) {
+        if (cf.path.toLowerCase().includes('nav') || cf.path.toLowerCase().includes('sidebar') ||
+            cf.path.toLowerCase().includes('layout') || cf.path.toLowerCase().includes('menu')) {
+          addFile(cf.path);
+        }
+      }
+    }
+
+    if (intent.editType === 'refactor') {
+      for (const file of files) {
+        if (/\.(tsx?|jsx?)$/.test(file.path)) {
+          addFile(file.path);
+        }
+      }
+    }
+  }
+
+  return Array.from(results.values());
+}
+
+function generateStyleEdits(
+  message: string,
+  targetFiles: { path: string; content: string; language: string; meta: FileMetadata }[],
+  steps: ThinkingStep[]
+): FileEdit[] {
+  const edits: FileEdit[] = [];
+  const lower = message.toLowerCase();
+
+  const colorMatch = lower.match(/(?:change|make|set|update)\s+(?:the\s+)?(?:background|bg|color|text)\s+(?:color\s+)?(?:to|=)\s*(\w+)/);
+  const targetColor = colorMatch ? colorMatch[1] : null;
+  const twColor = targetColor ? TAILWIND_COLOR_MAP[targetColor] : null;
+
+  const makeColorMatch = lower.match(/make\s+(?:the\s+)?(\w+)\s+(\w+)/);
+  const impliedTarget = makeColorMatch ? makeColorMatch[1] : null;
+  const impliedColor = makeColorMatch ? TAILWIND_COLOR_MAP[makeColorMatch[2]] : null;
+
+  const sizeDirection = /(?:bigger|larger|wider|taller)/.test(lower) ? 'up' : /(?:smaller|narrower|shorter)/.test(lower) ? 'down' : null;
+
+  for (const file of targetFiles) {
+    if (!/\.(tsx|jsx|css|html)$/.test(file.path)) continue;
+    let modified = file.content;
+    let changed = false;
+    let desc = '';
+
+    if (twColor || impliedColor) {
+      const color = twColor || impliedColor!;
+      const shade = '500';
+
+      if (impliedTarget && impliedColor) {
+        const componentRegex = new RegExp(`(<[^>]*?(?:class(?:Name)?\\s*=\\s*["'][^"']*?))bg-(\\w+)-(\\d+)([^"']*?["'])`, 'g');
+        const beforeLen = modified.length;
+
+        if (impliedTarget === 'header' || impliedTarget === 'navbar' || impliedTarget === 'nav') {
+          const headerBlock = findComponentBlock(modified, ['header', 'Header', 'Navbar', 'Nav']);
+          if (headerBlock) {
+            const section = modified.substring(headerBlock.start, headerBlock.end);
+            const replaced = section.replace(/bg-(\w+)-(\d+)/g, `bg-${color}-$2`);
+            if (replaced !== section) {
+              modified = modified.substring(0, headerBlock.start) + replaced + modified.substring(headerBlock.end);
+              changed = true;
+              desc = `Changed header background color to ${color}`;
+            }
+          }
+        }
+
+        if (!changed) {
+          modified = modified.replace(/bg-(\w+)-(\d+)/g, (match, oldColor, oldShade) => {
+            return `bg-${color}-${oldShade}`;
+          });
+          changed = modified.length !== beforeLen || modified !== file.content;
+          desc = `Changed background color to ${color}`;
+        }
+      }
+
+      if (!changed && /(?:background|bg)/.test(lower)) {
+        modified = modified.replace(/bg-(\w+)-(\d+)/g, `bg-${color}-$2`);
+        if (modified !== file.content) {
+          changed = true;
+          desc = `Changed background colors to ${color}`;
+        }
+      }
+
+      if (!changed && /(?:text|font)\s*color/.test(lower)) {
+        modified = modified.replace(/(?<!\bg-)text-(\w+)-(\d+)/g, `text-${color}-$2`);
+        if (modified !== file.content) {
+          changed = true;
+          desc = `Changed text colors to ${color}`;
+        }
+      }
+
+      if (!changed && /(?:border)\s*color/.test(lower)) {
+        modified = modified.replace(/border-(\w+)-(\d+)/g, `border-${color}-$2`);
+        if (modified !== file.content) {
+          changed = true;
+          desc = `Changed border colors to ${color}`;
+        }
+      }
+
+      if (!changed) {
+        modified = modified.replace(/bg-(\w+)-(\d+)/g, `bg-${color}-$2`);
+        if (modified !== file.content) {
+          changed = true;
+          desc = `Changed colors to ${color}`;
+        }
+      }
+    }
+
+    if (sizeDirection && !changed) {
+      if (/text|font/.test(lower)) {
+        modified = adjustTailwindScale(modified, 'text-', TAILWIND_SIZE_SCALE, sizeDirection);
+        if (modified !== file.content) {
+          changed = true;
+          desc = `${sizeDirection === 'up' ? 'Increased' : 'Decreased'} text size`;
+        }
+      } else if (/padding|spacing/.test(lower)) {
+        modified = adjustTailwindScale(modified, 'p-', TAILWIND_SPACING_SCALE, sizeDirection);
+        if (modified !== file.content) {
+          changed = true;
+          desc = `${sizeDirection === 'up' ? 'Increased' : 'Decreased'} padding`;
+        }
+      } else if (/margin/.test(lower)) {
+        modified = adjustTailwindScale(modified, 'm-', TAILWIND_SPACING_SCALE, sizeDirection);
+        if (modified !== file.content) {
+          changed = true;
+          desc = `${sizeDirection === 'up' ? 'Increased' : 'Decreased'} margin`;
+        }
+      } else if (/gap/.test(lower)) {
+        modified = adjustTailwindScale(modified, 'gap-', TAILWIND_SPACING_SCALE, sizeDirection);
+        if (modified !== file.content) {
+          changed = true;
+          desc = `${sizeDirection === 'up' ? 'Increased' : 'Decreased'} gap`;
+        }
+      } else {
+        for (const prefix of ['text-', 'p-', 'w-', 'h-']) {
+          modified = adjustTailwindScale(modified, prefix, prefix === 'text-' ? TAILWIND_SIZE_SCALE : TAILWIND_SPACING_SCALE, sizeDirection);
+        }
+        if (modified !== file.content) {
+          changed = true;
+          desc = `${sizeDirection === 'up' ? 'Increased' : 'Decreased'} element sizing`;
+        }
+      }
+    }
+
+    if (/rounded|border.?radius/.test(lower) && !changed) {
+      const roundedValues = ['none', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', 'full'];
+      if (/more\s+rounded|rounder|increase.*round/.test(lower)) {
+        modified = adjustTailwindScale(modified, 'rounded-', roundedValues, 'up');
+      } else if (/less\s+rounded|square|decrease.*round|remove.*round/.test(lower)) {
+        modified = adjustTailwindScale(modified, 'rounded-', roundedValues, 'down');
+      }
+      if (modified !== file.content) {
+        changed = true;
+        desc = 'Adjusted border radius';
+      }
+    }
+
+    if (/shadow/.test(lower) && !changed) {
+      const shadowValues = ['none', 'sm', 'md', 'lg', 'xl', '2xl'];
+      if (/add.*shadow|more.*shadow|increase.*shadow/.test(lower)) {
+        modified = adjustTailwindScale(modified, 'shadow-', shadowValues, 'up');
+      } else if (/remove.*shadow|no.*shadow|less.*shadow/.test(lower)) {
+        modified = adjustTailwindScale(modified, 'shadow-', shadowValues, 'down');
+      }
+      if (modified !== file.content) {
+        changed = true;
+        desc = 'Adjusted shadow';
+      }
+    }
+
+    if (file.path.endsWith('.css') && !changed) {
+      const cssVarMatch = lower.match(/(?:change|set|update)\s+(?:the\s+)?(?:--)?(\w[\w-]*)\s+(?:to|=)\s*([#\w()%,.\s]+)/);
+      if (cssVarMatch) {
+        const varName = cssVarMatch[1].startsWith('--') ? cssVarMatch[1] : `--${cssVarMatch[1]}`;
+        const varValue = cssVarMatch[2].trim();
+        const varRegex = new RegExp(`(${escapeRegex(varName)}\\s*:\\s*)([^;]+)(;)`, 'g');
+        modified = modified.replace(varRegex, `$1${varValue}$3`);
+        if (modified !== file.content) {
+          changed = true;
+          desc = `Updated CSS variable ${varName} to ${varValue}`;
+        }
+      }
+    }
+
+    if (changed) {
+      steps.push({ phase: 'edit', label: `Style edit: ${file.path}`, detail: desc });
+      edits.push({
+        filePath: file.path,
+        editType: 'modify',
+        oldContent: file.content,
+        newContent: modified,
+        description: desc,
+        linesChanged: countChangedLines(file.content, modified),
+      });
+    }
+  }
+
+  return edits;
+}
+
+function generateContentEdits(
+  message: string,
+  targetFiles: { path: string; content: string; language: string; meta: FileMetadata }[],
+  steps: ThinkingStep[]
+): FileEdit[] {
+  const edits: FileEdit[] = [];
+
+  const changeToMatch = message.match(/change\s+(?:the\s+)?(?:title|heading|text|label|name)\s+(?:to|=)\s*['""]?([^'""]+)['""]?/i);
+  const fromToMatch = message.match(/(?:change|replace|update)\s+['""]?([^'""]+?)['""]?\s+(?:to|with|→)\s+['""]?([^'""]+)['""]?/i);
+  const renameMatch = message.match(/rename\s+['""]?([^'""]+?)['""]?\s+to\s+['""]?([^'""]+)['""]?/i);
+
+  if (changeToMatch) {
+    const newText = changeToMatch[1].trim().replace(/['""]$/, '');
+    steps.push({ phase: 'analysis', label: 'Content change detected', detail: `New value: "${newText}"` });
+
+    for (const file of targetFiles) {
+      if (!/\.(tsx|jsx|html)$/.test(file.path)) continue;
+      let modified = file.content;
+      let changed = false;
+      let desc = '';
+
+      if (/title|heading/i.test(message)) {
+        const headingRegex = /(<h[1-6][^>]*>)([\s\S]*?)(<\/h[1-6]>)/g;
+        const firstMatch = headingRegex.exec(modified);
+        if (firstMatch) {
+          modified = modified.replace(firstMatch[0], `${firstMatch[1]}${newText}${firstMatch[3]}`);
+          changed = true;
+          desc = `Changed heading to "${newText}"`;
+        }
+      }
+
+      if (!changed && /label/i.test(message)) {
+        const labelRegex = /(<label[^>]*>)([\s\S]*?)(<\/label>)/g;
+        const firstMatch = labelRegex.exec(modified);
+        if (firstMatch) {
+          modified = modified.replace(firstMatch[0], `${firstMatch[1]}${newText}${firstMatch[3]}`);
+          changed = true;
+          desc = `Changed label to "${newText}"`;
+        }
+      }
+
+      if (!changed) {
+        const titleRegex = /(<(?:h[1-6]|title|span|p|div|a|button)[^>]*>)\s*([^<{]+?)\s*(<\/(?:h[1-6]|title|span|p|div|a|button)>)/;
+        const match = modified.match(titleRegex);
+        if (match) {
+          modified = modified.replace(match[0], `${match[1]}${newText}${match[3]}`);
+          changed = true;
+          desc = `Changed text content to "${newText}"`;
+        }
+      }
+
+      if (changed) {
+        steps.push({ phase: 'edit', label: `Content edit: ${file.path}`, detail: desc });
+        edits.push({
+          filePath: file.path,
+          editType: 'modify',
+          oldContent: file.content,
+          newContent: modified,
+          description: desc,
+          linesChanged: countChangedLines(file.content, modified),
+        });
+      }
+    }
+  }
+
+  if (fromToMatch || renameMatch) {
+    const match = fromToMatch || renameMatch;
+    const oldText = match![1].trim();
+    const newText = match![2].trim().replace(/['""]$/, '');
+    steps.push({ phase: 'analysis', label: 'Text replacement detected', detail: `"${oldText}" → "${newText}"` });
+
+    for (const file of targetFiles) {
+      if (!/\.(tsx|jsx|html|ts|js)$/.test(file.path)) continue;
+      if (!file.content.includes(oldText)) continue;
+
+      const modified = file.content.split(oldText).join(newText);
+      if (modified !== file.content) {
+        const desc = `Replaced "${oldText}" with "${newText}"`;
+        steps.push({ phase: 'edit', label: `Content edit: ${file.path}`, detail: desc });
+        edits.push({
+          filePath: file.path,
+          editType: 'modify',
+          oldContent: file.content,
+          newContent: modified,
+          description: desc,
+          linesChanged: countChangedLines(file.content, modified),
+        });
+      }
+    }
+  }
+
+  if (edits.length === 0) {
+    const quotedMatch = message.match(/['""]([^'""]+)['""].*?['""]([^'""]+)['""/]/);
+    if (quotedMatch) {
+      const oldText = quotedMatch[1];
+      const newText = quotedMatch[2];
+      for (const file of targetFiles) {
+        if (!file.content.includes(oldText)) continue;
+        const modified = file.content.split(oldText).join(newText);
+        if (modified !== file.content) {
+          const desc = `Replaced "${oldText}" with "${newText}"`;
+          steps.push({ phase: 'edit', label: `Content edit: ${file.path}`, detail: desc });
+          edits.push({
+            filePath: file.path,
+            editType: 'modify',
+            oldContent: file.content,
+            newContent: modified,
+            description: desc,
+            linesChanged: countChangedLines(file.content, modified),
+          });
+        }
+      }
+    }
+  }
+
+  return edits;
+}
+
+function generateStructureEdits(
+  message: string,
+  targetFiles: { path: string; content: string; language: string; meta: FileMetadata }[],
+  allFiles: { path: string; content: string; language: string }[],
+  contextManager: ProjectContextManager,
+  steps: ThinkingStep[]
+): FileEdit[] {
+  const edits: FileEdit[] = [];
+  const lower = message.toLowerCase();
+
+  const addPageMatch = lower.match(/add\s+(?:a\s+)?(?:new\s+)?(\w+)\s*page/);
+  if (addPageMatch) {
+    const pageName = addPageMatch[1];
+    const componentName = pageName.charAt(0).toUpperCase() + pageName.slice(1);
+    const fileName = pageName.toLowerCase();
+
+    steps.push({ phase: 'structure', label: `Creating ${componentName} page` });
+
+    const existingPage = allFiles.find(f => f.path.toLowerCase().includes(`pages/${fileName}`));
+    if (existingPage) {
+      steps.push({ phase: 'structure', label: 'Page already exists', detail: existingPage.path });
+      return edits;
+    }
+
+    const pagesDir = allFiles.some(f => f.path.includes('client/src/pages/')) ? 'client/src/pages' :
+                     allFiles.some(f => f.path.includes('src/pages/')) ? 'src/pages' : 'pages';
+
+    const pageContent = generatePageTemplate(componentName);
+    edits.push({
+      filePath: `${pagesDir}/${fileName}.tsx`,
+      editType: 'create',
+      newContent: pageContent,
+      description: `Created ${componentName} page component`,
+      linesChanged: pageContent.split('\n').length,
+    });
+
+    const appFile = allFiles.find(f => /App\.(tsx|jsx)$/.test(f.path));
+    if (appFile) {
+      const { content: modifiedApp, changed } = addRouteToApp(appFile.content, componentName, `/${fileName}`, `${pagesDir}/${fileName}`);
+      if (changed) {
+        edits.push({
+          filePath: appFile.path,
+          editType: 'modify',
+          oldContent: appFile.content,
+          newContent: modifiedApp,
+          description: `Added route for ${componentName} page`,
+          linesChanged: countChangedLines(appFile.content, modifiedApp),
+        });
+      }
+    }
+
+    const navFiles = allFiles.filter(f =>
+      /sidebar|nav|menu|layout/i.test(f.path) && /\.(tsx|jsx)$/.test(f.path)
+    );
+    for (const navFile of navFiles) {
+      const { content: modifiedNav, changed } = addNavItem(navFile.content, componentName, `/${fileName}`);
+      if (changed) {
+        edits.push({
+          filePath: navFile.path,
+          editType: 'modify',
+          oldContent: navFile.content,
+          newContent: modifiedNav,
+          description: `Added ${componentName} to navigation`,
+          linesChanged: countChangedLines(navFile.content, modifiedNav),
+        });
+      }
+    }
+
+    return edits;
+  }
+
+  const addSectionMatch = lower.match(/add\s+(?:a\s+)?(?:new\s+)?(\w+)\s*section/);
+  if (addSectionMatch) {
+    const sectionName = addSectionMatch[1];
+    const componentName = sectionName.charAt(0).toUpperCase() + sectionName.slice(1) + 'Section';
+
+    for (const file of targetFiles) {
+      if (!/\.(tsx|jsx)$/.test(file.path)) continue;
+      const returnMatch = file.content.match(/(return\s*\(\s*[\s\S]*?)(\s*<\/(?:div|main|section)>\s*\)\s*;?\s*})/);
+      if (returnMatch) {
+        const sectionJsx = `\n        <section className="py-8">\n          <h2 className="text-2xl font-bold mb-4">${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)}</h2>\n          <p className="text-muted-foreground">Content for ${sectionName} section</p>\n        </section>`;
+        const modified = file.content.replace(
+          returnMatch[0],
+          `${returnMatch[1]}${sectionJsx}${returnMatch[2]}`
+        );
+        if (modified !== file.content) {
+          edits.push({
+            filePath: file.path,
+            editType: 'modify',
+            oldContent: file.content,
+            newContent: modified,
+            description: `Added ${sectionName} section`,
+            linesChanged: countChangedLines(file.content, modified),
+          });
+        }
+        break;
+      }
+    }
+  }
+
+  return edits;
+}
+
+function generateFeatureEdits(
+  message: string,
+  targetFiles: { path: string; content: string; language: string; meta: FileMetadata }[],
+  allFiles: { path: string; content: string; language: string }[],
+  contextManager: ProjectContextManager,
+  steps: ThinkingStep[]
+): FileEdit[] {
+  const edits: FileEdit[] = [];
+  const lower = message.toLowerCase();
+
+  const addFieldMatch = lower.match(/add\s+(?:a\s+)?(?:an?\s+)?(\w+)\s*(?:field|column|input)\s*(?:to\s+(?:the\s+)?(\w+))?/);
+  if (addFieldMatch) {
+    const fieldName = addFieldMatch[1];
+    const targetEntity = addFieldMatch[2];
+    steps.push({ phase: 'feature', label: `Adding ${fieldName} field`, detail: targetEntity ? `to ${targetEntity}` : undefined });
+
+    const fieldType = inferFieldType(fieldName);
+
+    const schemaFiles = contextManager.getFilesByType('schema');
+    for (const sf of schemaFiles) {
+      const file = allFiles.find(f => f.path === sf.path);
+      if (!file) continue;
+
+      if (targetEntity) {
+        const tableMatch = file.content.match(new RegExp(`(\\w+)\\s*=\\s*pgTable\\s*\\(\\s*['"]${escapeRegex(targetEntity)}['"]\\s*,\\s*\\{([\\s\\S]*?)\\}\\s*\\)`, 'i'));
+        if (!tableMatch) {
+          const altMatch = file.content.match(new RegExp(`(\\w+)\\s*=\\s*pgTable\\s*\\(\\s*['"]\\w*${escapeRegex(targetEntity)}\\w*['"]\\s*,\\s*\\{([\\s\\S]*?)\\}\\s*\\)`, 'i'));
+          if (!altMatch) continue;
+        }
+      }
+
+      const drizzleCol = mapFieldToDrizzle(fieldName, fieldType);
+      const lastColMatch = file.content.match(/(\w+:\s*(?:text|integer|boolean|timestamp|serial|varchar|real|numeric|jsonb|uuid)\([^)]*\)[^,\n]*),?\s*(\n\s*\})/);
+      if (lastColMatch) {
+        const modified = file.content.replace(
+          lastColMatch[0],
+          `${lastColMatch[1]},\n  ${fieldName}: ${drizzleCol},${lastColMatch[2]}`
+        );
+        if (modified !== file.content) {
+          edits.push({
+            filePath: file.path,
+            editType: 'modify',
+            oldContent: file.content,
+            newContent: modified,
+            description: `Added ${fieldName} column to schema`,
+            linesChanged: countChangedLines(file.content, modified),
+          });
+          steps.push({ phase: 'cascade', label: 'Schema updated', detail: `Added ${fieldName}: ${fieldType}` });
+        }
+      }
+    }
+
+    for (const file of targetFiles) {
+      if (!/\.(tsx|jsx)$/.test(file.path)) continue;
+      if (!/<form/i.test(file.content) && !/<Form/i.test(file.content) && !/useForm/.test(file.content)) continue;
+
+      const formFieldJsx = generateFormFieldJsx(fieldName, fieldType);
+      const submitBtnMatch = file.content.match(/(\s*<(?:Button|button)[^>]*type\s*=\s*["']submit["'][^>]*>)/);
+      if (submitBtnMatch) {
+        const modified = file.content.replace(
+          submitBtnMatch[0],
+          `\n${formFieldJsx}\n${submitBtnMatch[0]}`
+        );
+        if (modified !== file.content) {
+          edits.push({
+            filePath: file.path,
+            editType: 'modify',
+            oldContent: file.content,
+            newContent: modified,
+            description: `Added ${fieldName} input field to form`,
+            linesChanged: countChangedLines(file.content, modified),
+          });
+        }
+      }
+    }
+
+    return edits;
+  }
+
+  const addButtonMatch = lower.match(/add\s+(?:a\s+)?(?:an?\s+)?(\w+)\s*button/);
+  if (addButtonMatch) {
+    const buttonLabel = addButtonMatch[1].charAt(0).toUpperCase() + addButtonMatch[1].slice(1);
+    for (const file of targetFiles) {
+      if (!/\.(tsx|jsx)$/.test(file.path)) continue;
+      const closeTagMatch = file.content.match(/(\s*<\/(?:div|section|main|header|footer)>\s*\)\s*;?\s*})/);
+      if (closeTagMatch) {
+        const buttonJsx = `\n        <Button data-testid="button-${addButtonMatch[1].toLowerCase()}" onClick={() => {}}>${buttonLabel}</Button>`;
+        const modified = file.content.replace(
+          closeTagMatch[0],
+          `${buttonJsx}${closeTagMatch[0]}`
+        );
+        if (modified !== file.content) {
+          const needsImport = !file.content.includes("from '@/components/ui/button'") && !file.content.includes('from "@/components/ui/button"');
+          let final = modified;
+          if (needsImport) {
+            final = `import { Button } from '@/components/ui/button';\n${final}`;
+          }
+          edits.push({
+            filePath: file.path,
+            editType: 'modify',
+            oldContent: file.content,
+            newContent: final,
+            description: `Added ${buttonLabel} button`,
+            linesChanged: countChangedLines(file.content, final),
+          });
+          break;
+        }
+      }
+    }
+    return edits;
+  }
+
+  const addEndpointMatch = lower.match(/add\s+(?:a\s+)?(?:an?\s+)?(get|post|put|patch|delete)\s+(?:endpoint|route|api)\s+(?:for\s+)?(\w+)/i);
+  if (addEndpointMatch) {
+    const method = addEndpointMatch[1].toLowerCase();
+    const resource = addEndpointMatch[2].toLowerCase();
+    const routeFiles = contextManager.getFilesByType('api');
+
+    for (const rf of routeFiles) {
+      const file = allFiles.find(f => f.path === rf.path);
+      if (!file) continue;
+
+      const routeCode = generateRouteTemplate(method, resource);
+      const lastRouteMatch = file.content.match(/(app|router)\.(get|post|put|patch|delete)\s*\([^)]+\)\s*;?\s*$/m);
+      if (lastRouteMatch) {
+        const insertPos = file.content.indexOf(lastRouteMatch[0]) + lastRouteMatch[0].length;
+        const modified = file.content.substring(0, insertPos) + '\n\n' + routeCode + file.content.substring(insertPos);
+        edits.push({
+          filePath: file.path,
+          editType: 'modify',
+          oldContent: file.content,
+          newContent: modified,
+          description: `Added ${method.toUpperCase()} /api/${resource} endpoint`,
+          linesChanged: countChangedLines(file.content, modified),
+        });
+      } else {
+        const modified = file.content + '\n\n' + routeCode;
+        edits.push({
+          filePath: file.path,
+          editType: 'modify',
+          oldContent: file.content,
+          newContent: modified,
+          description: `Added ${method.toUpperCase()} /api/${resource} endpoint`,
+          linesChanged: countChangedLines(file.content, modified),
+        });
+      }
+      break;
+    }
+    return edits;
+  }
+
+  return edits;
+}
+
+function generateFixEdits(
+  message: string,
+  targetFiles: { path: string; content: string; language: string; meta: FileMetadata }[],
+  allFiles: { path: string; content: string; language: string }[],
+  contextManager: ProjectContextManager,
+  steps: ThinkingStep[]
+): FileEdit[] {
+  const edits: FileEdit[] = [];
+  const lower = message.toLowerCase();
+
+  const importErrorMatch = lower.match(/(?:cannot find|missing|broken)\s+(?:module|import)\s+['"]?([^'"]+)['"]?/);
+  if (importErrorMatch) {
+    const missingModule = importErrorMatch[1];
+    steps.push({ phase: 'fix', label: 'Import fix', detail: `Looking for "${missingModule}"` });
+
+    for (const file of targetFiles) {
+      if (!/\.(tsx?|jsx?)$/.test(file.path)) continue;
+      const importRegex = new RegExp(`import\\s+.*?from\\s+['"]([^'"]*${escapeRegex(missingModule)}[^'"]*)['"]`);
+      const match = file.content.match(importRegex);
+      if (match) {
+        const wrongPath = match[1];
+        const correctFile = allFiles.find(f => {
+          const fName = f.path.split('/').pop()?.replace(/\.\w+$/, '') || '';
+          return fName.toLowerCase() === missingModule.toLowerCase().replace(/\.\w+$/, '');
+        });
+
+        if (correctFile) {
+          const correctPath = getRelativePath(file.path, correctFile.path);
+          const modified = file.content.replace(wrongPath, correctPath);
+          if (modified !== file.content) {
+            edits.push({
+              filePath: file.path,
+              editType: 'modify',
+              oldContent: file.content,
+              newContent: modified,
+              description: `Fixed import path: "${wrongPath}" → "${correctPath}"`,
+              linesChanged: 1,
+            });
+          }
+        }
+      }
+    }
+    return edits;
+  }
+
+  for (const file of targetFiles) {
+    if (!/\.(tsx?|jsx?)$/.test(file.path)) continue;
+    let modified = file.content;
+    let fixCount = 0;
+    const descriptions: string[] = [];
+
+    const openBraces = (modified.match(/\{/g) || []).length;
+    const closeBraces = (modified.match(/\}/g) || []).length;
+    if (openBraces > closeBraces) {
+      modified += '\n' + '}'.repeat(openBraces - closeBraces);
+      fixCount += openBraces - closeBraces;
+      descriptions.push(`Added ${openBraces - closeBraces} missing closing brace(s)`);
+    }
+
+    const openParens = (modified.match(/\(/g) || []).length;
+    const closeParens = (modified.match(/\)/g) || []).length;
+    if (openParens > closeParens) {
+      modified += ')'.repeat(openParens - closeParens);
+      fixCount += openParens - closeParens;
+      descriptions.push(`Added ${openParens - closeParens} missing closing paren(s)`);
+    }
+
+    const unusedImportLines = modified.match(/import\s+.*?from\s+['"]([^'"]+)['"]\s*;?\n/g);
+    if (unusedImportLines) {
+      for (const impLine of unusedImportLines) {
+        const nameMatch = impLine.match(/import\s+(?:type\s+)?(?:\{([^}]+)\}|(\w+))\s+from/);
+        if (nameMatch) {
+          const names = (nameMatch[1] || nameMatch[2] || '').split(',').map(n => n.trim().replace(/\s+as\s+\w+/, ''));
+          const rest = modified.replace(impLine, '');
+          const allUnused = names.every(n => {
+            if (!n) return true;
+            const usageRegex = new RegExp(`\\b${escapeRegex(n)}\\b`);
+            return !usageRegex.test(rest);
+          });
+          if (allUnused && names.length > 0 && names[0]) {
+            // Don't remove side-effect imports or common needed ones
+          }
+        }
+      }
+    }
+
+    if (modified !== file.content) {
+      edits.push({
+        filePath: file.path,
+        editType: 'modify',
+        oldContent: file.content,
+        newContent: modified,
+        description: descriptions.join('; ') || 'Applied syntax fixes',
+        linesChanged: countChangedLines(file.content, modified),
+      });
+    }
+  }
+
+  return edits;
+}
+
+function generateRefactorEdits(
+  message: string,
+  targetFiles: { path: string; content: string; language: string; meta: FileMetadata }[],
+  allFiles: { path: string; content: string; language: string }[],
+  steps: ThinkingStep[]
+): FileEdit[] {
+  const edits: FileEdit[] = [];
+  const lower = message.toLowerCase();
+
+  const renameMatch = lower.match(/rename\s+(?:the\s+)?(?:component\s+)?(\w+)\s+to\s+(\w+)/);
+  if (renameMatch) {
+    const oldName = renameMatch[1];
+    const newName = renameMatch[2];
+    const oldNameCapitalized = oldName.charAt(0).toUpperCase() + oldName.slice(1);
+    const newNameCapitalized = newName.charAt(0).toUpperCase() + newName.slice(1);
+
+    steps.push({ phase: 'refactor', label: `Renaming ${oldNameCapitalized} → ${newNameCapitalized}` });
+
+    for (const file of allFiles) {
+      if (!/\.(tsx?|jsx?|css)$/.test(file.path)) continue;
+      if (!file.content.includes(oldNameCapitalized) && !file.content.includes(oldName)) continue;
+
+      let modified = file.content;
+      modified = modified.split(oldNameCapitalized).join(newNameCapitalized);
+
+      const oldFilePart = oldName.toLowerCase();
+      const newFilePart = newName.toLowerCase();
+      modified = modified.replace(
+        new RegExp(`(['"/])([^'"]*?)${escapeRegex(oldFilePart)}([^'"]*?)(['"])`, 'g'),
+        `$1$2${newFilePart}$3$4`
+      );
+
+      if (modified !== file.content) {
+        let newPath = file.path;
+        if (file.path.toLowerCase().includes(oldFilePart)) {
+          newPath = file.path.replace(new RegExp(escapeRegex(oldFilePart), 'i'), newFilePart);
+        }
+
+        if (newPath !== file.path) {
+          edits.push({
+            filePath: file.path,
+            editType: 'delete',
+            newContent: '',
+            description: `Removed old file ${file.path}`,
+            linesChanged: file.content.split('\n').length,
+          });
+          edits.push({
+            filePath: newPath,
+            editType: 'create',
+            newContent: modified,
+            description: `Created renamed file ${newPath}`,
+            linesChanged: modified.split('\n').length,
+          });
+        } else {
+          edits.push({
+            filePath: file.path,
+            editType: 'modify',
+            oldContent: file.content,
+            newContent: modified,
+            description: `Renamed ${oldNameCapitalized} to ${newNameCapitalized}`,
+            linesChanged: countChangedLines(file.content, modified),
+          });
+        }
+      }
+    }
+  }
+
+  return edits;
+}
+
+function detectCascades(
+  edits: FileEdit[],
+  allFiles: { path: string; content: string; language: string }[],
+  contextManager: ProjectContextManager,
+  steps: ThinkingStep[]
+): FileEdit[] {
+  const cascadeEdits: FileEdit[] = [];
+  const editedPaths = new Set(edits.map(e => e.filePath));
+
+  for (const edit of edits) {
+    if (edit.editType === 'delete') continue;
+
+    const meta = contextManager.getFileIndex().get(edit.filePath);
+    if (!meta) continue;
+
+    const isSchema = meta.dbTables.length > 0 || /schema/i.test(edit.filePath);
+    if (isSchema && edit.editType === 'modify') {
+      steps.push({ phase: 'cascade', label: 'Schema change cascade', detail: 'Checking dependent API routes and components' });
+
+      const relatedFiles = contextManager.getRelatedFiles(edit.filePath);
+      for (const related of relatedFiles) {
+        if (editedPaths.has(related.path)) continue;
+        const file = allFiles.find(f => f.path === related.path);
+        if (!file) continue;
+
+        const isApi = related.apiRoutes.length > 0 || /routes?\.ts/.test(related.path);
+        if (isApi) {
+          steps.push({ phase: 'cascade', label: 'API route may need update', detail: related.path });
+        }
+      }
+    }
+
+    if (edit.editType === 'create' && edit.filePath.includes('pages/')) {
+      const appFile = allFiles.find(f => /App\.(tsx|jsx)$/.test(f.path));
+      if (appFile && !editedPaths.has(appFile.path)) {
+        const pageName = edit.filePath.split('/').pop()?.replace(/\.\w+$/, '') || '';
+        const componentName = pageName.charAt(0).toUpperCase() + pageName.slice(1);
+        const { content: modifiedApp, changed } = addRouteToApp(appFile.content, componentName, `/${pageName}`, edit.filePath.replace(/\.\w+$/, ''));
+        if (changed) {
+          cascadeEdits.push({
+            filePath: appFile.path,
+            editType: 'modify',
+            oldContent: appFile.content,
+            newContent: modifiedApp,
+            description: `Added route for new ${componentName} page`,
+            linesChanged: countChangedLines(appFile.content, modifiedApp),
+          });
+          editedPaths.add(appFile.path);
+        }
+      }
+    }
+  }
+
+  return cascadeEdits;
+}
+
+export function processEditRequest(request: EditRequest): EditResult {
+  const steps: ThinkingStep[] = [];
+  const { userMessage, projectFiles, conversationHistory } = request;
+
+  steps.push({ phase: 'init', label: 'Processing edit request', detail: userMessage.substring(0, 100) });
+
+  const contextManager = new ProjectContextManager();
+  contextManager.buildContext(projectFiles);
+  steps.push({ phase: 'init', label: 'Project context built', detail: `${projectFiles.length} files indexed` });
+
+  const intent = classifyIntent(userMessage);
+  steps.push({
+    phase: 'classification',
+    label: `Intent classified: ${intent.editType}`,
+    detail: `Confidence: ${Math.round(intent.confidence * 100)}% | Keywords: ${intent.keywords.slice(0, 5).join(', ')}`,
+  });
+
+  if (intent.targets.length > 0) {
+    steps.push({
+      phase: 'targeting',
+      label: 'Target hints found',
+      detail: intent.targets.map(t => `${t.kind}: ${t.name}`).join(', '),
+    });
+  }
+
+  const targetFiles = findTargetFiles(intent, contextManager, projectFiles);
+  steps.push({
+    phase: 'targeting',
+    label: `${targetFiles.length} target file(s) identified`,
+    detail: targetFiles.slice(0, 5).map(f => f.path).join(', '),
+  });
+
+  let edits: FileEdit[] = [];
+
+  switch (intent.editType) {
+    case 'style':
+      edits = generateStyleEdits(userMessage, targetFiles, steps);
+      break;
+    case 'content':
+      edits = generateContentEdits(userMessage, targetFiles, steps);
+      break;
+    case 'structure':
+      edits = generateStructureEdits(userMessage, targetFiles, projectFiles, contextManager, steps);
+      break;
+    case 'feature':
+      edits = generateFeatureEdits(userMessage, targetFiles, projectFiles, contextManager, steps);
+      break;
+    case 'fix':
+      edits = generateFixEdits(userMessage, targetFiles, projectFiles, contextManager, steps);
+      break;
+    case 'refactor':
+      edits = generateRefactorEdits(userMessage, targetFiles, projectFiles, steps);
+      break;
+  }
+
+  steps.push({ phase: 'cascade', label: 'Checking for cascade effects' });
+  const cascadeEdits = detectCascades(edits, projectFiles, contextManager, steps);
+  edits = [...edits, ...cascadeEdits];
+
+  const affectedFiles = Array.from(new Set(edits.map(e => e.filePath)));
+  const totalLinesChanged = edits.reduce((sum, e) => sum + e.linesChanged, 0);
+
+  const summary = edits.length > 0
+    ? `Applied ${edits.length} edit(s) across ${affectedFiles.length} file(s), changing ~${totalLinesChanged} line(s). Type: ${intent.editType}.`
+    : `No edits could be determined for: "${userMessage.substring(0, 80)}". Try being more specific about what to change and where.`;
+
+  steps.push({
+    phase: 'complete',
+    label: edits.length > 0 ? 'Edits generated successfully' : 'No edits produced',
+    detail: summary,
+  });
+
+  return {
+    edits,
+    summary,
+    thinkingSteps: steps,
+    affectedFiles,
+    editType: intent.editType,
+  };
+}
+
+function findComponentBlock(content: string, names: string[]): { start: number; end: number } | null {
+  for (const name of names) {
+    const tagOpen = new RegExp(`<${name}[\\s>]`);
+    const match = content.match(tagOpen);
+    if (match && match.index !== undefined) {
+      const start = match.index;
+      const closeTag = new RegExp(`</${name}>`);
+      const closeMatch = content.substring(start).match(closeTag);
+      if (closeMatch && closeMatch.index !== undefined) {
+        return { start, end: start + closeMatch.index + closeMatch[0].length };
+      }
+      const selfClose = content.substring(start).indexOf('/>');
+      if (selfClose !== -1) {
+        return { start, end: start + selfClose + 2 };
+      }
+    }
+
+    const funcRegex = new RegExp(`function\\s+${name}\\s*\\(`);
+    const funcMatch = content.match(funcRegex);
+    if (funcMatch && funcMatch.index !== undefined) {
+      const braceStart = content.indexOf('{', funcMatch.index);
+      if (braceStart !== -1) {
+        let depth = 0;
+        for (let i = braceStart; i < content.length; i++) {
+          if (content[i] === '{') depth++;
+          if (content[i] === '}') depth--;
+          if (depth === 0) return { start: funcMatch.index, end: i + 1 };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function adjustTailwindScale(content: string, prefix: string, scale: string[], direction: 'up' | 'down'): string {
+  const regex = new RegExp(`${escapeRegex(prefix)}(${scale.map(escapeRegex).join('|')})(?=[\\s"'\\]])`, 'g');
+  return content.replace(regex, (match, currentValue) => {
+    const idx = scale.indexOf(currentValue);
+    if (idx === -1) return match;
+    const newIdx = direction === 'up' ? Math.min(idx + 1, scale.length - 1) : Math.max(idx - 1, 0);
+    return `${prefix}${scale[newIdx]}`;
+  });
+}
+
+function countChangedLines(oldContent: string, newContent: string): number {
+  const oldLines = oldContent.split('\n');
+  const newLines = newContent.split('\n');
+  let changes = 0;
+  const maxLen = Math.max(oldLines.length, newLines.length);
+  for (let i = 0; i < maxLen; i++) {
+    if ((oldLines[i] || '') !== (newLines[i] || '')) changes++;
+  }
+  return Math.max(changes, 1);
+}
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getRelativePath(from: string, to: string): string {
+  const fromParts = from.split('/').slice(0, -1);
+  const toParts = to.split('/');
+  const toFile = toParts.pop()!;
+  const toFileNoExt = toFile.replace(/\.\w+$/, '');
+
+  let common = 0;
+  while (common < fromParts.length && common < toParts.length && fromParts[common] === toParts[common]) {
+    common++;
+  }
+
+  const ups = fromParts.length - common;
+  const remaining = toParts.slice(common);
+
+  const prefix = ups > 0 ? '../'.repeat(ups) : './';
+  return prefix + [...remaining, toFileNoExt].join('/');
+}
+
+function inferFieldType(fieldName: string): string {
+  const lower = fieldName.toLowerCase();
+  if (lower.includes('email')) return 'email';
+  if (lower.includes('phone') || lower.includes('tel')) return 'phone';
+  if (lower.includes('url') || lower.includes('link') || lower.includes('website')) return 'url';
+  if (lower.includes('password') || lower.includes('secret')) return 'password';
+  if (lower.includes('date') || lower.includes('time') || lower.includes('created') || lower.includes('updated')) return 'date';
+  if (lower.includes('price') || lower.includes('cost') || lower.includes('amount') || lower.includes('total')) return 'money';
+  if (lower.includes('count') || lower.includes('quantity') || lower.includes('number') || lower.includes('age')) return 'integer';
+  if (lower.includes('rating') || lower.includes('score')) return 'integer';
+  if (lower.includes('active') || lower.includes('enabled') || lower.includes('visible') || lower.includes('published') || lower.startsWith('is') || lower.startsWith('has')) return 'boolean';
+  if (lower.includes('description') || lower.includes('body') || lower.includes('content') || lower.includes('bio') || lower.includes('notes')) return 'textarea';
+  if (lower.includes('image') || lower.includes('avatar') || lower.includes('photo') || lower.includes('logo')) return 'url';
+  if (lower.includes('color')) return 'color';
+  if (lower.includes('status') || lower.includes('type') || lower.includes('category') || lower.includes('role')) return 'enum';
+  return 'text';
+}
+
+function mapFieldToDrizzle(fieldName: string, fieldType: string): string {
+  switch (fieldType) {
+    case 'email':
+    case 'phone':
+    case 'url':
+    case 'password':
+    case 'text':
+    case 'color':
+      return `text('${fieldName}')`;
+    case 'textarea':
+      return `text('${fieldName}')`;
+    case 'integer':
+      return `integer('${fieldName}')`;
+    case 'money':
+      return `real('${fieldName}')`;
+    case 'boolean':
+      return `boolean('${fieldName}').default(false)`;
+    case 'date':
+      return `timestamp('${fieldName}')`;
+    case 'enum':
+      return `text('${fieldName}')`;
+    default:
+      return `text('${fieldName}')`;
+  }
+}
+
+function generateFormFieldJsx(fieldName: string, fieldType: string): string {
+  const label = fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/([A-Z])/g, ' $1');
+  const inputType = fieldType === 'email' ? 'email' : fieldType === 'password' ? 'password' : fieldType === 'url' ? 'url' : fieldType === 'phone' ? 'tel' : fieldType === 'integer' || fieldType === 'money' ? 'number' : 'text';
+
+  if (fieldType === 'boolean') {
+    return `          <div className="flex items-center gap-2">
+            <input type="checkbox" id="${fieldName}" name="${fieldName}" data-testid="input-${fieldName}" />
+            <label htmlFor="${fieldName}">${label}</label>
+          </div>`;
+  }
+
+  if (fieldType === 'textarea') {
+    return `          <div className="space-y-2">
+            <label htmlFor="${fieldName}" className="text-sm font-medium">${label}</label>
+            <textarea id="${fieldName}" name="${fieldName}" className="w-full min-h-[80px] rounded-md border px-3 py-2" data-testid="input-${fieldName}" />
+          </div>`;
+  }
+
+  return `          <div className="space-y-2">
+            <label htmlFor="${fieldName}" className="text-sm font-medium">${label}</label>
+            <input type="${inputType}" id="${fieldName}" name="${fieldName}" className="w-full rounded-md border px-3 py-2" data-testid="input-${fieldName}" />
+          </div>`;
+}
+
+function generatePageTemplate(componentName: string): string {
+  return `import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+export default function ${componentName}() {
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6" data-testid="text-page-title">${componentName}</h1>
+      <Card>
+        <CardHeader>
+          <CardTitle data-testid="text-card-title">${componentName}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground" data-testid="text-placeholder">
+            This is the ${componentName} page. Add your content here.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+`;
+}
+
+function addRouteToApp(appContent: string, componentName: string, routePath: string, importPath: string): { content: string; changed: boolean } {
+  if (appContent.includes(`path="${routePath}"`) || appContent.includes(`path={"${routePath}"`)) {
+    return { content: appContent, changed: false };
+  }
+
+  let modified = appContent;
+
+  const relImportPath = importPath.replace(/^client\/src\//, '@/').replace(/\.\w+$/, '');
+  const importLine = `import ${componentName} from '${relImportPath}';\n`;
+
+  const lastImportMatch = modified.match(/^import\s+.*\n/gm);
+  if (lastImportMatch) {
+    const lastImport = lastImportMatch[lastImportMatch.length - 1];
+    const lastImportIdx = modified.lastIndexOf(lastImport);
+    modified = modified.substring(0, lastImportIdx + lastImport.length) + importLine + modified.substring(lastImportIdx + lastImport.length);
+  } else {
+    modified = importLine + modified;
+  }
+
+  if (modified.includes('<Switch>') || modified.includes('<Switch ')) {
+    const notFoundRoute = modified.match(/(<Route\s[^>]*component\s*=\s*\{?\s*NotFound\s*\}?\s*\/>)/);
+    if (notFoundRoute) {
+      modified = modified.replace(
+        notFoundRoute[0],
+        `<Route path="${routePath}" component={${componentName}} />\n              ${notFoundRoute[0]}`
+      );
+    } else {
+      const switchClose = modified.match(/<\/Switch>/);
+      if (switchClose) {
+        modified = modified.replace(
+          '</Switch>',
+          `  <Route path="${routePath}" component={${componentName}} />\n            </Switch>`
+        );
+      }
+    }
+  } else if (modified.includes('<Routes>') || modified.includes('<Routes ')) {
+    const routesClose = modified.match(/<\/Routes>/);
+    if (routesClose) {
+      modified = modified.replace(
+        '</Routes>',
+        `  <Route path="${routePath}" element={<${componentName} />} />\n            </Routes>`
+      );
+    }
+  }
+
+  return { content: modified, changed: modified !== appContent };
+}
+
+function addNavItem(navContent: string, label: string, path: string): { content: string; changed: boolean } {
+  if (navContent.includes(`"${path}"`) || navContent.includes(`'${path}'`)) {
+    return { content: navContent, changed: false };
+  }
+
+  const itemsArrayMatch = navContent.match(/(const\s+\w*[Ii]tems\s*=\s*\[)([\s\S]*?)(\];)/);
+  if (itemsArrayMatch) {
+    const existingItems = itemsArrayMatch[2];
+    const newItem = `\n  {\n    title: "${label}",\n    url: "${path}",\n  },`;
+    const modified = navContent.replace(
+      itemsArrayMatch[0],
+      `${itemsArrayMatch[1]}${existingItems}${newItem}\n${itemsArrayMatch[3]}`
+    );
+    return { content: modified, changed: true };
+  }
+
+  const linkListMatch = navContent.match(/(<(?:Link|NavLink|a)\s+[^>]*(?:href|to)\s*=\s*["'][^"']+["'][^>]*>[^<]*<\/(?:Link|NavLink|a)>)\s*\n/);
+  if (linkListMatch) {
+    const newLink = `\n            <Link href="${path}" data-testid="link-${label.toLowerCase()}">${label}</Link>`;
+    const modified = navContent.replace(
+      linkListMatch[0],
+      `${linkListMatch[0]}${newLink}\n`
+    );
+    return { content: modified, changed: true };
+  }
+
+  return { content: navContent, changed: false };
+}
+
+function generateRouteTemplate(method: string, resource: string): string {
+  const plural = resource.endsWith('s') ? resource : resource + 's';
+
+  if (method === 'get') {
+    return `  app.get('/api/${plural}', async (req, res) => {
+    try {
+      const items = await storage.getAll${resource.charAt(0).toUpperCase() + resource.slice(1)}s();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch ${plural}' });
+    }
+  });`;
+  }
+
+  if (method === 'post') {
+    return `  app.post('/api/${plural}', async (req, res) => {
+    try {
+      const item = await storage.create${resource.charAt(0).toUpperCase() + resource.slice(1)}(req.body);
+      res.status(201).json(item);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to create ${resource}' });
+    }
+  });`;
+  }
+
+  if (method === 'put' || method === 'patch') {
+    return `  app.${method}('/api/${plural}/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const item = await storage.update${resource.charAt(0).toUpperCase() + resource.slice(1)}(id, req.body);
+      if (!item) return res.status(404).json({ message: '${resource} not found' });
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to update ${resource}' });
+    }
+  });`;
+  }
+
+  if (method === 'delete') {
+    return `  app.delete('/api/${plural}/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.delete${resource.charAt(0).toUpperCase() + resource.slice(1)}(id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to delete ${resource}' });
+    }
+  });`;
+  }
+
+  return `  app.${method}('/api/${plural}', async (req, res) => {
+    res.json({ message: '${method.toUpperCase()} ${plural} endpoint' });
+  });`;
+}

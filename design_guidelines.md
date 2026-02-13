@@ -69,11 +69,19 @@ Each palette generates CSS variables, gradients, shadow scales, typography scale
   - User messages: Right-aligned, subtle background
   - AI responses: Left-aligned, distinct container with code blocks
 - **Input Area**: Bottom-anchored, expandable textarea with send button
+  - Contextual placeholder text adapts to conversation phase ("Describe what you'd like to change..." in editing mode)
+  - Status bar shows AI engine, editing mode indicator, and file count
 - **Code Blocks**: Syntax-highlighted with copy button, language label
 - **Thinking Steps**: Expandable pipeline visualization showing 16-stage orchestrator progress
   - Each stage displays: role name, status (running/complete/failed), quality score
   - Collapsible detail sections for each AI module's output
 - **Pipeline Summary**: Quality score badge, file/line/component/endpoint counts, duration
+- **Edit Notifications**: Real-time "Files changed" panel above chat input
+  - Color-coded file icons: FilePlus (green) for new files, FileCode (blue) for modified, FileX (red) for deleted
+  - Shows file path (monospace) and edit description per file
+  - Auto-dismisses after 10 seconds
+  - Appears only when iterative edits are applied to existing projects
+- **Editing Phase Indicator**: "Interactive editing" label with pencil icon in status bar when in post-generation editing mode
 
 ### Code Editor Integration
 - **Monaco Editor-style**: Professional code editing with line numbers
@@ -101,6 +109,17 @@ Each palette generates CSS variables, gradients, shadow scales, typography scale
   - Top patterns by frequency, domain distribution
   - Error frequency analysis
 - **Performance Metrics**: Pipeline execution time (55-95ms), file/line/test counts
+
+### Interactive Editing Panel
+- **Recent Edits Notification**: Appears above chat input when file edits are applied
+  - Bordered panel with primary color accent (bg-primary/5, border-primary/20)
+  - Header: Pencil icon + "Files changed" label in primary color
+  - Per-file row: Icon (color-coded by edit type) + monospace file path + description
+  - Edit type icons: FilePlus (green, new file), FileCode (blue, modified), FileX (red, deleted)
+  - Auto-dismisses after 10 seconds
+- **Editing Mode Status**: Bottom status bar shows "Interactive editing" with Pencil icon when in editing phase
+- **Contextual Input**: Chat input placeholder changes to "Describe what you'd like to change..." in editing/complete phases with existing files
+- **Error-to-Chat Flow**: Preview panel errors route through chat for conversational fixing via handleRequestFix callback
 
 ### Feature Cards (Marketing Page)
 - **Grid Layout**: 3-column on desktop, stack on mobile

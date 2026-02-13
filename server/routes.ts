@@ -610,23 +610,31 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
       const currentPhase = (conversation as any).conversationPhase || 'initial';
       const isDeepProjectRequest = isProjectCreationRequest(content);
       const isInActivePhase = ['understanding', 'clarifying', 'planning', 'approval', 'generating'].includes(currentPhase);
+      const isEditPhase = ['complete', 'editing'].includes(currentPhase) && existingFiles.length > 0;
 
-      if (isDeepProjectRequest || isInActivePhase) {
+      if (isDeepProjectRequest || isInActivePhase || isEditPhase) {
         const convState: ConversationState = {
           phase: currentPhase as any,
           understandingData: (conversation as any).understandingData as any,
           planData: (conversation as any).projectPlanData as any,
           conversationId: conversationId,
+          existingFiles: isEditPhase ? existingFiles.map((f: any) => ({
+            path: f.path,
+            content: f.content,
+            language: f.language || inferLanguageFromPath(f.path),
+          })) : undefined,
+          editHistory: (conversation as any).editHistory as any,
         };
 
-        // Stream the response with thinking steps
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
 
-        const conversationHistory = existingFiles.length > 0
-          ? existingFiles.map((f: any) => f.content).join(' ').slice(0, 500)
-          : '';
+        const recentMsgs = await storage.getMessagesByConversation(conversationId);
+        const conversationHistory = recentMsgs
+          .slice(-6)
+          .map((m: any) => `[${m.role}]: ${typeof m.content === 'string' ? m.content.slice(0, 300) : ''}`)
+          .join('\n');
 
         const onStep = (step: { phase: string; label: string; detail?: string; timestamp?: number }) => {
           try {
@@ -638,23 +646,40 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
 
         // If files were generated, validate, auto-fix, and save them
         if (result.generatedFiles && result.generatedFiles.length > 0) {
-          const validation = validateGeneratedCode(
-            result.generatedFiles.map(f => ({ path: f.path, content: f.content }))
-          );
-          const filesToSave = validation.fixedFiles.length > 0
-            ? validation.fixedFiles
-            : result.generatedFiles;
+          const isIterativeEdit = result.fileEdits && result.fileEdits.length > 0;
 
-          await storage.deleteProjectFilesByConversation(conversationId);
-          for (const file of filesToSave) {
-            const fixedContent = clientAutoFixCode(file.content, file.path);
-            const lang = ('language' in file && typeof file.language === 'string') ? file.language : inferLanguageFromPath(file.path);
-            await storage.upsertProjectFile(conversationId, file.path, fixedContent, lang);
+          if (isIterativeEdit) {
+            for (const edit of result.fileEdits!) {
+              if (edit.editType === 'delete') {
+                const allFiles = await storage.getProjectFiles(conversationId);
+                const fileToDelete = allFiles.find((f: any) => f.path === edit.filePath);
+                if (fileToDelete) {
+                  await storage.deleteProjectFile(fileToDelete.id);
+                }
+              } else {
+                const fixedContent = clientAutoFixCode(edit.newContent, edit.filePath);
+                const lang = inferLanguageFromPath(edit.filePath);
+                await storage.upsertProjectFile(conversationId, edit.filePath, fixedContent, lang);
+              }
+            }
+          } else {
+            const validation = validateGeneratedCode(
+              result.generatedFiles.map(f => ({ path: f.path, content: f.content }))
+            );
+            const filesToSave = validation.fixedFiles.length > 0
+              ? validation.fixedFiles
+              : result.generatedFiles;
+
+            await storage.deleteProjectFilesByConversation(conversationId);
+            for (const file of filesToSave) {
+              const fixedContent = clientAutoFixCode(file.content, file.path);
+              const lang = ('language' in file && typeof file.language === 'string') ? file.language : inferLanguageFromPath(file.path);
+              await storage.upsertProjectFile(conversationId, file.path, fixedContent, lang);
+            }
           }
         }
 
-        // Update conversation phase and plan data
-        await storage.updateProjectContext(conversationId, {
+        const updateData: any = {
           conversationPhase: result.newPhase,
           ...(result.planData ? { projectPlanData: result.planData as any } : {}),
           ...(result.understandingData ? { understandingData: result.understandingData as any } : {}),
@@ -662,7 +687,20 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
             projectName: result.planData.projectName,
             planGenerated: true,
           } : {}),
-        });
+        };
+        if (result.fileEdits && result.fileEdits.length > 0) {
+          const prevHistory = (conversation as any).editHistory || [];
+          updateData.editHistory = [...prevHistory, {
+            timestamp: Date.now(),
+            edits: result.fileEdits.map((e: any) => ({
+              filePath: e.filePath,
+              editType: e.editType,
+              description: e.description,
+            })),
+            userMessage: content,
+          }].slice(-50);
+        }
+        await storage.updateProjectContext(conversationId, updateData);
 
         const savedMessage = await storage.createMessage(conversationId, "assistant", result.responseContent, result.thinkingSteps);
 
@@ -680,11 +718,20 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
           messageId: savedMessage.id,
           phase: result.newPhase,
         };
-        if (result.generatedFiles) {
+        if (result.generatedFiles && !result.fileEdits) {
           donePayload.deepProject = {
             name: result.planData?.projectName || 'Generated Project',
             totalFiles: result.generatedFiles.length,
           };
+        }
+        if (result.fileEdits && result.fileEdits.length > 0) {
+          donePayload.fileEdits = result.fileEdits.map(e => ({
+            filePath: e.filePath,
+            editType: e.editType,
+            description: e.description,
+            linesChanged: e.linesChanged,
+          }));
+          donePayload.editType = result.editResult?.editType;
         }
         if (result.newPhase === 'approval') {
           donePayload.showApproval = true;
@@ -2912,9 +2959,11 @@ You're not just a code generator - you're a thinking partner who builds exactly 
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
 
-        const conversationHistory = existingFiles.length > 0
-          ? existingFiles.map((f: any) => f.content).join(' ').slice(0, 500)
-          : '';
+        const recentMsgs2 = await storage.getMessagesByConversation(conversationId);
+        const conversationHistory = recentMsgs2
+          .slice(-6)
+          .map((m: any) => `[${m.role}]: ${typeof m.content === 'string' ? m.content.slice(0, 300) : ''}`)
+          .join('\n');
 
         try {
           const onStep2 = (step: { phase: string; label: string; detail?: string; timestamp?: number }) => {

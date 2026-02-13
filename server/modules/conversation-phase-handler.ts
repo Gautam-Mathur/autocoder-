@@ -9,14 +9,17 @@ import { learningEngine } from './generation-learning-engine.js';
 import { shouldAskMoreQuestions, createClarificationState, parseAnswersFromResponse, type ClarificationState } from './adaptive-clarification-engine.js';
 import { extractEntitiesFromText } from './domain-synthesis-engine.js';
 import { orchestrateGeneration, type OrchestrationResult } from './pipeline-orchestrator.js';
+import { processEditRequest, type EditResult, type FileEdit } from './targeted-code-editor.js';
 
-export type ConversationPhase = 'initial' | 'understanding' | 'clarifying' | 'planning' | 'approval' | 'generating' | 'complete';
+export type ConversationPhase = 'initial' | 'understanding' | 'clarifying' | 'planning' | 'approval' | 'generating' | 'complete' | 'editing';
 
 export interface PhaseHandlerResult {
   responseContent: string;
   newPhase: ConversationPhase;
   thinkingSteps: ThinkingStep[];
   generatedFiles?: { path: string; content: string; language: string }[];
+  fileEdits?: FileEdit[];
+  editResult?: EditResult;
   planData?: ProjectPlan;
   understandingData?: UnderstandingResult;
   clarificationRound?: number;
@@ -29,6 +32,14 @@ export interface ThinkingStep {
   timestamp?: number;
 }
 
+export interface EditHistoryEntry {
+  timestamp: number;
+  userMessage: string;
+  editType: string;
+  filesChanged: string[];
+  summary: string;
+}
+
 export interface ConversationState {
   phase: ConversationPhase;
   understandingData?: UnderstandingResult;
@@ -36,6 +47,8 @@ export interface ConversationState {
   clarificationRound?: number;
   conversationId?: number;
   generationStartTime?: number;
+  existingFiles?: { path: string; content: string; language: string }[];
+  editHistory?: EditHistoryEntry[];
 }
 
 export type OnStepCallback = (step: ThinkingStep) => void;
@@ -85,8 +98,8 @@ export function handleMessage(
     return handleClarificationResponse(userMessage, state, thinkingSteps, emitStep);
   }
 
-  if (currentPhase === 'complete') {
-    return handlePostGeneration(userMessage, state, thinkingSteps, emitStep);
+  if (currentPhase === 'complete' || currentPhase === 'editing') {
+    return handleIterativeEdit(userMessage, state, thinkingSteps, emitStep);
   }
 
   return handleInitialRequest(userMessage, thinkingSteps, emitStep, conversationHistory);
@@ -463,23 +476,169 @@ function handlePlanModification(
   };
 }
 
-function handlePostGeneration(
+function isEditRequest(message: string): boolean {
+  const editPatterns = [
+    /\b(change|modify|update|edit|fix|add|remove|delete|rename|move|replace|adjust|tweak|make)\b/i,
+    /\b(color|font|size|layout|style|spacing|padding|margin|border|background|theme)\b/i,
+    /\b(button|field|column|page|section|header|footer|sidebar|nav|menu|form|table|modal)\b/i,
+    /\b(bigger|smaller|larger|wider|narrower|taller|shorter|bolder|lighter|darker|brighter)\b/i,
+    /\b(the .+ (should|needs to|must|could|can))\b/i,
+    /\b(i want|i need|i'd like|can you|could you|please)\b.*\b(change|add|remove|fix|update|make)\b/i,
+  ];
+  return editPatterns.some(p => p.test(message));
+}
+
+function handleIterativeEdit(
   userMessage: string,
   state: ConversationState,
   thinkingSteps: ThinkingStep[],
   emitStep: (phase: string, label: string, detail?: string) => void
 ): PhaseHandlerResult {
-  const lower = userMessage.toLowerCase();
+  const lower = userMessage.toLowerCase().trim();
 
   if (lower.includes('regenerate') || lower.includes('start over') || lower.includes('rebuild')) {
     return handleInitialRequest(userMessage, thinkingSteps, emitStep);
   }
 
+  if (!state.existingFiles || state.existingFiles.length === 0) {
+    return {
+      responseContent: `I don't have any project files to edit yet. Would you like me to generate a new project? Just describe what you want to build!`,
+      newPhase: 'complete',
+      thinkingSteps,
+    };
+  }
+
+  if (!isEditRequest(userMessage)) {
+    const editHistory = state.editHistory || [];
+    const historyInfo = editHistory.length > 0
+      ? `\n\n**Recent edits** (${editHistory.length} total):\n${editHistory.slice(-3).map(e => `- ${e.summary}`).join('\n')}`
+      : '';
+
+    return {
+      responseContent: `Your project is ready with **${state.existingFiles.length} files**. Here's what I can do:\n\n- **Edit code** — "change the header color to blue", "add an email field to the user form"\n- **Add features** — "add a settings page", "add a search bar"\n- **Fix issues** — "fix the broken import", "the login page has an error"\n- **Refactor** — "rename UserCard to ProfileCard"\n- **Start over** — "regenerate" or "start over"${historyInfo}\n\nWhat would you like to change?`,
+      newPhase: 'editing',
+      thinkingSteps,
+    };
+  }
+
+  emitStep('editing', 'Analyzing your edit request', `Understanding what you want to change in the ${state.existingFiles.length}-file project`);
+
+  const editResult = processEditRequest({
+    userMessage,
+    projectFiles: state.existingFiles,
+    conversationHistory: state.planData?.projectName,
+  });
+
+  for (const step of editResult.thinkingSteps) {
+    emitStep(step.phase, step.label, step.detail);
+  }
+
+  if (editResult.edits.length === 0) {
+    emitStep('editing', 'No changes identified', 'Could not determine specific edits from your request');
+    return {
+      responseContent: `I understood your request but couldn't determine the specific changes to make. Could you be more specific? For example:\n\n- "Change the header background to blue"\n- "Add a phone number field to the contact form"\n- "Add a new page called Reports"\n- "Fix the import error in Dashboard.tsx"`,
+      newPhase: 'editing',
+      thinkingSteps,
+    };
+  }
+
+  const updatedFiles = applyEditsToFiles(state.existingFiles, editResult.edits);
+
+  emitStep('editing', 'Edits applied successfully',
+    `Modified ${editResult.edits.filter(e => e.editType === 'modify').length} files, ` +
+    `created ${editResult.edits.filter(e => e.editType === 'create').length} files`
+  );
+
+  const editSummary = formatEditSummary(editResult);
+
   return {
-    responseContent: `I've already generated your project. You can:\n\n- **Preview** it to see it running\n- **View Code** to browse the files\n- Ask me to **modify specific parts** (e.g., "add a reports page" or "change the dashboard layout")\n- Say **"start over"** to build something new\n\nWhat would you like to do?`,
-    newPhase: 'complete',
+    responseContent: editSummary,
+    newPhase: 'editing',
     thinkingSteps,
+    generatedFiles: updatedFiles,
+    fileEdits: editResult.edits,
+    editResult,
   };
+}
+
+function applyEditsToFiles(
+  existingFiles: { path: string; content: string; language: string }[],
+  edits: FileEdit[]
+): { path: string; content: string; language: string }[] {
+  const fileMap = new Map(existingFiles.map(f => [f.path, { ...f }]));
+
+  for (const edit of edits) {
+    if (edit.editType === 'delete') {
+      fileMap.delete(edit.filePath);
+    } else if (edit.editType === 'create') {
+      const ext = edit.filePath.split('.').pop()?.toLowerCase() || 'text';
+      const langMap: Record<string, string> = {
+        tsx: 'tsx', ts: 'typescript', jsx: 'jsx', js: 'javascript',
+        css: 'css', html: 'html', json: 'json',
+      };
+      fileMap.set(edit.filePath, {
+        path: edit.filePath,
+        content: edit.newContent,
+        language: langMap[ext] || ext,
+      });
+    } else {
+      const existing = fileMap.get(edit.filePath);
+      if (existing) {
+        fileMap.set(edit.filePath, { ...existing, content: edit.newContent });
+      } else {
+        const ext = edit.filePath.split('.').pop()?.toLowerCase() || 'text';
+        const langMap: Record<string, string> = {
+          tsx: 'tsx', ts: 'typescript', jsx: 'jsx', js: 'javascript',
+          css: 'css', html: 'html', json: 'json',
+        };
+        fileMap.set(edit.filePath, {
+          path: edit.filePath,
+          content: edit.newContent,
+          language: langMap[ext] || ext,
+        });
+      }
+    }
+  }
+
+  return Array.from(fileMap.values());
+}
+
+function formatEditSummary(editResult: EditResult): string {
+  const { edits, summary, editType } = editResult;
+
+  const modifiedFiles = edits.filter(e => e.editType === 'modify');
+  const createdFiles = edits.filter(e => e.editType === 'create');
+  const deletedFiles = edits.filter(e => e.editType === 'delete');
+
+  let response = `## Changes Applied\n\n${summary}\n\n`;
+
+  if (modifiedFiles.length > 0) {
+    response += `### Modified Files\n`;
+    for (const edit of modifiedFiles) {
+      response += `- **${edit.filePath}** — ${edit.description} (${edit.linesChanged} lines changed)\n`;
+    }
+    response += '\n';
+  }
+
+  if (createdFiles.length > 0) {
+    response += `### New Files\n`;
+    for (const edit of createdFiles) {
+      response += `- **${edit.filePath}** — ${edit.description}\n`;
+    }
+    response += '\n';
+  }
+
+  if (deletedFiles.length > 0) {
+    response += `### Removed Files\n`;
+    for (const edit of deletedFiles) {
+      response += `- **${edit.filePath}** — ${edit.description}\n`;
+    }
+    response += '\n';
+  }
+
+  response += `\nThe preview should update automatically. Tell me what else you'd like to change!`;
+
+  return response;
 }
 
 function enrichPlanWithReasoning(plan: ProjectPlan, reasoning: ReasoningResult): ProjectPlan {

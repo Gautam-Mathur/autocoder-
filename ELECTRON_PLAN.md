@@ -25,10 +25,15 @@ All items completed:
 - [x] Automated Vitest test generation for generated projects
 - [x] Generation pattern learning with PostgreSQL storage
 - [x] Continuous learning brain recording outcomes for future improvement
+- [x] Interactive iterative editing (Project Context Manager + Targeted Code Editor)
+- [x] Conversation Phase Handler with 'editing' phase and edit history persistence
+- [x] Frontend edit notifications with color-coded file icons
+- [x] Edit cascade detection (schema -> API -> components)
 
 ### Platform Scale
-- 62 server modules + 8 template files (~71,000 lines of server-side TypeScript)
-- 78 React frontend components
+- 64 server modules + 8 template files (~55,500 lines of server-side TypeScript)
+- 71 React frontend components
+- 149,000+ total source lines across 233+ files
 - 13 cloud AI intelligence modules + Pipeline Orchestrator (16 stages)
 - 8 local AI subsystems + Local Pipeline Router (16 stages)
 - 394 templates across 8 categories
@@ -152,6 +157,9 @@ autocoder/
 │   │   ├── generation-stages.ts        # Stages 14,15 (957 lines)
 │   │   ├── learning-stage.ts           # Stage 16 (372 lines)
 │   │   ├── local-pipeline-router.ts    # Pipeline orchestration (543 lines)
+│   │   ├── project-context-manager.ts  # File indexing & dependency graphs (595 lines)
+│   │   ├── targeted-code-editor.ts     # Surgical file edits, 6 types (1,550 lines)
+│   │   ├── conversation-phase-handler.ts # 7-phase flow + editing (727 lines)
 │   │   └── ... (55+ other modules)
 │   └── templates/
 │       ├── app-archetypes.ts           # 104 app pattern templates

@@ -6,19 +6,20 @@ Complete documentation for the AutoCoder Electron desktop application.
 
 | Metric | Value |
 |--------|-------|
-| **Source Lines of Code** | 146,000+ |
-| **Source Files** | 228+ |
-| **Server Modules** | 62 TypeScript modules + 8 template files (~71,000 lines) |
-| **React Components** | 78 frontend components |
+| **Source Lines of Code** | 149,000+ |
+| **Source Files** | 233+ |
+| **Server Modules** | 64 TypeScript modules + 8 template files (~55,500 lines) |
+| **React Components** | 71 frontend components |
 | **Cloud AI Modules** | 13 specialized modules + Pipeline Orchestrator (16 stages) |
 | **Local AI Engine** | 8 subsystems + 16-stage pipeline (23,624 lines) |
+| **Interactive Editing** | 2,872 lines across 3 modules |
 | **Template Library** | 394 templates across 8 categories |
 | **Domain Knowledge** | 14 industry domains + 30 template domain profiles |
 | **Cloud Pipeline Quality** | 99% (A+ grade), 931/943 pts across 8 categories |
 | **Local Pipeline Quality** | 92-94/100 score, 55-95ms execution |
 | **Local Pipeline Output** | 24-27 files, 746-889 lines, 39-45 tests per project |
 | **Code Generation** | Plan-driven (2,628 lines) + Template fallback (3,624 lines) |
-| **Learning Patterns** | 1,021 patterns across 9 categories |
+| **Learning Patterns** | 1,021+ patterns across 9 categories |
 | **Electron Files** | 5 (main, preload, services) |
 
 ## Dual AI Architecture
@@ -70,6 +71,17 @@ The local engine runs entirely on-device without any cloud AI or neural network 
 **8 Core Subsystems**: TF-IDF Pattern Matcher, Rule-Based Reasoning Engine, Multi-Criteria Scoring Engine, Template Selection System (394 templates), Graph Analysis Engine, 384-Dimensional Vector Embeddings, Intent Parser, Knowledge Synthesizer.
 
 **Template Library**: 104 App Archetypes, 30 Domain Profiles, 15 Architecture Patterns, 40 Schema Templates, 30 API Templates, 50 UI Components, 100 Code Snippets, 25 Test Patterns.
+
+### Interactive Iterative Editing
+Post-generation conversational editing system (2,872 lines across 3 modules):
+
+| Module | Lines | Purpose |
+|--------|-------|---------|
+| Project Context Manager | 595 | File indexing, import/export tracking, dependency graphs |
+| Targeted Code Editor | 1,550 | Surgical edits for 6 types: style, content, structure, feature, fix, refactor |
+| Conversation Phase Handler | 727 | 8-phase conversation flow with 'editing' phase and edit history |
+
+Features: Edit cascade detection (schema changes propagate to API/components), edit history persistence (last 50 entries), conversation context (last 6 messages) for intent classification, error-to-chat routing for conversational fixing.
 
 ## Documentation Index
 

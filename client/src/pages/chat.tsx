@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers, PanelRightClose, PanelRight, Activity, Zap } from "lucide-react";
+import { Plus, MessageSquare, Trash2, MoreHorizontal, Terminal, Cpu, Layers, PanelRightClose, PanelRight, Activity, Zap, Pencil, FileCode, FilePlus, FileX } from "lucide-react";
 import { isWebContainerSupported, onPreWarmProgress, getPreWarmStatus } from "@/lib/code-runner/webcontainer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -254,6 +254,7 @@ export default function Chat() {
   const [conversationPhase, setConversationPhase] = useState<string>("initial");
   const [approvalMessageId, setApprovalMessageId] = useState<number | null>(null);
   const [preWarmState, setPreWarmState] = useState<string>(getPreWarmStatus());
+  const [recentEdits, setRecentEdits] = useState<{filePath: string; editType: string; description: string; linesChanged: number}[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Prevent CMD+1/CMD+2 from interfering with the app
@@ -379,12 +380,10 @@ export default function Chat() {
   };
 
   // Handle fix requests from the debug panel
-  const handleRequestFix = useCallback((errorMessage: string, code: string) => {
+  const handleRequestFix = useCallback((errorMessage: string, _code: string) => {
     if (!activeConversationId) return;
     
-    // Create a fix request message
-    const fixRequest = `Fix this error: ${errorMessage}\n\nThe code has this issue and needs to be fixed. Please update the code to resolve this error.`;
-    
+    const fixRequest = `Fix this error in the project: ${errorMessage}`;
     handleSendMessage(fixRequest);
   }, [activeConversationId]);
 
@@ -512,11 +511,9 @@ export default function Chat() {
                 setStreamingContent(fullContent);
               }
               if (data.done) {
-                // Save code to project files
                 if (fullContent && !data.phase) {
                   await saveCodeToProject(conversationId, fullContent);
                 }
-                // Track conversation phase and approval state
                 if (data.phase) {
                   setConversationPhase(data.phase);
                   if (data.showApproval && data.messageId) {
@@ -525,7 +522,10 @@ export default function Chat() {
                     setApprovalMessageId(null);
                   }
                 }
-                // Store thinking steps for this message
+                if (data.fileEdits && data.fileEdits.length > 0) {
+                  setRecentEdits(data.fileEdits);
+                  setTimeout(() => setRecentEdits([]), 10000);
+                }
                 if (data.thinkingSteps && data.thinkingSteps.length > 0) {
                   setCompletedThinkingSteps(prev => {
                     const updated = new Map(prev);
@@ -542,7 +542,6 @@ export default function Chat() {
                 setIsStreaming(false);
                 setStreamingContent("");
                 setStreamingThinkingSteps([]);
-                // Refresh messages and files - files query triggers preview update
                 queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
                 queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId, "files"] });
               }
@@ -841,10 +840,33 @@ export default function Chat() {
 
               <div className="p-3 pb-4 bg-gradient-to-t from-background via-background to-transparent flex-shrink-0 border-t border-border/30">
                 <div className="space-y-2">
+                  {recentEdits.length > 0 && (
+                    <div className="bg-primary/5 border border-primary/20 rounded-md p-2 space-y-1" data-testid="recent-edits-panel">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                        <Pencil className="h-3 w-3" />
+                        <span>Files changed</span>
+                      </div>
+                      {recentEdits.map((edit, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-[11px] text-muted-foreground pl-4" data-testid={`edit-indicator-${i}`}>
+                          {edit.editType === 'create' ? <FilePlus className="h-3 w-3 text-green-500 dark:text-green-400" /> :
+                           edit.editType === 'delete' ? <FileX className="h-3 w-3 text-red-500 dark:text-red-400" /> :
+                           <FileCode className="h-3 w-3 text-blue-500 dark:text-blue-400" />}
+                          <span className="font-mono">{edit.filePath}</span>
+                          <span className="text-muted-foreground/60">— {edit.description}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <ChatInput
                     onSend={handleSendMessage}
                     isLoading={isStreaming}
-                    placeholder={activeConversationId ? "What would you like to change?" : "Describe what you want to build..."}
+                    placeholder={
+                      (conversationPhase === 'editing' || conversationPhase === 'complete') && conversationFiles.length > 0
+                        ? "Describe what you'd like to change..."
+                        : activeConversationId
+                        ? "What would you like to change?"
+                        : "Describe what you want to build..."
+                    }
                     conversationId={activeConversationId}
                     onFilesUploaded={() => {
                       queryClient.invalidateQueries({ queryKey: ["/api/conversations", activeConversationId, "files"] });
@@ -855,6 +877,15 @@ export default function Chat() {
                       <Activity className="h-2.5 w-2.5 text-primary" />
                       <span>{aiMode === "cloud" ? "GPT-4o" : "Local Engine"}</span>
                     </div>
+                    {(conversationPhase === 'editing' || conversationPhase === 'complete') && conversationFiles.length > 0 && (
+                      <>
+                        <span className="text-border">|</span>
+                        <div className="flex items-center gap-1">
+                          <Pencil className="h-2.5 w-2.5 text-primary" />
+                          <span>Interactive editing</span>
+                        </div>
+                      </>
+                    )}
                     {conversationFiles.length > 0 && (
                       <>
                         <span className="text-border">|</span>
