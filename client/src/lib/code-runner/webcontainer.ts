@@ -715,15 +715,20 @@ export default defineConfig({
 
       let completedBatches = 0;
       let cachedPackages = 0;
+      const cumulativeDeps: Record<string, string> = {};
+      const cumulativeDevDeps: Record<string, string> = {};
 
       for (let i = 0; i < totalBatches; i++) {
         const batch = PREWARM_BATCHES[i];
         const batchPkgCount = Object.keys(batch.deps).length + Object.keys(batch.devDeps).length;
-        notifyPreWarm('installing', `Batch ${i + 1}/${totalBatches}: Installing ${batchPkgCount} packages...`);
+        Object.assign(cumulativeDeps, batch.deps);
+        Object.assign(cumulativeDevDeps, batch.devDeps);
+        const cumulativeTotal = Object.keys(cumulativeDeps).length + Object.keys(cumulativeDevDeps).length;
+        notifyPreWarm('installing', `Batch ${i + 1}/${totalBatches}: Installing ${batchPkgCount} new packages (${cumulativeTotal} total)...`);
 
-        const batchStallTimeout = i < 3 ? 180000 : i < 10 ? 150000 : 90000;
-        const batchTimeout = i < 3 ? 240000 : i < 10 ? 210000 : 180000;
-        let result = await runBatchInstall(container, batch.deps, batch.devDeps, batch.label, batchTimeout, batchStallTimeout);
+        const batchTimeout = 300000;
+        const batchStallTimeout = 180000;
+        let result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, batch.label, batchTimeout, batchStallTimeout);
 
         if (!result.success && i === 0) {
           runnerLog.warn('PreWarm', `Batch 1 failed, retrying once...`);
@@ -736,13 +741,13 @@ export default defineConfig({
             await container.fs.rm('package-lock.json');
             runnerLog.debug('PreWarm', 'Cleared package-lock.json before retry');
           } catch {}
-          result = await runBatchInstall(container, batch.deps, batch.devDeps, `${batch.label}-retry`, 240000, 180000);
+          result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, `${batch.label}-retry`, 300000, 180000);
         }
 
         if (result.success) {
           completedBatches++;
           cachedPackages += batchPkgCount;
-          runnerLog.info('PreWarm', `Batch ${i + 1}/${totalBatches} succeeded (${cachedPackages} packages cached)`);
+          runnerLog.info('PreWarm', `Batch ${i + 1}/${totalBatches} succeeded (${cachedPackages} packages cached, ${cumulativeTotal} in node_modules)`);
         } else {
           runnerLog.warn('PreWarm', `Batch ${i + 1}/${totalBatches} (${batch.label}) failed`);
           if (completedBatches === 0) {
@@ -754,30 +759,6 @@ export default defineConfig({
             return false;
           }
           break;
-        }
-      }
-
-      const allDeps: Record<string, string> = {};
-      const allDevDeps: Record<string, string> = {};
-      for (let j = 0; j < Math.min(completedBatches, PREWARM_BATCHES.length); j++) {
-        Object.assign(allDeps, PREWARM_BATCHES[j].deps);
-        Object.assign(allDevDeps, PREWARM_BATCHES[j].devDeps);
-      }
-      const consolidatedCount = Object.keys(allDeps).length + Object.keys(allDevDeps).length;
-      if (consolidatedCount > 0) {
-        notifyPreWarm('installing', 'Final consolidation install...');
-        runnerLog.info('PreWarm', `Running consolidated install with ${consolidatedCount} packages from ${completedBatches} batches`);
-        try { await container.fs.rm('package-lock.json'); } catch {}
-        const finalResult = await runBatchInstall(container, allDeps, allDevDeps, 'consolidate', 180000, 90000);
-        if (!finalResult.success) {
-          runnerLog.warn('PreWarm', 'Consolidation failed, retrying with clean node_modules...');
-          try {
-            await container.fs.rm('node_modules', { recursive: true });
-          } catch {}
-          const retryResult = await runBatchInstall(container, allDeps, allDevDeps, 'consolidate-retry', 180000, 90000);
-          if (!retryResult.success) {
-            runnerLog.warn('PreWarm', 'Consolidation retry also failed, packages may be cache-only');
-          }
         }
       }
 
