@@ -81,56 +81,81 @@ Each palette generates CSS variables, gradients, shadow scales, typography scale
 - **Output Panel**: Collapsible console for execution results
 
 ### Intelligence Panel
-- **Module Status**: Real-time display of active AI modules
+- **Module Status**: Real-time display of active AI modules (cloud) and local AI subsystems
 - **Quality Report**: Code quality grade (A+ through F) with per-category breakdown
 - **Architecture Summary**: Detected app pattern, folder structure, state management choices
 - **Design System Preview**: Generated color palette and typography preview
+- **Local AI Stats**: Template library counts, learning patterns, pipeline execution metrics
+
+### Local AI Pipeline Dashboard
+- **Pipeline Stage Visualization**: 16-stage progress bar with individual stage scores
+  - Color-coded status: green (90+), yellow (70-89), red (<70)
+  - Per-stage duration display in milliseconds
+  - Expandable detail for each stage output
+- **Template Library Browser**: Searchable view of 394 templates across 8 categories
+  - App Archetypes (104), Domain Profiles (30), Architecture Patterns (15)
+  - Schema Templates (40), API Templates (30), UI Components (50)
+  - Code Snippets (100), Test Patterns (25)
+- **Learning Stats Panel**: Real-time learning metrics
+  - Total outcomes recorded, average quality score, improvement trend
+  - Top patterns by frequency, domain distribution
+  - Error frequency analysis
+- **Performance Metrics**: Pipeline execution time (55-95ms), file/line/test counts
 
 ### Feature Cards (Marketing Page)
 - **Grid Layout**: 3-column on desktop, stack on mobile
 - **Icons**: Developer-focused (code brackets, lightning bolt, shield)
-- Features: "16-Stage AI Pipeline", "13 Intelligence Modules", "99% Quality Score", "No Credit Card Required"
+- Features: "16-Stage AI Pipeline", "394 Built-in Templates", "Fully Offline Mode", "94/100 Quality Score", "No API Keys Required"
 
 ### CTAs
 - **Primary**: High contrast, medium size (px-6 py-3)
 - **Secondary**: Outline style
-- Text: "Start Coding Free" / "Try Now" / "Get Started"
+- Text: "Start Coding Free" / "Try Now" / "Get Started" / "Run Locally"
 
 ## Page Structure
 
 ### Landing Page
 1. **Hero Section** (70vh):
    - Bold headline: "AI-Powered Code Generation, Completely Free"
-   - Subheading: "16 specialized AI modules work as your development team"
+   - Subheading: "Dual intelligence: 13 cloud AI modules + fully offline local engine with 394 templates"
    - Dual CTAs: Primary "Start Coding" + Secondary "View Demo"
    - Animated pipeline visualization showing the 16-stage process
 
-2. **Features Grid** (3-column):
-   - Pipeline Orchestrator, Deep Understanding, Domain Intelligence, Architecture Planning, Schema Design, Code Quality Analysis
+2. **Dual Engine Feature Section** (2-column):
+   - Left: Cloud Pipeline — 13 AI modules, GPT-4o integration, deep semantic analysis
+   - Right: Local Engine — Fully offline, 394 templates, 55ms execution, zero API keys
 
-3. **Interactive Demo Section**:
+3. **Features Grid** (3-column):
+   - Pipeline Orchestrator, Deep Understanding, Domain Intelligence, Architecture Planning, Schema Design, Code Quality Analysis, Template Library, Learning Engine
+
+4. **Interactive Demo Section**:
    - Live code editor preview showing AI in action
    - Side-by-side before/after code examples
+   - Pipeline execution replay with stage-by-stage output
 
-4. **Pipeline Visualization**:
-   - Visual flow showing all 16 stages from Product Manager to Knowledge Manager
+5. **Pipeline Visualization**:
+   - Visual flow showing all 16 stages from Intent Interpreter to Learning Brain
    - Quality metrics and grade display
+   - Template integration indicators per stage
 
-5. **How It Works** (3-step process with visuals):
+6. **How It Works** (3-step process with visuals):
    - Describe → Plan → Generate (with pipeline detail)
+   - Shows both cloud and local execution paths
 
-6. **Tech Stack Display**: Logo grid of supported languages/frameworks
+7. **Tech Stack Display**: Logo grid of supported languages/frameworks
 
-7. **CTA Section**: 
+8. **CTA Section**: 
    - "Ready to Code Smarter?"
    - Email signup + Quick start button
-   - Trust indicators: "No credit card - No limits - Open source"
+   - Trust indicators: "No credit card - No API keys - Runs offline - Open source"
 
 ### Application Interface
-- **Dashboard**: Recent chats, quick templates, documentation links
+- **Dashboard**: Recent chats, quick templates, documentation links, local AI stats
 - **Chat View**: Full-screen conversation with embedded code + pipeline progress
 - **Editor View**: Split code editor + AI assistant panel + quality report
-- **Settings**: API configuration, preferences, export options
+- **Pipeline View**: Full 16-stage pipeline visualization with per-stage detail
+- **Template Browser**: Searchable template library with category filtering
+- **Settings**: API configuration, engine selection (cloud/local), preferences, export options
 
 ## Generated Application Design Patterns
 
@@ -162,15 +187,16 @@ Each palette generates CSS variables, gradients, shadow scales, typography scale
 
 **Hero Image**: YES - Dynamic visualization
 - Animated pipeline stage visualization showing AI modules at work
-- OR: Abstract technical illustration (neural network + code symbols)
+- OR: Abstract technical illustration (dual engines + code symbols)
 - Placement: Right side of hero split, 50% width on desktop
 
-**Feature Icons**: Custom technical icons for each AI module and feature
+**Feature Icons**: Custom technical icons for each AI module, local AI subsystem, and template category
 
-**Demo Screenshots**: 2-3 actual interface screenshots showing:
+**Demo Screenshots**: 3-4 actual interface screenshots showing:
 1. Pipeline orchestrator in action (16-stage progress)
 2. Generated application with quality grade
 3. Code editor with AI-generated project
+4. Local AI pipeline dashboard with template browser
 
 ## Key Interactions
 - **Minimal animations**: Smooth transitions only for state changes
@@ -178,6 +204,7 @@ Each palette generates CSS variables, gradients, shadow scales, typography scale
 - **Keyboard shortcuts**: Developer-friendly navigation
 - **Responsive code blocks**: Horizontal scroll, line wrapping toggle
 - **Pipeline progress**: Real-time stage completion indicators during generation
+- **Engine toggle**: Smooth switching between cloud and local AI engines
 
 ## Accessibility
 - High contrast ratios throughout
@@ -191,4 +218,4 @@ Each palette generates CSS variables, gradients, shadow scales, typography scale
 ## Design Inspiration
 Draw from: GitHub's clean interface + Linear's modern aesthetic + VS Code's functional layout + Vercel's marketing polish
 
-**Final Note**: Prioritize speed and clarity. Every element serves the developer's workflow — no decorative bloat. The 16-stage pipeline should feel fast and transparent, not overwhelming.
+**Final Note**: Prioritize speed and clarity. Every element serves the developer's workflow — no decorative bloat. The 16-stage pipeline should feel fast and transparent, not overwhelming. The local AI engine should feel instant (55-95ms) and self-contained.

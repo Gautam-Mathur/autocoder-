@@ -6,21 +6,27 @@ Complete documentation for the AutoCoder Electron desktop application.
 
 | Metric | Value |
 |--------|-------|
-| **Source Lines of Code** | 121,000+ |
-| **Source Files** | 225+ |
-| **Server Modules** | 55 TypeScript modules (~47,000 lines) |
+| **Source Lines of Code** | 146,000+ |
+| **Source Files** | 228+ |
+| **Server Modules** | 62 TypeScript modules + 8 template files (~71,000 lines) |
 | **React Components** | 78 frontend components |
-| **AI Intelligence Modules** | 13 specialized modules + Pipeline Orchestrator (16 stages) |
-| **Domain Knowledge Profiles** | 14 industry domains |
-| **Code Generation Quality** | 99% (A+ grade), 931/943 pts across 8 categories |
-| **Pipeline Orchestrator** | 618 lines, coordinates 16 sequential stages |
+| **Cloud AI Modules** | 13 specialized modules + Pipeline Orchestrator (16 stages) |
+| **Local AI Engine** | 8 subsystems + 16-stage pipeline (23,624 lines) |
+| **Template Library** | 394 templates across 8 categories |
+| **Domain Knowledge** | 14 industry domains + 30 template domain profiles |
+| **Cloud Pipeline Quality** | 99% (A+ grade), 931/943 pts across 8 categories |
+| **Local Pipeline Quality** | 92-94/100 score, 55-95ms execution |
+| **Local Pipeline Output** | 24-27 files, 746-889 lines, 39-45 tests per project |
 | **Code Generation** | Plan-driven (2,628 lines) + Template fallback (3,624 lines) |
-| **Test Suites** | 4 automated test files |
+| **Learning Patterns** | 1,021 patterns across 9 categories |
 | **Electron Files** | 5 (main, preload, services) |
 
-## AI Pipeline Architecture
+## Dual AI Architecture
 
-The code generation pipeline operates as a **16-member AI development team**:
+AutoCoder features two independent code generation engines:
+
+### Cloud Pipeline (Internet Required)
+The cloud-based pipeline coordinates 13 specialized AI modules through a 16-stage orchestrator:
 
 | Stage | Role | Lines | Purpose |
 |-------|------|-------|---------|
@@ -38,6 +44,32 @@ The code generation pipeline operates as a **16-member AI development team**:
 | 14 | QA Engineer | 1,214 | Vitest test generation |
 | 15 | Release Engineer | 617 | Post-generation validation |
 | 16 | Knowledge Manager | 834 | Pattern learning, error tracking |
+
+### Local AI Engine (Fully Offline)
+The local engine runs entirely on-device without any cloud AI or neural network dependencies:
+
+| Stage | Name | Type | Score |
+|-------|------|------|-------|
+| 1 | Intent Interpreter | AI + Rules | 89/100 |
+| 2 | Strategic Planner | AI + Rules | 83/100 |
+| 3 | Constraint Analyzer | Deterministic | 100/100 |
+| 4 | Semantic Domain Modeler | AI + Rules | 80/100 |
+| 5 | Architecture Synthesizer | AI + Rules | 100/100 |
+| 6 | Adaptive UX Designer | AI + Rules | 85/100 |
+| 7 | Feature Interaction Graph | Deterministic | 95/100 |
+| 8 | Database Intelligence | Deterministic | 100/100 |
+| 9 | API Designer | AI + Rules | 100/100 |
+| 10 | Component Mapper | Deterministic | 100/100 |
+| 11 | Code Synthesizer | AI + Rules | 100/100 |
+| 12 | Dependency Optimizer | Deterministic | 85/100 |
+| 13 | Static Auditor | Deterministic | 96/100 |
+| 14 | Test Generator | AI + Rules | 100/100 |
+| 15 | Runtime Simulator | AI + Rules | 100/100 |
+| 16 | Learning Brain | AI + Rules | 90/100 |
+
+**8 Core Subsystems**: TF-IDF Pattern Matcher, Rule-Based Reasoning Engine, Multi-Criteria Scoring Engine, Template Selection System (394 templates), Graph Analysis Engine, 384-Dimensional Vector Embeddings, Intent Parser, Knowledge Synthesizer.
+
+**Template Library**: 104 App Archetypes, 30 Domain Profiles, 15 Architecture Patterns, 40 Schema Templates, 30 API Templates, 50 UI Components, 100 Code Snippets, 25 Test Patterns.
 
 ## Documentation Index
 
@@ -87,10 +119,10 @@ AutoCoder uses **esbuild** to compile Electron files (not `tsc`):
 |  |      MAIN PROCESS       |    |     RENDERER PROCESS         |  |
 |  |                         |    |                              |  |
 |  |  * Local Runner Service |<-->|  * React Frontend            |  |
-|  |  * File System I/O      |IPC |  * Pipeline Orchestrator     |  |
-|  |  * npm Operations       |    |    (16-stage AI team)        |  |
-|  |  * Dev Server Manager   |    |  * 13 AI Intelligence Modules|  |
-|  |  * Project Manager      |    |  * Pro Generator (fallback)  |  |
+|  |  * File System I/O      |IPC |  * Cloud Pipeline (13 mods)  |  |
+|  |  * npm Operations       |    |  * Local AI Engine (8 sub)   |  |
+|  |  * Dev Server Manager   |    |  * 394 Templates             |  |
+|  |  * Project Manager      |    |  * Learning Brain            |  |
 |  |  * Structured Logger    |    |  * LiveCodeRunner            |  |
 |  +-------------------------+    +------------------------------+  |
 |                                                                    |
@@ -104,7 +136,8 @@ AutoCoder uses **esbuild** to compile Electron files (not `tsc`):
 
 | Mode | Engine | Output | Preview |
 |------|--------|--------|---------|
-| **Pipeline** (Primary) | 16-Stage Orchestrator: Understanding + Plan + 13 AI Modules + Generator + Validator | Complete React+Vite+TypeScript project with backend + tests | WebContainer with auto-fix |
+| **Cloud Pipeline** (Primary) | 16-Stage Orchestrator: 13 AI Modules + Generator + Validator | Complete React+Vite+TS project with backend + tests | WebContainer with auto-fix |
+| **Local Pipeline** (Offline) | 16-Stage Local Engine: 8 Subsystems + 394 Templates | 24-27 files, 746-889 lines, 39-45 tests | WebContainer or Electron |
 | **Template** (Fallback) | Pro Generator (3,624 lines) | 15-20 JSX files | LiveCodeRunner (Babel) |
 
 ## Key Benefits Over WebContainer
@@ -115,6 +148,18 @@ AutoCoder uses **esbuild** to compile Electron files (not `tsc`):
 | npm speed | Slow | Native speed |
 | Persistence | Lost on refresh | Permanent |
 | System access | None | Full (sandboxed) |
+| Offline mode | Limited | Full (Local AI Engine) |
+
+## Local AI API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/local-pipeline/run` | POST | Execute full 16-stage local pipeline |
+| `/api/local-pipeline/stages` | GET | Get stage definitions and metadata |
+| `/api/local-ai/parse-intent` | POST | Parse natural language into structured intent |
+| `/api/local-ai/search-similar` | POST | Semantic similarity search across knowledge base |
+| `/api/local-ai/stats` | GET | Learning stats + template library stats |
+| `/api/local-ai/feedback` | POST | Record user feedback for pipeline improvement |
 
 ## Windows Compatibility
 
