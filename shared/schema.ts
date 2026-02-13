@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, timestamp, jsonb, boolean, real, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -314,3 +314,219 @@ export type GenerationOutcome = typeof generationOutcomes.$inferSelect;
 export type InsertGenerationOutcome = z.infer<typeof insertGenerationOutcomeSchema>;
 export type UserPreference = typeof userPreferences.$inferSelect;
 export type InsertUserPreference = z.infer<typeof insertUserPreferenceSchema>;
+
+// ============================================================
+// LOCAL AI ENGINE - 16-STAGE PIPELINE TABLES
+// ============================================================
+
+export const pipelineExecutions = pgTable("pipeline_executions", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").references(() => conversations.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"),
+  currentStage: integer("current_stage").default(0),
+  totalStages: integer("total_stages").default(16),
+  inputDescription: text("input_description").notNull(),
+  outputPlan: jsonb("output_plan"),
+  qualityScore: real("quality_score"),
+  totalTimeMs: integer("total_time_ms"),
+  memoryUsageMb: real("memory_usage_mb"),
+  errorLog: jsonb("error_log").$type<{ stage: number; error: string; recoverable: boolean }[]>(),
+  engineMode: text("engine_mode").default("local"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const stageResults = pgTable("stage_results", {
+  id: serial("id").primaryKey(),
+  pipelineId: integer("pipeline_id").notNull().references(() => pipelineExecutions.id, { onDelete: "cascade" }),
+  stageNumber: integer("stage_number").notNull(),
+  stageName: text("stage_name").notNull(),
+  stageType: text("stage_type").notNull(),
+  status: text("status").notNull().default("pending"),
+  inputData: jsonb("input_data"),
+  outputData: jsonb("output_data"),
+  qualityScore: real("quality_score"),
+  confidenceScore: real("confidence_score"),
+  processingTimeMs: integer("processing_time_ms"),
+  warnings: text("warnings").array(),
+  errors: text("errors").array(),
+  patternsUsed: integer("patterns_used").default(0),
+  rulesApplied: integer("rules_applied").default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const architecturePatterns = pgTable("architecture_patterns", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  description: text("description").notNull(),
+  constraints: jsonb("constraints").$type<{ key: string; operator: string; value: any }[]>(),
+  score: real("score").default(0),
+  techStack: jsonb("tech_stack").$type<{ frontend: string; backend: string; database: string; styling: string }>(),
+  folderStructure: jsonb("folder_structure"),
+  tradeoffs: jsonb("tradeoffs").$type<{ pros: string[]; cons: string[] }>(),
+  bestFor: text("best_for").array(),
+  usageCount: integer("usage_count").default(0),
+  successRate: real("success_rate").default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const ruleDefinitions = pgTable("rule_definitions", {
+  id: serial("id").primaryKey(),
+  stageNumber: integer("stage_number").notNull(),
+  ruleType: text("rule_type").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  condition: jsonb("condition").$type<{ field: string; operator: string; value: any }[]>().notNull(),
+  action: jsonb("action").$type<{ type: string; params: Record<string, any> }>().notNull(),
+  priority: integer("priority").default(50),
+  enabled: boolean("enabled").default(true),
+  successCount: integer("success_count").default(0),
+  failureCount: integer("failure_count").default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const uxBlueprints = pgTable("ux_blueprints", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  userType: text("user_type").notNull(),
+  projectType: text("project_type").notNull(),
+  layout: jsonb("layout").$type<{ type: string; regions: string[]; navigation: string; responsive: boolean }>().notNull(),
+  colorScheme: jsonb("color_scheme").$type<{ primary: string; secondary: string; accent: string; background: string; text: string }>(),
+  typography: jsonb("typography").$type<{ headingFont: string; bodyFont: string; scale: string }>(),
+  componentMap: jsonb("component_map").$type<{ region: string; components: string[] }[]>(),
+  interactionPatterns: text("interaction_patterns").array(),
+  accessibilityLevel: text("accessibility_level").default("AA"),
+  usageCount: integer("usage_count").default(0),
+  rating: real("rating").default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const componentTemplates = pgTable("component_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  framework: text("framework").default("react"),
+  templateCode: text("template_code").notNull(),
+  propsSchema: jsonb("props_schema"),
+  dependencies: text("dependencies").array(),
+  renderCost: real("render_cost").default(1),
+  memoizable: boolean("memoizable").default(false),
+  accessibilityScore: real("accessibility_score").default(0),
+  responsiveBreakpoints: jsonb("responsive_breakpoints"),
+  variants: jsonb("variants").$type<{ name: string; overrides: Record<string, any> }[]>(),
+  usageCount: integer("usage_count").default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const featureGraphs = pgTable("feature_graphs", {
+  id: serial("id").primaryKey(),
+  pipelineId: integer("pipeline_id").references(() => pipelineExecutions.id, { onDelete: "cascade" }),
+  nodes: jsonb("nodes").$type<{ id: string; type: string; label: string; properties: Record<string, any> }[]>().notNull(),
+  edges: jsonb("edges").$type<{ source: string; target: string; type: string; weight: number }[]>().notNull(),
+  cycles: jsonb("cycles").$type<string[][]>(),
+  conflicts: jsonb("conflicts").$type<{ nodeA: string; nodeB: string; reason: string }[]>(),
+  resolutions: jsonb("resolutions").$type<{ conflict: string; strategy: string; applied: boolean }[]>(),
+  totalNodes: integer("total_nodes").default(0),
+  totalEdges: integer("total_edges").default(0),
+  maxDepth: integer("max_depth").default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const vectorEmbeddings = pgTable("vector_embeddings", {
+  id: serial("id").primaryKey(),
+  sourceType: text("source_type").notNull(),
+  sourceId: text("source_id").notNull(),
+  content: text("content").notNull(),
+  embedding: real("embedding").array().notNull(),
+  dimensions: integer("dimensions").default(384),
+  metadata: jsonb("metadata"),
+  category: text("category"),
+  similarity_threshold: real("similarity_threshold").default(0.7),
+  usageCount: integer("usage_count").default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => [
+  index("idx_vector_source").on(table.sourceType, table.sourceId),
+  index("idx_vector_category").on(table.category),
+]);
+
+export const learningFeedback = pgTable("learning_feedback", {
+  id: serial("id").primaryKey(),
+  pipelineId: integer("pipeline_id").references(() => pipelineExecutions.id, { onDelete: "cascade" }),
+  stageNumber: integer("stage_number"),
+  feedbackType: text("feedback_type").notNull(),
+  category: text("category").notNull(),
+  description: text("description").notNull(),
+  impact: text("impact").default("medium"),
+  beforeState: jsonb("before_state"),
+  afterState: jsonb("after_state"),
+  improvement: real("improvement"),
+  applied: boolean("applied").default(false),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const modelWeights = pgTable("model_weights", {
+  id: serial("id").primaryKey(),
+  modelName: text("model_name").notNull(),
+  version: integer("version").default(1),
+  stageNumber: integer("stage_number"),
+  weightType: text("weight_type").notNull(),
+  weights: jsonb("weights").$type<Record<string, number>>().notNull(),
+  biases: jsonb("biases").$type<Record<string, number>>(),
+  accuracy: real("accuracy").default(0),
+  trainingSamples: integer("training_samples").default(0),
+  lastTrainedAt: timestamp("last_trained_at"),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const domainKnowledgeBase = pgTable("domain_knowledge_base", {
+  id: serial("id").primaryKey(),
+  domain: text("domain").notNull(),
+  entityType: text("entity_type").notNull(),
+  knowledgeType: text("knowledge_type").notNull(),
+  content: jsonb("content").notNull(),
+  tags: text("tags").array(),
+  confidence: real("confidence").default(1),
+  source: text("source").default("built-in"),
+  usageCount: integer("usage_count").default(0),
+  lastUsed: timestamp("last_used"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+// Insert schemas for new tables
+export const insertPipelineExecutionSchema = createInsertSchema(pipelineExecutions).omit({ id: true, createdAt: true });
+export const insertStageResultSchema = createInsertSchema(stageResults).omit({ id: true, createdAt: true });
+export const insertArchitecturePatternSchema = createInsertSchema(architecturePatterns).omit({ id: true, createdAt: true });
+export const insertRuleDefinitionSchema = createInsertSchema(ruleDefinitions).omit({ id: true, createdAt: true });
+export const insertUxBlueprintSchema = createInsertSchema(uxBlueprints).omit({ id: true, createdAt: true });
+export const insertComponentTemplateSchema = createInsertSchema(componentTemplates).omit({ id: true, createdAt: true });
+export const insertFeatureGraphSchema = createInsertSchema(featureGraphs).omit({ id: true, createdAt: true });
+export const insertVectorEmbeddingSchema = createInsertSchema(vectorEmbeddings).omit({ id: true, createdAt: true });
+export const insertLearningFeedbackSchema = createInsertSchema(learningFeedback).omit({ id: true, createdAt: true });
+export const insertModelWeightSchema = createInsertSchema(modelWeights).omit({ id: true, createdAt: true });
+export const insertDomainKnowledgeBaseSchema = createInsertSchema(domainKnowledgeBase).omit({ id: true, createdAt: true });
+
+// Types for new tables
+export type PipelineExecution = typeof pipelineExecutions.$inferSelect;
+export type InsertPipelineExecution = z.infer<typeof insertPipelineExecutionSchema>;
+export type StageResult = typeof stageResults.$inferSelect;
+export type InsertStageResult = z.infer<typeof insertStageResultSchema>;
+export type ArchitecturePattern = typeof architecturePatterns.$inferSelect;
+export type InsertArchitecturePattern = z.infer<typeof insertArchitecturePatternSchema>;
+export type RuleDefinition = typeof ruleDefinitions.$inferSelect;
+export type InsertRuleDefinition = z.infer<typeof insertRuleDefinitionSchema>;
+export type UxBlueprint = typeof uxBlueprints.$inferSelect;
+export type InsertUxBlueprint = z.infer<typeof insertUxBlueprintSchema>;
+export type ComponentTemplate = typeof componentTemplates.$inferSelect;
+export type InsertComponentTemplate = z.infer<typeof insertComponentTemplateSchema>;
+export type FeatureGraph = typeof featureGraphs.$inferSelect;
+export type InsertFeatureGraph = z.infer<typeof insertFeatureGraphSchema>;
+export type VectorEmbedding = typeof vectorEmbeddings.$inferSelect;
+export type InsertVectorEmbedding = z.infer<typeof insertVectorEmbeddingSchema>;
+export type LearningFeedback = typeof learningFeedback.$inferSelect;
+export type InsertLearningFeedback = z.infer<typeof insertLearningFeedbackSchema>;
+export type ModelWeight = typeof modelWeights.$inferSelect;
+export type InsertModelWeight = z.infer<typeof insertModelWeightSchema>;
+export type DomainKnowledgeBase = typeof domainKnowledgeBase.$inferSelect;
+export type InsertDomainKnowledgeBase = z.infer<typeof insertDomainKnowledgeBaseSchema>;

@@ -3,23 +3,17 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
-  "engines": {
-    "node": ">=18.0.0 <23.0.0"
-  },
   "scripts": {
-    "dev": "cross-env NODE_ENV=development tsx server/index.ts",
+    "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
-    "start": "cross-env NODE_ENV=production node dist/index.cjs",
+    "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
-    "db:push": "drizzle-kit push",
-    "test:buildability": "tsx server/tests/codegen-buildability-test.ts",
-    "build:electron": "tsx scripts/build-electron.ts",
-    "electron:dev": "npm run build:electron && cross-env NODE_ENV=development npx electron dist-electron/main.js"
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
-    "@octokit/rest": "^22.0.1",
+    "@octokit/rest": "^22.0.0",
     "@radix-ui/react-accordion": "^1.2.4",
     "@radix-ui/react-alert-dialog": "^1.1.7",
     "@radix-ui/react-aspect-ratio": "^1.1.3",
@@ -61,7 +55,6 @@
     "date-fns": "^3.6.0",
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "^0.7.0",
-    "electron": "^40.2.1",
     "embla-carousel-react": "^8.6.0",
     "express": "^5.0.1",
     "express-session": "^1.18.1",
@@ -71,7 +64,7 @@
     "memorystore": "^1.6.7",
     "nanoid": "^5.1.6",
     "next-themes": "^0.4.6",
-    "openai": "^6.18.0",
+    "openai": "^6.21.0",
     "p-limit": "^7.3.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",

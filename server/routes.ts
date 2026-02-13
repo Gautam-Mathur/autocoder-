@@ -5976,5 +5976,85 @@ Output ONLY the fixed code. No explanations.`;
     }
   });
 
+  // ============================================
+  // Local AI Pipeline Routes
+  // ============================================
+
+  app.post("/api/local-pipeline/run", async (req, res) => {
+    try {
+      const { runLocalPipeline } = await import("./modules/local-pipeline-router.js");
+      const { userRequest, entities, relationships, features } = req.body;
+      if (!userRequest) {
+        return res.status(400).json({ error: "userRequest is required" });
+      }
+      const result = await runLocalPipeline(userRequest, entities, relationships, features);
+      res.json(result);
+    } catch (error) {
+      console.error("Local pipeline error:", error);
+      res.status(500).json({ error: "Pipeline execution failed" });
+    }
+  });
+
+  app.get("/api/local-pipeline/stages", async (_req, res) => {
+    try {
+      const { STAGE_DEFINITIONS } = await import("./modules/local-pipeline-router.js");
+      res.json(STAGE_DEFINITIONS);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to load stage definitions" });
+    }
+  });
+
+  app.post("/api/local-ai/parse-intent", async (req, res) => {
+    try {
+      const { localAI } = await import("./modules/local-ai-engine.js");
+      const { description } = req.body;
+      if (!description) return res.status(400).json({ error: "description is required" });
+      const result = localAI.parseIntent(description);
+      res.json(result);
+    } catch (error) {
+      console.error("Intent parse error:", error);
+      res.status(500).json({ error: "Failed to parse intent" });
+    }
+  });
+
+  app.post("/api/local-ai/search-similar", async (req, res) => {
+    try {
+      const { localAI } = await import("./modules/local-ai-engine.js");
+      const { query, category, limit } = req.body;
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const results = await localAI.searchSimilar(query, category || "all", limit || 10);
+      res.json(results);
+    } catch (error) {
+      console.error("Search error:", error);
+      res.status(500).json({ error: "Search failed" });
+    }
+  });
+
+  app.get("/api/local-ai/stats", async (_req, res) => {
+    try {
+      const { learningBrain } = await import("./modules/learning-stage.js");
+      const { templateRegistry } = await import("./modules/template-registry.js");
+      const stats = await learningBrain.getStats();
+      const templateStats = templateRegistry.getStats();
+      res.json({ learning: stats, templates: templateStats });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get stats" });
+    }
+  });
+
+  app.post("/api/local-ai/feedback", async (req, res) => {
+    try {
+      const { learningBrain } = await import("./modules/learning-stage.js");
+      const { pipelineId, rating, comment } = req.body;
+      if (!pipelineId || rating === undefined) {
+        return res.status(400).json({ error: "pipelineId and rating are required" });
+      }
+      await learningBrain.recordFeedback(pipelineId, rating, comment || "");
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to record feedback" });
+    }
+  });
+
   return httpServer;
 }
