@@ -40,6 +40,7 @@ export const conversations = pgTable("conversations", {
   conversationPhase: text("conversation_phase").default("initial"),
   projectPlanData: jsonb("project_plan_data"),
   understandingData: jsonb("understanding_data"),
+  editHistory: jsonb("edit_history"),
 });
 
 export const messages = pgTable("messages", {

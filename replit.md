@@ -57,11 +57,11 @@ This local engine executes a 16-stage pipeline (55-95ms, 92-94/100 quality) gene
 ### Interactive Iterative Editing System
 Post-generation editing allowing users to modify generated projects conversationally without full regeneration:
 -   **Project Context Manager** (`server/modules/project-context-manager.ts`, 595 lines): Indexes project files, tracks imports/exports, builds dependency graphs, finds related files for cascade edits.
--   **Targeted Code Editor** (`server/modules/targeted-code-editor.ts`, 1,550 lines): Produces surgical file edits for 6 types: style, content, structure, feature, fix, refactor. Uses regex-based parsing for deterministic operation.
+-   **Targeted Code Editor** (`server/modules/targeted-code-editor.ts`, 1,660 lines): Produces surgical file edits for 6 types: style, content, structure, feature, fix, refactor. Uses regex-based parsing for deterministic operation. Includes compound color resolution (36 color variants via COMPOUND_COLOR_MAP), `resolveColor()` function for multi-word color parsing, and handles both Tailwind shade patterns (bg-blue-500) and semantic patterns (bg-background, bg-card).
 -   **Conversation Phase Handler** (`server/modules/conversation-phase-handler.ts`, 727 lines): Extended with 'editing' phase, edit history tracking (persisted to DB, last 50 entries), iterative modification support.
 -   **Frontend**: Real-time edit notifications with file icons (FilePlus/FileCode/FileX), editing phase indicator, contextual input placeholder ("Describe what you'd like to change...").
 -   **Edit Cascade Detection**: Schema changes trigger API and component updates; route changes update navigation.
--   **Edit History**: Persisted to conversation state via `updateProjectContext`, includes user message and file changes per entry.
+-   **Edit History**: Persisted as `editHistory` jsonb column in conversations table (schema-backed), stores last 50 entries with user message and file changes per entry.
 -   **Conversation Context**: Last 6 messages passed to edit engine for intent classification and target resolution.
 
 ### Post-Generation Validation & Auto-Fix
@@ -103,16 +103,17 @@ Records generation patterns, outcomes, and user modifications for continuous imp
 -   **@replit/vite-plugin-runtime-error-modal**, **@replit/vite-plugin-cartographer**, **@replit/vite-plugin-dev-banner**: Replit development environment plugins.
 
 ## Platform Statistics
--   Source Lines of Code: 149,000+ | Source Files: 233+ | Server Modules: 64 | Template Files: 8 (394 templates)
--   Server Module Lines: 55,500+ | React Components: 71 frontend components
+-   Source Lines of Code: 148,000+ | Source Files: 246 | Server Modules: 64 | Template Files: 8 (394 templates)
+-   Server Module Lines: 55,600+ | React Components: 78 frontend components
 -   AI Modules: 13 cloud + 8 local subsystems | Local AI: 23,624 lines
--   Interactive Editing: 2,872 lines across 3 modules (Project Context Manager + Targeted Code Editor + Conversation Phase Handler)
+-   Interactive Editing: 2,982 lines across 3 modules (Project Context Manager 595 + Targeted Code Editor 1,660 + Conversation Phase Handler 727)
 -   Domain Knowledge: 14 industry domains + 30 template domain profiles
 -   Quality: Local pipeline 94/100 (55-95ms) | Cloud pipeline 99% A+ grade
 -   Learning Engine: 1,021+ patterns across 9 categories with PostgreSQL + file persistence
 
 ## Recent Changes
--   **Feb 13, 2026**: Added interactive iterative editing system. Project Context Manager (595 lines), Targeted Code Editor (1,550 lines), extended Conversation Phase Handler (727 lines). Frontend shows file edit notifications with color-coded icons. Edit history persisted to conversation state (last 50 entries). Conversation history (last 6 messages) passed to edit engine for better intent classification. Error panel routes errors into chat for conversational fixing.
+-   **Feb 13, 2026**: Fixed editing system bugs and added compound color support. Added COMPOUND_COLOR_MAP (36 color variants) and `resolveColor()` function for multi-word color parsing (dark blue, navy, light green, etc.). Updated style edits to handle both Tailwind shade patterns (bg-blue-500) and semantic patterns (bg-background, bg-card). Added `editHistory` jsonb column to conversations schema for persistent edit tracking. Improved file targeting to scan user messages for page/component names. Targeted Code Editor grew from 1,550 to 1,660 lines. Full E2E testing (API + Playwright) confirmed all edits work correctly.
+-   **Feb 13, 2026**: Added interactive iterative editing system. Project Context Manager (595 lines), Targeted Code Editor (1,660 lines), extended Conversation Phase Handler (727 lines). Frontend shows file edit notifications with color-coded icons. Edit history persisted to DB (last 50 entries). Conversation history (last 6 messages) passed to edit engine for better intent classification. Error panel routes errors into chat for conversational fixing.
 -   **Feb 13, 2026**: Built Local AI Engine with 8 subsystems, 16-stage pipeline, 394 templates across 8 categories. Template registry with token-based matching integrated into all stages. 92-94/100 scores, 55-95ms execution. Added Local AI API endpoints. Pushed 269 files to GitHub.
 -   **Feb 2026**: Added 6 cloud AI modules + Pipeline Orchestrator. 16-stage coordinated generation with fallback. Learning engine records orchestration metrics.
 -   **Feb 2026**: Fixed Generation Learning Engine portability. File-based persistence, REST API, knowledge carries across deployments.

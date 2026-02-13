@@ -132,6 +132,67 @@ const TAILWIND_COLOR_MAP: Record<string, string> = {
   lime: 'lime', sky: 'sky', fuchsia: 'fuchsia', stone: 'stone',
 };
 
+const COMPOUND_COLOR_MAP: Record<string, { color: string; shade: string }> = {
+  'dark blue': { color: 'blue', shade: '900' },
+  'dark red': { color: 'red', shade: '900' },
+  'dark green': { color: 'green', shade: '900' },
+  'dark gray': { color: 'gray', shade: '800' },
+  'dark grey': { color: 'gray', shade: '800' },
+  'dark purple': { color: 'purple', shade: '900' },
+  'light blue': { color: 'blue', shade: '200' },
+  'light red': { color: 'red', shade: '200' },
+  'light green': { color: 'green', shade: '200' },
+  'light gray': { color: 'gray', shade: '200' },
+  'light grey': { color: 'gray', shade: '200' },
+  'light purple': { color: 'purple', shade: '200' },
+  'navy blue': { color: 'blue', shade: '950' },
+  'navy': { color: 'blue', shade: '950' },
+  'royal blue': { color: 'blue', shade: '700' },
+  'deep red': { color: 'red', shade: '800' },
+  'bright red': { color: 'red', shade: '500' },
+  'bright green': { color: 'green', shade: '500' },
+  'bright blue': { color: 'blue', shade: '500' },
+  'forest green': { color: 'green', shade: '800' },
+  'dark teal': { color: 'teal', shade: '900' },
+  'light teal': { color: 'teal', shade: '200' },
+  'dark slate': { color: 'slate', shade: '800' },
+  'dark cyan': { color: 'cyan', shade: '900' },
+  'pastel blue': { color: 'sky', shade: '200' },
+  'pastel pink': { color: 'pink', shade: '200' },
+  'pastel green': { color: 'emerald', shade: '200' },
+};
+
+function resolveColor(message: string): { color: string; shade: string } | null {
+  const lower = message.toLowerCase();
+  const colorPatterns = [
+    /(?:change|make|set|update)\s+(?:the\s+)?(?:background|bg|color|text)\s+(?:color\s+)?(?:to|=)\s*([\w\s]+?)(?:\.|,|$|\s+(?:and|with|on|in|for))/,
+    /make\s+(?:the\s+)?\w+\s+([\w\s]+?)(?:\.|,|$)/,
+    /(?:to|=)\s+([\w\s]+?)(?:\.|,|$|\s+(?:and|with|on|in|for))/,
+  ];
+  for (const pat of colorPatterns) {
+    const m = lower.match(pat);
+    if (m) {
+      const raw = m[1].trim();
+      const compound = COMPOUND_COLOR_MAP[raw];
+      if (compound) return compound;
+      const words = raw.split(/\s+/);
+      for (let i = words.length; i >= 1; i--) {
+        const sub = words.slice(0, i).join(' ');
+        const comp = COMPOUND_COLOR_MAP[sub];
+        if (comp) return comp;
+        if (i === 1 && TAILWIND_COLOR_MAP[words[0]]) {
+          return { color: TAILWIND_COLOR_MAP[words[0]], shade: '500' };
+        }
+      }
+      const lastWord = words[words.length - 1];
+      if (TAILWIND_COLOR_MAP[lastWord]) {
+        return { color: TAILWIND_COLOR_MAP[lastWord], shade: '500' };
+      }
+    }
+  }
+  return null;
+}
+
 const TAILWIND_SIZE_SCALE = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl', '8xl', '9xl'];
 const TAILWIND_SPACING_SCALE = ['0', '0.5', '1', '1.5', '2', '2.5', '3', '3.5', '4', '5', '6', '7', '8', '9', '10', '11', '12', '14', '16', '20', '24', '28', '32', '36', '40', '44', '48', '52', '56', '60', '64', '72', '80', '96'];
 
@@ -249,7 +310,8 @@ function extractTargets(message: string): TargetHint[] {
 function findTargetFiles(
   intent: ClassifiedIntent,
   contextManager: ProjectContextManager,
-  files: { path: string; content: string; language: string }[]
+  files: { path: string; content: string; language: string }[],
+  message?: string
 ): { path: string; content: string; language: string; meta: FileMetadata }[] {
   const results: Map<string, { path: string; content: string; language: string; meta: FileMetadata }> = new Map();
   const fileIndex = contextManager.getFileIndex();
@@ -322,10 +384,29 @@ function findTargetFiles(
     }
   }
 
+  if ((intent.editType === 'style' || intent.editType === 'content') && message) {
+    const msgWords = message.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    const mentionedPages = files.filter(f => {
+      if (!/\.(tsx|jsx)$/.test(f.path)) return false;
+      const fileName = f.path.split('/').pop()?.replace(/\.\w+$/, '').toLowerCase() || '';
+      for (const word of msgWords) {
+        if (fileName.includes(word) || word.includes(fileName)) return true;
+      }
+      return false;
+    });
+    for (const pf of mentionedPages) addFile(pf.path);
+  }
+
   if (results.size === 0) {
     if (intent.editType === 'style') {
       const styleFiles = contextManager.getFilesByType('style');
       for (const sf of styleFiles) addFile(sf.path);
+      const pageFiles = contextManager.getFilesByType('page');
+      for (const pf of pageFiles) {
+        if (/className[=]/.test(files.find(f => f.path === pf.path)?.content || '')) {
+          addFile(pf.path);
+        }
+      }
       if (results.size === 0) {
         for (const file of files) {
           if (/className[=]/.test(file.content) || /tailwind|css/i.test(file.path)) {
@@ -395,13 +476,10 @@ function generateStyleEdits(
   const edits: FileEdit[] = [];
   const lower = message.toLowerCase();
 
-  const colorMatch = lower.match(/(?:change|make|set|update)\s+(?:the\s+)?(?:background|bg|color|text)\s+(?:color\s+)?(?:to|=)\s*(\w+)/);
-  const targetColor = colorMatch ? colorMatch[1] : null;
-  const twColor = targetColor ? TAILWIND_COLOR_MAP[targetColor] : null;
+  const resolved = resolveColor(message);
 
-  const makeColorMatch = lower.match(/make\s+(?:the\s+)?(\w+)\s+(\w+)/);
+  const makeColorMatch = lower.match(/make\s+(?:the\s+)?(\w+)\s+(?:[\w\s]+?)$/);
   const impliedTarget = makeColorMatch ? makeColorMatch[1] : null;
-  const impliedColor = makeColorMatch ? TAILWIND_COLOR_MAP[makeColorMatch[2]] : null;
 
   const sizeDirection = /(?:bigger|larger|wider|taller)/.test(lower) ? 'up' : /(?:smaller|narrower|shorter)/.test(lower) ? 'down' : null;
 
@@ -411,65 +489,97 @@ function generateStyleEdits(
     let changed = false;
     let desc = '';
 
-    if (twColor || impliedColor) {
-      const color = twColor || impliedColor!;
-      const shade = '500';
+    if (resolved) {
+      const color = resolved.color;
+      const shade = resolved.shade;
+      const newBg = `bg-${color}-${shade}`;
 
-      if (impliedTarget && impliedColor) {
-        const componentRegex = new RegExp(`(<[^>]*?(?:class(?:Name)?\\s*=\\s*["'][^"']*?))bg-(\\w+)-(\\d+)([^"']*?["'])`, 'g');
-        const beforeLen = modified.length;
+      const replaceBgClasses = (text: string): string => {
+        let result = text;
+        result = result.replace(/bg-(\w+)-(\d+)/g, newBg);
+        result = result.replace(/bg-(background|card|muted|popover|accent|secondary|primary|white|black)\b/g, newBg);
+        return result;
+      };
 
+      if (impliedTarget) {
         if (impliedTarget === 'header' || impliedTarget === 'navbar' || impliedTarget === 'nav') {
           const headerBlock = findComponentBlock(modified, ['header', 'Header', 'Navbar', 'Nav']);
           if (headerBlock) {
             const section = modified.substring(headerBlock.start, headerBlock.end);
-            const replaced = section.replace(/bg-(\w+)-(\d+)/g, `bg-${color}-$2`);
+            const replaced = replaceBgClasses(section);
             if (replaced !== section) {
               modified = modified.substring(0, headerBlock.start) + replaced + modified.substring(headerBlock.end);
               changed = true;
-              desc = `Changed header background color to ${color}`;
+              desc = `Changed header background color to ${color}-${shade}`;
             }
           }
         }
 
         if (!changed) {
-          modified = modified.replace(/bg-(\w+)-(\d+)/g, (match, oldColor, oldShade) => {
-            return `bg-${color}-${oldShade}`;
-          });
-          changed = modified.length !== beforeLen || modified !== file.content;
-          desc = `Changed background color to ${color}`;
+          modified = replaceBgClasses(modified);
+          changed = modified !== file.content;
+          if (changed) desc = `Changed background color to ${color}-${shade}`;
         }
       }
 
       if (!changed && /(?:background|bg)/.test(lower)) {
-        modified = modified.replace(/bg-(\w+)-(\d+)/g, `bg-${color}-$2`);
+        modified = replaceBgClasses(modified);
         if (modified !== file.content) {
           changed = true;
-          desc = `Changed background colors to ${color}`;
+          desc = `Changed background colors to ${color}-${shade}`;
         }
       }
 
       if (!changed && /(?:text|font)\s*color/.test(lower)) {
-        modified = modified.replace(/(?<!\bg-)text-(\w+)-(\d+)/g, `text-${color}-$2`);
+        modified = modified.replace(/(?<!\bg-)text-(\w+)-(\d+)/g, `text-${color}-${shade}`);
         if (modified !== file.content) {
           changed = true;
-          desc = `Changed text colors to ${color}`;
+          desc = `Changed text colors to ${color}-${shade}`;
         }
       }
 
       if (!changed && /(?:border)\s*color/.test(lower)) {
-        modified = modified.replace(/border-(\w+)-(\d+)/g, `border-${color}-$2`);
+        modified = modified.replace(/border-(\w+)-(\d+)/g, `border-${color}-${shade}`);
         if (modified !== file.content) {
           changed = true;
-          desc = `Changed border colors to ${color}`;
+          desc = `Changed border colors to ${color}-${shade}`;
         }
       }
 
       if (!changed) {
-        modified = modified.replace(/bg-(\w+)-(\d+)/g, `bg-${color}-$2`);
+        modified = replaceBgClasses(modified);
         if (modified !== file.content) {
           changed = true;
-          desc = `Changed colors to ${color}`;
+          desc = `Changed colors to ${color}-${shade}`;
+        }
+      }
+
+      if (!changed && /\.(tsx|jsx)$/.test(file.path)) {
+        const returnMatch = modified.match(/return\s*\(\s*\n?\s*(<\w+)/);
+        if (returnMatch) {
+          const idx = modified.indexOf(returnMatch[0]);
+          const tagEnd = modified.indexOf('>', idx);
+          if (tagEnd > idx) {
+            const tag = modified.substring(idx, tagEnd + 1);
+            const classNameMatch = tag.match(/className\s*=\s*["']([^"']*)["']/);
+            if (classNameMatch) {
+              const oldClasses = classNameMatch[1];
+              const newClasses = oldClasses + ` ${newBg}`;
+              modified = modified.substring(0, idx) + tag.replace(classNameMatch[0], `className="${newClasses}"`) + modified.substring(tagEnd + 1);
+            } else if (tag.includes('className={')) {
+              const cnMatch = tag.match(/className=\{`([^`]*)`\}/);
+              if (cnMatch) {
+                modified = modified.substring(0, idx) + tag.replace(cnMatch[0], `className={\`${cnMatch[1]} ${newBg}\`}`) + modified.substring(tagEnd + 1);
+              }
+            } else {
+              const insertPos = modified.indexOf(returnMatch[1], idx) + returnMatch[1].length;
+              modified = modified.substring(0, insertPos) + ` className="${newBg}"` + modified.substring(insertPos);
+            }
+            if (modified !== file.content) {
+              changed = true;
+              desc = `Added ${newBg} background to main container`;
+            }
+          }
         }
       }
     }
@@ -1193,7 +1303,7 @@ export function processEditRequest(request: EditRequest): EditResult {
     });
   }
 
-  const targetFiles = findTargetFiles(intent, contextManager, projectFiles);
+  const targetFiles = findTargetFiles(intent, contextManager, projectFiles, userMessage);
   steps.push({
     phase: 'targeting',
     label: `${targetFiles.length} target file(s) identified`,

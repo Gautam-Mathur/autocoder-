@@ -29,15 +29,21 @@ All items completed:
 - [x] Conversation Phase Handler with 'editing' phase and edit history persistence
 - [x] Frontend edit notifications with color-coded file icons
 - [x] Edit cascade detection (schema -> API -> components)
+- [x] Compound color resolution (36 color variants via COMPOUND_COLOR_MAP + resolveColor())
+- [x] Semantic bg-class handling (bg-background, bg-card) + Tailwind shade patterns
+- [x] Edit history persistence via `editHistory` jsonb column in conversations schema
+- [x] Smart file targeting scanning user messages for page/component names
+- [x] Full E2E testing (API + Playwright) confirmed all editing features
 
 ### Platform Scale
-- 64 server modules + 8 template files (~55,500 lines of server-side TypeScript)
-- 71 React frontend components
-- 149,000+ total source lines across 233+ files
+- 64 server modules + 8 template files (~55,600 lines of server-side TypeScript)
+- 78 React frontend components
+- 148,000+ total source lines across 246 files
 - 13 cloud AI intelligence modules + Pipeline Orchestrator (16 stages)
 - 8 local AI subsystems + Local Pipeline Router (16 stages)
 - 394 templates across 8 categories
 - 23,624 lines in Local AI subsystem (engine + templates)
+- 2,982 lines in Interactive Editing system (3 modules)
 - 14 industry domain profiles + 30 template domain profiles
 - 94/100 local pipeline quality (cloud: 99% A+ grade)
 
@@ -158,8 +164,8 @@ autocoder/
 │   │   ├── learning-stage.ts           # Stage 16 (372 lines)
 │   │   ├── local-pipeline-router.ts    # Pipeline orchestration (543 lines)
 │   │   ├── project-context-manager.ts  # File indexing & dependency graphs (595 lines)
-│   │   ├── targeted-code-editor.ts     # Surgical file edits, 6 types (1,550 lines)
-│   │   ├── conversation-phase-handler.ts # 7-phase flow + editing (727 lines)
+│   │   ├── targeted-code-editor.ts     # Surgical file edits, 6 types, compound colors (1,660 lines)
+│   │   ├── conversation-phase-handler.ts # 8-phase flow + editing (727 lines)
 │   │   └── ... (55+ other modules)
 │   └── templates/
 │       ├── app-archetypes.ts           # 104 app pattern templates

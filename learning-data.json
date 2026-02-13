@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-02-10T04:49:19.749Z",
+  "exportedAt": "2026-02-13T09:57:44.551Z",
   "patterns": [
     {
       "patternType": "entity-structure",
@@ -411,7 +411,7 @@
       "reliability": 1
     },
     {
-      "id": 17,
+      "id": 146,
       "patternType": "entity-structure",
       "domainId": "project-management",
       "entityType": "Task",
@@ -444,12 +444,12 @@
           "commentCount"
         ]
       },
-      "successCount": 9,
+      "successCount": 19,
       "failureCount": 0,
       "reliability": 1
     },
     {
-      "id": 18,
+      "id": 136,
       "patternType": "entity-structure",
       "domainId": "project-management",
       "entityType": "Comment",
@@ -468,7 +468,7 @@
           "content"
         ]
       },
-      "successCount": 9,
+      "successCount": 19,
       "failureCount": 0,
       "reliability": 1
     },
@@ -488,7 +488,7 @@
       "reliability": 0
     },
     {
-      "id": 19,
+      "id": 140,
       "patternType": "domain-mapping",
       "domainId": "project-management",
       "patternKey": "domain-project-management",
@@ -510,12 +510,12 @@
         ],
         "pageCount": 3
       },
-      "successCount": 7,
+      "successCount": 12,
       "failureCount": 0,
       "reliability": 1
     },
     {
-      "id": 20,
+      "id": 147,
       "patternType": "workflow-design",
       "patternKey": "workflow-task",
       "patternValue": {
@@ -565,7 +565,7 @@
           }
         ]
       },
-      "successCount": 7,
+      "successCount": 17,
       "failureCount": 0,
       "reliability": 1
     },
@@ -2207,11 +2207,11 @@
       "reliability": 1
     },
     {
-      "id": 83,
+      "id": 132,
       "patternType": "tech-choice",
       "patternKey": "file-structure-general",
       "patternValue": {
-        "fileCount": 41,
+        "fileCount": 38,
         "recentPaths": [
           "package.json",
           "index.html",
@@ -2240,13 +2240,13 @@
           "server/routes.ts",
           "src/App.tsx",
           "src/index.css",
-          "src/pages/tasks.tsx",
-          "src/pages/task-detail.tsx",
-          "src/pages/board-view.tsx"
+          "src/pages/dashboard.tsx",
+          "src/components/data-table.tsx",
+          "src/components/kpi-card.tsx"
         ],
         "qualityScore": 84
       },
-      "successCount": 3,
+      "successCount": 8,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16162,7 +16162,7 @@
       "reliability": 1
     },
     {
-      "id": 1022,
+      "id": 143,
       "patternType": "page-structure",
       "patternKey": "page-layout-tasks",
       "patternValue": {
@@ -16178,12 +16178,12 @@
           "form-wizard view"
         ]
       },
-      "successCount": 2,
+      "successCount": 6,
       "failureCount": 0,
       "reliability": 1
     },
     {
-      "id": 1025,
+      "id": 139,
       "patternType": "page-structure",
       "patternKey": "page-layout-task-detail",
       "patternValue": {
@@ -16198,12 +16198,12 @@
           "labels"
         ]
       },
-      "successCount": 2,
+      "successCount": 6,
       "failureCount": 0,
       "reliability": 1
     },
     {
-      "id": 1024,
+      "id": 126,
       "patternType": "page-structure",
       "patternKey": "page-layout-board-view",
       "patternValue": {
@@ -16216,12 +16216,12 @@
           "labels"
         ]
       },
-      "successCount": 2,
+      "successCount": 6,
       "failureCount": 0,
       "reliability": 1
     },
     {
-      "id": 1023,
+      "id": 128,
       "patternType": "page-structure",
       "patternKey": "page-layout-my-tasks",
       "patternValue": {
@@ -16233,7 +16233,519 @@
           "quick-status-update"
         ]
       },
-      "successCount": 2,
+      "successCount": 6,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 76,
+      "patternType": "entity-structure",
+      "patternKey": "Task",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 77,
+      "patternType": "entity-structure",
+      "patternKey": "Project",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 78,
+      "patternType": "entity-structure",
+      "patternKey": "Team",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 116,
+      "patternType": "entity-structure",
+      "patternKey": "Build",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 117,
+      "patternType": "tech-choice",
+      "patternKey": "State Management",
+      "patternValue": {
+        "chosen": "TanStack Query",
+        "reason": "Server-state caching handles most needs for smaller apps"
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 118,
+      "patternType": "tech-choice",
+      "patternKey": "Routing",
+      "patternValue": {
+        "chosen": "Wouter",
+        "reason": "Lightweight routing with minimal bundle impact"
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 119,
+      "patternType": "tech-choice",
+      "patternKey": "Form Handling",
+      "patternValue": {
+        "chosen": "React Hook Form + Zod",
+        "reason": "Best performance with schema-based validation"
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 120,
+      "patternType": "tech-choice",
+      "patternKey": "Styling",
+      "patternValue": {
+        "chosen": "Tailwind CSS + shadcn/ui",
+        "reason": "Utility-first CSS with pre-built accessible components"
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 121,
+      "patternType": "tech-choice",
+      "patternKey": "API Pattern",
+      "patternValue": {
+        "chosen": "REST",
+        "reason": "Standard REST for simplicity with WebSocket for real-time if needed"
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 122,
+      "patternType": "tech-choice",
+      "patternKey": "Database",
+      "patternValue": {
+        "chosen": "PostgreSQL + Drizzle ORM",
+        "reason": "Type-safe SQL with lightweight ORM and excellent PostgreSQL support"
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 125,
+      "patternType": "ui-layout",
+      "patternKey": "sidebar",
+      "patternValue": {
+        "userType": "casual",
+        "navigation": "tabs"
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 64,
+      "patternType": "ui-layout",
+      "patternKey": "single",
+      "patternValue": {
+        "userType": "casual",
+        "navigation": "tabs"
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 124,
+      "patternType": "tech-choice",
+      "patternKey": "Architecture Reference",
+      "patternValue": {
+        "chosen": "MVC (Model-View-Controller)",
+        "reason": "Classic architectural pattern separating application into three interconnected components: Models for data and business logic, Views for presentation, and Controllers for input handling."
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 89,
+      "patternType": "entity-structure",
+      "patternKey": "Product",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 90,
+      "patternType": "entity-structure",
+      "patternKey": "Order",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 101,
+      "patternType": "entity-structure",
+      "patternKey": "Patient",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 102,
+      "patternType": "entity-structure",
+      "patternKey": "Create",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 103,
+      "patternType": "entity-structure",
+      "patternKey": "Management",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 113,
+      "patternType": "entity-structure",
+      "patternKey": "Post",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 114,
+      "patternType": "entity-structure",
+      "patternKey": "Comment",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 115,
+      "patternType": "entity-structure",
+      "patternKey": "Media",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 137,
+      "patternType": "entity-structure",
+      "domainId": "project-management",
+      "entityType": "Project",
+      "patternKey": "entity-project",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "name": "text",
+          "status": "enum(planning,active,on-hold,completed,archived)",
+          "endDate": "date",
+          "ownerId": "integer",
+          "duration": "text",
+          "priority": "enum(low,medium,high)",
+          "progress": "integer",
+          "startDate": "date",
+          "taskCount": "text",
+          "description": "text"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "description",
+          "status",
+          "ownerId",
+          "startDate",
+          "endDate",
+          "progress",
+          "priority",
+          "duration",
+          "taskCount"
+        ]
+      },
+      "successCount": 10,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 141,
+      "patternType": "entity-structure",
+      "domainId": "project-management",
+      "entityType": "TeamMember",
+      "patternKey": "entity-teammember",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "name": "text",
+          "role": "enum(owner,admin,member,viewer)",
+          "email": "text",
+          "avatar": "text"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "email",
+          "role",
+          "avatar"
+        ]
+      },
+      "successCount": 10,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 138,
+      "patternType": "workflow-design",
+      "patternKey": "workflow-project",
+      "patternValue": {
+        "states": [
+          "planning",
+          "active",
+          "on-hold",
+          "completed",
+          "archived"
+        ],
+        "commonTransitions": [
+          {
+            "to": "active",
+            "from": "planning",
+            "role": "manager",
+            "action": "Start Project"
+          },
+          {
+            "to": "on-hold",
+            "from": "active",
+            "role": "manager",
+            "action": "Pause Project"
+          },
+          {
+            "to": "active",
+            "from": "on-hold",
+            "role": "manager",
+            "action": "Resume Project"
+          },
+          {
+            "to": "completed",
+            "from": "active",
+            "role": "manager",
+            "action": "Complete Project"
+          },
+          {
+            "to": "archived",
+            "from": "completed",
+            "role": "admin",
+            "action": "Archive"
+          }
+        ]
+      },
+      "successCount": 10,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 130,
+      "patternType": "page-structure",
+      "patternKey": "page-layout-projects",
+      "patternValue": {
+        "layout": "table",
+        "features": [
+          "search",
+          "status-filter",
+          "owner-filter",
+          "create-project",
+          "progress-bar",
+          "kanban view",
+          "master-detail view",
+          "form-wizard view",
+          "dashboard-widget view"
+        ]
+      },
+      "successCount": 4,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 144,
+      "patternType": "page-structure",
+      "patternKey": "page-layout-project-detail",
+      "patternValue": {
+        "layout": "table",
+        "features": [
+          "overview",
+          "task-board",
+          "timeline",
+          "team-members",
+          "files"
+        ]
+      },
+      "successCount": 4,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 131,
+      "patternType": "page-structure",
+      "patternKey": "page-layout-team",
+      "patternValue": {
+        "layout": "table",
+        "features": [
+          "member-list",
+          "workload-bar",
+          "role-filter",
+          "invite-member",
+          "card-grid view"
+        ]
+      },
+      "successCount": 4,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 129,
+      "patternType": "page-structure",
+      "patternKey": "page-layout-dashboard",
+      "patternValue": {
+        "layout": "table",
+        "features": [
+          "kpi-cards",
+          "project-status-chart",
+          "my-tasks-summary",
+          "upcoming-deadlines"
+        ]
+      },
+      "successCount": 5,
       "failureCount": 0,
       "reliability": 1
     }
@@ -16251,14 +16763,14 @@
     },
     {
       "key": "quality-score-general",
-      "value": "88",
+      "value": "94",
       "category": "architecture",
-      "frequency": 3
+      "frequency": 8
     }
   ],
   "stats": {
-    "totalPatterns": 1025,
-    "reliablePatterns": 1023,
+    "totalPatterns": 1053,
+    "reliablePatterns": 1030,
     "totalPreferences": 2
   }
 }

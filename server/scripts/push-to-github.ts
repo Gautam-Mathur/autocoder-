@@ -172,7 +172,7 @@ async function pushToGitHub() {
     console.log('Creating commit...');
     const { data: newCommit } = await octokit.git.createCommit({
       owner, repo,
-      message: 'AutoCoder: Fix WebContainer fullscreen conflict - preview session reconnection, singleton boot recovery',
+      message: 'AutoCoder: Update docs, fix editing system - compound colors, editHistory schema, E2E tested',
       tree: newTree.sha,
       parents: [latestSha]
     });

@@ -82,6 +82,8 @@ Each palette generates CSS variables, gradients, shadow scales, typography scale
   - Auto-dismisses after 10 seconds
   - Appears only when iterative edits are applied to existing projects
 - **Editing Phase Indicator**: "Interactive editing" label with pencil icon in status bar when in post-generation editing mode
+- **Compound Color Support**: Style edits recognize 36+ color variants including multi-word names (dark blue, light green, navy, coral, etc.) via COMPOUND_COLOR_MAP and resolveColor() function
+- **Semantic Class Handling**: Style edits handle both Tailwind shade patterns (bg-blue-500) and semantic patterns (bg-background, bg-card) with fallback injection when no existing bg classes found
 
 ### Code Editor Integration
 - **Monaco Editor-style**: Professional code editing with line numbers
@@ -120,6 +122,9 @@ Each palette generates CSS variables, gradients, shadow scales, typography scale
 - **Editing Mode Status**: Bottom status bar shows "Interactive editing" with Pencil icon when in editing phase
 - **Contextual Input**: Chat input placeholder changes to "Describe what you'd like to change..." in editing/complete phases with existing files
 - **Error-to-Chat Flow**: Preview panel errors route through chat for conversational fixing via handleRequestFix callback
+- **Edit History Persistence**: Edit history stored as `editHistory` jsonb column in conversations table, tracking last 50 edits with user message and file changes per entry
+- **Smart File Targeting**: Edit engine scans user messages for page/component names (e.g., "dashboard" targets src/pages/dashboard.tsx) for precise file targeting
+- **Compound Color Resolution**: 36 color variants supported via COMPOUND_COLOR_MAP — dark blue, navy, light green, coral, teal, maroon, etc. resolveColor() handles multi-word color names and maps to Tailwind shade classes
 
 ### Feature Cards (Marketing Page)
 - **Grid Layout**: 3-column on desktop, stack on mobile
