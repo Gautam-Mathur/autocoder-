@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-02-13T10:24:46.370Z",
+  "exportedAt": "2026-02-13T16:09:57.785Z",
   "patterns": [
     {
       "patternType": "entity-structure",
@@ -444,7 +444,7 @@
           "commentCount"
         ]
       },
-      "successCount": 23,
+      "successCount": 25,
       "failureCount": 0,
       "reliability": 1
     },
@@ -468,7 +468,7 @@
           "content"
         ]
       },
-      "successCount": 23,
+      "successCount": 25,
       "failureCount": 0,
       "reliability": 1
     },
@@ -510,7 +510,7 @@
         ],
         "pageCount": 3
       },
-      "successCount": 14,
+      "successCount": 15,
       "failureCount": 0,
       "reliability": 1
     },
@@ -565,7 +565,7 @@
           }
         ]
       },
-      "successCount": 21,
+      "successCount": 23,
       "failureCount": 0,
       "reliability": 1
     },
@@ -2211,7 +2211,7 @@
       "patternType": "tech-choice",
       "patternKey": "file-structure-general",
       "patternValue": {
-        "fileCount": 45,
+        "fileCount": 41,
         "recentPaths": [
           "package.json",
           "index.html",
@@ -2240,13 +2240,13 @@
           "server/routes.ts",
           "src/App.tsx",
           "src/index.css",
-          "src/pages/projects.tsx",
-          "src/pages/project-detail.tsx",
-          "src/pages/tasks.tsx"
+          "src/pages/tasks.tsx",
+          "src/pages/task-detail.tsx",
+          "src/pages/board-view.tsx"
         ],
         "qualityScore": 84
       },
-      "successCount": 10,
+      "successCount": 11,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16178,7 +16178,7 @@
           "form-wizard view"
         ]
       },
-      "successCount": 8,
+      "successCount": 9,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16198,7 +16198,7 @@
           "labels"
         ]
       },
-      "successCount": 8,
+      "successCount": 9,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16216,7 +16216,7 @@
           "labels"
         ]
       },
-      "successCount": 8,
+      "successCount": 9,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16233,7 +16233,7 @@
           "quick-status-update"
         ]
       },
-      "successCount": 8,
+      "successCount": 9,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16765,7 +16765,7 @@
       "key": "quality-score-general",
       "value": "94",
       "category": "architecture",
-      "frequency": 10
+      "frequency": 11
     }
   ],
   "stats": {
