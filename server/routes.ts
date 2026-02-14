@@ -60,6 +60,21 @@ import { preparePreviewProject, startPreviewServer, stopPreviewServer, getPrevie
 // Plan-Driven Conversation Handler
 import { handleMessage as handlePhaseMessage, isProjectCreationRequest, type ConversationState } from "./modules/conversation-phase-handler";
 
+function sanitizeHtml(input: string): string {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+function parseValidId(raw: string): number | null {
+  const id = parseInt(raw);
+  if (isNaN(id) || id < 0 || id > 2147483647) return null;
+  return id;
+}
+
 function inferLanguageFromPath(filePath: string): string {
   const ext = filePath.split('.').pop()?.toLowerCase() || '';
   const map: Record<string, string> = {
@@ -283,8 +298,8 @@ export async function registerRoutes(
   // Preview Project Vite Server API (port 6000)
   app.post("/api/preview/prepare/:conversationId", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.conversationId);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.conversationId);
+      if (conversationId === null) {
         return res.status(400).json({ error: 'Invalid conversation ID' });
       }
       
@@ -311,8 +326,8 @@ export async function registerRoutes(
   
   app.post("/api/preview/start/:conversationId", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.conversationId);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.conversationId);
+      if (conversationId === null) {
         return res.status(400).json({ error: 'Invalid conversation ID' });
       }
       
@@ -452,8 +467,8 @@ export async function registerRoutes(
 
   app.get("/api/conversations/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const id = parseValidId(req.params.id);
+      if (id === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       const conversation = await storage.getConversation(id);
@@ -474,7 +489,8 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       }
-      const conversation = await storage.createConversation(parsed.data.title);
+      const sanitizedTitle = sanitizeHtml(parsed.data.title);
+      const conversation = await storage.createConversation(sanitizedTitle);
       res.status(201).json(conversation);
     } catch (error) {
       console.error("Error creating conversation:", error);
@@ -484,8 +500,8 @@ export async function registerRoutes(
 
   app.delete("/api/conversations/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const id = parseValidId(req.params.id);
+      if (id === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       await storage.deleteConversation(id);
@@ -499,8 +515,8 @@ export async function registerRoutes(
   // Save assistant message (for local engine mode)
   app.post("/api/conversations/:id/assistant-message", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const id = parseValidId(req.params.id);
+      if (id === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
 
@@ -520,8 +536,8 @@ export async function registerRoutes(
   // Update project context for a conversation
   app.put("/api/conversations/:id/context", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const id = parseValidId(req.params.id);
+      if (id === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
 
@@ -543,8 +559,8 @@ export async function registerRoutes(
 
   app.post("/api/conversations/:id/messages", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
 
@@ -3051,8 +3067,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Project Files API
   app.get("/api/conversations/:id/files", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       const files = await storage.getProjectFiles(conversationId);
@@ -3065,8 +3081,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
 
   app.post("/api/conversations/:id/files", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3086,8 +3102,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
 
   app.put("/api/files/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const id = parseValidId(req.params.id);
+      if (id === null) {
         return res.status(400).json({ error: "Invalid file ID" });
       }
       
@@ -3109,8 +3125,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
 
   app.delete("/api/files/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
+      const id = parseValidId(req.params.id);
+      if (id === null) {
         return res.status(400).json({ error: "Invalid file ID" });
       }
       await storage.deleteProjectFile(id);
@@ -3124,8 +3140,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Delete all files for a conversation (used before regeneration to prevent duplicates)
   app.delete("/api/conversations/:id/files", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       await storage.deleteProjectFilesByConversation(conversationId);
@@ -3139,8 +3155,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Bulk save files from code generation
   app.post("/api/conversations/:id/files/bulk", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3197,8 +3213,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Generate project plan
   app.post("/api/conversations/:id/plan", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3239,8 +3255,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Get project plan
   app.get("/api/conversations/:id/plan", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3255,8 +3271,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Run tests on project files
   app.post("/api/conversations/:id/test", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3324,8 +3340,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Security scan
   app.post("/api/conversations/:id/security-scan", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3377,8 +3393,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Auto-fix errors endpoint
   app.post("/api/conversations/:id/auto-fix", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
 
@@ -3497,8 +3513,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Get transparency report
   app.get("/api/conversations/:id/transparency", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3542,8 +3558,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Get/update intel records
   app.get("/api/conversations/:id/intel", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3564,8 +3580,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Extract and store intel from messages
   app.post("/api/conversations/:id/intel/extract", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3605,8 +3621,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Analyze dependencies
   app.get("/api/conversations/:id/dependencies", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3638,8 +3654,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Export project
   app.get("/api/conversations/:id/export", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3683,8 +3699,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Download project as text bundle
   app.get("/api/conversations/:id/download", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3725,8 +3741,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Generation logs
   app.post("/api/conversations/:id/logs", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3751,8 +3767,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
 
   app.get("/api/conversations/:id/logs", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3767,8 +3783,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
   // Project stats summary
   app.get("/api/conversations/:id/stats", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -3923,8 +3939,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
 
   app.post("/api/conversations/:id/import-github", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id, 10);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -4005,8 +4021,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
 
   app.post("/api/conversations/:id/upload-files", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id, 10);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -4152,8 +4168,8 @@ You're not just a code generator - you're a thinking partner who builds exactly 
 
   app.post("/api/conversations/:id/github-push", async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
-      if (isNaN(conversationId)) {
+      const conversationId = parseValidId(req.params.id);
+      if (conversationId === null) {
         return res.status(400).json({ error: "Invalid conversation ID" });
       }
       
@@ -4945,11 +4961,15 @@ Output ONLY the fixed code. No explanations.`;
       await learningEngine.ensureReady();
       const minReliability = parseFloat(req.query.minReliability as string) || 0;
       const patternType = req.query.type as string | undefined;
+      const category = req.query.category as string | undefined;
       let patterns = minReliability > 0
         ? learningEngine.getReliablePatterns(minReliability)
         : learningEngine.exportPatterns();
       if (patternType) {
         patterns = patterns.filter(p => p.patternType === patternType);
+      }
+      if (category) {
+        patterns = patterns.filter(p => (p as any).category === category || p.patternType === category);
       }
       res.json({ success: true, count: patterns.length, patterns });
     } catch (error) {
@@ -5831,7 +5851,10 @@ Output ONLY the fixed code. No explanations.`;
   // Update VAPT asset
   app.put("/api/vapt/assets/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseValidId(req.params.id);
+      if (id === null) {
+        return res.status(400).json({ error: "Invalid asset ID" });
+      }
       const validated = vaptAssetSchema.partial().parse(req.body);
       const asset = await storage.updateVaptAsset(id, validated);
       res.json(asset);
@@ -5847,7 +5870,10 @@ Output ONLY the fixed code. No explanations.`;
   // Delete VAPT asset
   app.delete("/api/vapt/assets/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseValidId(req.params.id);
+      if (id === null) {
+        return res.status(400).json({ error: "Invalid asset ID" });
+      }
       await storage.deleteVaptAsset(id);
       res.status(204).send();
     } catch (error) {
@@ -5885,7 +5911,10 @@ Output ONLY the fixed code. No explanations.`;
   // Update vulnerability
   app.put("/api/vapt/vulnerabilities/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseValidId(req.params.id);
+      if (id === null) {
+        return res.status(400).json({ error: "Invalid vulnerability ID" });
+      }
       const validated = vaptVulnSchema.partial().parse(req.body);
       const vuln = await storage.updateVaptVulnerability(id, validated as any);
       res.json(vuln);
@@ -5901,7 +5930,10 @@ Output ONLY the fixed code. No explanations.`;
   // Delete vulnerability
   app.delete("/api/vapt/vulnerabilities/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseValidId(req.params.id);
+      if (id === null) {
+        return res.status(400).json({ error: "Invalid vulnerability ID" });
+      }
       await storage.deleteVaptVulnerability(id);
       res.status(204).send();
     } catch (error) {
@@ -5939,7 +5971,10 @@ Output ONLY the fixed code. No explanations.`;
   // Run scan (simulated)
   app.post("/api/vapt/scans/:id/run", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseValidId(req.params.id);
+      if (id === null) {
+        return res.status(400).json({ error: "Invalid scan ID" });
+      }
       const result = await storage.runVaptScan(id);
       res.json(result);
     } catch (error) {
@@ -6033,8 +6068,11 @@ Output ONLY the fixed code. No explanations.`;
     try {
       const { runLocalPipeline } = await import("./modules/local-pipeline-router.js");
       const { userRequest, entities, relationships, features } = req.body;
-      if (!userRequest) {
-        return res.status(400).json({ error: "userRequest is required" });
+      if (!userRequest || typeof userRequest !== 'string') {
+        return res.status(400).json({ error: "userRequest is required and must be a string" });
+      }
+      if (userRequest.length > 50000) {
+        return res.status(400).json({ error: "userRequest exceeds maximum length of 50000 characters" });
       }
       const result = await runLocalPipeline(userRequest, entities, relationships, features);
       res.json(result);

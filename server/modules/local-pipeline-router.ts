@@ -30,6 +30,7 @@ import type { LearningOutcome } from './learning-stage.js';
 export interface LocalPipelineResult {
   success: boolean;
   stages: LocalStageResult[];
+  plan: Record<string, any>;
   totalDurationMs: number;
   overallScore: number;
   files: Array<{ path: string; content: string; language: string }>;
@@ -428,9 +429,16 @@ export async function runLocalPipeline(
     content: f.content,
   })) || [];
 
+  const plan = assemblePlan(
+    intentResult, strategicPlan, domainModel, architecture,
+    uxDesign, apiSpec, resolvedEntities, resolvedRelationships,
+    resolvedFeatures, constraintAnalysis, codeOutput, testSuite, simulation
+  );
+
   return {
     success: failedStages.length === 0,
     stages,
+    plan,
     totalDurationMs: totalDuration,
     overallScore,
     files,
@@ -538,6 +546,91 @@ function extractErrors(stages: LocalStageResult[]): Array<{ stage: string; error
     }
   }
   return errors;
+}
+
+function assemblePlan(
+  intent: IntentInterpretation | null,
+  strategic: StrategicPlan | null,
+  domain: SemanticDomainModel | null,
+  arch: ArchitectureSynthesis | null,
+  ux: AdaptiveUXResult | null,
+  api: APISpec | null,
+  entities: any[],
+  relationships: any[],
+  features: any[],
+  constraints: ConstraintAnalysis | null,
+  code: CodeOutput | null,
+  tests: TestSuite | null,
+  simulation: SimulationResult | null
+): Record<string, any> {
+  return {
+    projectName: strategic?.projectType || intent?.archetypeMatch?.name || 'Generated Project',
+    domain: domain?.domain?.name || intent?.intent?.domain?.name || 'general',
+    archetype: intent?.archetypeMatch?.name || 'Custom App',
+    confidence: intent?.confidence || 0,
+    entities: (domain?.entities || []).map(e => ({
+      name: e.name,
+      type: e.type,
+      fields: e.fields,
+      behaviors: e.behaviors,
+    })),
+    relationships: (domain?.relationships || relationships || []).map((r: any) => ({
+      from: r.from,
+      to: r.to,
+      type: r.type,
+      cardinality: r.cardinality,
+    })),
+    workflows: (domain?.workflows || []).map((w: any) => ({
+      name: w.name,
+      steps: w.steps,
+      trigger: w.trigger,
+    })),
+    architecture: arch ? {
+      pattern: arch.decision?.pattern,
+      patterns: arch.patterns,
+      constraints: arch.constraints,
+      tradeoffs: arch.tradeoffs,
+    } : null,
+    ux: ux ? {
+      layout: ux.layout,
+      navigation: ux.navigation,
+      userType: ux.userType,
+      colorScheme: ux.colorScheme,
+      interactions: ux.interactions,
+    } : null,
+    api: api ? {
+      routes: api.routes.map(r => ({
+        method: r.method,
+        path: r.path,
+        handler: r.handler,
+        description: r.description,
+      })),
+      middleware: api.middleware,
+    } : null,
+    mvpScope: strategic?.mvpScope || null,
+    phases: strategic?.phases || [],
+    constraints: constraints ? {
+      total: constraints.constraints.length,
+      satisfied: constraints.satisfiedCount,
+      violations: constraints.violationCount,
+      risk: constraints.riskScore,
+    } : null,
+    codeStats: code ? {
+      totalFiles: code.totalFiles,
+      totalLines: code.totalLines,
+      entryPoint: code.entryPoint,
+    } : null,
+    testStats: tests ? {
+      testCount: tests.testCount,
+      coverage: tests.coverage,
+      fileCount: tests.files.length,
+    } : null,
+    simulation: simulation ? {
+      passRate: simulation.passRate,
+      flowCount: simulation.flows.length,
+      errorCount: simulation.errors.length,
+    } : null,
+  };
 }
 
 export { STAGE_DEFINITIONS };

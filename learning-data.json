@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-02-13T16:09:57.785Z",
+  "exportedAt": "2026-02-14T04:06:42.792Z",
   "patterns": [
     {
       "patternType": "entity-structure",
@@ -2211,7 +2211,7 @@
       "patternType": "tech-choice",
       "patternKey": "file-structure-general",
       "patternValue": {
-        "fileCount": 41,
+        "fileCount": 40,
         "recentPaths": [
           "package.json",
           "index.html",
@@ -2240,13 +2240,13 @@
           "server/routes.ts",
           "src/App.tsx",
           "src/index.css",
-          "src/pages/tasks.tsx",
-          "src/pages/task-detail.tsx",
-          "src/pages/board-view.tsx"
+          "src/pages/active-orders.tsx",
+          "src/pages/order-history.tsx",
+          "src/pages/reservations.tsx"
         ],
         "qualityScore": 84
       },
-      "successCount": 11,
+      "successCount": 12,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16292,7 +16292,7 @@
       "reliability": 0
     },
     {
-      "id": 116,
+      "id": 231,
       "patternType": "entity-structure",
       "patternKey": "Build",
       "patternValue": {
@@ -16310,7 +16310,7 @@
       "reliability": 0
     },
     {
-      "id": 117,
+      "id": 232,
       "patternType": "tech-choice",
       "patternKey": "State Management",
       "patternValue": {
@@ -16322,7 +16322,7 @@
       "reliability": 0
     },
     {
-      "id": 118,
+      "id": 233,
       "patternType": "tech-choice",
       "patternKey": "Routing",
       "patternValue": {
@@ -16334,7 +16334,7 @@
       "reliability": 0
     },
     {
-      "id": 119,
+      "id": 234,
       "patternType": "tech-choice",
       "patternKey": "Form Handling",
       "patternValue": {
@@ -16346,7 +16346,7 @@
       "reliability": 0
     },
     {
-      "id": 120,
+      "id": 235,
       "patternType": "tech-choice",
       "patternKey": "Styling",
       "patternValue": {
@@ -16358,7 +16358,7 @@
       "reliability": 0
     },
     {
-      "id": 121,
+      "id": 236,
       "patternType": "tech-choice",
       "patternKey": "API Pattern",
       "patternValue": {
@@ -16370,7 +16370,7 @@
       "reliability": 0
     },
     {
-      "id": 122,
+      "id": 237,
       "patternType": "tech-choice",
       "patternKey": "Database",
       "patternValue": {
@@ -16382,7 +16382,7 @@
       "reliability": 0
     },
     {
-      "id": 125,
+      "id": 240,
       "patternType": "ui-layout",
       "patternKey": "sidebar",
       "patternValue": {
@@ -16394,7 +16394,7 @@
       "reliability": 0
     },
     {
-      "id": 64,
+      "id": 204,
       "patternType": "ui-layout",
       "patternKey": "single",
       "patternValue": {
@@ -16406,7 +16406,7 @@
       "reliability": 0
     },
     {
-      "id": 124,
+      "id": 239,
       "patternType": "tech-choice",
       "patternKey": "Architecture Reference",
       "patternValue": {
@@ -16418,7 +16418,7 @@
       "reliability": 0
     },
     {
-      "id": 89,
+      "id": 229,
       "patternType": "entity-structure",
       "patternKey": "Product",
       "patternValue": {
@@ -16454,7 +16454,7 @@
       "reliability": 0
     },
     {
-      "id": 101,
+      "id": 160,
       "patternType": "entity-structure",
       "patternKey": "Patient",
       "patternValue": {
@@ -16472,7 +16472,7 @@
       "reliability": 0
     },
     {
-      "id": 102,
+      "id": 162,
       "patternType": "entity-structure",
       "patternKey": "Create",
       "patternValue": {
@@ -16490,7 +16490,7 @@
       "reliability": 0
     },
     {
-      "id": 103,
+      "id": 163,
       "patternType": "entity-structure",
       "patternKey": "Management",
       "patternValue": {
@@ -16508,7 +16508,7 @@
       "reliability": 0
     },
     {
-      "id": 113,
+      "id": 173,
       "patternType": "entity-structure",
       "patternKey": "Post",
       "patternValue": {
@@ -16526,7 +16526,7 @@
       "reliability": 0
     },
     {
-      "id": 114,
+      "id": 174,
       "patternType": "entity-structure",
       "patternKey": "Comment",
       "patternValue": {
@@ -16544,7 +16544,7 @@
       "reliability": 0
     },
     {
-      "id": 115,
+      "id": 176,
       "patternType": "entity-structure",
       "patternKey": "Media",
       "patternValue": {
@@ -16748,6 +16748,313 @@
       "successCount": 6,
       "failureCount": 0,
       "reliability": 1
+    },
+    {
+      "id": 161,
+      "patternType": "entity-structure",
+      "patternKey": "Appointment",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 230,
+      "patternType": "entity-structure",
+      "patternKey": "Cart",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "id": 175,
+      "patternType": "entity-structure",
+      "patternKey": "Like",
+      "patternValue": {
+        "type": "primary",
+        "behaviors": [
+          "create",
+          "read",
+          "update",
+          "delete"
+        ],
+        "fieldCount": 1
+      },
+      "successCount": 0,
+      "failureCount": 0,
+      "reliability": 0
+    },
+    {
+      "patternType": "entity-structure",
+      "entityType": "Order",
+      "domainId": "restaurant",
+      "patternKey": "entity-order",
+      "patternValue": {
+        "recommended": [
+          "id",
+          "orderNumber",
+          "type",
+          "tableId",
+          "status",
+          "totalAmount",
+          "customerName",
+          "orderItemCount"
+        ],
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "orderNumber": "text",
+          "type": "enum(dine-in,takeaway,delivery)",
+          "tableId": "integer",
+          "status": "enum(received,preparing,ready,served,completed,cancelled)",
+          "totalAmount": "integer",
+          "customerName": "text",
+          "orderItemCount": "text"
+        }
+      },
+      "successCount": 2,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "entity-structure",
+      "entityType": "OrderItem",
+      "domainId": "restaurant",
+      "patternKey": "entity-orderitem",
+      "patternValue": {
+        "recommended": [
+          "id",
+          "orderId",
+          "menuItemId",
+          "quantity",
+          "specialNotes",
+          "unitPrice"
+        ],
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "orderId": "integer",
+          "menuItemId": "integer",
+          "quantity": "integer",
+          "specialNotes": "text",
+          "unitPrice": "integer"
+        }
+      },
+      "successCount": 2,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "entity-structure",
+      "entityType": "Reservation",
+      "domainId": "restaurant",
+      "patternKey": "entity-reservation",
+      "patternValue": {
+        "recommended": [
+          "id",
+          "customerName",
+          "phone",
+          "date",
+          "time",
+          "partySize",
+          "tableId",
+          "status",
+          "notes"
+        ],
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "customerName": "text",
+          "phone": "text",
+          "date": "date",
+          "time": "text",
+          "partySize": "integer",
+          "tableId": "integer",
+          "status": "enum(confirmed,seated,completed,cancelled,no-show)",
+          "notes": "text"
+        }
+      },
+      "successCount": 2,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "entity-structure",
+      "entityType": "Table",
+      "domainId": "restaurant",
+      "patternKey": "entity-table",
+      "patternValue": {
+        "recommended": [
+          "id",
+          "number",
+          "capacity",
+          "status",
+          "section",
+          "orderCount",
+          "reservationCount"
+        ],
+        "fieldTypes": {
+          "id": "serial (auto-increment)",
+          "number": "integer",
+          "capacity": "integer",
+          "status": "enum(available,occupied,reserved,cleaning)",
+          "section": "text",
+          "orderCount": "text",
+          "reservationCount": "text"
+        }
+      },
+      "successCount": 2,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "workflow-design",
+      "patternKey": "workflow-order",
+      "patternValue": {
+        "states": [
+          "received",
+          "preparing",
+          "ready",
+          "served",
+          "completed",
+          "cancelled"
+        ],
+        "commonTransitions": [
+          {
+            "to": "preparing",
+            "from": "received",
+            "role": "kitchen",
+            "action": "Start Preparing"
+          },
+          {
+            "to": "ready",
+            "from": "preparing",
+            "role": "kitchen",
+            "action": "Mark Ready"
+          },
+          {
+            "to": "served",
+            "from": "ready",
+            "role": "server",
+            "action": "Serve"
+          },
+          {
+            "to": "completed",
+            "from": "served",
+            "role": "server",
+            "action": "Complete"
+          },
+          {
+            "to": "cancelled",
+            "from": "received",
+            "role": "manager",
+            "action": "Cancel"
+          }
+        ]
+      },
+      "successCount": 2,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "page-structure",
+      "patternKey": "page-layout-active-orders",
+      "patternValue": {
+        "layout": "table",
+        "features": [
+          "order-queue",
+          "status-update",
+          "order-type-filter",
+          "timer",
+          "kanban view",
+          "master-detail view",
+          "dashboard-widget view"
+        ]
+      },
+      "successCount": 1,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "page-structure",
+      "patternKey": "page-layout-order-history",
+      "patternValue": {
+        "layout": "table",
+        "features": [
+          "date-filter",
+          "type-filter",
+          "export"
+        ]
+      },
+      "successCount": 1,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "page-structure",
+      "patternKey": "page-layout-reservations",
+      "patternValue": {
+        "layout": "table",
+        "features": [
+          "calendar-view",
+          "create-reservation",
+          "floor-plan",
+          "waitlist",
+          "calendar view",
+          "form-wizard view",
+          "dashboard-widget view"
+        ]
+      },
+      "successCount": 1,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "patternType": "domain-mapping",
+      "domainId": "restaurant",
+      "patternKey": "domain-restaurant",
+      "patternValue": {
+        "entities": [
+          "Order",
+          "OrderItem",
+          "Reservation",
+          "Table"
+        ],
+        "modules": [
+          "Orders",
+          "Reservations"
+        ],
+        "kpis": [
+          "Revenue Today",
+          "Orders Today",
+          "Table Occupancy",
+          "Avg Order Value",
+          "Popular Items",
+          "Avg Order Time",
+          "Reservations Today",
+          "No-Shows"
+        ],
+        "pageCount": 3
+      },
+      "successCount": 1,
+      "failureCount": 0,
+      "reliability": 1
     }
   ],
   "preferences": [
@@ -16765,12 +17072,12 @@
       "key": "quality-score-general",
       "value": "94",
       "category": "architecture",
-      "frequency": 11
+      "frequency": 12
     }
   ],
   "stats": {
-    "totalPatterns": 1053,
-    "reliablePatterns": 1030,
+    "totalPatterns": 1065,
+    "reliablePatterns": 1039,
     "totalPreferences": 2
   }
 }
