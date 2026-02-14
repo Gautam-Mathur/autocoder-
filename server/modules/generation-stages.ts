@@ -557,6 +557,8 @@ export function simulateRuntime(
 }
 
 function generateSchemaFile(entities: any[]): string {
+  const entityNames = new Set((entities || []).map((e: any) => (e.name || e.entityName || '').toLowerCase()));
+
   const lines = [
     'import { pgTable, text, serial, integer, boolean, timestamp, real, jsonb, varchar } from "drizzle-orm/pg-core";',
     'import { createInsertSchema } from "drizzle-zod";',
@@ -576,9 +578,44 @@ function generateSchemaFile(entities: any[]): string {
     for (const field of fields) {
       if (field.name === 'id') continue;
       const col = toSnake(field.name);
-      const drizzleType = mapToDrizzleType(field.type || 'text', col);
-      const nullable = field.required ? '.notNull()' : '';
-      lines.push(`  ${toCamel(field.name)}: ${drizzleType}${nullable},`);
+      const fieldName = field.name;
+      const isForeignKey = fieldName.endsWith('Id') && fieldName !== 'id' && fieldName.length > 2;
+
+      if (isForeignKey) {
+        const refEntityName = fieldName.slice(0, -2).toLowerCase();
+        const FK_ALIASES: Record<string, string[]> = {
+          user: ['customer', 'member', 'account', 'person', 'employee', 'staff', 'patient', 'student', 'teacher', 'author', 'owner'],
+          customer: ['user', 'member', 'account', 'person'],
+          author: ['user', 'member', 'writer'],
+          owner: ['user', 'member'],
+          assignee: ['user', 'member', 'employee', 'staff', 'team'],
+          reviewer: ['user', 'member', 'employee'],
+          creator: ['user', 'member', 'author'],
+          category: ['type', 'group'],
+          parent: ['category', 'folder', 'group'],
+          project: ['workspace', 'board'],
+        };
+        let resolvedRef = refEntityName;
+        if (!entityNames.has(refEntityName)) {
+          const aliases = FK_ALIASES[refEntityName] || [];
+          for (const alias of aliases) {
+            if (entityNames.has(alias)) {
+              resolvedRef = alias;
+              break;
+            }
+          }
+        }
+        const refVarName = toCamel(resolvedRef) + 's';
+        if (entityNames.has(resolvedRef)) {
+          lines.push(`  ${toCamel(fieldName)}: integer("${col}").references(() => ${refVarName}.id),`);
+        } else {
+          lines.push(`  ${toCamel(fieldName)}: integer("${col}"),`);
+        }
+      } else {
+        const drizzleType = mapToDrizzleType(field.type || 'text', col);
+        const nullable = field.required ? '.notNull()' : '';
+        lines.push(`  ${toCamel(fieldName)}: ${drizzleType}${nullable},`);
+      }
     }
 
     lines.push('  createdAt: timestamp("created_at").defaultNow().notNull(),');

@@ -401,11 +401,15 @@ export async function interpretIntent(description: string): Promise<IntentInterp
 
   for (const [key, keywords] of Object.entries(ARCHETYPE_KEYWORDS)) {
     let score = 0;
+    let matchCount = 0;
     for (const kw of keywords) {
-      if (lowerDesc.includes(kw)) score += kw.split(' ').length;
+      if (lowerDesc.includes(kw)) {
+        score += kw.split(' ').length;
+        matchCount++;
+      }
     }
-    const normalizedScore = score / keywords.length;
-    if (normalizedScore > bestScore && normalizedScore > 0.15) {
+    const normalizedScore = matchCount > 0 ? (score * matchCount) / keywords.length : 0;
+    if (normalizedScore > bestScore && matchCount > 0) {
       bestScore = normalizedScore;
       bestArchetype = { ...ARCHETYPES[key], similarity: Math.min(normalizedScore, 1) };
     }
@@ -413,7 +417,7 @@ export async function interpretIntent(description: string): Promise<IntentInterp
 
   const templateArchetypes = templateRegistry.findArchetypes(description, 3);
   for (const ta of templateArchetypes) {
-    if (ta.matchScore > 0.3 && ta.matchScore > bestScore) {
+    if (ta.matchScore > 0.3 && ta.matchScore > bestScore && !bestArchetype) {
       bestScore = ta.matchScore;
       bestArchetype = {
         name: ta.name,

@@ -27,6 +27,21 @@ import type { IntentInterpretation, StrategicPlan, SemanticDomainModel, Architec
 import type { APISpec, CodeOutput, TestSuite, SimulationResult } from './generation-stages.js';
 import type { LearningOutcome } from './learning-stage.js';
 
+function inferFieldType(fieldName: string): string {
+  const n = fieldName.toLowerCase();
+  if (n === 'email') return 'email';
+  if (n === 'password') return 'password';
+  if (n === 'phone') return 'phone';
+  if (n.includes('url') || n.includes('image') || n.includes('avatar') || n.includes('photo')) return 'text';
+  if (n.includes('price') || n.includes('amount') || n.includes('cost') || n.includes('total') || n.includes('salary') || n.includes('fee')) return 'integer';
+  if (n.includes('quantity') || n.includes('count') || n.includes('stock') || n.includes('rating') || n.includes('priority') || n.includes('order') || n.includes('capacity')) return 'integer';
+  if (n.includes('date') || n.includes('time') || n === 'duedate' || n === 'startdate' || n === 'enddate') return 'timestamp';
+  if (n.includes('active') || n.includes('published') || n.includes('verified') || n.includes('completed') || n.includes('enabled')) return 'boolean';
+  if (n.includes('latitude') || n.includes('longitude') || n.includes('weight') || n.includes('percentage')) return 'real';
+  if (n.endsWith('id') && n !== 'id') return 'integer';
+  return 'text';
+}
+
 export interface LocalPipelineResult {
   success: boolean;
   stages: LocalStageResult[];
@@ -175,9 +190,35 @@ export async function runLocalPipeline(
     };
   });
 
+  const ACTION_WORDS = new Set(['build', 'create', 'make', 'develop', 'design', 'implement', 'add', 'setup', 'deploy', 'configure', 'manage', 'track', 'generate', 'run', 'start', 'launch', 'test', 'check', 'get', 'set', 'update', 'delete', 'edit', 'remove', 'find', 'search', 'filter', 'sort', 'view', 'show', 'display', 'list', 'process', 'handle', 'send', 'receive', 'upload', 'download', 'export', 'import', 'connect', 'integrate', 'online', 'system', 'platform', 'application', 'app', 'website', 'site', 'page', 'feature', 'tool', 'service', 'with', 'using', 'based', 'powered', 'full', 'complete', 'simple', 'basic', 'advanced', 'custom', 'modern']);
+
   if (intentResult && intentResult.intent.entities.length > 0 && resolvedEntities.length === 0) {
     for (const e of intentResult.intent.entities) {
-      resolvedEntities.push({ name: e.name, fields: [{ name: 'name', type: 'text', required: true }], entityName: e.name });
+      if (ACTION_WORDS.has(e.name.toLowerCase())) continue;
+
+      const inferredFields = e.fields || [];
+      const structuredFields: any[] = [];
+
+      if (Array.isArray(inferredFields) && inferredFields.length > 0) {
+        for (const f of inferredFields) {
+          const fieldName = typeof f === 'string' ? f : (f.name || 'field');
+          if (fieldName === 'id' || fieldName === 'createdAt' || fieldName === 'created_at') continue;
+          const fieldType = typeof f === 'object' && f.type ? f.type : inferFieldType(fieldName);
+          structuredFields.push({
+            name: fieldName,
+            type: fieldType,
+            required: fieldName === 'name' || fieldName === 'title' || fieldName === 'email',
+          });
+        }
+      }
+
+      if (structuredFields.length === 0) {
+        structuredFields.push({ name: 'name', type: 'text', required: true });
+        structuredFields.push({ name: 'description', type: 'text', required: false });
+        structuredFields.push({ name: 'status', type: 'text', required: false });
+      }
+
+      resolvedEntities.push({ name: e.name, fields: structuredFields, entityName: e.name });
     }
   }
 

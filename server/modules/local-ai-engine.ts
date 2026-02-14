@@ -954,11 +954,10 @@ export class LocalAIEngine {
 
     try {
       if (db) {
-        const stored = await db
-          .select()
-          .from(vectorEmbeddings)
-          .where(eq(vectorEmbeddings.category, category))
-          .limit(200);
+        const query_builder = category === 'all'
+          ? db.select().from(vectorEmbeddings).limit(200)
+          : db.select().from(vectorEmbeddings).where(eq(vectorEmbeddings.category, category)).limit(200);
+        const stored = await query_builder;
 
         for (const entry of stored) {
           const storedEmbedding = entry.embedding as number[];

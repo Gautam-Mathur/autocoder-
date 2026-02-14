@@ -46,6 +46,9 @@ interface TargetHint {
 }
 
 const STYLE_KEYWORDS = [
+  'text color', 'font color', 'background color', 'border color', 'accent color',
+  'primary color', 'secondary color', 'foreground color',
+  'font family', 'font size', 'font weight', 'font style',
   'color', 'background', 'font', 'size', 'spacing', 'padding', 'margin',
   'border', 'rounded', 'shadow', 'dark', 'light', 'theme', 'opacity',
   'width', 'height', 'gap', 'align', 'justify', 'layout', 'flex', 'grid',
@@ -54,7 +57,7 @@ const STYLE_KEYWORDS = [
   'blue', 'red', 'green', 'yellow', 'purple', 'pink', 'orange', 'gray',
   'white', 'black', 'indigo', 'teal', 'cyan', 'slate', 'zinc', 'neutral',
   'bigger', 'smaller', 'larger', 'wider', 'narrower', 'taller', 'shorter',
-  'transparent', 'gradient',
+  'transparent', 'gradient', 'monospace', 'serif', 'sans-serif',
 ];
 
 const CONTENT_KEYWORDS = [
@@ -210,12 +213,17 @@ function classifyIntent(message: string): ClassifiedIntent {
 
   for (const kw of STYLE_KEYWORDS) {
     if (lower.includes(kw)) {
-      scores.style += kw.includes(' ') ? 2 : 1;
+      scores.style += kw.includes(' ') ? 3 : 1;
       matchedKeywords.push(kw);
     }
   }
+  const styleCompounds = ['text color', 'font color', 'background color', 'border color', 'font family', 'font size', 'font weight'];
+  const hasStyleCompound = styleCompounds.some(sc => lower.includes(sc));
   for (const kw of CONTENT_KEYWORDS) {
     if (lower.includes(kw)) {
+      if (hasStyleCompound && (kw === 'text' || kw === 'change the text' || kw === 'update the text')) {
+        continue;
+      }
       scores.content += kw.includes(' ') ? 3 : 1;
       matchedKeywords.push(kw);
     }
@@ -336,9 +344,24 @@ function findTargetFiles(
 
     if (target.kind === 'page') {
       const pageFiles = contextManager.getFilesByType('page');
-      for (const pf of pageFiles) {
-        if (pf.path.toLowerCase().includes(lowerName)) {
-          addFile(pf.path);
+      const isGenericPage = ['main', 'home', 'index', 'landing', 'app', 'default', 'primary'].includes(lowerName);
+
+      if (isGenericPage) {
+        const homePages = pageFiles.filter(pf =>
+          /(?:home|index|dashboard|landing|app)/i.test(pf.path)
+        );
+        if (homePages.length > 0) {
+          for (const hp of homePages) addFile(hp.path);
+        } else if (pageFiles.length > 0) {
+          addFile(pageFiles[0].path);
+        }
+        const appFile = files.find(f => /App\.(tsx|jsx)$/.test(f.path));
+        if (appFile) addFile(appFile.path);
+      } else {
+        for (const pf of pageFiles) {
+          if (pf.path.toLowerCase().includes(lowerName)) {
+            addFile(pf.path);
+          }
         }
       }
     }
@@ -417,9 +440,14 @@ function findTargetFiles(
     }
 
     if (intent.editType === 'content') {
-      for (const file of files) {
-        if (/\.(tsx|jsx)$/.test(file.path) && /<[A-Za-z]/.test(file.content)) {
-          addFile(file.path);
+      const pageFiles = contextManager.getFilesByType('page');
+      for (const pf of pageFiles) addFile(pf.path);
+
+      if (results.size === 0) {
+        for (const file of files) {
+          if (/\.(tsx|jsx)$/.test(file.path) && /<[A-Za-z]/.test(file.content)) {
+            addFile(file.path);
+          }
         }
       }
     }
@@ -658,6 +686,62 @@ function generateStyleEdits(
           desc = `Updated CSS variable ${varName} to ${varValue}`;
         }
       }
+
+      if (!changed && resolved) {
+        const COLOR_HSL_MAP: Record<string, Record<string, string>> = {
+          red: { '50': '0 86% 97%', '100': '0 93% 94%', '200': '0 96% 89%', '300': '0 94% 82%', '400': '0 91% 71%', '500': '0 84% 60%', '600': '0 72% 51%', '700': '0 74% 42%', '800': '0 70% 35%', '900': '0 63% 31%' },
+          orange: { '50': '33 100% 96%', '100': '34 100% 92%', '200': '32 98% 83%', '300': '31 97% 72%', '400': '27 96% 61%', '500': '25 95% 53%', '600': '21 90% 48%', '700': '17 88% 40%', '800': '15 79% 34%', '900': '15 75% 28%' },
+          yellow: { '50': '55 92% 95%', '100': '55 97% 88%', '200': '53 98% 77%', '300': '50 98% 64%', '400': '48 96% 53%', '500': '45 93% 47%', '600': '41 96% 40%', '700': '35 92% 33%', '800': '32 81% 29%', '900': '28 73% 26%' },
+          green: { '50': '138 76% 97%', '100': '141 84% 93%', '200': '141 79% 85%', '300': '142 77% 73%', '400': '142 69% 58%', '500': '142 71% 45%', '600': '142 76% 36%', '700': '142 72% 29%', '800': '143 64% 24%', '900': '144 61% 20%' },
+          blue: { '50': '214 100% 97%', '100': '214 95% 93%', '200': '213 97% 87%', '300': '212 96% 78%', '400': '213 94% 68%', '500': '217 91% 60%', '600': '221 83% 53%', '700': '224 76% 48%', '800': '226 71% 40%', '900': '224 64% 33%' },
+          indigo: { '50': '226 100% 97%', '100': '226 100% 94%', '200': '228 96% 89%', '300': '230 94% 82%', '400': '234 89% 74%', '500': '239 84% 67%', '600': '243 75% 59%', '700': '245 58% 51%', '800': '244 55% 41%', '900': '242 47% 34%' },
+          violet: { '50': '250 100% 98%', '100': '251 91% 95%', '200': '251 95% 92%', '300': '252 95% 85%', '400': '255 92% 76%', '500': '258 90% 66%', '600': '262 83% 58%', '700': '263 70% 50%', '800': '263 69% 42%', '900': '264 67% 35%' },
+          purple: { '50': '270 100% 98%', '100': '269 100% 95%', '200': '269 100% 92%', '300': '269 97% 85%', '400': '270 95% 75%', '500': '271 91% 65%', '600': '271 81% 56%', '700': '272 72% 47%', '800': '273 67% 39%', '900': '274 66% 32%' },
+          pink: { '50': '327 73% 97%', '100': '326 78% 95%', '200': '326 85% 90%', '300': '327 87% 82%', '400': '329 86% 70%', '500': '330 81% 60%', '600': '333 71% 51%', '700': '335 78% 42%', '800': '336 74% 35%', '900': '336 69% 30%' },
+          teal: { '50': '166 76% 97%', '100': '167 85% 89%', '200': '168 84% 78%', '300': '171 77% 64%', '400': '172 66% 50%', '500': '173 80% 40%', '600': '175 84% 32%', '700': '175 77% 26%', '800': '176 69% 22%', '900': '176 61% 19%' },
+          cyan: { '50': '183 100% 96%', '100': '185 96% 90%', '200': '186 94% 82%', '300': '187 92% 69%', '400': '188 86% 53%', '500': '189 94% 43%', '600': '192 91% 36%', '700': '193 82% 31%', '800': '194 70% 27%', '900': '196 64% 24%' },
+        };
+
+        const colorHSL = COLOR_HSL_MAP[resolved.color];
+        if (colorHSL) {
+          const primaryHSL = colorHSL[resolved.shade] || colorHSL['500'];
+          const lightHSL = colorHSL['100'] || colorHSL['50'];
+          const darkHSL = colorHSL['900'] || colorHSL['800'];
+
+          const isBackgroundEdit = /background|bg\b/.test(lower);
+          const isPrimaryEdit = /primary|main|brand|theme/.test(lower) || /(?:change|set|update)\s+(?:the\s+)?(?:color|colours?)/.test(lower);
+          const isAccentEdit = /accent|highlight|emphasis/.test(lower);
+          const isSecondaryEdit = /secondary/.test(lower);
+          const isForegroundEdit = /(?:text|font|foreground)\s*colou?r/.test(lower);
+
+          if (isBackgroundEdit) {
+            modified = modified.replace(/(--background\s*:\s*)([^;]+)(;)/g, `$1${darkHSL}$3`);
+            modified = modified.replace(/(--card\s*:\s*)([^;]+)(;)/g, (match, p1, _p2, p3) => {
+              return `${p1}${colorHSL['800'] || darkHSL}${p3}`;
+            });
+            modified = modified.replace(/(--foreground\s*:\s*)([^;]+)(;)/g, `$1${lightHSL}$3`);
+            modified = modified.replace(/(--card-foreground\s*:\s*)([^;]+)(;)/g, `$1${lightHSL}$3`);
+          } else if (isForegroundEdit) {
+            modified = modified.replace(/(--foreground\s*:\s*)([^;]+)(;)/g, `$1${primaryHSL}$3`);
+          } else if (isPrimaryEdit) {
+            modified = modified.replace(/(--primary\s*:\s*)([^;]+)(;)/g, `$1${primaryHSL}$3`);
+            modified = modified.replace(/(--primary-foreground\s*:\s*)([^;]+)(;)/g, `$1${lightHSL}$3`);
+          } else if (isAccentEdit) {
+            modified = modified.replace(/(--accent\s*:\s*)([^;]+)(;)/g, `$1${primaryHSL}$3`);
+          } else if (isSecondaryEdit) {
+            modified = modified.replace(/(--secondary\s*:\s*)([^;]+)(;)/g, `$1${primaryHSL}$3`);
+          } else {
+            modified = modified.replace(/(--primary\s*:\s*)([^;]+)(;)/g, `$1${primaryHSL}$3`);
+            modified = modified.replace(/(--primary-foreground\s*:\s*)([^;]+)(;)/g, `$1${lightHSL}$3`);
+          }
+
+          const editTypeLabel = isBackgroundEdit ? 'background' : isForegroundEdit ? 'foreground' : isPrimaryEdit ? 'primary' : isAccentEdit ? 'accent' : isSecondaryEdit ? 'secondary' : 'primary';
+          if (modified !== file.content) {
+            changed = true;
+            desc = `Updated ${editTypeLabel} color to ${resolved.color}`;
+          }
+        }
+      }
     }
 
     if (changed) {
@@ -683,7 +767,7 @@ function generateContentEdits(
 ): FileEdit[] {
   const edits: FileEdit[] = [];
 
-  const changeToMatch = message.match(/change\s+(?:the\s+)?(?:title|heading|text|label|name)\s+(?:to|=)\s*['""]?([^'""]+)['""]?/i);
+  const changeToMatch = message.match(/change\s+(?:the\s+)?(?:(?:main|page|app|site|website|home|landing)\s+)*(?:title|heading|text|label|name|header)\s+(?:to|=)\s*['""]?([^'""]+)['""]?/i);
   const fromToMatch = message.match(/(?:change|replace|update)\s+['""]?([^'""]+?)['""]?\s+(?:to|with|→)\s+['""]?([^'""]+)['""]?/i);
   const renameMatch = message.match(/rename\s+['""]?([^'""]+?)['""]?\s+to\s+['""]?([^'""]+)['""]?/i);
 
@@ -724,6 +808,26 @@ function generateContentEdits(
           modified = modified.replace(match[0], `${match[1]}${newText}${match[3]}`);
           changed = true;
           desc = `Changed text content to "${newText}"`;
+        }
+      }
+
+      if (!changed) {
+        const stringVarRegex = /(?:const|let|var)\s+\w*(?:title|name|heading|appName|siteName|brand)\w*\s*=\s*['"`]([^'"`]+)['"`]/i;
+        const strMatch = modified.match(stringVarRegex);
+        if (strMatch) {
+          modified = modified.replace(strMatch[0], strMatch[0].replace(strMatch[1], newText));
+          changed = true;
+          desc = `Changed title variable to "${newText}"`;
+        }
+      }
+
+      if (!changed) {
+        const jsxTextRegex = /(>)\s*([A-Z][^<{]*?)\s*(<)/;
+        const jsxMatch = modified.match(jsxTextRegex);
+        if (jsxMatch && jsxMatch[2].trim().length > 2) {
+          modified = modified.replace(jsxMatch[0], `${jsxMatch[1]}${newText}${jsxMatch[3]}`);
+          changed = true;
+          desc = `Changed displayed text to "${newText}"`;
         }
       }
 
