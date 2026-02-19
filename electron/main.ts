@@ -1,10 +1,10 @@
 import { app, BrowserWindow, dialog, ipcMain, shell, IpcMainInvokeEvent } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 import { LocalRunner } from './services/local-runner.js';
 import { ProjectManager } from './services/project-manager.js';
 import { logger } from './services/logger.js';
-import { npmCache } from './services/npm-cache.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -143,17 +143,6 @@ app.whenReady().then(() => {
   
   checkNodeVersion();
   logger.rotateLogs();
-
-  npmCache.initialize().then((ready) => {
-    if (ready) {
-      const stats = npmCache.getCacheStats();
-      logger.info('App', `Offline npm cache ready: ${stats.packageCount} packages, ${(stats.sizeBytes / 1024 / 1024).toFixed(0)} MB`);
-    } else {
-      logger.warn('App', 'Offline npm cache not available — npm installs will use the network');
-    }
-  }).catch((err) => {
-    logger.error('App', `Failed to initialize npm cache: ${err}`);
-  });
 
   createWindow();
 
@@ -306,20 +295,28 @@ ipcMain.handle('isElectron', () => {
   return true;
 });
 
-ipcMain.handle('npmCache:getStats', async () => {
-  return npmCache.getCacheStats();
-});
-
-ipcMain.handle('npmCache:hasPackage', async (_event: IpcMainInvokeEvent, packageName: string) => {
-  return npmCache.hasPackage(packageName);
-});
-
-ipcMain.handle('npmCache:getCachePath', async () => {
-  return npmCache.cachePath;
-});
-
-ipcMain.handle('npmCache:isReady', async () => {
-  return npmCache.ready;
+ipcMain.handle('runner:getMainNodeModulesPath', async () => {
+  const appRoot = app.isPackaged
+    ? path.dirname(app.getAppPath())
+    : path.resolve(app.getAppPath(), '..');
+  const nodeModulesPath = path.join(appRoot, 'node_modules');
+  const exists = fs.existsSync(nodeModulesPath);
+  let packageCount = 0;
+  if (exists) {
+    try {
+      const entries = fs.readdirSync(nodeModulesPath, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+        if (entry.name.startsWith('@')) {
+          const scopeDir = path.join(nodeModulesPath, entry.name);
+          packageCount += fs.readdirSync(scopeDir, { withFileTypes: true }).filter(e => e.isDirectory()).length;
+        } else {
+          packageCount++;
+        }
+      }
+    } catch {}
+  }
+  return { path: nodeModulesPath, exists, packageCount };
 });
 
 // Logger IPC handlers

@@ -1,8 +1,8 @@
 import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { app } from 'electron';
 import { logger } from './logger.js';
-import { npmCache } from './npm-cache.js';
 
 export type LogCallback = (log: string) => void;
 export type ProgressCallback = (percent: number, message: string) => void;
@@ -11,6 +11,15 @@ export class LocalRunner {
   private currentProcess: ChildProcess | null = null;
   private serverUrl: string | null = null;
   private serverPort = 5200;
+  private mainNodeModulesPath: string;
+
+  constructor() {
+    const appRoot = app.isPackaged
+      ? path.dirname(app.getAppPath())
+      : path.resolve(app.getAppPath(), '..');
+    this.mainNodeModulesPath = path.join(appRoot, 'node_modules');
+    logger.info('LocalRunner', `Main node_modules path: ${this.mainNodeModulesPath}`);
+  }
 
   async writeFiles(projectPath: string, files: Array<{ path: string; content: string }>): Promise<void> {
     logger.startTimer('write-files');
@@ -56,66 +65,128 @@ export class LocalRunner {
     }
   }
 
-  private bulkCopyCache(projectPath: string, onLog: LogCallback, onProgress?: ProgressCallback): { copied: boolean; missing: string[] } {
-    if (!npmCache.ready) {
-      logger.info('NpmCache', 'Offline cache not ready, skipping bulk copy');
+  private resolvePackageDeps(pkgName: string, sourceModules: string, visited: Set<string>): string[] {
+    if (visited.has(pkgName)) return [];
+    visited.add(pkgName);
+
+    const pkgDir = pkgName.startsWith('@')
+      ? path.join(sourceModules, pkgName)
+      : path.join(sourceModules, pkgName);
+
+    if (!fs.existsSync(pkgDir)) return [];
+
+    const result = [pkgName];
+
+    try {
+      const pkgJsonPath = path.join(pkgDir, 'package.json');
+      if (fs.existsSync(pkgJsonPath)) {
+        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+        const subDeps = Object.keys(pkgJson.dependencies || {});
+        for (const sub of subDeps) {
+          result.push(...this.resolvePackageDeps(sub, sourceModules, visited));
+        }
+      }
+    } catch {}
+
+    return result;
+  }
+
+  private copyPackageFromMain(
+    pkgName: string,
+    destModules: string,
+  ): boolean {
+    const srcDir = path.join(this.mainNodeModulesPath, pkgName);
+    const destDir = path.join(destModules, pkgName);
+
+    if (!fs.existsSync(srcDir)) return false;
+
+    try {
+      const destParent = path.dirname(destDir);
+      if (!fs.existsSync(destParent)) {
+        fs.mkdirSync(destParent, { recursive: true });
+      }
+      fs.cpSync(srcDir, destDir, { recursive: true, force: true });
+      return true;
+    } catch (err) {
+      logger.warn('PackageCopy', `Failed to copy ${pkgName}: ${err}`);
+      return false;
+    }
+  }
+
+  private copyFromMainNodeModules(
+    projectPath: string,
+    onLog: LogCallback,
+    onProgress?: ProgressCallback,
+  ): { copied: boolean; missing: string[] } {
+    if (!fs.existsSync(this.mainNodeModulesPath)) {
+      logger.warn('PackageCopy', `Main node_modules not found at ${this.mainNodeModulesPath}`);
       return { copied: false, missing: [] };
     }
 
     const depInfo = this.countDependencies(projectPath);
     if (depInfo.total === 0) return { copied: false, missing: [] };
 
-    const nodeModulesDest = path.join(projectPath, 'node_modules');
-    const cachePath = npmCache.cachePath;
+    const destModules = path.join(projectPath, 'node_modules');
 
-    logger.startTimer('bulk-copy-cache');
-    logger.info('NpmCache', `Bulk-copying cached node_modules to project (${depInfo.total} deps requested)`);
-    onLog('[AutoCoder] 📦 Copying package cache into project...');
-    onProgress?.(5, 'Copying cached packages...');
+    logger.startTimer('copy-from-main');
+    logger.info('PackageCopy', `Copying packages from main project (${depInfo.total} requested)`);
+    onLog('[AutoCoder] Copying packages from main project...');
+    onProgress?.(5, 'Copying packages from main project...');
 
-    try {
-      if (!fs.existsSync(nodeModulesDest)) {
-        fs.mkdirSync(nodeModulesDest, { recursive: true });
-      }
-      fs.cpSync(cachePath, nodeModulesDest, { recursive: true, force: true });
-    } catch (err) {
-      logger.error('NpmCache', `Bulk copy failed: ${err}`);
-      onLog('[AutoCoder] ⚠ Cache copy failed, will fall back to npm install');
-      return { copied: false, missing: depInfo.names };
+    if (!fs.existsSync(destModules)) {
+      fs.mkdirSync(destModules, { recursive: true });
     }
 
-    const elapsed = logger.endTimer('bulk-copy-cache');
-    logger.success('NpmCache', 'Bulk copy of node_modules complete', { projectPath }, elapsed);
-    onProgress?.(50, 'Package cache copied, verifying packages...');
-
-    const packageJsonPath = path.join(projectPath, 'package.json');
-    let allDeps: Record<string, string> = {};
-    try {
-      const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-      allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
-    } catch {}
-
-    const missing: string[] = [];
+    const visited = new Set<string>();
+    const allPackages: string[] = [];
     for (const dep of depInfo.names) {
-      const requiredRange = allDeps[dep] || '*';
-      if (!npmCache.verifyInstalledPackage(nodeModulesDest, dep, requiredRange)) {
-        missing.push(dep);
+      allPackages.push(...this.resolvePackageDeps(dep, this.mainNodeModulesPath, visited));
+    }
+
+    const uniquePackages = [...new Set(allPackages)];
+    logger.info('PackageCopy', `Resolved ${uniquePackages.length} packages (including transitive deps) from ${depInfo.total} direct deps`);
+    onProgress?.(10, `Copying ${uniquePackages.length} packages...`);
+
+    let copiedCount = 0;
+    const missing: string[] = [];
+
+    for (let i = 0; i < uniquePackages.length; i++) {
+      const pkg = uniquePackages[i];
+      const success = this.copyPackageFromMain(pkg, destModules);
+      if (success) {
+        copiedCount++;
+      } else {
+        if (depInfo.names.includes(pkg)) {
+          missing.push(pkg);
+        }
+      }
+
+      if (i % 50 === 0 || i === uniquePackages.length - 1) {
+        const pct = Math.round(10 + (i / uniquePackages.length) * 70);
+        onProgress?.(pct, `Copied ${copiedCount}/${uniquePackages.length} packages...`);
       }
     }
+
+    const dotBinSrc = path.join(this.mainNodeModulesPath, '.bin');
+    const dotBinDest = path.join(destModules, '.bin');
+    if (fs.existsSync(dotBinSrc) && !fs.existsSync(dotBinDest)) {
+      try {
+        fs.cpSync(dotBinSrc, dotBinDest, { recursive: true, force: true });
+      } catch {}
+    }
+
+    const elapsed = logger.endTimer('copy-from-main');
+    logger.success('PackageCopy', `Copied ${copiedCount} packages`, { copiedCount, missing: missing.length }, elapsed);
 
     if (missing.length === 0) {
-      onLog(`[AutoCoder] ✓ All ${depInfo.total} packages loaded from cache — no download needed`);
-      logger.success('NpmCache', `All ${depInfo.total} requested deps verified in cache, npm install skipped`);
+      onLog(`[AutoCoder] All ${depInfo.total} packages copied from main project — no download needed`);
+      logger.success('PackageCopy', `All ${depInfo.total} direct deps available, npm install skipped`);
     } else {
-      onLog(`[AutoCoder] ✓ Cache loaded, ${missing.length} extra package(s) need downloading: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '...' : ''}`);
-      logger.info('NpmCache', `${depInfo.total - missing.length} cached, ${missing.length} missing: ${missing.join(', ')}`);
+      onLog(`[AutoCoder] Copied ${copiedCount} packages, ${missing.length} need downloading: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '...' : ''}`);
+      logger.info('PackageCopy', `${copiedCount} copied, ${missing.length} missing: ${missing.join(', ')}`);
     }
 
     return { copied: true, missing };
-  }
-
-  private copyDirRecursive(src: string, dest: string) {
-    fs.cpSync(src, dest, { recursive: true, force: true });
   }
 
   private runNpmInstall(
@@ -263,17 +334,17 @@ export class LocalRunner {
       packages: depInfo.names.slice(0, 20).join(', ') + (depInfo.names.length > 20 ? `... +${depInfo.names.length - 20} more` : ''),
     });
 
-    const cacheResult = this.bulkCopyCache(projectPath, onLog, onProgress);
+    const copyResult = this.copyFromMainNodeModules(projectPath, onLog, onProgress);
 
-    if (cacheResult.copied && cacheResult.missing.length === 0) {
-      onLog('[AutoCoder] All packages cached — running quick dependency check...');
-      onProgress?.(80, 'Verifying dependency tree...');
-      return this.runNpmInstall(projectPath, onLog, onProgress, ['--prefer-offline'], 80);
+    if (copyResult.copied && copyResult.missing.length === 0) {
+      onLog('[AutoCoder] All packages available — running quick dependency check...');
+      onProgress?.(85, 'Verifying dependency tree...');
+      return this.runNpmInstall(projectPath, onLog, onProgress, ['--prefer-offline'], 85);
     }
 
-    if (cacheResult.copied && cacheResult.missing.length > 0) {
-      onLog(`[AutoCoder] Installing ${cacheResult.missing.length} extra packages...`);
-      onProgress?.(55, `Installing ${cacheResult.missing.length} extra packages...`);
+    if (copyResult.copied && copyResult.missing.length > 0) {
+      onLog(`[AutoCoder] Installing ${copyResult.missing.length} extra packages...`);
+      onProgress?.(55, `Installing ${copyResult.missing.length} extra packages...`);
       return this.runNpmInstall(projectPath, onLog, onProgress, ['--prefer-offline'], 55);
     }
 

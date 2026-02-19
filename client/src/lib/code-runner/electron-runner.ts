@@ -17,6 +17,7 @@ interface ElectronAPI {
   isElectron: () => Promise<boolean>;
   onLog: (callback: (log: string) => void) => () => void;
   onServerReady: (callback: (url: string) => void) => () => void;
+  getMainNodeModulesInfo: () => Promise<{ path: string; exists: boolean; packageCount: number }>;
 }
 
 declare global {
