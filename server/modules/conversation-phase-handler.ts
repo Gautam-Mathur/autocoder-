@@ -6,7 +6,7 @@ import { generateProjectFromPlan } from './plan-driven-generator.js';
 import { validateAndFix } from './post-generation-validator.js';
 import { analyzeSemantics, type ReasoningResult, type EntityRelationship, type ComputedField } from './contextual-reasoning-engine.js';
 import { learningEngine } from './generation-learning-engine.js';
-import { shouldAskMoreQuestions, createClarificationState, parseAnswersFromResponse, type ClarificationState } from './adaptive-clarification-engine.js';
+import { shouldAskMoreQuestions, createClarificationState, parseAnswersFromResponse, generateClarificationQuestions, identifyInformationGaps, calculateReadinessScore, type ClarificationState } from './adaptive-clarification-engine.js';
 import { extractEntitiesFromText } from './domain-synthesis-engine.js';
 import { orchestrateGeneration, type OrchestrationResult } from './pipeline-orchestrator.js';
 import { processEditRequest, type EditResult, type FileEdit } from './targeted-code-editor.js';
@@ -23,6 +23,7 @@ export interface PhaseHandlerResult {
   planData?: ProjectPlan;
   understandingData?: UnderstandingResult;
   clarificationRound?: number;
+  clarificationState?: ClarificationState;
 }
 
 export interface ThinkingStep {
@@ -45,6 +46,7 @@ export interface ConversationState {
   understandingData?: UnderstandingResult;
   planData?: ProjectPlan;
   clarificationRound?: number;
+  clarificationState?: ClarificationState;
   conversationId?: number;
   generationStartTime?: number;
   existingFiles?: { path: string; content: string; language: string }[];
@@ -226,36 +228,54 @@ function handleClarificationResponse(
     }
   });
 
-  const answerBoost = Math.min(parsedAnswers.size * 0.3, 0.5);
-  updatedUnderstanding.confidence = Math.min(updatedUnderstanding.confidence + answerBoost, 1.0);
-
   emitStep('understanding', 'Updated understanding',
     updatedUnderstanding.level2_domain.primaryDomain
       ? `Domain: ${updatedUnderstanding.level2_domain.primaryDomain.name}`
       : 'Building general application'
   );
 
-  const nlpEntities = extractEntitiesFromText(
-    `${previousUnderstanding.level1_intent.primaryGoal}. ${userMessage}`
-  );
-  const domains = updatedUnderstanding.level2_domain.primaryDomain
-    ? [{ confidence: updatedUnderstanding.level2_domain.confidence, name: updatedUnderstanding.level2_domain.primaryDomain.name }]
-    : [];
-  const clarState = createClarificationState(state.conversationId || 0,
-    `${previousUnderstanding.level1_intent.primaryGoal}. ${userMessage}`,
-    nlpEntities, domains);
+  let clarState: ClarificationState;
+  if (state.clarificationState) {
+    const prevAnswered = state.clarificationState.answeredQuestions;
+    let answeredMap: Map<string, string>;
+    if (prevAnswered instanceof Map) {
+      answeredMap = new Map(prevAnswered);
+    } else if (prevAnswered && typeof prevAnswered === 'object') {
+      answeredMap = new Map(Object.entries(prevAnswered as Record<string, string>));
+    } else {
+      answeredMap = new Map();
+    }
+    clarState = {
+      ...state.clarificationState,
+      answeredQuestions: answeredMap,
+      askedQuestions: [...(state.clarificationState.askedQuestions || [])],
+      informationGaps: (state.clarificationState.informationGaps || []).map(g => ({ ...g })),
+    };
+  } else {
+    const fullDescription = `${previousUnderstanding.level1_intent.primaryGoal}. ${userMessage}`;
+    const nlpEntities = extractEntitiesFromText(fullDescription);
+    const domains = updatedUnderstanding.level2_domain.primaryDomain
+      ? [{ confidence: updatedUnderstanding.level2_domain.confidence, name: updatedUnderstanding.level2_domain.primaryDomain.name }]
+      : [];
+    clarState = createClarificationState(state.conversationId || 0, fullDescription, nlpEntities, domains);
+  }
+
   clarState.roundsCompleted = currentRound;
 
   parsedAnswers.forEach((value, key) => {
     clarState.answeredQuestions.set(key, value);
   });
 
+  for (const q of previousQuestions) {
+    if (!clarState.askedQuestions.includes(q.id)) {
+      clarState.askedQuestions.push(q.id);
+    }
+  }
+
+  const answerText = Array.from(parsedAnswers.values()).join(' ').toLowerCase();
   for (const gap of clarState.informationGaps) {
-    if (parsedAnswers.size > 0 && !gap.resolvedBy) {
-      const answerText = Array.from(parsedAnswers.values()).join(' ').toLowerCase();
-      if (gap.category === 'entities' && answerText.length > 0) {
-        gap.resolvedBy = 'user-answer';
-      } else if (gap.category === 'scope' && answerText.length > 0) {
+    if (!gap.resolvedBy && parsedAnswers.size > 0 && answerText.length > 0) {
+      if (gap.category === 'entities' || gap.category === 'scope') {
         gap.resolvedBy = 'user-answer';
       }
     }
@@ -264,10 +284,12 @@ function handleClarificationResponse(
     }
   }
 
-  clarState.readinessScore = Math.max(
-    clarState.readinessScore,
-    updatedUnderstanding.confidence
+  clarState.readinessScore = calculateReadinessScore(
+    extractEntitiesFromText(`${previousUnderstanding.level1_intent.primaryGoal}. ${userMessage}`),
+    clarState.informationGaps,
+    clarState.answeredQuestions
   );
+  clarState.readinessScore = Math.max(clarState.readinessScore, updatedUnderstanding.confidence);
 
   const { shouldAsk, reason } = shouldAskMoreQuestions(clarState);
 
@@ -275,57 +297,72 @@ function handleClarificationResponse(
     `Score: ${Math.round(clarState.readinessScore * 100)}% — ${reason}`
   );
 
-  if (currentRound >= 2) {
-    emitStep('understanding', 'Proceeding with available information',
-      'Enough clarification rounds completed — using defaults for remaining gaps');
+  const proceedToPlan = () => {
     updatedUnderstanding.level5_clarification = {
       needsClarification: false,
       questions: [],
-      assumptions: [
-        ...updatedUnderstanding.level5_clarification.assumptions,
-        'Proceeding with sensible defaults after clarification',
-      ],
+      assumptions: updatedUnderstanding.level5_clarification.assumptions,
     };
     updatedUnderstanding.confidence = Math.max(updatedUnderstanding.confidence, 0.85);
     updatedUnderstanding.readyForPlan = true;
     return generatePlanFromUnderstanding(updatedUnderstanding, thinkingSteps, emitStep);
+  };
+
+  if (currentRound >= 2) {
+    emitStep('understanding', 'Proceeding with available information',
+      'Enough clarification rounds completed — using defaults for remaining gaps');
+    updatedUnderstanding.level5_clarification.assumptions.push(
+      'Proceeding with sensible defaults after clarification'
+    );
+    return proceedToPlan();
   }
 
-  if (!shouldAsk || clarState.readinessScore >= 0.7) {
-    updatedUnderstanding.level5_clarification = {
-      needsClarification: false,
-      questions: [],
-      assumptions: updatedUnderstanding.level5_clarification.assumptions,
-    };
-    updatedUnderstanding.readyForPlan = true;
-    return generatePlanFromUnderstanding(updatedUnderstanding, thinkingSteps, emitStep);
+  if (!shouldAsk) {
+    return proceedToPlan();
   }
 
-  const alreadyAskedQuestions = new Set(previousQuestions.map(q => q.question));
-  const newQuestions = updatedUnderstanding.level5_clarification.questions.filter(
-    q => !alreadyAskedQuestions.has(q.question)
+  const newQuestions = generateClarificationQuestions(
+    clarState.informationGaps,
+    clarState.complexity,
+    extractEntitiesFromText(`${previousUnderstanding.level1_intent.primaryGoal}. ${userMessage}`),
+    clarState.answeredQuestions
   );
 
-  if (newQuestions.length === 0) {
-    updatedUnderstanding.level5_clarification = {
-      needsClarification: false,
-      questions: [],
-      assumptions: updatedUnderstanding.level5_clarification.assumptions,
-    };
-    updatedUnderstanding.readyForPlan = true;
-    return generatePlanFromUnderstanding(updatedUnderstanding, thinkingSteps, emitStep);
+  const askedSet = new Set(previousQuestions.map(q => q.question));
+  const filteredQuestions = newQuestions.filter(q => !askedSet.has(q.question));
+
+  if (filteredQuestions.length === 0) {
+    return proceedToPlan();
   }
 
-  updatedUnderstanding.level5_clarification.questions = newQuestions;
-  updatedUnderstanding.level5_clarification.needsClarification = true;
+  updatedUnderstanding.level5_clarification = {
+    needsClarification: true,
+    questions: filteredQuestions.map(q => ({
+      id: q.id,
+      question: q.question,
+      why: q.context,
+      options: q.options,
+      defaultAnswer: q.defaultAnswer,
+      priority: q.impact === 'critical' ? 'critical' as const :
+                q.impact === 'high' ? 'important' as const : 'nice-to-have' as const,
+    })),
+    assumptions: updatedUnderstanding.level5_clarification.assumptions,
+  };
 
   const responseContent = formatUnderstandingResponse(updatedUnderstanding);
+
+  const serializableClarState = {
+    ...clarState,
+    answeredQuestions: Object.fromEntries(clarState.answeredQuestions),
+  };
+
   return {
     responseContent,
     newPhase: 'clarifying',
     thinkingSteps,
     understandingData: updatedUnderstanding,
     clarificationRound: currentRound,
+    clarificationState: serializableClarState as any,
   };
 }
 

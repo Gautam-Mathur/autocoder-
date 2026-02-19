@@ -633,6 +633,8 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
           phase: currentPhase as any,
           understandingData: (conversation as any).understandingData as any,
           planData: (conversation as any).projectPlanData as any,
+          clarificationRound: (conversation as any).clarificationRound as number | undefined,
+          clarificationState: (conversation as any).clarificationState as any,
           conversationId: conversationId,
           existingFiles: isEditPhase ? existingFiles.map((f: any) => ({
             path: f.path,
@@ -699,6 +701,8 @@ IMPORTANT: Use this context! Build on previous work. Maintain consistent styling
           conversationPhase: result.newPhase,
           ...(result.planData ? { projectPlanData: result.planData as any } : {}),
           ...(result.understandingData ? { understandingData: result.understandingData as any } : {}),
+          ...(result.clarificationRound != null ? { clarificationRound: result.clarificationRound } : {}),
+          ...(result.clarificationState ? { clarificationState: result.clarificationState as any } : {}),
           ...(result.planData ? {
             projectName: result.planData.projectName,
             planGenerated: true,
