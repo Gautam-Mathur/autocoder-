@@ -198,14 +198,91 @@ function handleClarificationResponse(
 
   emitStep('understanding', 'Parsed answers', `Extracted ${parsedAnswers.size} structured answers from response`);
 
+  const previousUnderstanding = state.understandingData!;
+  const updatedUnderstanding: UnderstandingResult = {
+    level1_intent: { ...previousUnderstanding.level1_intent },
+    level2_domain: { ...previousUnderstanding.level2_domain },
+    level3_entities: {
+      ...previousUnderstanding.level3_entities,
+      mentionedEntities: [...previousUnderstanding.level3_entities.mentionedEntities],
+      inferredEntities: [...previousUnderstanding.level3_entities.inferredEntities],
+    },
+    level4_workflows: { ...previousUnderstanding.level4_workflows },
+    level5_clarification: {
+      ...previousUnderstanding.level5_clarification,
+      assumptions: [...(previousUnderstanding.level5_clarification.assumptions || [])],
+    },
+    confidence: previousUnderstanding.confidence,
+    readyForPlan: previousUnderstanding.readyForPlan,
+  };
+
+  parsedAnswers.forEach((answerValue) => {
+    const words = answerValue.toLowerCase().split(/[\s,]+/).filter(w => w.length > 2);
+    for (const word of words) {
+      if (!updatedUnderstanding.level3_entities.mentionedEntities.includes(word) &&
+          !updatedUnderstanding.level3_entities.inferredEntities.includes(word)) {
+        updatedUnderstanding.level3_entities.mentionedEntities.push(word);
+      }
+    }
+  });
+
+  const answerBoost = Math.min(parsedAnswers.size * 0.3, 0.5);
+  updatedUnderstanding.confidence = Math.min(updatedUnderstanding.confidence + answerBoost, 1.0);
+
+  emitStep('understanding', 'Updated understanding',
+    updatedUnderstanding.level2_domain.primaryDomain
+      ? `Domain: ${updatedUnderstanding.level2_domain.primaryDomain.name}`
+      : 'Building general application'
+  );
+
+  const nlpEntities = extractEntitiesFromText(
+    `${previousUnderstanding.level1_intent.primaryGoal}. ${userMessage}`
+  );
+  const domains = updatedUnderstanding.level2_domain.primaryDomain
+    ? [{ confidence: updatedUnderstanding.level2_domain.confidence, name: updatedUnderstanding.level2_domain.primaryDomain.name }]
+    : [];
+  const clarState = createClarificationState(state.conversationId || 0,
+    `${previousUnderstanding.level1_intent.primaryGoal}. ${userMessage}`,
+    nlpEntities, domains);
+  clarState.roundsCompleted = currentRound;
+
+  parsedAnswers.forEach((value, key) => {
+    clarState.answeredQuestions.set(key, value);
+  });
+
+  for (const gap of clarState.informationGaps) {
+    if (parsedAnswers.size > 0 && !gap.resolvedBy) {
+      const answerText = Array.from(parsedAnswers.values()).join(' ').toLowerCase();
+      if (gap.category === 'entities' && answerText.length > 0) {
+        gap.resolvedBy = 'user-answer';
+      } else if (gap.category === 'scope' && answerText.length > 0) {
+        gap.resolvedBy = 'user-answer';
+      }
+    }
+    if (!gap.resolvedBy && gap.defaultResolution) {
+      gap.resolvedBy = 'default';
+    }
+  }
+
+  clarState.readinessScore = Math.max(
+    clarState.readinessScore,
+    updatedUnderstanding.confidence
+  );
+
+  const { shouldAsk, reason } = shouldAskMoreQuestions(clarState);
+
+  emitStep('understanding', 'Readiness assessment',
+    `Score: ${Math.round(clarState.readinessScore * 100)}% — ${reason}`
+  );
+
   if (currentRound >= 2) {
-    emitStep('understanding', 'Proceeding with available information', 'Enough clarification rounds completed — using defaults for any remaining gaps');
-    const updatedUnderstanding = { ...state.understandingData! };
+    emitStep('understanding', 'Proceeding with available information',
+      'Enough clarification rounds completed — using defaults for remaining gaps');
     updatedUnderstanding.level5_clarification = {
       needsClarification: false,
       questions: [],
       assumptions: [
-        ...(updatedUnderstanding.level5_clarification.assumptions || []),
+        ...updatedUnderstanding.level5_clarification.assumptions,
         'Proceeding with sensible defaults after clarification',
       ],
     };
@@ -214,65 +291,33 @@ function handleClarificationResponse(
     return generatePlanFromUnderstanding(updatedUnderstanding, thinkingSteps, emitStep);
   }
 
-  const previousUnderstanding = state.understandingData!;
-  const originalGoal = previousUnderstanding.level1_intent.primaryGoal;
-  const enrichedContext = `${originalGoal}. Additional details: ${userMessage}`;
-  const updatedUnderstanding = analyzeRequest(enrichedContext, undefined, currentRound);
-
-  if (previousUnderstanding.level2_domain.primaryDomain &&
-      previousUnderstanding.level2_domain.confidence >= 0.3) {
-    updatedUnderstanding.level2_domain = previousUnderstanding.level2_domain;
-  }
-
-  const answerEntities: string[] = [];
-  parsedAnswers.forEach((value) => {
-    const words = value.toLowerCase().split(/[\s,]+/).filter(w => w.length > 2);
-    answerEntities.push(...words);
-  });
-  for (const entity of answerEntities) {
-    if (!updatedUnderstanding.level3_entities.mentionedEntities.includes(entity) &&
-        !updatedUnderstanding.level3_entities.inferredEntities.includes(entity)) {
-      updatedUnderstanding.level3_entities.mentionedEntities.push(entity);
-    }
-  }
-
-  const answerBoost = Math.min(parsedAnswers.size * 0.25, 0.5);
-  updatedUnderstanding.confidence = Math.min(
-    Math.max(updatedUnderstanding.confidence, previousUnderstanding.confidence) + answerBoost,
-    1.0
-  );
-
-  emitStep('understanding', 'Updated understanding',
-    updatedUnderstanding.level2_domain.primaryDomain
-      ? `Domain: ${updatedUnderstanding.level2_domain.primaryDomain.name}`
-      : 'Building general application'
-  );
-
-  const readinessScore = Math.min(updatedUnderstanding.confidence + answerBoost, 1.0);
-
-  emitStep('understanding', 'Readiness assessment', `Score: ${Math.round(readinessScore * 100)}% — ${readinessScore >= 0.7 ? 'ready to proceed' : 'may need more details'}`);
-
-  if (readinessScore >= 0.7 || !updatedUnderstanding.level5_clarification.needsClarification) {
+  if (!shouldAsk || clarState.readinessScore >= 0.7) {
     updatedUnderstanding.level5_clarification = {
       needsClarification: false,
       questions: [],
-      assumptions: updatedUnderstanding.level5_clarification.assumptions || [],
+      assumptions: updatedUnderstanding.level5_clarification.assumptions,
     };
     updatedUnderstanding.readyForPlan = true;
     return generatePlanFromUnderstanding(updatedUnderstanding, thinkingSteps, emitStep);
   }
 
-  const alreadyAskedCategories = new Set(previousQuestions.map(q => q.question));
-  updatedUnderstanding.level5_clarification.questions =
-    updatedUnderstanding.level5_clarification.questions.filter(
-      q => !alreadyAskedCategories.has(q.question)
-    );
+  const alreadyAskedQuestions = new Set(previousQuestions.map(q => q.question));
+  const newQuestions = updatedUnderstanding.level5_clarification.questions.filter(
+    q => !alreadyAskedQuestions.has(q.question)
+  );
 
-  if (updatedUnderstanding.level5_clarification.questions.length === 0) {
-    updatedUnderstanding.level5_clarification.needsClarification = false;
+  if (newQuestions.length === 0) {
+    updatedUnderstanding.level5_clarification = {
+      needsClarification: false,
+      questions: [],
+      assumptions: updatedUnderstanding.level5_clarification.assumptions,
+    };
     updatedUnderstanding.readyForPlan = true;
     return generatePlanFromUnderstanding(updatedUnderstanding, thinkingSteps, emitStep);
   }
+
+  updatedUnderstanding.level5_clarification.questions = newQuestions;
+  updatedUnderstanding.level5_clarification.needsClarification = true;
 
   const responseContent = formatUnderstandingResponse(updatedUnderstanding);
   return {
