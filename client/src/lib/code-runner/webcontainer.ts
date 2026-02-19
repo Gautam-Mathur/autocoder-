@@ -1117,7 +1117,8 @@ export async function runNpmInstall(
   packages: string[],
   isDev: boolean = false,
   onOutput?: (data: string) => void,
-  timeoutMs: number = 120000
+  timeoutMs: number = 120000,
+  noReconcile: boolean = false
 ): Promise<RunResult> {
   const container = await getWebContainer();
   const output: string[] = [];
@@ -1125,7 +1126,7 @@ export async function runNpmInstall(
   
   const pkgList = packages.join(', ');
   const installType = isDev ? 'devDependency' : 'dependency';
-  runnerLog.info('NPM', `Installing ${packages.length} ${installType} packages: ${pkgList}`);
+  runnerLog.info('NPM', `Installing ${packages.length} ${installType} packages: ${pkgList}${noReconcile ? ' (no-reconcile)' : ''}`);
   runnerLog.startTimer(`npm-pkg-${pkgList.slice(0, 30)}`);
   
   const args = [
@@ -1138,6 +1139,10 @@ export async function runNpmInstall(
     '--fetch-retries=1',
     '--fetch-timeout=15000'
   ];
+  
+  if (noReconcile) {
+    args.push('--no-package-lock', '--legacy-peer-deps');
+  }
   
   if (isDev) {
     args.push('--save-dev');
@@ -1217,6 +1222,25 @@ export async function runNpmInstall(
       });
     }
   });
+}
+
+export async function fixBinPermissions(): Promise<void> {
+  try {
+    const container = await getWebContainer();
+    const binEntries = await container.fs.readdir('node_modules/.bin').catch(() => [] as string[]);
+    if (binEntries.length === 0) return;
+
+    const criticalBins = ['vite', 'tsc', 'tsx', 'esbuild', 'tailwindcss'];
+    const toFix = criticalBins.filter(b => binEntries.includes(b));
+
+    if (toFix.length > 0) {
+      const proc = await container.spawn('chmod', ['+x', ...toFix.map(b => `node_modules/.bin/${b}`)]);
+      await proc.exit;
+      runnerLog.debug('FileSystem', `Fixed bin permissions: ${toFix.join(', ')}`);
+    }
+  } catch (err) {
+    runnerLog.debug('FileSystem', `fixBinPermissions non-fatal: ${String(err)}`);
+  }
 }
 
 export async function runNodeScript(

@@ -15,6 +15,7 @@ import {
   getPreWarmStatus,
   getPreWarmedPackages,
   awaitPreWarm,
+  fixBinPermissions,
   type FileSystemTree,
   type RunResult
 } from './webcontainer';
@@ -707,7 +708,13 @@ export default {
       
       const shouldSkipInstall = hasExistingModules && !pkgChanged && !options.forceInstall && !useBatchedInstall;
       
-      let isPreWarmed = getPreWarmStatus() === 'ready' && hasExistingModules;
+      const preWarmReady = getPreWarmStatus() === 'ready';
+      let isPreWarmed = preWarmReady && hasExistingModules;
+      
+      if (preWarmReady && !hasExistingModules) {
+        runnerLog.warn('Pipeline', 'Pre-warm status is ready but hasNodeModules returned false — trusting pre-warm status');
+        isPreWarmed = true;
+      }
       
       if (!isPreWarmed && !shouldSkipInstall && !useBatchedInstall) {
         const pwStatus = getPreWarmStatus();
@@ -769,25 +776,28 @@ export default {
             updateState({ progress: 55, message: `Installing ${extraDeps.length + extraDevDeps.length} extra packages...` });
 
             if (extraDeps.length > 0) {
-              const result = await runNpmInstall(extraDeps, false, (out) => log(out));
+              const result = await runNpmInstall(extraDeps, false, (out) => log(out), 120000, true);
               if (!result.success) {
                 runnerLog.warn('Pipeline', 'Some extra dependency packages failed');
                 log('⚠️ Some extra packages failed, continuing...');
               }
             }
             if (extraDevDeps.length > 0) {
-              const result = await runNpmInstall(extraDevDeps, true, (out) => log(out));
+              const result = await runNpmInstall(extraDevDeps, true, (out) => log(out), 120000, true);
               if (!result.success) {
                 runnerLog.warn('Pipeline', 'Some extra devDependency packages failed');
                 log('⚠️ Some extra dev packages failed, continuing...');
               }
             }
+            await fixBinPermissions();
             runnerLog.success('Pipeline', 'Extra packages installed');
             log('✅ Extra packages installed');
           } else {
             runnerLog.success('Pipeline', 'All packages already pre-installed, no extras needed');
             log('✅ All packages already pre-installed');
           }
+          
+          await fixBinPermissions();
         } catch (e) {
           runnerLog.warn('Pipeline', `Could not diff packages: ${e}, falling back to full install`);
           log('⚠️ Could not diff packages, running full install...');
@@ -879,6 +889,7 @@ export default {
         }
         
         log('✅ Batched install complete');
+        await fixBinPermissions();
         updateState({ progress: 70, message: 'Dependencies installed' });
       } else {
         updateState({ status: 'installing', progress: 50, message: 'Installing npm packages...' });
@@ -902,6 +913,7 @@ export default {
           log('✅ Dependencies installed');
           updateState({ progress: 70, message: 'Dependencies installed' });
         }
+        await fixBinPermissions();
       }
     }
     
