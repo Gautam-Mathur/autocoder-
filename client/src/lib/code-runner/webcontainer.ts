@@ -19,206 +19,112 @@ const ALTERNATIVE_REGISTRIES = [
   'https://registry.npmjs.org',
 ];
 
-const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<string, string>; label: string }> = [
+const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<string, string>; label: string; description: string }> = [
   {
-    label: 'batch-1',
-    deps: { 'react': '^18.3.1', 'react-dom': '^18.3.1', 'zod': '^3.22.0', 'clsx': '^2.1.0' },
-    devDeps: { 'vite': '^5.1.0', '@vitejs/plugin-react': '^4.2.0' },
+    label: 'core',
+    description: 'React essentials',
+    deps: {
+      'react': '^18.3.1', 'react-dom': '^18.3.1', 'zod': '^3.22.0', 'clsx': '^2.1.0',
+      'wouter': '^3.0.0', 'tailwind-merge': '^2.2.0', 'class-variance-authority': '^0.7.0',
+      '@tanstack/react-query': '^5.0.0', 'lucide-react': '^0.344.0',
+      'react-hook-form': '^7.50.0', '@hookform/resolvers': '^3.3.0',
+    },
+    devDeps: {
+      'vite': '^5.1.0', '@vitejs/plugin-react': '^4.2.0',
+      'typescript': '^5.3.0', 'esbuild': '^0.19.0',
+      'tailwindcss': '3.4.17', 'postcss': '^8.4.35', 'autoprefixer': '^10.4.17',
+      '@types/react': '^18.2.0', '@types/react-dom': '^18.2.0', '@types/node': '^20.10.0',
+    },
   },
   {
-    label: 'batch-2',
-    deps: { 'wouter': '^3.0.0', 'tailwind-merge': '^2.2.0', 'class-variance-authority': '^0.7.0' },
-    devDeps: { 'typescript': '^5.3.0', 'esbuild': '^0.19.0' },
-  },
-  {
-    label: 'batch-3',
-    deps: { '@tanstack/react-query': '^5.0.0', 'lucide-react': '^0.344.0', 'react-hook-form': '^7.50.0', '@hookform/resolvers': '^3.3.0' },
-    devDeps: { 'tailwindcss': '3.4.17', 'postcss': '^8.4.35', 'autoprefixer': '^10.4.17' },
-  },
-  {
-    label: 'batch-4',
-    deps: { '@radix-ui/react-slot': '^1.0.2', '@radix-ui/react-dialog': '^1.0.5', '@radix-ui/react-select': '^2.0.0', '@radix-ui/react-label': '^2.0.2', '@radix-ui/react-tabs': '^1.0.4' },
-    devDeps: { '@types/react': '^18.2.0', '@types/react-dom': '^18.2.0', '@types/node': '^20.10.0' },
-  },
-  {
-    label: 'batch-5',
-    deps: { '@radix-ui/react-tooltip': '^1.0.7', '@radix-ui/react-popover': '^1.0.7', '@radix-ui/react-dropdown-menu': '^2.0.6', '@radix-ui/react-checkbox': '^1.0.4', '@radix-ui/react-separator': '^1.0.3' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-6',
-    deps: { '@radix-ui/react-scroll-area': '^1.0.5', '@radix-ui/react-switch': '^1.0.3', '@radix-ui/react-toast': '^1.1.5', '@radix-ui/react-icons': '^1.3.0', '@radix-ui/react-avatar': '^1.0.4' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-7',
-    deps: { '@radix-ui/react-alert-dialog': '^1.0.5', '@radix-ui/react-accordion': '^1.1.2', '@radix-ui/react-progress': '^1.0.3', '@radix-ui/react-radio-group': '^1.1.3', '@radix-ui/react-slider': '^1.1.2' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-8',
-    deps: { '@radix-ui/react-toggle': '^1.0.3', '@radix-ui/react-toggle-group': '^1.0.4', '@radix-ui/react-context-menu': '^2.1.5', '@radix-ui/react-menubar': '^1.0.4', '@radix-ui/react-collapsible': '^1.0.3' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-9',
-    deps: { '@radix-ui/react-navigation-menu': '^1.1.4', '@radix-ui/react-hover-card': '^1.0.7', '@radix-ui/react-aspect-ratio': '^1.0.3', 'framer-motion': '^11.0.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-10',
-    deps: { 'embla-carousel-react': '^8.0.0', 'vaul': '^0.9.0', 'sonner': '^1.4.0', 'input-otp': '^1.2.0', 'cmdk': '^0.2.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-11',
-    deps: { 'react-day-picker': '^8.10.0', 'date-fns': '^3.3.1', 'dayjs': '^1.11.0', 'nanoid': '^5.0.0', 'uuid': '^9.0.0' },
+    label: 'ui',
+    description: 'UI components',
+    deps: {
+      '@radix-ui/react-slot': '^1.0.2', '@radix-ui/react-dialog': '^1.0.5',
+      '@radix-ui/react-select': '^2.0.0', '@radix-ui/react-label': '^2.0.2',
+      '@radix-ui/react-tabs': '^1.0.4', '@radix-ui/react-tooltip': '^1.0.7',
+      '@radix-ui/react-popover': '^1.0.7', '@radix-ui/react-dropdown-menu': '^2.0.6',
+      '@radix-ui/react-checkbox': '^1.0.4', '@radix-ui/react-separator': '^1.0.3',
+      '@radix-ui/react-scroll-area': '^1.0.5', '@radix-ui/react-switch': '^1.0.3',
+      '@radix-ui/react-toast': '^1.1.5', '@radix-ui/react-icons': '^1.3.0',
+      '@radix-ui/react-avatar': '^1.0.4', '@radix-ui/react-alert-dialog': '^1.0.5',
+      '@radix-ui/react-accordion': '^1.1.2', '@radix-ui/react-progress': '^1.0.3',
+      '@radix-ui/react-radio-group': '^1.1.3', '@radix-ui/react-slider': '^1.1.2',
+      '@radix-ui/react-toggle': '^1.0.3', '@radix-ui/react-toggle-group': '^1.0.4',
+      '@radix-ui/react-context-menu': '^2.1.5', '@radix-ui/react-menubar': '^1.0.4',
+      '@radix-ui/react-collapsible': '^1.0.3', '@radix-ui/react-navigation-menu': '^1.1.4',
+      '@radix-ui/react-hover-card': '^1.0.7', '@radix-ui/react-aspect-ratio': '^1.0.3',
+      'framer-motion': '^11.0.0',
+      'embla-carousel-react': '^8.0.0', 'vaul': '^0.9.0', 'sonner': '^1.4.0',
+      'input-otp': '^1.2.0', 'cmdk': '^0.2.0',
+      'react-day-picker': '^8.10.0', 'date-fns': '^3.3.1',
+      'nanoid': '^5.0.0', 'uuid': '^9.0.0',
+    },
     devDeps: { '@types/uuid': '^9.0.7' },
   },
   {
-    label: 'batch-12',
-    deps: { 'express': '^4.18.2', 'cors': '^2.8.5', 'body-parser': '^1.20.0', 'helmet': '^7.1.0', 'cookie-parser': '^1.4.6' },
-    devDeps: { '@types/express': '^4.17.21', '@types/cors': '^2.8.17' },
+    label: 'server',
+    description: 'Server & utilities',
+    deps: {
+      'express': '^4.18.2', 'cors': '^2.8.5', 'body-parser': '^1.20.0',
+      'helmet': '^7.1.0', 'cookie-parser': '^1.4.6',
+      'morgan': '^1.10.0', 'compression': '^1.7.4', 'dotenv': '^16.4.0',
+      'drizzle-orm': '^0.29.0', 'drizzle-zod': '^0.5.0',
+      'passport': '^0.7.0', 'express-session': '^1.17.3',
+      'bcryptjs': '^2.4.3', 'express-rate-limit': '^7.1.0',
+      'recharts': '^2.12.0', 'axios': '^1.6.0',
+      '@tanstack/react-table': '^8.11.0',
+      '@dnd-kit/core': '^6.1.0', '@dnd-kit/sortable': '^8.0.0', '@dnd-kit/utilities': '^3.2.2',
+      'react-icons': '^5.0.0',
+      'react-markdown': '^9.0.1',
+      'jszip': '^3.10.1',
+      'zustand': '^4.4.0',
+      'dayjs': '^1.11.0', 'lodash': '^4.17.21',
+      'react-dropzone': '^14.2.3',
+      'react-textarea-autosize': '^8.5.3',
+      'react-resizable-panels': '^2.0.0',
+    },
+    devDeps: {
+      '@types/express': '^4.17.21', '@types/cors': '^2.8.17',
+      '@types/morgan': '^1.9.9', '@types/compression': '^1.7.5',
+      'drizzle-kit': '^0.20.0', '@types/bcryptjs': '^2.4.6',
+      '@types/lodash': '^4.14.202',
+      'tsx': '^4.7.0',
+    },
   },
   {
-    label: 'batch-13',
-    deps: { 'morgan': '^1.10.0', 'compression': '^1.7.4', 'dotenv': '^16.4.0', 'http-errors': '^2.0.0' },
-    devDeps: { '@types/morgan': '^1.9.9', '@types/compression': '^1.7.5' },
-  },
-  {
-    label: 'batch-14',
-    deps: { 'drizzle-orm': '^0.29.0', 'drizzle-zod': '^0.5.0', '@neondatabase/serverless': '^0.7.0', 'pg': '^8.11.3', 'connect-pg-simple': '^9.0.0' },
-    devDeps: { 'drizzle-kit': '^0.20.0', '@types/pg': '^8.10.9' },
-  },
-  {
-    label: 'batch-15',
-    deps: { 'passport': '^0.7.0', 'passport-local': '^1.0.0', 'express-session': '^1.17.3', 'jose': '^5.2.0' },
-    devDeps: { '@types/passport': '^1.0.16', '@types/express-session': '^1.17.10' },
-  },
-  {
-    label: 'batch-16',
-    deps: { 'jsonwebtoken': '^9.0.0', 'bcryptjs': '^2.4.3', 'express-rate-limit': '^7.1.0', 'express-validator': '^7.0.0' },
-    devDeps: { '@types/jsonwebtoken': '^9.0.5', '@types/bcryptjs': '^2.4.6' },
-  },
-  {
-    label: 'batch-17',
-    deps: { 'recharts': '^2.12.0', 'chart.js': '^4.4.0', 'react-chartjs-2': '^5.2.0', 'lightweight-charts': '^4.1.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-18',
-    deps: { 'react-circular-progressbar': '^2.1.0', 'react-countup': '^6.5.0', 'react-sparklines': '^1.7.0', 'd3': '^7.8.5' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-19',
-    deps: { '@nivo/core': '^0.84.0', '@nivo/bar': '^0.84.0', '@nivo/line': '^0.84.0', '@nivo/pie': '^0.84.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-20',
-    deps: { 'victory': '^36.9.0', 'axios': '^1.6.0', 'lodash': '^4.17.21', 'moment': '^2.29.0', 'immer': '^10.0.3' },
-    devDeps: { '@types/lodash': '^4.14.202' },
-  },
-  {
-    label: 'batch-21',
-    deps: { 'swr': '^2.2.0', 'zustand': '^4.4.0', 'jotai': '^2.6.0', 'valtio': '^1.13.0', '@reduxjs/toolkit': '^2.0.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-22',
-    deps: { 'react-redux': '^9.0.0', 'react-router-dom': '^6.20.0', 'socket.io-client': '^4.7.0', 'ws': '^8.16.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-23',
-    deps: { 'socket.io': '^4.7.0', '@tanstack/react-table': '^8.11.0', 'react-resizable-panels': '^2.0.0', 'react-dropzone': '^14.2.3' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-24',
-    deps: { 'recoil': '^0.7.7', 'react-beautiful-dnd': '^13.1.1', '@dnd-kit/core': '^6.1.0', '@dnd-kit/sortable': '^8.0.0', '@dnd-kit/utilities': '^3.2.2' },
-    devDeps: { '@types/react-beautiful-dnd': '^13.1.8' },
-  },
-  {
-    label: 'batch-25',
-    deps: { 'xlsx': '^0.18.5', 'multer': '^1.4.5-lts.1', 'archiver': '^6.0.0', 'adm-zip': '^0.5.10' },
-    devDeps: { '@types/multer': '^1.4.11' },
-  },
-  {
-    label: 'batch-26',
-    deps: { 'jszip': '^3.10.1', 'nodemailer': '^6.9.8', 'file-saver': '^2.0.5' },
-    devDeps: { '@types/nodemailer': '^6.4.14', 'tsx': '^4.7.0' },
-  },
-  {
-    label: 'batch-27',
-    deps: { 'slate': '^0.101.0', 'slate-react': '^0.101.0', 'react-markdown': '^9.0.1', 'remark-gfm': '^4.0.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-28',
-    deps: { '@tiptap/react': '^2.2.0', '@tiptap/starter-kit': '^2.2.0', '@tiptap/extension-placeholder': '^2.2.0', 'rehype-highlight': '^7.0.0', 'highlight.js': '^11.9.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-29',
-    deps: { 'react-icons': '^5.0.0', 'react-select': '^5.8.0', 'formik': '^2.4.5', 'yup': '^1.3.3' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-30',
-    deps: { 'react-hot-toast': '^2.4.1', 'next-themes': '^0.2.1', 'react-textarea-autosize': '^8.5.3', 'prismjs': '^1.29.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-31',
-    deps: { 'react-number-format': '^5.3.1', 'react-input-mask': '^2.0.4', 'react-phone-number-input': '^3.3.9', 'react-spring': '^9.7.3' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-32',
-    deps: { 'lottie-react': '^2.4.0', '@formkit/auto-animate': '^0.8.1', 'react-transition-group': '^4.4.5', 'animate.css': '^4.1.1' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-33',
-    deps: { 'react-player': '^2.14.0', 'react-image-crop': '^11.0.0', 'browser-image-compression': '^2.0.2', 'react-i18next': '^14.0.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-34',
-    deps: { 'i18next': '^23.8.0', 'i18next-browser-languagedetector': '^7.2.0', 'i18next-http-backend': '^2.4.2', 'knex': '^3.1.0' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-35',
-    deps: { 'better-sqlite3': '^9.4.0', 'bull': '^4.12.0', 'ioredis': '^5.3.2', 'cron': '^3.1.0' },
-    devDeps: { 'vitest': '^1.3.0', 'jsdom': '^24.0.0' },
-  },
-  {
-    label: 'batch-36',
-    deps: { 'csv-parse': '^5.5.3', 'csv-stringify': '^6.4.5', 'qs': '^6.11.2', 'superjson': '^2.2.1', 'decimal.js': '^10.4.3' },
-    devDeps: { 'picomatch': '^4.0.2', 'fast-glob': '^3.3.2' },
-  },
-  {
-    label: 'batch-37',
-    deps: { 'msw': '^2.1.0', '@faker-js/faker': '^8.4.0', 'currency.js': '^2.0.4', 'numbro': '^2.4.0' },
-    devDeps: { '@testing-library/react': '^14.2.0', '@testing-library/jest-dom': '^6.4.0', '@testing-library/user-event': '^14.5.0' },
-  },
-  {
-    label: 'batch-38',
-    deps: { 'sharp': '^0.33.0', 'react-pdf': '^7.7.0', 'zod-to-json-schema': '^3.22.0', 'openapi-types': '^12.1.3' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-39',
-    deps: { 'swagger-ui-express': '^5.0.0', 'rate-limiter-flexible': '^5.0.0', 'p-queue': '^8.0.1', 'mobx': '^6.12.0', 'mobx-react-lite': '^4.0.5' },
-    devDeps: {},
-  },
-  {
-    label: 'batch-40',
-    deps: { 'xstate': '^5.5.0', 'intl-messageformat': '^10.5.0' },
-    devDeps: {},
+    label: 'extras',
+    description: 'Extended libraries',
+    deps: {
+      'http-errors': '^2.0.0', '@neondatabase/serverless': '^0.7.0',
+      'pg': '^8.11.3', 'connect-pg-simple': '^9.0.0',
+      'passport-local': '^1.0.0', 'jose': '^5.2.0',
+      'jsonwebtoken': '^9.0.0', 'express-validator': '^7.0.0',
+      'chart.js': '^4.4.0', 'react-chartjs-2': '^5.2.0',
+      'react-circular-progressbar': '^2.1.0', 'react-countup': '^6.5.0',
+      'immer': '^10.0.3', 'moment': '^2.29.0',
+      'swr': '^2.2.0', 'jotai': '^2.6.0',
+      'react-router-dom': '^6.20.0', 'socket.io-client': '^4.7.0',
+      'react-beautiful-dnd': '^13.1.1',
+      'xlsx': '^0.18.5', 'file-saver': '^2.0.5',
+      'slate': '^0.101.0', 'slate-react': '^0.101.0',
+      'formik': '^2.4.5', 'yup': '^1.3.3',
+      'react-hot-toast': '^2.4.1',
+      'react-number-format': '^5.3.1',
+      '@formkit/auto-animate': '^0.8.1',
+      'csv-parse': '^5.5.3', 'csv-stringify': '^6.4.5',
+      'currency.js': '^2.0.4', 'decimal.js': '^10.4.3',
+      'superjson': '^2.2.1', 'qs': '^6.11.2',
+      'zod-to-json-schema': '^3.22.0',
+      'p-queue': '^8.0.1',
+      'xstate': '^5.5.0',
+    },
+    devDeps: {
+      '@types/pg': '^8.10.9', '@types/passport': '^1.0.16',
+      '@types/express-session': '^1.17.10', '@types/jsonwebtoken': '^9.0.5',
+      '@types/react-beautiful-dnd': '^13.1.8',
+      'vitest': '^1.3.0',
+    },
   },
 ];
 
@@ -461,6 +367,7 @@ async function runBatchInstall(
     '--prefer-offline',
     '--no-audit',
     '--no-fund',
+    '--omit=optional',
     '--legacy-peer-deps',
     '--loglevel=http',
     '--fetch-retries=2',
@@ -622,8 +529,9 @@ export async function preWarmWebContainer(): Promise<boolean> {
       preWarmStatus = 'installing';
       const totalDeps = Object.keys(CORE_PACKAGES).length;
       const totalDevDeps = Object.keys(CORE_DEV_PACKAGES).length;
+      const totalPackageCount = totalDeps + totalDevDeps;
       runnerLog.info('PreWarm', `Installing ${totalDeps} deps + ${totalDevDeps} devDeps in ${totalBatches} batches`);
-      notifyPreWarm('installing', `Pre-installing ${totalDeps + totalDevDeps} packages in ${totalBatches} batches...`);
+      notifyPreWarm('installing', `Pre-installing ${totalPackageCount} packages in ${totalBatches} steps...`);
 
       const viteConfig = `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -651,15 +559,16 @@ export default defineConfig({
         Object.assign(cumulativeDeps, batch.deps);
         Object.assign(cumulativeDevDeps, batch.devDeps);
         const cumulativeTotal = Object.keys(cumulativeDeps).length + Object.keys(cumulativeDevDeps).length;
-        notifyPreWarm('installing', `Batch ${i + 1}/${totalBatches}: Installing ${batchPkgCount} new packages (${cumulativeTotal} total)...`);
+        const pct = Math.round((cumulativeTotal / totalPackageCount) * 100);
+        notifyPreWarm('installing', `${batch.description} (${i + 1}/${totalBatches}) — ${batchPkgCount} packages... ${pct}%`);
 
-        const batchTimeout = 300000;
-        const batchStallTimeout = 180000;
+        const batchTimeout = i === 0 ? 300000 : 180000;
+        const batchStallTimeout = i === 0 ? 180000 : 90000;
         let result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, batch.label, batchTimeout, batchStallTimeout);
 
-        if (!result.success && i === 0) {
-          runnerLog.warn('PreWarm', `Batch 1 failed, retrying once...`);
-          notifyPreWarm('installing', `Batch 1 failed, cleaning up and retrying...`);
+        if (!result.success) {
+          runnerLog.warn('PreWarm', `${batch.label} failed, retrying once...`);
+          notifyPreWarm('installing', `${batch.description} failed, retrying... ${pct}%`);
           try {
             await container.fs.rm('node_modules', { recursive: true });
             runnerLog.debug('PreWarm', 'Cleared node_modules before retry');
@@ -668,22 +577,24 @@ export default defineConfig({
             await container.fs.rm('package-lock.json');
             runnerLog.debug('PreWarm', 'Cleared package-lock.json before retry');
           } catch {}
-          result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, `${batch.label}-retry`, 300000, 180000);
+          result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, `${batch.label}-retry`, batchTimeout, batchStallTimeout);
         }
 
         if (result.success) {
           completedBatches++;
           preWarmCompletedBatches = completedBatches;
           cachedPackages += batchPkgCount;
-          runnerLog.info('PreWarm', `Batch ${i + 1}/${totalBatches} succeeded (${cachedPackages} packages cached, ${cumulativeTotal} in node_modules)`);
+          const donePct = Math.round((cachedPackages / totalPackageCount) * 100);
+          runnerLog.info('PreWarm', `${batch.description} done — ${cachedPackages}/${totalPackageCount} packages (${donePct}%)`);
+          notifyPreWarm('installing', `${batch.description} done (${i + 1}/${totalBatches}) — ${donePct}%`);
         } else {
-          runnerLog.warn('PreWarm', `Batch ${i + 1}/${totalBatches} (${batch.label}) failed`);
+          runnerLog.warn('PreWarm', `${batch.description} (${batch.label}) failed`);
           if (completedBatches === 0) {
             preWarmStatus = 'failed';
             preWarmPromise = null;
             runnerLog.endTimer('prewarm-total');
             runnerLog.separator('PRE-WARM FAILED');
-            notifyPreWarm('failed', 'Batch 1 failed after retry, will install on demand');
+            notifyPreWarm('failed', `${batch.description} failed — packages will install on demand`);
             return false;
           }
           break;
@@ -694,17 +605,18 @@ export default defineConfig({
       preWarmStatus = 'ready';
       const totalTime = runnerLog.endTimer('prewarm-total');
       if (isPartial) {
-        runnerLog.warn('PreWarm', `Partial pre-warm: ${completedBatches}/${totalBatches} batches (${cachedPackages} packages)`, {
+        const partialPct = Math.round((cachedPackages / totalPackageCount) * 100);
+        runnerLog.warn('PreWarm', `Partial: ${cachedPackages}/${totalPackageCount} packages (${partialPct}%)`, {
           totalTime: `${totalTime}ms`,
         });
         runnerLog.separator('PRE-WARM PARTIAL');
-        notifyPreWarm('ready', `${cachedPackages} packages cached (some extras may install on demand)`);
+        notifyPreWarm('ready', `${cachedPackages}/${totalPackageCount} packages cached (${partialPct}%) — some may install on demand`);
       } else {
-        runnerLog.success('PreWarm', `Pre-warm complete! All ${totalDeps + totalDevDeps} packages cached in ${totalBatches} batches`, {
+        runnerLog.success('PreWarm', `Complete! All ${totalPackageCount} packages cached`, {
           totalTime: `${totalTime}ms`,
         }, totalTime);
         runnerLog.separator('PRE-WARM DONE');
-        notifyPreWarm('ready', 'All packages pre-installed');
+        notifyPreWarm('ready', `All ${totalPackageCount} packages cached — 100%`);
       }
       return true;
     } catch (err) {

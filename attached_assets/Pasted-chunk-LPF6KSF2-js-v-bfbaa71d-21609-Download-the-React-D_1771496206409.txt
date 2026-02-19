@@ -1,0 +1,152 @@
+chunk-LPF6KSF2.js?v=bfbaa71d:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+logger.ts:175 ── PRE-WARM START ──────────────────────────────
+logger.ts:115 15:40:36.591 ● INFO  PreWarm [booting] Starting WebContainer environment...
+logger.ts:115 15:40:36.591 ● INFO  WebContainer Booting WebContainer...
+logger.ts:122   └─ coep: require-corp  ·  crossOriginIsolated: true  ·  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
+VM4 sandbox_bundle:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ VM4 sandbox_bundle:2
+logSecurityWarnings @ VM4 sandbox_bundle:2
+(anonymous) @ VM4 sandbox_bundle:2
+logger.ts:115 15:40:37.275 ✓ SUCCESS WebContainer WebContainer booted successfully 684ms
+logger.ts:115 15:40:37.276 ✓ SUCCESS PreWarm WebContainer booted 685ms
+logger.ts:115 15:40:37.276 ● INFO  PreWarm [booting] Environment ready
+logger.ts:115 15:40:37.276 ● INFO  PreWarm Installing 115 deps + 25 devDeps in 4 batches
+logger.ts:115 15:40:37.276 ● INFO  PreWarm [installing] Pre-installing 140 packages in 4 batches...
+logger.ts:115 15:40:37.998 · DEBUG FileSystem Wrote pre-warm vite.config.ts
+logger.ts:115 15:40:37.998 ● INFO  PreWarm [installing] Batch 1/4: Installing 21 new packages (21 total)...
+logger.ts:115 15:40:38.001 · DEBUG FileSystem Wrote core package.json
+logger.ts:122   └─ size: 813 bytes
+logger.ts:115 15:40:38.007 ● INFO  NPM core: installing 21 packages
+logger.ts:122   └─ timeout: 120s  ·  stallTimeout: 60s
+logger.ts:114 15:40:38.725 ▲ WARN  NPM npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:440
+logger.ts:114 15:40:38.725 ▲ WARN  NPM npm warn config `--include=optional` to include them.
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:440
+logger.ts:114 15:40:38.725 ▲ WARN  NPM npm warn config
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:440
+logger.ts:114 15:40:38.725 ▲ WARN  NPM npm warn config       Default value does install optional deps unless otherwise omitted.
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:440
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.508a1324.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+logger.ts:115 15:40:49.351 · DEBUG PreWarm core: tab hidden, pausing stall timer
+logger.ts:115 15:40:59.333 · DEBUG PreWarm core: tab visible, resumed stall timer (paused 10s)
+logger.ts:115 15:41:04.193 · DEBUG PreWarm core: tab hidden, pausing stall timer
+logger.ts:115 15:41:14.919 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 15:41:15.321 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 15:41:16.512 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 15:41:25.140 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 15:41:42.104 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 15:41:46.205 · DEBUG PreWarm core: tab visible, resumed stall timer (paused 42s)
+logger.ts:115 15:42:01.823 · DEBUG PreWarm core: tab hidden, pausing stall timer
+logger.ts:115 15:42:06.443 · DEBUG PreWarm core: tab visible, resumed stall timer (paused 5s)
+logger.ts:115 15:42:12.099 · DEBUG PreWarm core: tab hidden, pausing stall timer
+logger.ts:115 15:42:14.042 · DEBUG PreWarm core: tab visible, resumed stall timer (paused 2s)
+logger.ts:115 15:42:15.827 · DEBUG PreWarm core: tab hidden, pausing stall timer
+logger.ts:115 15:42:28.990 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 15:42:29.023 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 15:42:30.691 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 15:42:31.684 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 15:42:32.448 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 15:42:33.701 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 15:42:34.858 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 15:42:38.314 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:114 15:42:38.545 ▲ WARN  PreWarm core: npm install timed out after 120s, killing
+emit @ logger.ts:114
+warn @ logger.ts:139
+(anonymous) @ webcontainer.ts:469
+logger.ts:113 15:42:38.546 ✖ ERROR PreWarm core failed
+emit @ logger.ts:113
+error @ logger.ts:143
+runBatchInstall @ webcontainer.ts:488
+logger.ts:122   └─ exitCode: -1  ·  npmTime: 120544ms  ·  output: mhttp fetch GET 200 https://registry.npmjs.org/use-sync-external-store 3216ms (cache miss)
+[1G[0K-[1G[0K\[1G[0Knpm http fetch GET 200 https://registry.npmjs.org/json5 71ms (cache miss)
+[1G[0K\[1G[0Knpm http fetch GET 200 https://registry.npmjs.org/gensync 70ms (cache miss)
+[1G[0K\[1G[0Knpm http fetch GET 200 https://registry.npmjs.org/semver 96ms (cache miss)
+[1G[0K\[1G[0K|
+logger.ts:114 15:42:38.546 ▲ WARN  PreWarm core failed, retrying once...
+emit @ logger.ts:114
+warn @ logger.ts:139
+(anonymous) @ webcontainer.ts:564
+logger.ts:115 15:42:38.547 ● INFO  PreWarm [installing] core failed, cleaning up and retrying...
+logger.ts:115 15:42:38.566 · DEBUG FileSystem Wrote core-retry package.json
+logger.ts:122   └─ size: 813 bytes
+logger.ts:115 15:42:38.576 ● INFO  NPM core-retry: installing 21 packages
+logger.ts:122   └─ timeout: 120s  ·  stallTimeout: 60s
+logger.ts:114 15:42:39.433 ▲ WARN  NPM npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:440
+logger.ts:114 15:42:39.433 ▲ WARN  NPM npm warn config `--include=optional` to include them.
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:440
+logger.ts:114 15:42:39.434 ▲ WARN  NPM npm warn config
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:440
+logger.ts:114 15:42:39.434 ▲ WARN  NPM npm warn config       Default value does install optional deps unless otherwise omitted.
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:440
+logger.ts:114 15:44:05.580 ▲ WARN  PreWarm core-retry: npm stall — no real progress for 86s (spinner only), killing
+emit @ logger.ts:114
+warn @ logger.ts:139
+(anonymous) @ webcontainer.ts:458
+setInterval
+runBatchInstall @ webcontainer.ts:445
+await in runBatchInstall
+(anonymous) @ webcontainer.ts:574
+logger.ts:115 15:44:30.828 · DEBUG PreWarm core-retry: tab hidden, pausing stall timer
+logger.ts:114 15:44:39.533 ▲ WARN  PreWarm core-retry: npm install timed out after 120s, killing
+emit @ logger.ts:114
+warn @ logger.ts:139
+(anonymous) @ webcontainer.ts:469
+setTimeout
+(anonymous) @ webcontainer.ts:468
+runBatchInstall @ webcontainer.ts:467
+await in runBatchInstall
+(anonymous) @ webcontainer.ts:574
+logger.ts:115 15:44:39.534 ● INFO  NPM \|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\
+logger.ts:113 15:44:39.534 ✖ ERROR PreWarm core-retry failed
+emit @ logger.ts:113
+error @ logger.ts:143
+runBatchInstall @ webcontainer.ts:488
+await in runBatchInstall
+(anonymous) @ webcontainer.ts:574
+logger.ts:122   └─ exitCode: -1  ·  npmTime: 120965ms  ·  output: [0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\
+logger.ts:114 15:44:39.534 ▲ WARN  PreWarm Batch 1/4 (core) failed
+emit @ logger.ts:114
+warn @ logger.ts:139
+(anonymous) @ webcontainer.ts:583
+logger.ts:175 ── PRE-WARM FAILED ─────────────────────────────
+logger.ts:115 15:44:39.535 ● INFO  PreWarm [failed] Batch 1 failed after retry, will install on demand

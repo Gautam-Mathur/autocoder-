@@ -254,6 +254,7 @@ export default function Chat() {
   const [conversationPhase, setConversationPhase] = useState<string>("initial");
   const [approvalMessageId, setApprovalMessageId] = useState<number | null>(null);
   const [preWarmState, setPreWarmState] = useState<string>(getPreWarmStatus());
+  const [preWarmMessage, setPreWarmMessage] = useState<string>('');
   const [recentEdits, setRecentEdits] = useState<{filePath: string; editType: string; description: string; linesChanged: number}[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -280,8 +281,9 @@ export default function Chat() {
 
   useEffect(() => {
     if (isWebContainerSupported()) {
-      const unsubscribe = onPreWarmProgress((status) => {
+      const unsubscribe = onPreWarmProgress((status, message) => {
         setPreWarmState(status);
+        setPreWarmMessage(message);
       });
       return () => { unsubscribe(); };
     }
@@ -768,25 +770,27 @@ export default function Chat() {
                 {isWebContainerSupported() && preWarmState !== 'idle' && (
                   <div
                     className="flex items-center gap-1.5 text-xs text-muted-foreground border-l border-border pl-2"
-                    title={
+                    title={preWarmMessage || (
                       preWarmState === 'ready' ? 'Environment cached and ready'
                         : preWarmState === 'failed' ? 'Cache failed, will install on demand'
                         : 'Caching core packages...'
-                    }
+                    )}
                     data-testid="prewarm-status-indicator"
                   >
                     <div
                       data-testid="status-prewarm-dot"
-                      className={`w-2 h-2 rounded-full ${
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
                         preWarmState === 'ready' ? 'bg-green-500 dark:bg-green-400'
                           : preWarmState === 'failed' ? 'bg-red-500 dark:bg-red-400'
                           : 'bg-yellow-500 dark:bg-yellow-400 animate-pulse'
                       }`}
                     />
-                    <span className="hidden sm:inline text-[10px]" data-testid="text-prewarm-status">
-                      {preWarmState === 'ready' ? 'Cached'
-                        : preWarmState === 'failed' ? 'No cache'
-                        : 'Caching...'}
+                    <span className="hidden sm:inline text-[10px] truncate max-w-[200px]" data-testid="text-prewarm-status">
+                      {preWarmState === 'ready'
+                        ? (preWarmMessage || 'Cached')
+                        : preWarmState === 'failed'
+                        ? (preWarmMessage || 'No cache')
+                        : (preWarmMessage || 'Caching...')}
                     </span>
                   </div>
                 )}

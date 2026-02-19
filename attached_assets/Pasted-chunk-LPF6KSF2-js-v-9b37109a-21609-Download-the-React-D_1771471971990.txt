@@ -1,0 +1,47 @@
+chunk-LPF6KSF2.js?v=9b37109a:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+logger.ts:175 ── PRE-WARM START ──────────────────────────────
+logger.ts:115 08:55:13.988 ● INFO  PreWarm [booting] Starting WebContainer environment...
+logger.ts:115 08:55:13.988 ● INFO  WebContainer Booting WebContainer...
+logger.ts:122   └─ coep: require-corp  ·  crossOriginIsolated: true  ·  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
+VM4 sandbox_bundle:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ VM4 sandbox_bundle:2
+logSecurityWarnings @ VM4 sandbox_bundle:2
+(anonymous) @ VM4 sandbox_bundle:2
+logger.ts:115 08:55:15.338 ✓ SUCCESS WebContainer WebContainer booted successfully 1.3s
+logger.ts:115 08:55:15.339 ✓ SUCCESS PreWarm WebContainer booted 1.4s
+logger.ts:115 08:55:15.339 ● INFO  PreWarm [booting] Environment ready
+logger.ts:115 08:55:15.339 ● INFO  PreWarm Installing 171 deps + 33 devDeps in 40 batches
+logger.ts:115 08:55:15.339 ● INFO  PreWarm [installing] Pre-installing 204 packages in 40 batches...
+logger.ts:115 08:55:16.896 · DEBUG FileSystem Wrote pre-warm vite.config.ts
+logger.ts:115 08:55:16.897 ● INFO  PreWarm [installing] Batch 1/40: Installing 6 new packages (6 total)...
+logger.ts:115 08:55:16.908 · DEBUG FileSystem Wrote batch-1 package.json
+logger.ts:122   └─ size: 335 bytes
+logger.ts:115 08:55:17.067 ● INFO  NPM batch-1: installing 6 packages
+logger.ts:122   └─ timeout: 300s  ·  stallTimeout: 180s
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.508a1324.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+logger.ts:114 09:00:17.754 ▲ WARN  PreWarm batch-1: npm install timed out after 300s, killing
+emit @ logger.ts:114
+warn @ logger.ts:139
+(anonymous) @ webcontainer.ts:566
+logger.ts:115 09:00:17.757 ● INFO  NPM \|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\
+logger.ts:113 09:00:17.759 ✖ ERROR PreWarm batch-1 failed
+emit @ logger.ts:113
+error @ logger.ts:143
+runBatchInstall @ webcontainer.ts:585
+logger.ts:122   └─ exitCode: -1  ·  npmTime: 300850ms  ·  output: [0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\[1G[0K|[1G[0K/[1G[0K-[1G[0K\
+logger.ts:114 09:00:17.760 ▲ WARN  PreWarm Batch 1 failed, retrying once...
+emit @ logger.ts:114
+warn @ logger.ts:139
+(anonymous) @ webcontainer.ts:661
+logger.ts:115 09:00:17.760 ● INFO  PreWarm [installing] Batch 1 failed, cleaning up and retrying...
+logger.ts:115 09:00:17.804 · DEBUG FileSystem Wrote batch-1-retry package.json
+logger.ts:122   └─ size: 335 bytes
+logger.ts:115 09:00:17.821 ● INFO  NPM batch-1-retry: installing 6 packages
+logger.ts:122   └─ timeout: 300s  ·  stallTimeout: 180s
