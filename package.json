@@ -8,7 +8,9 @@
     "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "build:electron": "tsx scripts/scripts/build-electron.ts",
+    "electron:dev": "npm run build:electron && cross-env NODE_ENV=development npx electron dist-electron/main.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -55,6 +57,8 @@
     "date-fns": "^3.6.0",
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "^0.7.0",
+    "electron": "^40.5.0",
+    "electron-builder": "^26.8.1",
     "embla-carousel-react": "^8.6.0",
     "express": "^5.0.1",
     "express-session": "^1.18.1",
@@ -64,7 +68,7 @@
     "memorystore": "^1.6.7",
     "nanoid": "^5.1.6",
     "next-themes": "^0.4.6",
-    "openai": "^6.21.0",
+    "openai": "^6.22.0",
     "p-limit": "^7.3.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
@@ -117,5 +121,33 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "main": "dist-electron/main.js",
+  "build": {
+    "appId": "com.autocoder.app",
+    "productName": "AutoCoder",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "electron/npm-cache/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "electron/npm-cache",
+        "to": "npm-cache"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }

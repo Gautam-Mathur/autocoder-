@@ -49,7 +49,11 @@ var electronAPI = {
   },
   getLogs: (count) => ipcRenderer.invoke("logger:getLogs", count),
   getLogFile: () => ipcRenderer.invoke("logger:getLogFile"),
-  setLogLevel: (level) => ipcRenderer.invoke("logger:setLevel", level)
+  setLogLevel: (level) => ipcRenderer.invoke("logger:setLevel", level),
+  npmCacheGetStats: () => ipcRenderer.invoke("npmCache:getStats"),
+  npmCacheHasPackage: (packageName) => ipcRenderer.invoke("npmCache:hasPackage", packageName),
+  npmCacheGetPath: () => ipcRenderer.invoke("npmCache:getCachePath"),
+  npmCacheIsReady: () => ipcRenderer.invoke("npmCache:isReady")
 };
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);
 //# sourceMappingURL=preload.js.map
