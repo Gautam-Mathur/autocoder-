@@ -66,6 +66,7 @@ const PREWARM_DEPS: Record<string, string> = {
   'zod-to-json-schema': '^3.22.0',
   'p-queue': '^8.0.1',
   'xstate': '^5.5.0',
+  'multer': '^1.4.5-lts.1',
 };
 
 const PREWARM_DEV_DEPS: Record<string, string> = {
@@ -82,7 +83,14 @@ const PREWARM_DEV_DEPS: Record<string, string> = {
   '@types/pg': '^8.10.9', '@types/passport': '^1.0.16',
   '@types/express-session': '^1.17.10', '@types/jsonwebtoken': '^9.0.5',
   '@types/react-beautiful-dnd': '^13.1.8',
+  '@types/multer': '^1.4.11',
   'vitest': '^1.3.0',
+  '@testing-library/react': '^14.2.0',
+  '@testing-library/jest-dom': '^6.4.0',
+  '@testing-library/user-event': '^14.5.0',
+  'jsdom': '^24.0.0',
+  'picomatch': '^4.0.2',
+  'fast-glob': '^3.3.2',
 };
 
 const SKIP_EXTENSIONS = new Set([

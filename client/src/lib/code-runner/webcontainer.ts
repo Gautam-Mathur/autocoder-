@@ -118,12 +118,20 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
       'zod-to-json-schema': '^3.22.0',
       'p-queue': '^8.0.1',
       'xstate': '^5.5.0',
+      'multer': '^1.4.5-lts.1',
     },
     devDeps: {
       '@types/pg': '^8.10.9', '@types/passport': '^1.0.16',
       '@types/express-session': '^1.17.10', '@types/jsonwebtoken': '^9.0.5',
       '@types/react-beautiful-dnd': '^13.1.8',
+      '@types/multer': '^1.4.11',
       'vitest': '^1.3.0',
+      '@testing-library/react': '^14.2.0',
+      '@testing-library/jest-dom': '^6.4.0',
+      '@testing-library/user-event': '^14.5.0',
+      'jsdom': '^24.0.0',
+      'picomatch': '^4.0.2',
+      'fast-glob': '^3.3.2',
     },
   },
 ];
@@ -919,6 +927,7 @@ export async function installDependencies(
   }
   
   let stallCount = 0;
+  let useNestedStrategy = false;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const baseArgs = [
@@ -932,6 +941,9 @@ export async function installDependencies(
       '--fetch-retries=2',
       '--fetch-timeout=30000'
     ];
+    if (useNestedStrategy) {
+      baseArgs.push('--install-strategy=nested', '--force');
+    }
     if (registryArg) baseArgs.push(registryArg);
     
     runnerLog.info('NPM', `Install attempt ${attempt}/${maxRetries}`, {
@@ -996,12 +1008,19 @@ export async function installDependencies(
         const rmPkgLock = await container.spawn('rm', ['-rf', 'node_modules/.package-lock.json']);
         await rmPkgLock.exit;
         
+        const isSnapshotLoaded = preWarmStatus === 'ready' && preWarmCompletedBatches >= PREWARM_BATCHES.length;
         if (attempt >= 2 || stallCount >= 2 || hasEnotempty) {
-          runnerLog.info('NPM', hasEnotempty ? 'ENOTEMPTY detected, removing node_modules for clean install' : 'Removing node_modules for clean install');
-          onOutput?.('🧹 Cleaning node_modules for fresh install...\n');
-          const rmModules = await container.spawn('rm', ['-rf', 'node_modules']);
-          await rmModules.exit;
-          await new Promise(r => setTimeout(r, 1000));
+          if (isSnapshotLoaded) {
+            runnerLog.info('NPM', 'ENOTEMPTY detected but snapshot is loaded — preserving node_modules, will retry with --install-strategy=nested');
+            onOutput?.('🔄 Retrying with isolated install strategy (preserving cached packages)...\n');
+            useNestedStrategy = true;
+          } else {
+            runnerLog.info('NPM', hasEnotempty ? 'ENOTEMPTY detected, removing node_modules for clean install' : 'Removing node_modules for clean install');
+            onOutput?.('🧹 Cleaning node_modules for fresh install...\n');
+            const rmModules = await container.spawn('rm', ['-rf', 'node_modules']);
+            await rmModules.exit;
+            await new Promise(r => setTimeout(r, 1000));
+          }
         }
 
         if (stallCount >= 2 && !registryArg) {
@@ -1141,7 +1160,7 @@ export async function runNpmInstall(
   ];
   
   if (noReconcile) {
-    args.push('--no-package-lock', '--legacy-peer-deps');
+    args.push('--no-package-lock', '--legacy-peer-deps', '--install-strategy=nested', '--force');
   }
   
   if (isDev) {

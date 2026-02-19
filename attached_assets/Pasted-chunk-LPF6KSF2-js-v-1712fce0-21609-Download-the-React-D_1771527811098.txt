@@ -1,0 +1,853 @@
+chunk-LPF6KSF2.js?v=1712fce0:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+logger.ts:175 ── PRE-WARM START ──────────────────────────────
+logger.ts:115 00:21:43.444 ● INFO  PreWarm [booting] Starting WebContainer environment...
+logger.ts:115 00:21:43.444 ● INFO  WebContainer Booting WebContainer...
+logger.ts:122   └─ coep: require-corp  ·  crossOriginIsolated: true  ·  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
+VM4 sandbox_bundle:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ VM4 sandbox_bundle:2
+logSecurityWarnings @ VM4 sandbox_bundle:2
+(anonymous) @ VM4 sandbox_bundle:2
+logger.ts:115 00:21:44.581 ✓ SUCCESS WebContainer WebContainer booted successfully 1.1s
+logger.ts:115 00:21:44.582 ✓ SUCCESS PreWarm WebContainer booted 1.1s
+logger.ts:115 00:21:44.582 ● INFO  PreWarm [booting] Environment ready
+logger.ts:115 00:21:44.582 ● INFO  PreWarm Trying snapshot from http://localhost:5200/cache/prewarm-snapshot.json.gz...
+logger.ts:115 00:21:44.582 ● INFO  PreWarm [installing] Downloading package cache...
+logger.ts:115 00:21:44.704 ● INFO  PreWarm Downloaded snapshot: 24.5 MB compressed
+logger.ts:115 00:21:44.704 ● INFO  PreWarm [installing] Package cache downloaded (24.5 MB), extracting...
+logger.ts:115 00:21:45.406 ● INFO  PreWarm Decompressed: 121.4 MB
+logger.ts:115 00:21:45.406 ● INFO  PreWarm [installing] Mounting packages into environment...
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.508a1324.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+logger.ts:115 00:21:55.724 ✓ SUCCESS PreWarm Snapshot mounted 9.9s
+logger.ts:115 00:21:55.733 · DEBUG FileSystem Wrote vite.config.ts after snapshot mount
+logger.ts:115 00:21:55.733 ✓ SUCCESS PreWarm Snapshot loaded! All 140 packages ready (no npm needed) 12.3s
+logger.ts:122   └─ totalTime: 12289ms
+logger.ts:175 ── PRE-WARM DONE (SNAPSHOT) ────────────────────
+logger.ts:115 00:21:55.733 ● INFO  PreWarm [ready] All 140 packages loaded from cache — 100%
+logger.ts:115 00:22:23.319 ● INFO  FileSystem Mounting 48 files...
+logger.ts:115 00:22:23.378 ✓ SUCCESS FileSystem Mounted 48 files 59ms
+logger.ts:175 ── NPM INSTALL ─────────────────────────────────
+logger.ts:115 00:22:23.379 ● INFO  NPM Checking npm registry connectivity...
+logger.ts:115 00:22:24.994 ✓ SUCCESS NPM Registry reachable (npmjs.org) 1.6s
+logger.ts:115 00:22:24.994 ● INFO  NPM Install attempt 1/3
+logger.ts:122   └─ timeout: 300s  ·  stallTimeout: 45s  ·  flags: --prefer-offline --no-audit --no-fund --omit=optional --legacy-peer-deps --loglevel=http --fetch-retries=2 --fetch-timeout=30000
+logger.ts:115 00:22:30.307 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 00:22:30.994 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 00:22:36.966 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:175 ── AUTO-RUN: src [run-1771527158871-cjy2] ──────
+logger.ts:115 00:22:38.871 ✓ SUCCESS AutoRunner WebContainer support confirmed
+logger.ts:115 00:22:38.872 ● INFO  Pipeline Project analysis complete
+logger.ts:122   └─ type: vite  ·  typescript: true  ·  entryFile: default  ·  devCommand: npm run dev  ·  totalFiles: 48
+logger.ts:115 00:22:38.875 ✓ SUCCESS Pipeline Enhanced package.json: 39 deps, 16 devDeps
+logger.ts:114 00:22:38.876 ▲ WARN  Pipeline Installing 55 packages - this may take longer than usual
+emit @ logger.ts:114
+warn @ logger.ts:139
+runPipeline @ auto-runner.ts:531
+autoRunProject @ auto-runner.ts:983
+(anonymous) @ auto-run-preview.tsx:323
+(anonymous) @ auto-run-preview.tsx:364
+commitHookEffectListMount @ chunk-LPF6KSF2.js?v=1712fce0:16963
+commitPassiveMountOnFiber @ chunk-LPF6KSF2.js?v=1712fce0:18206
+commitPassiveMountEffects_complete @ chunk-LPF6KSF2.js?v=1712fce0:18179
+commitPassiveMountEffects_begin @ chunk-LPF6KSF2.js?v=1712fce0:18169
+commitPassiveMountEffects @ chunk-LPF6KSF2.js?v=1712fce0:18159
+flushPassiveEffectsImpl @ chunk-LPF6KSF2.js?v=1712fce0:19543
+flushPassiveEffects @ chunk-LPF6KSF2.js?v=1712fce0:19500
+commitRootImpl @ chunk-LPF6KSF2.js?v=1712fce0:19469
+commitRoot @ chunk-LPF6KSF2.js?v=1712fce0:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=1712fce0:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=1712fce0:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=1712fce0:18677
+logger.ts:115 00:22:38.876 ● INFO  Pipeline Tailwind CSS detected, adding config files
+logger.ts:175 ── MOUNTING FILES ──────────────────────────────
+logger.ts:115 00:22:38.876 ● INFO  Pipeline Mounting 49 project files
+logger.ts:115 00:22:38.877 ● INFO  FileSystem Mounting 48 files...
+logger.ts:115 00:22:38.909 ✓ SUCCESS FileSystem Mounted 48 files 32ms
+logger.ts:115 00:22:38.919 · DEBUG FileSystem Wrote file: package.json
+logger.ts:122   └─ size: 2087 bytes
+logger.ts:115 00:22:38.927 · DEBUG FileSystem Read file: package.json
+logger.ts:122   └─ size: 2087 bytes
+logger.ts:175 ── DEPENDENCY INSTALL ──────────────────────────
+logger.ts:115 00:22:38.928 ● INFO  Cache package.json hash changed: (none) → pph0k3
+logger.ts:115 00:22:38.940 · DEBUG FileSystem node_modules check: 547 entries found
+logger.ts:115 00:22:38.940 ● INFO  Pipeline Dependency install decision
+logger.ts:122   └─ hasExistingModules: true  ·  pkgChanged: true  ·  forceInstall: false  ·  useBatchedInstall: false  ·  isPreWarmed: true  ·  preWarmStatus: ready  ·  decision: PRE-WARM (install extras only)
+logger.ts:115 00:22:38.941 ● INFO  Pipeline Using pre-warmed packages, checking for extras...
+logger.ts:115 00:22:38.941 ● INFO  Pipeline Pre-warm diff: 1 extra deps, 2 extra devDeps
+logger.ts:122   └─ extraDeps: multer  ·  extraDevDeps: @testing-library/jest-dom, @testing-library/react  ·  cachedDeps: 115  ·  cachedDevDeps: 25
+logger.ts:115 00:22:38.941 ● INFO  NPM Installing 1 dependency packages: multer (no-reconcile)
+logger.ts:115 00:22:42.532 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 00:22:43.625 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 00:22:43.834 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 00:22:44.568 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 00:22:45.192 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 00:22:45.308 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 00:22:46.281 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 00:22:47.241 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 00:22:48.115 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 00:22:50.291 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 00:22:50.297 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 00:22:50.628 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 00:22:50.774 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 00:22:50.917 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 00:22:51.110 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 00:22:51.358 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 00:22:51.704 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 00:22:52.448 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 00:22:52.862 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 00:22:54.447 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 00:22:54.477 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 00:22:55.415 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 00:22:56.842 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:113 00:22:57.734 ✖ ERROR NPM /-\|npm error code ENOTEMPTY
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:22:57.737 ✖ ERROR NPM |npm error syscall rename
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:22:57.742 ✖ ERROR NPM |npm error path /home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/assertion-error
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:22:57.745 ✖ ERROR NPM |npm error dest /home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/.assertion-error-aaiJzO90
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:22:57.746 ✖ ERROR NPM |npm error errno -39
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:22:57.747 ✖ ERROR NPM |npm error ENOTEMPTY: directory not empty, rename '/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/assertion-error' -> '/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/.assertion-error-aaiJzO90'
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:22:57.751 ✖ ERROR NPM |npm error A complete log of this run can be found in: /home/.npm/_logs/2026-02-19T18_52_25_717Z-debug-0.log
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:115 00:22:57.764 ● INFO  NPM |jsh: spawn npm ENOTEMPTY
+logger.ts:114 00:22:57.766 ▲ WARN  NPM Attempt 1 failed
+emit @ logger.ts:114
+warn @ logger.ts:139
+installDependencies @ webcontainer.ts:978
+logger.ts:122   └─ exitCode: 1  ·  stalledOut: false  ·  attemptTime: 32772ms  ·  reason: ENOTEMPTY (directory conflict)
+logger.ts:115 00:22:57.766 ● INFO  NPM Retrying in 2s (cleaning up first)...
+logger.ts:115 00:22:57.767 ● INFO  NPM Cleaning npm cache/locks before retry...
+logger.ts:115 00:22:58.633 ● INFO  NPM ENOTEMPTY detected, removing node_modules for clean install
+logger.ts:113 00:23:01.737 ✖ ERROR NPM /-\|/-\|/-\|/-\|/-\|/-\|/-\|npm error code EIO
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:1179
+logger.ts:113 00:23:01.746 ✖ ERROR NPM |npm error EIO: failed to link packages
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:1179
+logger.ts:113 00:23:01.749 ✖ ERROR NPM |npm error A complete log of this run can be found in: /home/.npm/_logs/2026-02-19T18_52_39_688Z-debug-0.log
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:1179
+logger.ts:113 00:23:01.758 ✖ ERROR NPM Failed to install dependency packages
+emit @ logger.ts:113
+error @ logger.ts:143
+(anonymous) @ webcontainer.ts:1196
+logger.ts:122   └─ packages: multer  ·  exitCode: 1  ·  lastOutput: [1G[0K
+logger.ts:114 00:23:01.758 ▲ WARN  Pipeline Some extra dependency packages failed
+emit @ logger.ts:114
+warn @ logger.ts:139
+runPipeline @ auto-runner.ts:781
+logger.ts:115 00:23:01.758 ● INFO  NPM Installing 2 devDependency packages: @testing-library/jest-dom, @testing-library/react (no-reconcile)
+logger.ts:115 00:23:03.542 ● INFO  NPM Install attempt 2/3
+logger.ts:122   └─ timeout: 300s  ·  stallTimeout: 45s  ·  flags: --prefer-offline --no-audit --no-fund --omit=optional --legacy-peer-deps --loglevel=http --fetch-retries=2 --fetch-timeout=30000
+logger.ts:115 00:23:03.991 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 00:23:04.143 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 00:23:04.629 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 00:23:05.285 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 00:23:05.410 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 00:23:05.476 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 00:23:08.344 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 00:23:08.348 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 00:23:14.213 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 00:23:14.219 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 00:23:22.809 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 00:23:22.815 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 00:23:27.171 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 00:23:27.207 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 00:23:28.503 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 00:23:28.518 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 00:23:29.870 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 00:23:29.897 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 00:23:29.927 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 00:23:31.354 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 00:23:31.368 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 00:23:32.247 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 00:23:32.258 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 00:23:33.382 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 00:23:33.408 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 00:23:33.610 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 00:23:33.628 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 00:23:33.867 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 00:23:33.881 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 00:23:34.071 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 00:23:34.105 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 00:23:34.399 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 00:23:34.410 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 00:23:34.665 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 00:23:34.683 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 00:23:37.996 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 00:23:38.002 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 00:23:38.484 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:115 00:23:38.485 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:115 00:23:39.274 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 00:23:39.283 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 00:23:40.378 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 00:23:40.388 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 00:23:40.389 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 00:23:40.392 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 00:23:40.412 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 00:23:40.425 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 00:23:43.925 ● INFO  NPM 📦 190 packages downloaded...
+logger.ts:115 00:23:43.990 ● INFO  NPM 📦 190 packages downloaded...
+logger.ts:115 00:23:46.075 ● INFO  NPM 📦 200 packages downloaded...
+logger.ts:115 00:23:46.076 ● INFO  NPM 📦 200 packages downloaded...
+logger.ts:115 00:23:48.797 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:115 00:23:48.805 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:115 00:23:50.968 ● INFO  NPM 📦 220 packages downloaded...
+logger.ts:115 00:23:50.968 ● INFO  NPM 📦 220 packages downloaded...
+logger.ts:115 00:23:54.541 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 00:23:54.543 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 00:23:57.566 ● INFO  NPM 📦 240 packages downloaded...
+logger.ts:115 00:23:57.568 ● INFO  NPM 📦 240 packages downloaded...
+logger.ts:115 00:24:00.685 ● INFO  NPM 📦 250 packages downloaded...
+logger.ts:115 00:24:00.688 ● INFO  NPM 📦 250 packages downloaded...
+logger.ts:115 00:24:06.426 ● INFO  NPM 📦 260 packages downloaded...
+logger.ts:115 00:24:06.436 ● INFO  NPM 📦 260 packages downloaded...
+logger.ts:115 00:24:11.535 ● INFO  NPM 📦 270 packages downloaded...
+logger.ts:115 00:24:11.545 ● INFO  NPM 📦 270 packages downloaded...
+logger.ts:115 00:24:11.808 ● INFO  NPM 📦 280 packages downloaded...
+logger.ts:115 00:24:11.813 ● INFO  NPM 📦 280 packages downloaded...
+logger.ts:113 00:24:12.467 ✖ ERROR NPM |/npm error code EEXIST
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:24:12.468 ✖ ERROR NPM /npm error syscall open
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:24:12.471 ✖ ERROR NPM /npm error path /home/.npm/_cacache/index-v5/89/59/a033c0dc23d96c8c3c80ebc07d2acaaf0be5d85bd65b1da92f1c3c461bc3
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:24:12.473 ✖ ERROR NPM /npm error errno EEXIST
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:24:12.476 ✖ ERROR NPM /npm error Invalid response body while trying to fetch https://registry.npmjs.org/any-promise: EEXIST: file already exists, open '/home/.npm/_cacache/index-v5/89/59/a033c0dc23d96c8c3c80ebc07d2acaaf0be5d85bd65b1da92f1c3c461bc3'
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:24:12.478 ✖ ERROR NPM /npm error File exists: /home/.npm/_cacache/index-v5/89/59/a033c0dc23d96c8c3c80ebc07d2acaaf0be5d85bd65b1da92f1c3c461bc3
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:24:12.479 ✖ ERROR NPM /npm error Remove the existing file and try again, or run npm
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:24:12.481 ✖ ERROR NPM /npm error with --force to overwrite files recklessly.
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:113 00:24:12.484 ✖ ERROR NPM /npm error A complete log of this run can be found in: /home/.npm/_logs/2026-02-19T18_53_04_254Z-debug-0.log
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:230
+logger.ts:114 00:24:12.489 ▲ WARN  NPM Attempt 2 failed
+emit @ logger.ts:114
+warn @ logger.ts:139
+installDependencies @ webcontainer.ts:978
+logger.ts:122   └─ exitCode: 1  ·  stalledOut: false  ·  attemptTime: 68947ms  ·  reason: exit code 1
+logger.ts:115 00:24:12.490 ● INFO  NPM Retrying in 4s (cleaning up first)...
+logger.ts:115 00:24:12.490 ● INFO  NPM Cleaning npm cache/locks before retry...
+logger.ts:114 00:24:12.777 ▲ WARN  NPM |/-npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:1179
+logger.ts:114 00:24:12.783 ▲ WARN  NPM \npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:1179
+logger.ts:115 00:24:13.336 ● INFO  NPM Removing node_modules for clean install
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+filesystem-worker.508a1324.js:1 [FS] [ERROR] invalid mount point
+(anonymous) @ filesystem-worker.508a1324.js:1
+(anonymous) @ filesystem-worker.508a1324.js:1
+_0x1cb951 @ filesystem-worker.508a1324.js:1
+_0x386d6a.<computed>.__wbg_call_19a1f2e9486eaf15 @ filesystem-worker.508a1324.js:1
+$func820 @ fs_bg.508a1324.wasm:0x57422
+$func729 @ fs_bg.508a1324.wasm:0x54674
+$func120 @ fs_bg.508a1324.wasm:0x14c34
+$loadFiles @ fs_bg.508a1324.wasm:0x65c5a
+_0x3fdb7a @ filesystem-worker.508a1324.js:1
+linkPackages @ filesystem-worker.508a1324.js:1
+_0x5586f2 @ filesystem-worker.508a1324.js:1
+logger.ts:113 00:24:15.292 ✖ ERROR NPM \|/-\|/-\|/-\|/-\|/npm error code EIO
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:1179
+logger.ts:113 00:24:15.300 ✖ ERROR NPM /npm error EIO: failed to link packages
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:1179
+logger.ts:113 00:24:15.302 ✖ ERROR NPM /npm error A complete log of this run can be found in: /home/.npm/_logs/2026-02-19T18_53_02_420Z-debug-0.log
+emit @ logger.ts:113
+error @ logger.ts:143
+emitLine @ logger.ts:244
+feed @ logger.ts:276
+write @ webcontainer.ts:1179
+logger.ts:113 00:24:15.310 ✖ ERROR NPM Failed to install devDependency packages
+emit @ logger.ts:113
+error @ logger.ts:143
+(anonymous) @ webcontainer.ts:1196
+logger.ts:122   └─ packages: @testing-library/jest-dom, @testing-library/react  ·  exitCode: 1  ·  lastOutput: [1G[0K
+logger.ts:114 00:24:15.311 ▲ WARN  Pipeline Some extra devDependency packages failed
+emit @ logger.ts:114
+warn @ logger.ts:139
+runPipeline @ auto-runner.ts:788
+logger.ts:115 00:24:15.325 ✓ SUCCESS Pipeline Extra packages installed
+logger.ts:175 ── PRE-FLIGHT CHECK ────────────────────────────
+logger.ts:115 00:24:15.335 · DEBUG PreFlight src/components/ui/toaster.tsx: all exports present, OK
+logger.ts:115 00:24:15.335 · DEBUG PreFlight src/hooks/use-toast.ts: all exports present, OK
+logger.ts:115 00:24:15.335 ✓ SUCCESS PreFlight All critical files verified OK
+logger.ts:175 ── DEV SERVER ──────────────────────────────────
+logger.ts:115 00:24:15.336 ● INFO  Pipeline Starting dev server...
+logger.ts:175 ── DEV SERVER START ────────────────────────────
+logger.ts:115 00:24:15.336 ● INFO  DevServer Starting development server (npm run dev)...
+logger.ts:115 00:24:15.357 · DEBUG DevServer Dev server process spawned
+logger.ts:115 00:24:16.073 · DEBUG DevServer > dineops@1.0.0 dev
+> vite
+logger.ts:115 00:24:16.081 · DEBUG DevServer [1G
+logger.ts:115 00:24:16.161 · DEBUG DevServer [0K
+logger.ts:115 00:24:16.530 · DEBUG DevServer jsh: command not found: vite
+logger.ts:115 00:24:16.539 · DEBUG DevServer [1G
+logger.ts:115 00:24:16.549 · DEBUG DevServer [0K
+logger.ts:115 00:24:16.549 · DEBUG DevServer \
+logger.ts:115 00:24:16.558 · DEBUG DevServer [1G
+logger.ts:115 00:24:16.559 · DEBUG DevServer [0K
+logger.ts:115 00:24:16.560 ● INFO  DevServer Dev server process exited with code 127
+logger.ts:115 00:24:19.533 ● INFO  NPM Install attempt 3/3
+logger.ts:122   └─ timeout: 300s  ·  stallTimeout: 45s  ·  flags: --prefer-offline --no-audit --no-fund --omit=optional --legacy-peer-deps --loglevel=http --fetch-retries=2 --fetch-timeout=30000
+logger.ts:115 00:24:24.446 ● INFO  NPM 📦 1 packages downloaded...
+logger.ts:115 00:24:28.087 ● INFO  NPM 📦 2 packages downloaded...
+logger.ts:115 00:24:28.325 ● INFO  NPM 📦 3 packages downloaded...
+logger.ts:115 00:24:31.905 ● INFO  NPM 📦 10 packages downloaded...
+logger.ts:115 00:24:36.960 ● INFO  NPM 📦 20 packages downloaded...
+logger.ts:115 00:24:37.511 ● INFO  NPM 📦 30 packages downloaded...
+logger.ts:115 00:24:43.487 ● INFO  NPM 📦 40 packages downloaded...
+logger.ts:115 00:25:00.808 ● INFO  NPM 📦 50 packages downloaded...
+logger.ts:115 00:25:01.506 ● INFO  NPM 📦 60 packages downloaded...
+logger.ts:115 00:25:01.751 ● INFO  NPM 📦 70 packages downloaded...
+logger.ts:115 00:25:02.162 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 00:25:02.189 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 00:25:02.215 ● INFO  NPM 📦 80 packages downloaded...
+logger.ts:115 00:25:02.622 ● INFO  NPM 📦 90 packages downloaded...
+logger.ts:115 00:25:02.881 ● INFO  NPM 📦 100 packages downloaded...
+logger.ts:115 00:25:03.950 ● INFO  NPM 📦 110 packages downloaded...
+logger.ts:115 00:25:05.159 ● INFO  NPM 📦 120 packages downloaded...
+logger.ts:115 00:25:05.333 ● INFO  NPM 📦 130 packages downloaded...
+logger.ts:115 00:25:05.516 ● INFO  NPM 📦 140 packages downloaded...
+logger.ts:115 00:25:05.968 ● INFO  NPM 📦 150 packages downloaded...
+logger.ts:115 00:25:06.613 ● INFO  NPM 📦 160 packages downloaded...
+logger.ts:115 00:25:06.972 ● INFO  NPM 📦 170 packages downloaded...
+logger.ts:115 00:25:07.843 ● INFO  NPM 📦 180 packages downloaded...
+logger.ts:115 00:25:13.454 ● INFO  NPM 📦 190 packages downloaded...
+logger.ts:115 00:25:17.362 ● INFO  NPM 📦 200 packages downloaded...
+logger.ts:115 00:25:17.840 ● INFO  NPM 📦 210 packages downloaded...
+logger.ts:115 00:25:18.385 ● INFO  NPM 📦 220 packages downloaded...
+logger.ts:115 00:25:20.190 ● INFO  NPM 📦 230 packages downloaded...
+logger.ts:115 00:26:12.115 ● INFO  NPM 📦 240 packages downloaded...
+logger.ts:115 00:26:12.574 ● INFO  NPM 📦 250 packages downloaded...
+logger.ts:115 00:26:12.657 ● INFO  NPM 📦 260 packages downloaded...
+logger.ts:115 00:26:14.043 ● INFO  NPM 📦 270 packages downloaded...
+logger.ts:115 00:26:14.503 ● INFO  NPM 📦 280 packages downloaded...
+logger.ts:115 00:26:15.632 ● INFO  NPM 📦 290 packages downloaded...
+logger.ts:115 00:26:28.716 ● INFO  NPM 📦 300 packages downloaded...
+logger.ts:115 00:26:29.700 ● INFO  NPM 📦 310 packages downloaded...
+logger.ts:115 00:26:31.703 ● INFO  NPM 📦 320 packages downloaded...
+logger.ts:115 00:26:33.439 ● INFO  NPM 📦 330 packages downloaded...
+logger.ts:115 00:26:34.474 ● INFO  NPM 📦 340 packages downloaded...
+logger.ts:115 00:26:34.679 ● INFO  NPM 📦 350 packages downloaded...
+logger.ts:115 00:26:37.057 ● INFO  NPM 📦 360 packages downloaded...
+logger.ts:115 00:26:38.060 ● INFO  NPM 📦 370 packages downloaded...
+logger.ts:115 00:26:38.063 ● INFO  NPM 📦 370 packages downloaded...
+logger.ts:115 00:26:40.553 ● INFO  NPM 📦 380 packages downloaded...
+logger.ts:115 00:26:44.291 ● INFO  NPM 📦 390 packages downloaded...
+logger.ts:115 00:26:48.116 ● INFO  NPM 📦 400 packages downloaded...
+logger.ts:115 00:26:50.103 ● INFO  NPM 📦 410 packages downloaded...
+logger.ts:115 00:26:50.777 ● INFO  NPM 📦 420 packages downloaded...
+logger.ts:115 00:26:50.956 ● INFO  NPM 📦 430 packages downloaded...
+logger.ts:115 00:26:51.280 ● INFO  NPM 📦 440 packages downloaded...
+logger.ts:115 00:26:51.290 ● INFO  NPM 📦 440 packages downloaded...
+logger.ts:114 00:26:52.622 ▲ WARN  NPM -\|npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:230
+logger.ts:114 00:26:52.623 ▲ WARN  NPM /npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+emit @ logger.ts:114
+warn @ logger.ts:139
+emitLine @ logger.ts:243
+feed @ logger.ts:274
+write @ webcontainer.ts:230
+logger.ts:115 00:26:58.863 ● INFO  NPM /-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\
+logger.ts:115 00:26:58.863 ✓ SUCCESS NPM added 468 packages, and changed 1 package in 3m
+logger.ts:115 00:26:58.875 ✓ SUCCESS NPM Dependencies installed successfully on attempt 3 4m35s
+logger.ts:122   └─ attemptTime: 159341ms  ·  totalTime: 275495ms
+logger.ts:175 ── NPM INSTALL DONE ────────────────────────────
+logger.ts:175 ── DEV SERVER START ────────────────────────────
+logger.ts:115 00:26:58.876 ● INFO  DevServer Starting development server (npm run dev)...
+logger.ts:115 00:26:58.890 · DEBUG DevServer Dev server process spawned
+logger.ts:115 00:26:59.631 · DEBUG DevServer > dineops@1.0.0 dev
+> vite
+logger.ts:115 00:26:59.632 · DEBUG DevServer [1G
+logger.ts:115 00:26:59.633 · DEBUG DevServer [0K
+logger.ts:115 00:27:03.367 · DEBUG DevServer [1;1H
+logger.ts:115 00:27:03.367 · DEBUG DevServer [0J
+logger.ts:115 00:27:03.368 ✓ SUCCESS DevServer VITE v5.4.21  ready in 3078 ms
+logger.ts:115 00:27:03.368 ✓ SUCCESS DevServer ➜  Local:   http://localhost:5200/
+logger.ts:115 00:27:03.369 · DEBUG DevServer ➜  Network: http://192.168.1.104:5200/
+logger.ts:115 00:27:03.369 · DEBUG DevServer   ➜  press h + enter to show help
+logger.ts:115 00:27:03.375 ✓ SUCCESS DevServer Server ready at https://yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw--5200--508a1324.local-corp.webcontainer-api.io (port 5200) 4.5s
+logger.ts:122   └─ port: 5200  ·  url: https://yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw--5200--508a1324.local-corp.webcontainer-api.io
+logger.ts:175 ── DEV SERVER READY ────────────────────────────
+logger.ts:115 00:27:03.376 ✓ SUCCESS AutoRunner Project "src" running at https://yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw--5200--508a1324.local-corp.webcontainer-api.io 4m25s
+logger.ts:122   └─ totalTime: 264504ms  ·  totalFiles: 48  ·  projectType: vite  ·  url: https://yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw--5200--508a1324.local-corp.webcontainer-api.io
+logger.ts:175 ── AUTO-RUN COMPLETE ───────────────────────────
+logger.ts:115 00:27:03.376 ✓ SUCCESS DevServer Server ready at https://yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw--5200--508a1324.local-corp.webcontainer-api.io (port 5200) <1ms
+logger.ts:122   └─ port: 5200  ·  url: https://yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw--5200--508a1324.local-corp.webcontainer-api.io
+logger.ts:175 ── DEV SERVER READY ────────────────────────────
+logger.ts:113 00:27:05.315 ✖ ERROR DevServer 12:27:05 AM [vite] Pre-transform error: /home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/src/App.tsx: Expected corresponding JSX closing tag for <meta>. (86:10)
+
+  84 |               {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+  85 |             </Button>
+> 86 |           </header>
+     |           ^
+  87 |           <main className="flex-1 overflow-y-auto">
+  88 |             <Router />
+  89 |           </main>
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:1288
+logger.ts:113 00:27:06.026 ✖ ERROR DevServer 12:27:06 AM [vite] Pre-transform error: [postcss] /home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/src/index.css:1:1: The `border-border` class does not exist. If `border-border` is a custom class, make sure it is defined within a `@layer` directive.
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:1288
+logger.ts:113 00:27:06.073 ✖ ERROR DevServer Error:   Failed to scan for dependencies from entries:
+  /home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/index.html
+
+  ✘ [ERROR] Unexpected closing "header" tag does not match opening "meta" tag
+
+    src/App.tsx:86:12:
+      86 │           </header>
+         │             ~~~~~~
+         ╵             meta
+
+  The opening "meta" tag is here:
+
+    src/App.tsx:82:5:
+      82 │     <meta name="viewport" content="width=device-width, initial-sca...
+         ╵      ~~~~
+
+
+✘ [ERROR] Unexpected closing "div" tag does not match opening "meta" tag
+
+    src/App.tsx:90:10:
+      90 │         </div>
+         │           ~~~
+         ╵           meta
+
+  The opening "meta" tag is here:
+
+    src/App.tsx:81:5:
+      81 │     <meta charset="UTF-8">
+         ╵      ~~~~
+
+
+✘ [ERROR] Unexpected closing "div" tag does not match opening "header" tag
+
+    src/App.tsx:91:8:
+      91 │       </div>
+         │         ~~~
+         ╵         header
+
+  The opening "header" tag is here:
+
+    src/App.tsx:80:11:
+      80 │           <header className="flex items-center gap-2 p-2 border-b">
+         ╵            ~~~~~~
+
+
+✘ [ERROR] Unexpected closing "QueryClientProvider" tag does not match opening "div" tag
+
+    src/App.tsx:93:6:
+      93 │     </QueryClientProvider>
+         │       ~~~~~~~~~~~~~~~~~~~
+         ╵       div
+
+  The opening "div" tag is here:
+
+    src/App.tsx:79:9:
+      79 │         <div className="flex flex-col flex-1 overflow-hidden">
+         ╵          ~~~
+
+
+✘ [ERROR] The character "}" is not valid inside a JSX element
+
+    src/App.tsx:95:0:
+      95 │ }
+         │ ^
+         ╵ {'}'}
+
+  Did you mean to escape it as "{'}'}" instead?
+
+
+✘ [ERROR] Unexpected end of file before a closing "div" tag
+
+    src/App.tsx:96:0:
+      96 │ 
+         │ ^
+         ╵ </div>
+
+  The opening "div" tag is here:
+
+    src/App.tsx:70:7:
+      70 │       <div className="flex h-screen w-full">
+         ╵        ~~~
+
+
+    at failureErrorWithLog (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/node_modules/esbuild/lib/main.js:1462:15)
+    at eval (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/node_modules/esbuild/lib/main.js:935:25)
+    at runOnEndCallbacks (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/node_modules/esbuild/lib/main.js:1305:45)
+    at buildResponseToResult (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/node_modules/esbuild/lib/main.js:933:7)
+    at eval (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/node_modules/esbuild/lib/main.js:945:9)
+    at requestCallbacks.on-end (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/node_modules/esbuild/lib/main.js:944:54)
+    at handleRequest (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/node_modules/esbuild/lib/main.js:637:17)
+    at handleIncomingPacket (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/node_modules/esbuild/lib/main.js:662:7)
+    at Socket.readFromStdout (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/node_modules/esbuild/lib/main.js:590:7)
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:1288
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.508a1324.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+logger.ts:115 00:27:08.219 · DEBUG DevServer [1;1H
+logger.ts:115 00:27:08.220 · DEBUG DevServer [0J
+logger.ts:113 00:27:08.220 ✖ ERROR DevServer 12:27:08 AM [vite] Internal server error: /home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/src/App.tsx: Expected corresponding JSX closing tag for <meta>. (86:10)
+
+  84 |               {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+  85 |             </Button>
+> 86 |           </header>
+     |           ^
+  87 |           <main className="flex-1 overflow-y-auto">
+  88 |             <Router />
+  89 |           </main>
+  Plugin: vite:react-babel
+  File: /home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/src/App.tsx:86:10
+  84 |                {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+  85 |              </Button>
+  86 |            </header>
+     |            ^
+  87 |            <main className="flex-1 overflow-y-auto">
+  88 |              <Router />
+      at constructor (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/@babel/parser/lib/index.js#cjs:365:19)
+      at TypeScriptParserMixin.raise (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/@babel/parser/lib/index.js#cjs:6599:19)
+      at TypeScriptParserMixin.jsxParseElementAt (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/@babel/parser/lib/index.js#cjs:4727:16)
+      at TypeScriptParserMixin.jsxParseElementAt (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/@babel/parser/lib/index.js#cjs:4698:32)
+      at TypeScriptParserMixin.jsxParseElementAt (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/@babel/parser/lib/index.js#cjs:4698:32)
+      at TypeScriptParserMixin.jsxParseElementAt (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/@babel/parser/lib/index.js#cjs:4698:32)
+      at TypeScriptParserMixin.jsxParseElementAt (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/@babel/parser/lib/index.js#cjs:4698:32)
+      at TypeScriptParserMixin.jsxParseElementAt (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/@babel/parser/lib/index.js#cjs:4698:32)
+      at TypeScriptParserMixin.jsxParseElement (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/@babel/parser/lib/index.js#cjs:4749:17)
+      at TypeScriptParserMixin.parseExprAtom (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/@babel/parser/lib/index.js#cjs:4759:19)
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:1288
+main.tsx:3  GET https://yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw--5200--508a1324.local-corp.webcontainer-api.io/src/App.tsx net::ERR_ABORTED 500 (Internal Server Error)
+logger.ts:115 00:27:08.255 · DEBUG DevServer [1;1H
+logger.ts:115 00:27:08.256 · DEBUG DevServer [0J
+logger.ts:113 00:27:08.256 ✖ ERROR DevServer 12:27:08 AM [vite] Internal server error: [postcss] /home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/src/index.css:1:1: The `border-border` class does not exist. If `border-border` is a custom class, make sure it is defined within a `@layer` directive.
+  Plugin: vite:css
+  File: /home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/src/index.css:1:0
+  1  |  @tailwind base;
+     |  ^
+  2  |  @tailwind components;
+  3  |  @tailwind utilities;
+      at Input.error (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/postcss/lib/input.js:135:16)
+      at AtRule.error (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/postcss/lib/node.js:146:32)
+      at processApply (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/tailwindcss/lib/lib/expandApplyAtRules.js:380:29)
+      at eval (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/tailwindcss/lib/lib/expandApplyAtRules.js:551:9)
+      at eval (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/tailwindcss/lib/processTailwindFeatures.js:55:50)
+      at async plugins (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/tailwindcss/lib/plugin.js:38:17)
+      at async LazyResult.runAsync (/home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/postcss/lib/lazy-result.js:293:11)
+      at async compileCSS (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36948:21)
+      at async TransformPluginContext.transform (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:36221:11)
+      at async PluginContainer.transform (file:///home/yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49149:18)
+emit @ logger.ts:113
+error @ logger.ts:143
+write @ webcontainer.ts:1288
+main.tsx:4  GET https://yiz47zwe1ku8hfvhqeeyzse3ksh8j8-kygw--5200--508a1324.local-corp.webcontainer-api.io/src/index.css net::ERR_ABORTED 500 (Internal Server Error)

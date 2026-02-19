@@ -193,6 +193,7 @@ export function detectDependencies(code: string, useTypeScript: boolean = false)
   if (code.includes('express')) deps['express'] = '^4.18.2';
   if (code.includes('cors')) deps['cors'] = '^2.8.5';
   if (code.includes('body-parser')) deps['body-parser'] = '^1.20.0';
+  if (code.includes('multer')) deps['multer'] = '^1.4.5-lts.1';
   if (code.includes('jsonwebtoken') || code.includes('jwt.')) deps['jsonwebtoken'] = '^9.0.0';
   if (code.includes('bcrypt')) deps['bcryptjs'] = '^2.4.3';
   if (code.includes('uuid')) deps['uuid'] = '^9.0.0';
