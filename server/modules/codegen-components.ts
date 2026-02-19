@@ -149,56 +149,45 @@ export function getUseToastHook(): ComponentTemplate {
     path: 'src/hooks/use-toast.ts',
     language: 'typescript',
     deps: emptyDeps(),
-    content: `import { useState, useCallback, useEffect } from "react";
-
-type ToastVariant = "default" | "destructive" | "success";
+    content: `// @generated
+import { useState, useCallback } from "react";
 
 interface Toast {
   id: string;
   title?: string;
   description?: string;
-  variant?: ToastVariant;
+  variant?: "default" | "destructive";
 }
 
 let toastCount = 0;
-let listeners: Array<(toasts: Toast[]) => void> = [];
-let memoryToasts: Toast[] = [];
+let globalToasts: Toast[] = [];
+let listeners: Array<() => void> = [];
 
-function dispatch(toasts: Toast[]) {
-  memoryToasts = toasts;
-  listeners.forEach((l) => l(toasts));
+function notify() { listeners.forEach(l => l()); }
+
+export function toast({ title, description, variant = "default" }: Omit<Toast, "id">) {
+  const id = String(++toastCount);
+  globalToasts = [...globalToasts, { id, title, description, variant }];
+  notify();
+  setTimeout(() => {
+    globalToasts = globalToasts.filter(t => t.id !== id);
+    notify();
+  }, 5000);
+  return { id, dismiss: () => { globalToasts = globalToasts.filter(t => t.id !== id); notify(); } };
 }
 
 export function useToast() {
-  const [toasts, setToasts] = useState<Toast[]>(memoryToasts);
+  const [, setTick] = useState(0);
+  const rerender = useCallback(() => setTick(t => t + 1), []);
 
-  useEffect(() => {
-    listeners.push(setToasts);
-    return () => {
-      listeners = listeners.filter((l) => l !== setToasts);
-    };
-  }, []);
+  useState(() => { listeners.push(rerender); });
 
-  const toast = useCallback(
-    ({ title, description, variant = "default" }: Omit<Toast, "id">) => {
-      const id = String(++toastCount);
-      const newToast: Toast = { id, title, description, variant };
-      dispatch([...memoryToasts, newToast]);
-      setTimeout(() => {
-        dispatch(memoryToasts.filter((t) => t.id !== id));
-      }, 4000);
-    },
-    []
-  );
-
-  const dismiss = useCallback((id: string) => {
-    dispatch(memoryToasts.filter((t) => t.id !== id));
-  }, []);
-
-  return { toasts, toast, dismiss };
+  return {
+    toasts: globalToasts,
+    toast,
+    dismiss: (id: string) => { globalToasts = globalToasts.filter(t => t.id !== id); notify(); },
+  };
 }
-
-export type { Toast };
 `,
   };
 }
@@ -552,9 +541,9 @@ export function getToasterComponent(): ComponentTemplate {
     id: 'ui-toaster',
     path: 'src/components/ui/toaster.tsx',
     language: 'tsx',
-    deps: { ...emptyDeps(), hooks: ['hook-useToast'], components: ['lib-utils'] },
-    content: `import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+    deps: { ...emptyDeps(), hooks: ['hook-useToast'] },
+    content: `// @generated
+import { useToast } from "@/hooks/use-toast";
 
 export function Toaster() {
   const { toasts, dismiss } = useToast();
@@ -566,30 +555,27 @@ export function Toaster() {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={cn(
-            "rounded-md border p-4 shadow-lg transition-all",
-            toast.variant === "destructive" && "bg-destructive text-destructive-foreground border-destructive/50",
-            toast.variant === "success" && "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30",
-            (!toast.variant || toast.variant === "default") && "bg-background border-border"
-          )}
+          className={
+            "rounded-lg border p-4 shadow-lg transition-all " +
+            (toast.variant === "destructive"
+              ? "bg-red-600 text-white border-red-700"
+              : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700")
+          }
           role="alert"
         >
           {toast.title && <div className="font-semibold text-sm">{toast.title}</div>}
           {toast.description && <div className="text-sm mt-1 opacity-90">{toast.description}</div>}
           <button
-            type="button"
             onClick={() => dismiss(toast.id)}
             className="absolute top-2 right-2 text-xs opacity-50 hover:opacity-100"
           >
-            ✕
+            x
           </button>
         </div>
       ))}
     </div>
   );
 }
-
-export default Toaster;
 `,
   };
 }

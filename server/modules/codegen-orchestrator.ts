@@ -44,40 +44,67 @@ function toSlug(str: string): string {
 const AVAILABLE_DEPS: Record<string, string> = {
   'react': '^18.3.1',
   'react-dom': '^18.3.1',
-  '@tanstack/react-query': '^5.60.5',
-  'wouter': '^3.3.5',
-  'lucide-react': '^0.453.0',
-  'tailwindcss': '^3.4.14',
-  'autoprefixer': '^10.4.20',
-  'postcss': '^8.4.47',
-  'clsx': '^2.1.1',
-  'tailwind-merge': '^2.5.4',
-  'recharts': '^2.13.3',
-  'date-fns': '^4.1.0',
-  'zod': '^3.23.8',
-  'express': '^4.21.1',
+  '@tanstack/react-query': '^5.0.0',
+  'wouter': '^3.0.0',
+  'lucide-react': '^0.344.0',
+  'clsx': '^2.1.0',
+  'tailwind-merge': '^2.2.0',
+  'class-variance-authority': '^0.7.0',
+  'recharts': '^2.12.0',
+  'date-fns': '^3.3.1',
+  'zod': '^3.22.0',
+  'express': '^4.18.2',
+  'react-hook-form': '^7.50.0',
+  '@hookform/resolvers': '^3.3.0',
+  '@radix-ui/react-slot': '^1.0.2',
+  '@radix-ui/react-dialog': '^1.0.5',
+  '@radix-ui/react-select': '^2.0.0',
+  '@radix-ui/react-label': '^2.0.2',
+  '@radix-ui/react-tabs': '^1.0.4',
+  '@radix-ui/react-tooltip': '^1.0.7',
+  '@radix-ui/react-separator': '^1.0.3',
+  '@radix-ui/react-checkbox': '^1.0.4',
+  '@radix-ui/react-switch': '^1.0.3',
+  '@radix-ui/react-scroll-area': '^1.0.5',
+  '@radix-ui/react-avatar': '^1.0.4',
+  '@radix-ui/react-dropdown-menu': '^2.0.6',
+  '@radix-ui/react-popover': '^1.0.7',
+  '@radix-ui/react-progress': '^1.0.3',
+  '@radix-ui/react-radio-group': '^1.1.3',
+  '@radix-ui/react-slider': '^1.1.2',
+  'framer-motion': '^11.0.0',
+  'cors': '^2.8.5',
+  'body-parser': '^1.20.0',
 };
 
 const DEV_DEPS: Record<string, string> = {
-  '@types/react': '^18.3.12',
-  '@types/react-dom': '^18.3.1',
-  '@vitejs/plugin-react': '^4.3.3',
-  'typescript': '^5.6.3',
-  'vite': '^5.4.10',
-  'vitest': '^2.1.4',
+  '@types/react': '^18.2.0',
+  '@types/react-dom': '^18.2.0',
+  '@vitejs/plugin-react': '^4.2.0',
+  'typescript': '^5.3.0',
+  'vite': '^5.1.0',
+  'tailwindcss': '3.4.17',
+  'postcss': '^8.4.35',
+  'autoprefixer': '^10.4.17',
+  '@types/node': '^20.10.0',
 };
+
+export type ProgressCallback = (phase: string, detail: string) => void;
 
 export function generateProject(
   plan: ProjectPlan,
   reasoning: ReasoningResult | null,
-  designSystem: DesignSystem | undefined
+  designSystem: DesignSystem | undefined,
+  onProgress?: ProgressCallback
 ): { files: GeneratedFile[]; validation: ReturnType<typeof validateGeneratedProject>; report: string } {
   const files: GeneratedFile[] = [];
+  const emit = onProgress || (() => {});
 
+  emit('components', 'Resolving component dependencies...');
   const allBaseComponents = getAllBaseComponents(plan);
-
   const requiredComponentIds = determineRequiredComponents(plan, reasoning);
   const resolvedComponents = resolveComponentDependencies(requiredComponentIds, allBaseComponents);
+  emit('components', `Resolved ${resolvedComponents.length} components (${requiredComponentIds.length} required + transitive deps)`);
 
   for (const comp of resolvedComponents) {
     files.push({ path: comp.path, content: comp.content, language: comp.language });
@@ -85,6 +112,7 @@ export function generateProject(
 
   const additionalNpmPackages = collectNpmPackages(resolvedComponents);
 
+  emit('config', 'Generating project config files...');
   files.push(generatePackageJson(plan, additionalNpmPackages));
   files.push(generateIndexHtml(plan));
   files.push(generateMainTsx());
@@ -92,12 +120,20 @@ export function generateProject(
   files.push(generateTailwindConfig());
   files.push(generatePostcssConfig());
   files.push(generateTsConfig());
+  files.push(generateTsConfigNode());
   files.push(generateIndexCss(designSystem));
+  emit('config', 'Config files ready (package.json, vite, tailwind, tsconfig, postcss, index.css)');
+
+  emit('schema', 'Generating shared schema and server routes...');
   files.push(generateSharedSchema(plan, reasoning));
   files.push(generateServerRoutes(plan, reasoning));
   files.push(generateServerIndex(plan));
+  emit('schema', `Schema: ${plan.entities?.length || 0} entities | Server: ${plan.endpoints?.length || 0} endpoints`);
 
-  for (const page of plan.pages) {
+  emit('pages', `Building ${plan.pages.length} page components...`);
+  for (let i = 0; i < plan.pages.length; i++) {
+    const page = plan.pages[i];
+    emit('pages', `[${i + 1}/${plan.pages.length}] Building ${page.componentName}...`);
     const content = generatePageContent(page, plan, reasoning);
     files.push({
       path: `src/pages/${toKebab(page.componentName)}.tsx`,
@@ -107,9 +143,12 @@ export function generateProject(
   }
 
   files.push(generateAppTsx(plan));
+  emit('pages', `All ${plan.pages.length} pages built + App shell`);
 
+  emit('validation', 'Running post-generation validation...');
   const validation = validateGeneratedProject(files);
   const report = formatValidationReport(validation);
+  emit('validation', `Validation: ${validation.errors.length} errors, ${validation.warnings.length} warnings`);
 
   return { files, validation, report };
 }
@@ -402,6 +441,23 @@ function generateTsConfig(): GeneratedFile {
       },
       include: ['src'],
       references: [{ path: './tsconfig.node.json' }],
+    }, null, 2),
+  };
+}
+
+function generateTsConfigNode(): GeneratedFile {
+  return {
+    path: 'tsconfig.node.json',
+    language: 'json',
+    content: JSON.stringify({
+      compilerOptions: {
+        composite: true,
+        skipLibCheck: true,
+        module: 'ESNext',
+        moduleResolution: 'bundler',
+        allowSyntheticDefaultImports: true,
+      },
+      include: ['vite.config.ts'],
     }, null, 2),
   };
 }

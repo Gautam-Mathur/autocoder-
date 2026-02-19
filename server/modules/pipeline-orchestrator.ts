@@ -465,7 +465,9 @@ export function orchestrateGeneration(plan: ProjectPlan, understanding?: Underst
   emitStep(ctx, 'generate', 'Full-Stack Developer beginning code generation', `Synthesizing all prior analysis into actual source files — config, app shell, database schema, API routes, React pages, shared components, styles, and utilities`);
   emitStep(ctx, 'generate', 'Why this stage uses all prior outputs', 'Every previous module enriched the plan — the generator now has architecture patterns, design tokens, schema definitions, API contracts, and component specs to produce code that is internally consistent and production-ready');
   executeStage(ctx, genStage, () => {
-    ctx.files = generateProjectFromPlan(ctx.plan!);
+    ctx.files = generateProjectFromPlan(ctx.plan!, (phase, detail) => {
+      emitStep(ctx, 'generate', `[${phase}] ${detail}`, undefined);
+    });
     const fileCount = ctx.files.length;
     const lineCount = ctx.files.reduce((sum, f) => sum + f.content.split('\n').length, 0);
     ctx.metrics.fileCount = fileCount;

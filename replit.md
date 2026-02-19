@@ -52,6 +52,12 @@ Records generation patterns, outcomes, and user modifications for continuous imp
 ### CodeGen V2 Engine
 Complete overhaul of code generation replacing a template-based approach with a dependency-tracked composable architecture. It includes six new modules: `codegen-components.ts` for pre-built components with dependency tracking, `codegen-field-resolver.ts` for smart field-to-component mapping, `codegen-page-builder.ts` for composable page generation with CRUD operations, `codegen-validator.ts` for post-generation validation, `codegen-orchestrator.ts` for pipeline orchestration, and `codegen-e2e-test.ts` for end-to-end testing.
 
+**Warmup/Pre-flight Alignment (Feb 2026):**
+-   Generated `tsconfig.node.json` alongside `tsconfig.json` so Vite doesn't crash on missing reference.
+-   Toast system (`use-toast.ts`, `toaster.tsx`) exactly matches auto-runner's `CRITICAL_UI_FILES` — standalone `toast` export, `// @generated` marker, self-contained global state (no Radix dependency). Pre-flight patching is no longer needed.
+-   Package versions in `AVAILABLE_DEPS`/`DEV_DEPS` synced to `PREWARM_BATCHES` in `webcontainer.ts` — prevents npm re-downloads on cached WebContainers.
+-   `ProgressCallback` added to `generateProject()` and threaded through `plan-driven-generator.ts` into `pipeline-orchestrator.ts` for per-phase stage announcements (components, config, schema, pages, validation).
+
 ## External Dependencies
 
 ### Database

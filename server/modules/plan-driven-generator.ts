@@ -3,7 +3,7 @@ import { analyzeSemantics, generateSmartInputComponent, generateSmartTableCell, 
 import { generateTestFiles } from './test-generator.js';
 import { generateDesignSystem, generateDesignedTailwindConfig, generateDesignedIndexCss, type DesignSystem } from './design-system-engine.js';
 import { generateFunctionalitySpec, type FunctionalitySpec } from './functionality-engine.js';
-import { generateProject as generateProjectV2 } from './codegen-orchestrator.js';
+import { generateProject as generateProjectV2, type ProgressCallback } from './codegen-orchestrator.js';
 
 interface GeneratedFile {
   path: string;
@@ -11,11 +11,11 @@ interface GeneratedFile {
   language: string;
 }
 
-export function generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[] {
+export function generateProjectFromPlan(plan: ProjectPlan, onProgress?: ProgressCallback): GeneratedFile[] {
   const reasoning = analyzeSemantics(plan);
   const designSystem = generateDesignSystem(plan, reasoning);
 
-  const { files, validation, report } = generateProjectV2(plan, reasoning, designSystem);
+  const { files, validation, report } = generateProjectV2(plan, reasoning, designSystem, onProgress);
 
   console.log('[CodeGen V2] Validation Report:');
   console.log(report);
