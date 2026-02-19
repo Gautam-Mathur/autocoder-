@@ -106,7 +106,7 @@ const PREWARM_BATCHES: Array<{ deps: Record<string, string>; devDeps: Record<str
       'swr': '^2.2.0', 'jotai': '^2.6.0',
       'react-router-dom': '^6.20.0', 'socket.io-client': '^4.7.0',
       'react-beautiful-dnd': '^13.1.1',
-      'xlsx': '^0.18.5', 'file-saver': '^2.0.5',
+      'exceljs': '^4.4.0', 'file-saver': '^2.0.5',
       'slate': '^0.101.0', 'slate-react': '^0.101.0',
       'formik': '^2.4.5', 'yup': '^1.3.3',
       'react-hot-toast': '^2.4.1',

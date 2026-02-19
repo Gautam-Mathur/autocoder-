@@ -108,7 +108,7 @@ const FEATURE_PACKAGES: Record<string, string[]> = {
   'rich-text': ['@tiptap/react', '@tiptap/starter-kit'],
   'file-upload': ['multer'],
   'export-csv': ['papaparse'],
-  'export-excel': ['xlsx'],
+  'export-excel': ['exceljs'],
   'date-picker': ['date-fns'],
   'markdown': ['react-markdown', 'remark-gfm'],
   'syntax-highlight': ['prismjs'],
