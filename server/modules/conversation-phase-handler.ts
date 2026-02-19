@@ -272,20 +272,26 @@ function handleClarificationResponse(
     }
   }
 
-  const answerText = Array.from(parsedAnswers.values()).join(' ').toLowerCase();
-  for (const gap of clarState.informationGaps) {
-    if (!gap.resolvedBy && parsedAnswers.size > 0 && answerText.length > 0) {
-      if (gap.category === 'entities' || gap.category === 'scope') {
-        gap.resolvedBy = 'user-answer';
-      }
+  const fullDescription = `${previousUnderstanding.level1_intent.primaryGoal}. ${userMessage}`;
+  const nlpEntities = extractEntitiesFromText(fullDescription);
+
+  const freshGaps = identifyInformationGaps(fullDescription, nlpEntities, clarState.complexity);
+  for (const gap of freshGaps) {
+    const answerText = Array.from(clarState.answeredQuestions.values()).join(' ').toLowerCase();
+    if (gap.category === 'entities' && (
+        nlpEntities.entities.length > 0 || answerText.length > 0)) {
+      gap.resolvedBy = 'user-answer';
+    } else if (gap.category === 'scope' && answerText.length > 0) {
+      gap.resolvedBy = 'user-answer';
     }
     if (!gap.resolvedBy && gap.defaultResolution) {
       gap.resolvedBy = 'default';
     }
   }
+  clarState.informationGaps = freshGaps;
 
   clarState.readinessScore = calculateReadinessScore(
-    extractEntitiesFromText(`${previousUnderstanding.level1_intent.primaryGoal}. ${userMessage}`),
+    nlpEntities,
     clarState.informationGaps,
     clarState.answeredQuestions
   );
@@ -324,12 +330,15 @@ function handleClarificationResponse(
   const newQuestions = generateClarificationQuestions(
     clarState.informationGaps,
     clarState.complexity,
-    extractEntitiesFromText(`${previousUnderstanding.level1_intent.primaryGoal}. ${userMessage}`),
+    nlpEntities,
     clarState.answeredQuestions
   );
 
-  const askedSet = new Set(previousQuestions.map(q => q.question));
-  const filteredQuestions = newQuestions.filter(q => !askedSet.has(q.question));
+  const askedIdSet = new Set(clarState.askedQuestions);
+  const askedTextSet = new Set(previousQuestions.map(q => q.question));
+  const filteredQuestions = newQuestions.filter(
+    q => !askedIdSet.has(q.id) && !askedTextSet.has(q.question)
+  );
 
   if (filteredQuestions.length === 0) {
     return proceedToPlan();
