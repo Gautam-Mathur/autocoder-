@@ -88,7 +88,8 @@ const ENTITY_KEYWORDS: Record<string, string[]> = {
   'contacts': ['contact', 'contacts', 'lead', 'leads', 'prospect', 'prospects'],
   'deals': ['deal', 'deals', 'opportunity', 'opportunities', 'pipeline', 'funnel'],
   'members': ['member', 'members', 'membership', 'memberships', 'subscriber', 'subscribers'],
-  'menu': ['menu', 'dish', 'dishes', 'recipe', 'recipes', 'food'],
+  'recipes': ['recipe', 'recipes', 'ingredient', 'ingredients', 'cooking', 'cuisine'],
+  'menu': ['menu', 'dish', 'dishes', 'food', 'meal', 'meals'],
   'budget': ['budget', 'budgets', 'expense', 'expenses', 'financial', 'forecast'],
 };
 
@@ -157,6 +158,16 @@ const WELL_KNOWN_APP_PATTERNS: Record<string, { domain: string; modules: string[
   'expense tracker': { domain: 'finance', modules: ['Expenses', 'Budget', 'Dashboard'], description: 'Expense tracking application' },
   'booking system': { domain: 'restaurant', modules: ['Reservations', 'Dashboard'], description: 'Booking system' },
   'appointment scheduler': { domain: 'healthcare', modules: ['Appointments', 'Patients', 'Dashboard'], description: 'Appointment scheduling application' },
+  'recipe app': { domain: 'restaurant', modules: ['Recipes', 'Categories', 'Dashboard'], description: 'Recipe collection application' },
+  'recipe collection': { domain: 'restaurant', modules: ['Recipes', 'Categories', 'Dashboard'], description: 'Recipe collection application' },
+  'recipe manager': { domain: 'restaurant', modules: ['Recipes', 'Categories', 'Dashboard'], description: 'Recipe management application' },
+  'recipe book': { domain: 'restaurant', modules: ['Recipes', 'Categories', 'Dashboard'], description: 'Recipe book application' },
+  'cookbook': { domain: 'restaurant', modules: ['Recipes', 'Categories', 'Dashboard'], description: 'Cookbook application' },
+  'meal planner': { domain: 'restaurant', modules: ['Meals', 'Recipes', 'Calendar', 'Dashboard'], description: 'Meal planning application' },
+  'contact manager': { domain: 'crm', modules: ['Contacts', 'Dashboard'], description: 'Contact management application' },
+  'employee directory': { domain: 'hr', modules: ['Employees', 'Departments', 'Dashboard'], description: 'Employee directory application' },
+  'employee manager': { domain: 'hr', modules: ['Employees', 'Departments', 'Dashboard'], description: 'Employee management application' },
+  'budget tracker': { domain: 'finance', modules: ['Budget', 'Expenses', 'Dashboard'], description: 'Budget tracking application' },
 };
 
 function isWellKnownApp(text: string): string | null {
@@ -692,40 +703,57 @@ export function processAnswer(
   questionId: string
 ): UnderstandingResult {
   const lower = userAnswer.toLowerCase();
+  const result = { ...previousResult };
 
   if (questionId === 'domain') {
     const domainMatches = detectDomainFromText(lower);
     if (domainMatches.length > 0) {
       const domain = domainMatches[0].domain;
-      previousResult.level2_domain.primaryDomain = domain;
-      previousResult.level2_domain.confidence = domainMatches[0].confidence;
-      previousResult.level2_domain.matchedKeywords = domainMatches[0].matchedKeywords;
-      previousResult.level2_domain.suggestedModules = domain.modules.map(m => m.name);
+      result.level2_domain = { ...result.level2_domain };
+      result.level2_domain.primaryDomain = domain;
+      result.level2_domain.confidence = domainMatches[0].confidence;
+      result.level2_domain.matchedKeywords = domainMatches[0].matchedKeywords;
+      result.level2_domain.suggestedModules = domain.modules.map(m => m.name);
     }
   }
 
   if (questionId === 'scale') {
-    if (lower.includes('just me') || lower.includes('1-5')) previousResult.level1_intent.scale = 'small';
-    else if (lower.includes('5-20') || lower.includes('small team')) previousResult.level1_intent.scale = 'medium';
-    else if (lower.includes('20-100') || lower.includes('medium')) previousResult.level1_intent.scale = 'medium';
-    else if (lower.includes('100+') || lower.includes('large')) previousResult.level1_intent.scale = 'large';
+    result.level1_intent = { ...result.level1_intent };
+    if (lower.includes('just me') || lower.includes('1-5')) result.level1_intent.scale = 'small';
+    else if (lower.includes('5-20') || lower.includes('small team')) result.level1_intent.scale = 'medium';
+    else if (lower.includes('20-100') || lower.includes('medium')) result.level1_intent.scale = 'medium';
+    else if (lower.includes('100+') || lower.includes('large')) result.level1_intent.scale = 'large';
   }
 
-  if (questionId === 'modules' && previousResult.level2_domain.primaryDomain) {
-    const domain = previousResult.level2_domain.primaryDomain;
+  if (questionId === 'modules' && result.level2_domain.primaryDomain) {
+    const domain = result.level2_domain.primaryDomain;
     const selectedModules = domain.modules.filter(m =>
       lower.includes(m.name.toLowerCase()) || lower.includes('all') || lower.includes('everything')
     ).map(m => m.name);
 
+    result.level2_domain = { ...result.level2_domain };
     if (selectedModules.length > 0) {
-      previousResult.level2_domain.detectedModules = selectedModules;
+      result.level2_domain.detectedModules = selectedModules;
     } else if (lower.includes('all') || lower.includes('everything')) {
-      previousResult.level2_domain.detectedModules = domain.modules.map(m => m.name);
+      result.level2_domain.detectedModules = domain.modules.map(m => m.name);
     }
   }
 
-  const fullText = `${userAnswer} ${previousResult.level1_intent.primaryGoal}`;
-  return analyzeRequest(fullText);
+  const answerWords = lower.split(/[\s,]+/).filter(w => w.length > 2);
+  const entities = { ...result.level3_entities };
+  entities.mentionedEntities = [...entities.mentionedEntities];
+  for (const word of answerWords) {
+    for (const [entity, keywords] of Object.entries(ENTITY_KEYWORDS)) {
+      if (keywords.includes(word) && !entities.mentionedEntities.includes(entity)) {
+        entities.mentionedEntities.push(entity);
+      }
+    }
+  }
+  result.level3_entities = entities;
+
+  result.confidence = Math.min(result.confidence + 0.15, 1.0);
+
+  return result;
 }
 
 export function formatUnderstandingResponse(result: UnderstandingResult): string {

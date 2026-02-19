@@ -1,0 +1,166 @@
+Build a recipe collection app
+AUTOCODER
+
+Dev Team Activity (13 steps across 1 modules)
+Deep Understanding Engine activated
+Understanding
+Analyzing your request through 5 levels of decomposition to fully grasp what you need built
+
+Why multi-level analysis
+Understanding
+A single pass would miss nuances — each level builds on the previous, from raw intent through domain expertise to specific entity structures and workflows
+
+Level 1: Intent Decomposition
+Understanding
+Breaking down your request into primary goal, secondary features, and implied requirements
+
+Intent identified
+Understanding
+Primary goal: "Build a web application" | Complexity: moderate
+
+Level 2: Domain Detection
+Understanding
+Detected "Restaurant / Food Service" domain with 40% confidence — this activates domain-specific entity templates, vocabulary, and best practices
+
+Why domain matters
+Understanding
+The "Restaurant / Food Service" domain has known entity patterns, standard workflows, and industry-specific field types that produce more accurate code than generic templates
+
+Level 3: Entity Extraction
+Understanding
+Found 2 explicitly mentioned data types + 6 inferred from context
+
+Mentioned entities
+Understanding
+users, menu
+
+Inferred entities
+Understanding
+MenuItem, MenuCategory, Order, OrderItem — these weren't explicitly mentioned but are needed for the app to function properly
+
+Level 4: Workflow Detection
+Understanding
+1 business workflows identified — these define how data flows through the system and what actions trigger what effects
+
+Key workflows
+Understanding
+Order Flow
+
+Level 5: Need more information
+Understanding
+1 clarifying questions generated — asking now prevents building the wrong thing later
+
+Why we ask questions
+Understanding
+Ambiguous requirements lead to wasted generation cycles — a few targeted questions now save significant rework later
+
+## Understanding Your Request
+
+**Industry:** Restaurant / Food Service
+**Application Type:** WEB APPLICATION
+**Target Users:** internal team
+
+**My Understanding:**
+- Industry: Restaurant / Food Service (40% confidence)
+- Detected modules: Menu Management, Orders, Reservations, Dashboard
+- Key data: MenuItem, MenuCategory, Order, OrderItem, Reservation
+
+**Key Data I'll Include:** MenuItem, MenuCategory, Order, OrderItem, Reservation, Table
+
+**Business Workflows:** Order Flow
+
+---
+
+Before I create a detailed plan, I have a few questions:
+
+**What are the main items or records you need to keep track of? For example, employees, products, appointments, etc.**
+YOU
+employees
+AUTOCODER
+
+Dev Team Activity (5 steps across 1 modules)
+Processing your clarification answers
+Understanding
+Round 1 — integrating your responses to build a more precise understanding
+
+Why iterative clarification works
+Understanding
+Each answer narrows down ambiguity — the system re-analyzes with your new context to produce increasingly accurate entity structures and feature specifications
+
+Parsed answers
+Understanding
+Extracted 1 structured answers from response
+
+Updated understanding
+Understanding
+Domain: Human Resources / People Management
+
+Readiness assessment
+Understanding
+Score: 10% - 1 critical information gaps remain
+
+## Understanding Your Request
+
+**Industry:** Human Resources / People Management
+**Application Type:** WEB APPLICATION
+**Target Users:** internal team
+
+**My Understanding:**
+- Industry: Human Resources / People Management (40% confidence)
+- Detected modules: Employee Directory
+- Key data: Employee, Department
+
+**Key Data I'll Include:** Employee, Department
+
+**Business Workflows:** Leave Approval, Hiring Pipeline
+
+---
+
+Before I create a detailed plan, I have a few questions:
+
+**What are the main items or records you need to keep track of? For example, employees, products, appointments, etc.**
+YOU
+employees
+AUTOCODER
+
+Dev Team Activity (5 steps across 1 modules)
+Processing your clarification answers
+Understanding
+Round 1 — integrating your responses to build a more precise understanding
+
+Why iterative clarification works
+Understanding
+Each answer narrows down ambiguity — the system re-analyzes with your new context to produce increasingly accurate entity structures and feature specifications
+
+Parsed answers
+Understanding
+Extracted 1 structured answers from response
+
+Updated understanding
+Understanding
+Domain: Human Resources / People Management
+
+Readiness assessment
+Understanding
+Score: 10% - 1 critical information gaps remain
+
+## Understanding Your Request
+
+**Industry:** Human Resources / People Management
+**Application Type:** WEB APPLICATION
+**Target Users:** internal team
+
+**My Understanding:**
+- Industry: Human Resources / People Management (40% confidence)
+- Detected modules: Employee Directory
+- Key data: Employee, Department
+
+**Key Data I'll Include:** Employee, Department
+
+**Business Workflows:** Leave Approval, Hiring Pipeline
+
+---
+
+Before I create a detailed plan, I have a few questions:
+
+**What are the main items or records you need to keep track of? For example, employees, products, appointments, etc.**
