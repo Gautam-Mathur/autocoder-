@@ -498,6 +498,126 @@ async function runBatchInstall(
   }
 }
 
+async function tryLoadSnapshot(container: WebContainer): Promise<boolean> {
+  const snapshotUrl = `${window.location.origin}/cache/prewarm-snapshot.json.gz`;
+  runnerLog.info('PreWarm', `Trying snapshot from ${snapshotUrl}...`);
+  notifyPreWarm('installing', 'Downloading package cache...');
+
+  try {
+    const response = await fetch(snapshotUrl);
+    if (!response.ok) {
+      runnerLog.warn('PreWarm', `Snapshot not available (HTTP ${response.status})`);
+      return false;
+    }
+
+    const compressedBuffer = await response.arrayBuffer();
+    const compressedSize = (compressedBuffer.byteLength / 1024 / 1024).toFixed(1);
+    runnerLog.info('PreWarm', `Downloaded snapshot: ${compressedSize} MB compressed`);
+    notifyPreWarm('installing', `Package cache downloaded (${compressedSize} MB), extracting...`);
+
+    const ds = new DecompressionStream('gzip');
+    const decompressedStream = new Response(
+      new Response(compressedBuffer).body!.pipeThrough(ds)
+    );
+    const jsonText = await decompressedStream.text();
+    const uncompressedSize = (jsonText.length / 1024 / 1024).toFixed(1);
+    runnerLog.info('PreWarm', `Decompressed: ${uncompressedSize} MB`);
+    notifyPreWarm('installing', 'Mounting packages into environment...');
+
+    const snapshot = JSON.parse(jsonText) as FileSystemTree;
+
+    runnerLog.startTimer('snapshot-mount');
+    await container.mount(snapshot);
+    const mountTime = runnerLog.endTimer('snapshot-mount');
+    runnerLog.success('PreWarm', `Snapshot mounted`, undefined, mountTime);
+
+    return true;
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    runnerLog.warn('PreWarm', `Snapshot load failed: ${errMsg}`);
+    return false;
+  }
+}
+
+async function npmBatchInstallFallback(container: WebContainer): Promise<boolean> {
+  const totalBatches = PREWARM_BATCHES.length;
+  const totalDeps = Object.keys(CORE_PACKAGES).length;
+  const totalDevDeps = Object.keys(CORE_DEV_PACKAGES).length;
+  const totalPackageCount = totalDeps + totalDevDeps;
+
+  runnerLog.info('PreWarm', `Falling back to npm install: ${totalDeps} deps + ${totalDevDeps} devDeps in ${totalBatches} batches`);
+  notifyPreWarm('installing', `Installing ${totalPackageCount} packages via npm in ${totalBatches} steps...`);
+
+  const viteConfig = `import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+});
+`;
+  await container.fs.writeFile('vite.config.ts', viteConfig);
+
+  let completedBatches = 0;
+  let cachedPackages = 0;
+  const cumulativeDeps: Record<string, string> = {};
+  const cumulativeDevDeps: Record<string, string> = {};
+
+  for (let i = 0; i < totalBatches; i++) {
+    const batch = PREWARM_BATCHES[i];
+    const batchPkgCount = Object.keys(batch.deps).length + Object.keys(batch.devDeps).length;
+    Object.assign(cumulativeDeps, batch.deps);
+    Object.assign(cumulativeDevDeps, batch.devDeps);
+    const cumulativeTotal = Object.keys(cumulativeDeps).length + Object.keys(cumulativeDevDeps).length;
+    const pct = Math.round((cumulativeTotal / totalPackageCount) * 100);
+    notifyPreWarm('installing', `${batch.description} (${i + 1}/${totalBatches}) — ${batchPkgCount} packages... ${pct}%`);
+
+    const isLargeBatch = i === 0 || i === totalBatches - 1;
+    const batchTimeout = isLargeBatch ? 300000 : 180000;
+    const batchStallTimeout = i === 0 ? 180000 : 90000;
+    let result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, batch.label, batchTimeout, batchStallTimeout);
+
+    if (!result.success) {
+      runnerLog.warn('PreWarm', `${batch.label} failed, retrying once...`);
+      notifyPreWarm('installing', `${batch.description} failed, retrying... ${pct}%`);
+      if (i === 0) {
+        try {
+          await container.fs.rm('node_modules', { recursive: true });
+          runnerLog.debug('PreWarm', 'Cleared node_modules before retry (first batch, safe to clear)');
+        } catch {}
+      } else {
+        runnerLog.debug('PreWarm', `Keeping node_modules intact (${cachedPackages} packages from earlier batches cached)`);
+      }
+      try {
+        await container.fs.rm('package-lock.json');
+        runnerLog.debug('PreWarm', 'Cleared package-lock.json before retry');
+      } catch {}
+      const retryTimeout = Math.max(batchTimeout, 300000);
+      result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, `${batch.label}-retry`, retryTimeout, batchStallTimeout);
+    }
+
+    if (result.success) {
+      completedBatches++;
+      preWarmCompletedBatches = completedBatches;
+      cachedPackages += batchPkgCount;
+      const donePct = Math.round((cachedPackages / totalPackageCount) * 100);
+      runnerLog.info('PreWarm', `${batch.description} done — ${cachedPackages}/${totalPackageCount} packages (${donePct}%)`);
+      notifyPreWarm('installing', `${batch.description} done (${i + 1}/${totalBatches}) — ${donePct}%`);
+    } else {
+      runnerLog.warn('PreWarm', `${batch.description} (${batch.label}) failed`);
+      if (completedBatches === 0) {
+        return false;
+      }
+      break;
+    }
+  }
+  return completedBatches > 0;
+}
+
 export async function preWarmWebContainer(): Promise<boolean> {
   if (preWarmStatus === 'ready') {
     runnerLog.debug('PreWarm', 'Already warmed, skipping');
@@ -513,7 +633,7 @@ export async function preWarmWebContainer(): Promise<boolean> {
   preWarmStartTime = Date.now();
   preWarmCompletedBatches = 0;
 
-  const totalBatches = PREWARM_BATCHES.length;
+  const totalPackageCount = Object.keys(CORE_PACKAGES).length + Object.keys(CORE_DEV_PACKAGES).length;
 
   preWarmPromise = (async () => {
     try {
@@ -527,104 +647,39 @@ export async function preWarmWebContainer(): Promise<boolean> {
       notifyPreWarm('booting', 'Environment ready');
 
       preWarmStatus = 'installing';
-      const totalDeps = Object.keys(CORE_PACKAGES).length;
-      const totalDevDeps = Object.keys(CORE_DEV_PACKAGES).length;
-      const totalPackageCount = totalDeps + totalDevDeps;
-      runnerLog.info('PreWarm', `Installing ${totalDeps} deps + ${totalDevDeps} devDeps in ${totalBatches} batches`);
-      notifyPreWarm('installing', `Pre-installing ${totalPackageCount} packages in ${totalBatches} steps...`);
 
-      const viteConfig = `import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-});
-`;
-      await container.fs.writeFile('vite.config.ts', viteConfig);
-      runnerLog.debug('FileSystem', 'Wrote pre-warm vite.config.ts');
+      const snapshotLoaded = await tryLoadSnapshot(container);
 
-      let completedBatches = 0;
-      let cachedPackages = 0;
-      const cumulativeDeps: Record<string, string> = {};
-      const cumulativeDevDeps: Record<string, string> = {};
-
-      for (let i = 0; i < totalBatches; i++) {
-        const batch = PREWARM_BATCHES[i];
-        const batchPkgCount = Object.keys(batch.deps).length + Object.keys(batch.devDeps).length;
-        Object.assign(cumulativeDeps, batch.deps);
-        Object.assign(cumulativeDevDeps, batch.devDeps);
-        const cumulativeTotal = Object.keys(cumulativeDeps).length + Object.keys(cumulativeDevDeps).length;
-        const pct = Math.round((cumulativeTotal / totalPackageCount) * 100);
-        notifyPreWarm('installing', `${batch.description} (${i + 1}/${totalBatches}) — ${batchPkgCount} packages... ${pct}%`);
-
-        const isLargeBatch = i === 0 || i === totalBatches - 1;
-        const batchTimeout = isLargeBatch ? 300000 : 180000;
-        const batchStallTimeout = i === 0 ? 180000 : 90000;
-        let result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, batch.label, batchTimeout, batchStallTimeout);
-
-        if (!result.success) {
-          runnerLog.warn('PreWarm', `${batch.label} failed, retrying once...`);
-          notifyPreWarm('installing', `${batch.description} failed, retrying... ${pct}%`);
-          if (i === 0) {
-            try {
-              await container.fs.rm('node_modules', { recursive: true });
-              runnerLog.debug('PreWarm', 'Cleared node_modules before retry (first batch, safe to clear)');
-            } catch {}
-          } else {
-            runnerLog.debug('PreWarm', `Keeping node_modules intact (${cachedPackages} packages from earlier batches cached)`);
-          }
-          try {
-            await container.fs.rm('package-lock.json');
-            runnerLog.debug('PreWarm', 'Cleared package-lock.json before retry');
-          } catch {}
-          const retryTimeout = Math.max(batchTimeout, 300000);
-          result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, `${batch.label}-retry`, retryTimeout, batchStallTimeout);
-        }
-
-        if (result.success) {
-          completedBatches++;
-          preWarmCompletedBatches = completedBatches;
-          cachedPackages += batchPkgCount;
-          const donePct = Math.round((cachedPackages / totalPackageCount) * 100);
-          runnerLog.info('PreWarm', `${batch.description} done — ${cachedPackages}/${totalPackageCount} packages (${donePct}%)`);
-          notifyPreWarm('installing', `${batch.description} done (${i + 1}/${totalBatches}) — ${donePct}%`);
-        } else {
-          runnerLog.warn('PreWarm', `${batch.description} (${batch.label}) failed`);
-          if (completedBatches === 0) {
-            preWarmStatus = 'failed';
-            preWarmPromise = null;
-            runnerLog.endTimer('prewarm-total');
-            runnerLog.separator('PRE-WARM FAILED');
-            notifyPreWarm('failed', `${batch.description} failed — packages will install on demand`);
-            return false;
-          }
-          break;
-        }
-      }
-
-      const isPartial = completedBatches < totalBatches;
-      preWarmStatus = 'ready';
-      const totalTime = runnerLog.endTimer('prewarm-total');
-      if (isPartial) {
-        const partialPct = Math.round((cachedPackages / totalPackageCount) * 100);
-        runnerLog.warn('PreWarm', `Partial: ${cachedPackages}/${totalPackageCount} packages (${partialPct}%)`, {
-          totalTime: `${totalTime}ms`,
-        });
-        runnerLog.separator('PRE-WARM PARTIAL');
-        notifyPreWarm('ready', `${cachedPackages}/${totalPackageCount} packages cached (${partialPct}%) — some may install on demand`);
-      } else {
-        runnerLog.success('PreWarm', `Complete! All ${totalPackageCount} packages cached`, {
+      if (snapshotLoaded) {
+        preWarmCompletedBatches = PREWARM_BATCHES.length;
+        preWarmStatus = 'ready';
+        const totalTime = runnerLog.endTimer('prewarm-total');
+        runnerLog.success('PreWarm', `Snapshot loaded! All ${totalPackageCount} packages ready (no npm needed)`, {
           totalTime: `${totalTime}ms`,
         }, totalTime);
-        runnerLog.separator('PRE-WARM DONE');
-        notifyPreWarm('ready', `All ${totalPackageCount} packages cached — 100%`);
+        runnerLog.separator('PRE-WARM DONE (SNAPSHOT)');
+        notifyPreWarm('ready', `All ${totalPackageCount} packages loaded from cache — 100%`);
+        return true;
       }
-      return true;
+
+      runnerLog.info('PreWarm', 'Snapshot unavailable, falling back to npm install...');
+      notifyPreWarm('installing', 'Cache not available, installing via npm...');
+
+      const npmSuccess = await npmBatchInstallFallback(container);
+
+      preWarmStatus = npmSuccess ? 'ready' : 'failed';
+      const totalTime = runnerLog.endTimer('prewarm-total');
+
+      if (npmSuccess) {
+        runnerLog.success('PreWarm', `npm install complete`, { totalTime: `${totalTime}ms` }, totalTime);
+        runnerLog.separator('PRE-WARM DONE (NPM)');
+        notifyPreWarm('ready', `Packages cached via npm — 100%`);
+      } else {
+        preWarmPromise = null;
+        runnerLog.separator('PRE-WARM FAILED');
+        notifyPreWarm('failed', 'Package installation failed — packages will install on demand');
+      }
+      return npmSuccess;
     } catch (err) {
       preWarmStatus = 'failed';
       preWarmPromise = null;
