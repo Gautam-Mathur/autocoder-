@@ -498,7 +498,29 @@ async function runBatchInstall(
   }
 }
 
+const VITE_CONFIG_CONTENTS = `import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+});
+`;
+
 async function tryLoadSnapshot(container: WebContainer): Promise<boolean> {
+  if (typeof window === 'undefined' || typeof fetch === 'undefined') {
+    runnerLog.warn('PreWarm', 'Snapshot skipped: no browser environment (window/fetch unavailable)');
+    return false;
+  }
+  if (typeof DecompressionStream === 'undefined') {
+    runnerLog.warn('PreWarm', 'Snapshot skipped: DecompressionStream not supported in this browser');
+    return false;
+  }
+
   const snapshotUrl = `${window.location.origin}/cache/prewarm-snapshot.json.gz`;
   runnerLog.info('PreWarm', `Trying snapshot from ${snapshotUrl}...`);
   notifyPreWarm('installing', 'Downloading package cache...');
@@ -531,6 +553,9 @@ async function tryLoadSnapshot(container: WebContainer): Promise<boolean> {
     const mountTime = runnerLog.endTimer('snapshot-mount');
     runnerLog.success('PreWarm', `Snapshot mounted`, undefined, mountTime);
 
+    await container.fs.writeFile('vite.config.ts', VITE_CONFIG_CONTENTS);
+    runnerLog.debug('FileSystem', 'Wrote vite.config.ts after snapshot mount');
+
     return true;
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -548,19 +573,8 @@ async function npmBatchInstallFallback(container: WebContainer): Promise<boolean
   runnerLog.info('PreWarm', `Falling back to npm install: ${totalDeps} deps + ${totalDevDeps} devDeps in ${totalBatches} batches`);
   notifyPreWarm('installing', `Installing ${totalPackageCount} packages via npm in ${totalBatches} steps...`);
 
-  const viteConfig = `import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-});
-`;
-  await container.fs.writeFile('vite.config.ts', viteConfig);
+  await container.fs.writeFile('vite.config.ts', VITE_CONFIG_CONTENTS);
+  runnerLog.debug('FileSystem', 'Wrote pre-warm vite.config.ts');
 
   let completedBatches = 0;
   let cachedPackages = 0;
