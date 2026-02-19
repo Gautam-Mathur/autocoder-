@@ -438,6 +438,226 @@ Transpile TSX code on the server.
 
 ---
 
+## Cloud Sandbox
+
+### POST /api/sandbox/create
+Create a cloud sandbox environment (planned feature).
+
+### POST /api/sandbox/stop
+Stop a cloud sandbox.
+
+### GET /api/sandbox/status
+Get cloud sandbox status.
+
+---
+
+## VAPT Dashboard (Vulnerability Assessment)
+
+### GET /api/vapt/assets
+Get all VAPT assets.
+
+### POST /api/vapt/assets
+Create a VAPT asset.
+
+### PUT /api/vapt/assets/:id
+Update a VAPT asset.
+
+### DELETE /api/vapt/assets/:id
+Delete a VAPT asset.
+
+### GET /api/vapt/vulnerabilities
+Get all vulnerabilities.
+
+### POST /api/vapt/vulnerabilities
+Create a vulnerability.
+
+### PUT /api/vapt/vulnerabilities/:id
+Update a vulnerability.
+
+### DELETE /api/vapt/vulnerabilities/:id
+Delete a vulnerability.
+
+### GET /api/vapt/scans
+Get all scans.
+
+### POST /api/vapt/scans
+Create a scan.
+
+### POST /api/vapt/scans/:id/run
+Run a scan.
+
+### GET /api/vapt/schedules
+Get schedules.
+
+### POST /api/vapt/schedules
+Create a schedule.
+
+### GET /api/vapt/team
+Get team members.
+
+### POST /api/vapt/team
+Create a team member.
+
+### GET /api/vapt/audit-logs
+Get audit logs.
+
+### GET /api/vapt/dashboard
+Get dashboard statistics.
+
+### POST /api/vapt/seed-demo
+Seed demo data for testing.
+
+---
+
+## Enhanced AI Capabilities
+
+### POST /api/ai/enhanced/intent
+Enhanced intent recognition with multi-signal analysis.
+
+### POST /api/ai/enhanced/generate-project
+Generate advanced projects with enhanced understanding.
+
+### POST /api/ai/enhanced/explain-code
+Universal code explanation.
+
+### POST /api/ai/enhanced/analyze-error
+Deep error analysis.
+
+### POST /api/ai/enhanced/context/create
+Create a context window for managing conversation memory.
+
+### POST /api/ai/enhanced/context/add
+Add content to a context window.
+
+### GET /api/ai/enhanced/context/:id
+Get a context window.
+
+### POST /api/ai/enhanced/context/relevant
+Retrieve relevant context chunks.
+
+### GET /api/ai/enhanced/languages
+List all supported programming languages.
+
+### GET /api/ai/enhanced/languages/:id
+Get language details.
+
+### POST /api/ai/enhanced/snippet
+Generate code snippets.
+
+### POST /api/ai/enhanced/conversation/create
+Create a new conversational AI state.
+
+### POST /api/ai/enhanced/conversation/turn
+Process a turn in a conversation.
+
+### GET /api/ai/enhanced/conversation/:id
+Get conversation state.
+
+### POST /api/ai/enhanced/conversation/memory
+Retrieve relevant memory from a conversation.
+
+---
+
+## Deep Project Generator
+
+### GET /api/ai/deep/blueprints
+List available project blueprints.
+
+### GET /api/ai/deep/blueprints/:id
+Get blueprint details.
+
+### GET /api/ai/deep/features
+List available feature modules.
+
+### GET /api/ai/deep/features/:id
+Get feature details.
+
+### POST /api/ai/deep/generate
+Generate a project from a blueprint.
+
+### POST /api/ai/deep/generate-refined
+Generate a project with AI refinement.
+
+### POST /api/ai/review
+Review existing code with AI.
+
+### POST /api/ai/refine
+Quickly refine code.
+
+### GET /api/ai/refinement-status
+Check AI refinement availability.
+
+---
+
+## Debugging
+
+### POST /api/debug/continuous
+Perform continuous debugging (iterative error fixing).
+
+### POST /api/debug/parse-error
+Parse error messages for structured diagnosis.
+
+### GET /api/debug/status
+Get debug engine status.
+
+### GET /api/debug/session/:id
+Get a debug session.
+
+---
+
+## Conversation Intelligence
+
+### POST /api/ai/follow-up
+Detect follow-up questions.
+
+### POST /api/ai/context-update
+Update conversation context.
+
+### POST /api/ai/clarification
+Generate clarification questions.
+
+### POST /api/ai/response-hints
+Get response hints.
+
+### GET /api/ai/conversation/:id/summary
+Get conversation summary.
+
+---
+
+## Concepts & Best Practices
+
+### GET /api/ai/concepts
+Search for concepts.
+
+### GET /api/ai/concepts/:id
+Get a specific concept.
+
+### GET /api/ai/best-practices
+List best practices.
+
+### GET /api/ai/best-practices/:id
+Get a specific best practice.
+
+### GET /api/ai/learning-path/:topic
+Get a learning path for a topic.
+
+---
+
+## Prompt Analysis
+
+### POST /api/analyze-prompt
+Analyze a user prompt and generate clarification questions.
+
+**Body:**
+```json
+{
+  "prompt": "Build me a restaurant app",
+  "conversationId": 1
+}
+```
+
+---
+
 ## CodeGen V2 Testing
 
 ### GET /api/codegen-v2/test

@@ -42,13 +42,13 @@ autocoder/
       local-ai-engine.ts           # Fully offline AI engine
       local-pipeline-router.ts     # Local pipeline routing
       domain-knowledge.ts          # 14-industry domain library
-      deep-understanding.ts        # Intent analysis & entity extraction
+      deep-understanding-engine.ts  # Intent analysis & entity extraction
       plan-generator.ts            # Project plan generation
-      conversation-handler.ts      # 8-phase conversation flow
-      generation-learning.ts       # Learning engine (patterns & outcomes)
-      prompt-analyzer.ts           # Prompt analysis & clarification
-      enhanced-modules.ts          # Advanced AI capabilities
-      preview-manager.ts           # Server-side preview management
+      conversation-phase-handler.ts # Multi-phase conversation flow
+      generation-learning-engine.ts # Learning engine (patterns & outcomes)
+      clarification-engine.ts      # Prompt analysis & clarification
+      enhanced-intent-recognition.ts # Advanced intent recognition
+      preview-project-manager.ts   # Server-side preview management
 
   shared/                          # Shared types between frontend & backend
     schema.ts                      # Drizzle schema & Zod validation
