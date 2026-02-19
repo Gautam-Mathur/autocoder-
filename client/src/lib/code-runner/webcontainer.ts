@@ -562,22 +562,28 @@ export default defineConfig({
         const pct = Math.round((cumulativeTotal / totalPackageCount) * 100);
         notifyPreWarm('installing', `${batch.description} (${i + 1}/${totalBatches}) — ${batchPkgCount} packages... ${pct}%`);
 
-        const batchTimeout = i === 0 ? 300000 : 180000;
+        const isLargeBatch = i === 0 || i === totalBatches - 1;
+        const batchTimeout = isLargeBatch ? 300000 : 180000;
         const batchStallTimeout = i === 0 ? 180000 : 90000;
         let result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, batch.label, batchTimeout, batchStallTimeout);
 
         if (!result.success) {
           runnerLog.warn('PreWarm', `${batch.label} failed, retrying once...`);
           notifyPreWarm('installing', `${batch.description} failed, retrying... ${pct}%`);
-          try {
-            await container.fs.rm('node_modules', { recursive: true });
-            runnerLog.debug('PreWarm', 'Cleared node_modules before retry');
-          } catch {}
+          if (i === 0) {
+            try {
+              await container.fs.rm('node_modules', { recursive: true });
+              runnerLog.debug('PreWarm', 'Cleared node_modules before retry (first batch, safe to clear)');
+            } catch {}
+          } else {
+            runnerLog.debug('PreWarm', `Keeping node_modules intact (${cachedPackages} packages from earlier batches cached)`);
+          }
           try {
             await container.fs.rm('package-lock.json');
             runnerLog.debug('PreWarm', 'Cleared package-lock.json before retry');
           } catch {}
-          result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, `${batch.label}-retry`, batchTimeout, batchStallTimeout);
+          const retryTimeout = Math.max(batchTimeout, 300000);
+          result = await runBatchInstall(container, cumulativeDeps, cumulativeDevDeps, `${batch.label}-retry`, retryTimeout, batchStallTimeout);
         }
 
         if (result.success) {
@@ -768,7 +774,7 @@ export async function runCommand(
 
 export async function installDependencies(
   onOutput?: (data: string) => void,
-  timeoutMs: number = 180000,
+  timeoutMs: number = 300000,
   maxRetries: number = 3
 ): Promise<RunResult> {
   const container = await getWebContainer();
@@ -851,6 +857,8 @@ export async function installDependencies(
       '--prefer-offline',
       '--no-audit',
       '--no-fund',
+      '--omit=optional',
+      '--legacy-peer-deps',
       '--loglevel=http',
       '--fetch-retries=2',
       '--fetch-timeout=30000'
@@ -965,6 +973,8 @@ export async function installDependencies(
       '--prefer-offline',
       '--no-audit',
       '--no-fund',
+      '--omit=optional',
+      '--legacy-peer-deps',
       '--ignore-scripts',
       '--loglevel=http'
     ];
