@@ -3,6 +3,7 @@ import { analyzeSemantics, generateSmartInputComponent, generateSmartTableCell, 
 import { generateTestFiles } from './test-generator.js';
 import { generateDesignSystem, generateDesignedTailwindConfig, generateDesignedIndexCss, type DesignSystem } from './design-system-engine.js';
 import { generateFunctionalitySpec, type FunctionalitySpec } from './functionality-engine.js';
+import { generateProject as generateProjectV2 } from './codegen-orchestrator.js';
 
 interface GeneratedFile {
   path: string;
@@ -11,6 +12,26 @@ interface GeneratedFile {
 }
 
 export function generateProjectFromPlan(plan: ProjectPlan): GeneratedFile[] {
+  const reasoning = analyzeSemantics(plan);
+  const designSystem = generateDesignSystem(plan, reasoning);
+
+  const { files, validation, report } = generateProjectV2(plan, reasoning, designSystem);
+
+  console.log('[CodeGen V2] Validation Report:');
+  console.log(report);
+
+  if (!validation.valid) {
+    console.warn('[CodeGen V2] Validation found errors — attempting to proceed anyway');
+  }
+
+  const testFiles = generateTestFiles(plan, reasoning);
+  files.push(...testFiles);
+
+  return files;
+}
+
+// Legacy generator kept for fallback
+export function generateProjectFromPlanLegacy(plan: ProjectPlan): GeneratedFile[] {
   const files: GeneratedFile[] = [];
   const reasoning = analyzeSemantics(plan);
   const designSystem = generateDesignSystem(plan, reasoning);

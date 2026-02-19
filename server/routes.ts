@@ -6143,5 +6143,16 @@ Output ONLY the fixed code. No explanations.`;
     }
   });
 
+  app.get("/api/codegen-v2/test", async (_req, res) => {
+    try {
+      const { runAllTests } = await import("./modules/codegen-e2e-test.js");
+      const result = runAllTests();
+      res.json(result);
+    } catch (error: any) {
+      console.error("CodeGen V2 test error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
