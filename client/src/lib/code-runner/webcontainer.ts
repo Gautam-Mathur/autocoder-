@@ -10,7 +10,7 @@ let preWarmListeners: Array<(status: string, message: string) => void> = [];
 let preWarmProcess: { kill: () => void } | null = null;
 let preWarmStartTime: number = 0;
 let preWarmCompletedBatches: number = 0;
-let activeDevServer: { url: string; process: any } | null = null;
+let activeDevServer: { url: string; process: any; stdinWriter?: any } | null = null;
 let devServerPromise: Promise<{ url: string; process: any }> | null = null;
 
 const STALL_TIMEOUT_MS = 45000;
@@ -1467,6 +1467,18 @@ export async function startDevServer(
     
     const process = await container.spawn('npm', ['run', 'dev']);
     runnerLog.debug('DevServer', 'Dev server process spawned');
+
+    // CRITICAL: Keep stdin open to prevent Vite from exiting.
+    // Vite 5+ in non-TTY mode listens for stdin EOF and calls server.close() when it fires.
+    // WebContainer spawn() provides a WritableStream for stdin — if we don't hold it open,
+    // the stream may close/GC, causing Vite to detect EOF and exit with code 0.
+    let stdinWriter: WritableStreamDefaultWriter<string> | null = null;
+    try {
+      stdinWriter = process.input.getWriter();
+      runnerLog.debug('DevServer', 'Acquired stdin writer to keep process alive');
+    } catch (e) {
+      runnerLog.warn('DevServer', `Could not acquire stdin writer: ${e}`);
+    }
     
     process.output.pipeTo(
       new WritableStream({
@@ -1490,21 +1502,35 @@ export async function startDevServer(
     
     process.exit.then((exitCode: number) => {
       runnerLog.info('DevServer', `Dev server process exited with code ${exitCode}`);
+      if (stdinWriter) {
+        stdinWriter.releaseLock();
+        stdinWriter = null;
+      }
       activeDevServer = null;
       devServerPromise = null;
     });
 
-    return new Promise<{ url: string; process: any }>((resolve) => {
+    return new Promise<{ url: string; process: any }>((resolve, reject) => {
+      let settled = false;
+
       container.on('server-ready', (port, url) => {
+        if (settled) return;
+        settled = true;
         const startupMs = runnerLog.endTimer('dev-server-startup');
         runnerLog.success('DevServer', `Server ready at ${url} (port ${port})`, {
           port,
           url,
         }, startupMs);
         runnerLog.separator('DEV SERVER READY');
-        activeDevServer = { url, process };
+        activeDevServer = { url, process, stdinWriter };
         onServerReady?.(url);
         resolve({ url, process });
+      });
+
+      process.exit.then((exitCode: number) => {
+        if (settled) return;
+        settled = true;
+        reject(new Error(`Dev server exited with code ${exitCode} before becoming ready`));
       });
     });
   })();

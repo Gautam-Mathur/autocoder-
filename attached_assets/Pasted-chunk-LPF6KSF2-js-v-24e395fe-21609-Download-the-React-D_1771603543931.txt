@@ -1,0 +1,97 @@
+chunk-LPF6KSF2.js?v=24e395fe:21609 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+logger.ts:175 ── PRE-WARM START ──────────────────────────────
+logger.ts:115 21:34:52.293 ● INFO  PreWarm [booting] Starting WebContainer environment...
+logger.ts:115 21:34:52.293 ● INFO  WebContainer Booting WebContainer...
+logger.ts:122   └─ coep: require-corp  ·  crossOriginIsolated: true  ·  userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
+VM4 sandbox_bundle:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ VM4 sandbox_bundle:2
+logSecurityWarnings @ VM4 sandbox_bundle:2
+(anonymous) @ VM4 sandbox_bundle:2
+logger.ts:115 21:34:53.436 ✓ SUCCESS WebContainer WebContainer booted successfully 1.1s
+logger.ts:115 21:34:53.437 ✓ SUCCESS PreWarm WebContainer booted 1.1s
+logger.ts:115 21:34:53.437 ● INFO  PreWarm [booting] Environment ready
+logger.ts:115 21:34:53.437 ● INFO  PreWarm Trying snapshot from http://localhost:5200/cache/prewarm-snapshot.json.gz...
+logger.ts:115 21:34:53.437 ● INFO  PreWarm [installing] Downloading package cache...
+logger.ts:115 21:34:53.566 ● INFO  PreWarm Downloaded snapshot: 24.5 MB compressed
+logger.ts:115 21:34:53.567 ● INFO  PreWarm [installing] Package cache downloaded (24.5 MB), extracting...
+logger.ts:115 21:34:54.403 ● INFO  PreWarm Decompressed: 121.4 MB
+logger.ts:115 21:34:54.403 ● INFO  PreWarm [installing] Mounting packages into environment...
+headless?version=1.6.1:1 The resource https://w-corp-staticblitz.com/fetch.worker.508a1324.js was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+logger.ts:115 21:35:02.828 ✓ SUCCESS PreWarm Snapshot mounted 8.1s
+logger.ts:115 21:35:02.837 · DEBUG FileSystem Wrote vite.config.ts after snapshot mount
+logger.ts:115 21:35:02.838 ✓ SUCCESS PreWarm Snapshot loaded! All 231 packages ready (no npm needed) 10.5s
+logger.ts:122   └─ totalTime: 10545ms
+logger.ts:175 ── PRE-WARM DONE (SNAPSHOT) ────────────────────
+logger.ts:115 21:35:02.838 ● INFO  PreWarm [ready] All 231 packages loaded from cache — 100%
+logger.ts:175 ── AUTO-RUN: src [run-1771603529356-witq] ──────
+logger.ts:115 21:35:29.357 ✓ SUCCESS AutoRunner WebContainer support confirmed
+logger.ts:115 21:35:29.357 ● INFO  Pipeline Project analysis complete
+logger.ts:122   └─ type: vite  ·  typescript: true  ·  entryFile: default  ·  devCommand: npm run dev  ·  totalFiles: 44
+logger.ts:115 21:35:29.360 ✓ SUCCESS Pipeline Enhanced package.json: 177 deps, 54 devDeps
+logger.ts:114 21:35:29.360 ▲ WARN  Pipeline Installing 231 packages - this may take longer than usual
+emit @ logger.ts:114
+warn @ logger.ts:139
+runPipeline @ auto-runner.ts:532
+autoRunProject @ auto-runner.ts:1007
+(anonymous) @ auto-run-preview.tsx:323
+(anonymous) @ auto-run-preview.tsx:364
+commitHookEffectListMount @ chunk-LPF6KSF2.js?v=24e395fe:16963
+commitPassiveMountOnFiber @ chunk-LPF6KSF2.js?v=24e395fe:18206
+commitPassiveMountEffects_complete @ chunk-LPF6KSF2.js?v=24e395fe:18179
+commitPassiveMountEffects_begin @ chunk-LPF6KSF2.js?v=24e395fe:18169
+commitPassiveMountEffects @ chunk-LPF6KSF2.js?v=24e395fe:18159
+flushPassiveEffectsImpl @ chunk-LPF6KSF2.js?v=24e395fe:19543
+flushPassiveEffects @ chunk-LPF6KSF2.js?v=24e395fe:19500
+commitRootImpl @ chunk-LPF6KSF2.js?v=24e395fe:19469
+commitRoot @ chunk-LPF6KSF2.js?v=24e395fe:19330
+performSyncWorkOnRoot @ chunk-LPF6KSF2.js?v=24e395fe:18948
+flushSyncCallbacks @ chunk-LPF6KSF2.js?v=24e395fe:9166
+(anonymous) @ chunk-LPF6KSF2.js?v=24e395fe:18677
+logger.ts:115 21:35:29.361 ● INFO  Pipeline Tailwind CSS detected, adding config files
+logger.ts:175 ── MOUNTING FILES ──────────────────────────────
+logger.ts:115 21:35:29.361 ● INFO  Pipeline Mounting 45 project files
+logger.ts:115 21:35:29.362 ● INFO  FileSystem Mounting 44 files...
+logger.ts:115 21:35:29.456 ✓ SUCCESS FileSystem Mounted 44 files 94ms
+logger.ts:115 21:35:29.492 · DEBUG FileSystem Wrote file: package.json
+logger.ts:122   └─ size: 7808 bytes
+logger.ts:115 21:35:29.514 · DEBUG FileSystem Read file: package.json
+logger.ts:122   └─ size: 7808 bytes
+logger.ts:175 ── DEPENDENCY INSTALL ──────────────────────────
+logger.ts:115 21:35:29.515 ● INFO  Cache package.json hash changed: (none) → -uzoo3i
+logger.ts:115 21:35:29.540 · DEBUG FileSystem node_modules check: 547 entries found
+logger.ts:115 21:35:29.541 ● INFO  Pipeline Dependency install decision
+logger.ts:122   └─ hasExistingModules: true  ·  pkgChanged: true  ·  forceInstall: false  ·  useBatchedInstall: false  ·  isPreWarmed: true  ·  preWarmStatus: ready  ·  decision: PRE-WARM (install extras only)
+logger.ts:115 21:35:29.541 ● INFO  Pipeline Using pre-warmed packages, checking for extras...
+logger.ts:115 21:35:29.541 ● INFO  Pipeline Pre-warm diff: 0 extra deps, 0 extra devDeps
+logger.ts:122   └─ extraDeps: (none)  ·  extraDevDeps: (none)  ·  cachedDeps: 177  ·  cachedDevDeps: 54
+logger.ts:115 21:35:29.542 ✓ SUCCESS Pipeline All packages already pre-installed, no extras needed
+logger.ts:115 21:35:29.963 · DEBUG FileSystem Fixed bin permissions: vite, tsc, tsx, esbuild, tailwindcss
+logger.ts:175 ── PRE-FLIGHT CHECK ────────────────────────────
+logger.ts:115 21:35:29.964 · DEBUG PreFlight src/components/ui/toaster.tsx: all exports present, OK
+logger.ts:115 21:35:29.965 · DEBUG PreFlight src/hooks/use-toast.ts: all exports present, OK
+logger.ts:115 21:35:29.965 ✓ SUCCESS PreFlight All critical files verified OK
+logger.ts:115 21:35:29.993 · DEBUG FileSystem Read file: vite.config.ts
+logger.ts:122   └─ size: 485 bytes
+logger.ts:175 ── DEV SERVER ──────────────────────────────────
+logger.ts:115 21:35:29.993 ● INFO  Pipeline Starting dev server...
+logger.ts:115 21:35:30.542 · DEBUG FileSystem Fixed bin permissions: vite, tsc, tsx, esbuild, tailwindcss
+logger.ts:175 ── DEV SERVER START ────────────────────────────
+logger.ts:115 21:35:30.545 ● INFO  DevServer Starting development server (npm run dev)...
+logger.ts:115 21:35:30.570 · DEBUG DevServer Dev server process spawned
+logger.ts:115 21:35:31.393 · DEBUG DevServer > projectflow@1.0.0 dev
+> vite
+logger.ts:115 21:35:31.397 · DEBUG DevServer [1G
+logger.ts:115 21:35:31.433 · DEBUG DevServer [0K
+logger.ts:115 21:35:32.101 · DEBUG DevServer [1G
+logger.ts:115 21:35:32.103 · DEBUG DevServer [0K
+logger.ts:115 21:35:32.104 · DEBUG DevServer \
+logger.ts:115 21:35:32.112 · DEBUG DevServer [1G
+logger.ts:115 21:35:32.115 · DEBUG DevServer [0K
+logger.ts:115 21:35:32.120 ● INFO  DevServer Dev server process exited with code 0
