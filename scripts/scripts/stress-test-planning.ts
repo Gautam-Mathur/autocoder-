@@ -305,9 +305,6 @@ function validateGeneratedFiles(files: any[], plan: ProjectPlan): string[] {
       const parensClose = (c.match(/\)/g) || []).length;
       if (Math.abs(parensOpen - parensClose) > 1) errors.push(`${file.path}: unbalanced parentheses ((=${parensOpen} )=${parensClose})`);
 
-      if (/function\s+\w+\s*\([^)]*\)\s*\{\s*\}/.test(c) && !c.includes('// empty')) {
-      }
-
       if (/\bany\b/.test(c) && file.path.includes('schema.ts')) errors.push(`${file.path}: schema contains 'any' type`);
 
       const duplicateImports = new Map<string, number>();
@@ -330,18 +327,6 @@ function validateGeneratedFiles(files: any[], plan: ProjectPlan): string[] {
       }
 
       if (/return\s*\(\s*\)\s*;/.test(c)) errors.push(`${file.path}: returns empty JSX ()`);
-
-      const jsxSelfClosingVoid = /<(div|span|p|h[1-6]|section|main|form|ul|ol|li|table|tr|td|th|thead|tbody|button|label|select|textarea|header|footer|nav|article|aside)\s[^>]*\/>/g;
-      let voidMatch;
-      jsxSelfClosingVoid.lastIndex = 0;
-      while ((voidMatch = jsxSelfClosingVoid.exec(c)) !== null) {
-        const tag = voidMatch[1];
-        if (!voidMatch[0].includes('>') || voidMatch[0].endsWith('/>')) {
-        }
-      }
-
-      if (c.includes('TODO') && !c.includes('todo')) {
-      }
 
       if (c.includes('className=""') && (c.match(/className=""/g) || []).length > 3) {
         errors.push(`${file.path}: excessive empty className attributes`);

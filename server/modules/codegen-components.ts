@@ -942,12 +942,13 @@ export function getCheckboxComponent(): ComponentTemplate {
     path: 'src/components/ui/checkbox.tsx',
     language: 'tsx',
     deps: { ...emptyDeps(), components: ['lib-utils'] },
-    content: `import { forwardRef } from "react";
+    content: `import { forwardRef, useId } from "react";
 import { cn } from "@/lib/utils";
 
 const Checkbox = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { label?: string }>(
   ({ className, label, id, ...props }, ref) => {
-    const inputId = id || \`cb-\${Math.random().toString(36).slice(2, 8)}\`;
+    const generatedId = useId();
+    const inputId = id || generatedId;
     return (
       <div className="flex items-center gap-2">
         <input
@@ -1111,18 +1112,36 @@ export function getDropdownMenuComponent(): ComponentTemplate {
     path: 'src/components/ui/dropdown-menu.tsx',
     language: 'tsx',
     deps: { ...emptyDeps(), components: ['lib-utils'] },
-    content: `import { useState, useRef, useEffect } from "react";
+    content: `import { useState, useRef, useEffect, createContext, useContext } from "react";
 import { cn } from "@/lib/utils";
 
+const DropdownCtx = createContext<{ open: boolean; setOpen: (v: boolean) => void }>({ open: false, setOpen: () => {} });
+
 function DropdownMenu({ children }: { children: React.ReactNode }) {
-  return <div className="relative inline-block">{children}</div>;
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <DropdownCtx.Provider value={{ open, setOpen }}>
+      <div ref={ref} className="relative inline-block">{children}</div>
+    </DropdownCtx.Provider>
+  );
 }
 
 function DropdownMenuTrigger({ children, asChild, ...props }: React.HTMLAttributes<HTMLButtonElement> & { asChild?: boolean }) {
-  return <button type="button" {...props}>{children}</button>;
+  const { open, setOpen } = useContext(DropdownCtx);
+  return <button type="button" onClick={() => setOpen(!open)} {...props}>{children}</button>;
 }
 
 function DropdownMenuContent({ className, children, align = "start", ...props }: React.HTMLAttributes<HTMLDivElement> & { align?: "start" | "end" | "center" }) {
+  const { open } = useContext(DropdownCtx);
+  if (!open) return null;
   return (
     <div className={cn(
       "absolute z-50 mt-1 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 shadow-md animate-in fade-in-0 zoom-in-95",
@@ -1136,11 +1155,12 @@ function DropdownMenuContent({ className, children, align = "start", ...props }:
 }
 
 function DropdownMenuItem({ className, children, onClick, disabled, ...props }: React.HTMLAttributes<HTMLDivElement> & { disabled?: boolean }) {
+  const { setOpen } = useContext(DropdownCtx);
   return (
     <div
       role="menuitem"
       tabIndex={disabled ? -1 : 0}
-      onClick={disabled ? undefined : onClick}
+      onClick={disabled ? undefined : (e) => { onClick?.(e); setOpen(false); }}
       className={cn(
         "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground",
         disabled && "pointer-events-none opacity-50",
@@ -1172,22 +1192,29 @@ export function getTooltipComponent(): ComponentTemplate {
     path: 'src/components/ui/tooltip.tsx',
     language: 'tsx',
     deps: { ...emptyDeps(), components: ['lib-utils'] },
-    content: `import { useState } from "react";
+    content: `import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-function Tooltip({ children, content, side = "top", className }: { children: React.ReactNode; content: React.ReactNode; side?: "top" | "bottom" | "left" | "right"; className?: string }) {
+function TooltipProvider({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
+function Tooltip({ children, content, side = "top", delayMs = 200, className }: { children: React.ReactNode; content: React.ReactNode; side?: "top" | "bottom" | "left" | "right"; delayMs?: number; className?: string }) {
   const [open, setOpen] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const positions: Record<string, string> = {
     top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
     bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
     left: "right-full top-1/2 -translate-y-1/2 mr-2",
     right: "left-full top-1/2 -translate-y-1/2 ml-2",
   };
+  const show = () => { timerRef.current = setTimeout(() => setOpen(true), delayMs); };
+  const hide = () => { clearTimeout(timerRef.current); setOpen(false); };
   return (
-    <div className="relative inline-flex" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <div className="relative inline-flex" onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
       {children}
       {open && (
-        <div className={cn("absolute z-50 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground shadow-md animate-in fade-in-0 whitespace-nowrap", positions[side], className)}>
+        <div role="tooltip" className={cn("absolute z-50 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground shadow-md animate-in fade-in-0 whitespace-nowrap pointer-events-none", positions[side], className)}>
           {content}
         </div>
       )}
@@ -1195,7 +1222,7 @@ function Tooltip({ children, content, side = "top", className }: { children: Rea
   );
 }
 
-export { Tooltip };
+export { TooltipProvider, Tooltip };
 `,
   };
 }
@@ -1275,18 +1302,36 @@ export function getPopoverComponent(): ComponentTemplate {
     path: 'src/components/ui/popover.tsx',
     language: 'tsx',
     deps: { ...emptyDeps(), components: ['lib-utils'] },
-    content: `import { useState, useRef, useEffect } from "react";
+    content: `import { useState, useRef, useEffect, createContext, useContext } from "react";
 import { cn } from "@/lib/utils";
 
+const PopoverCtx = createContext<{ open: boolean; setOpen: (v: boolean) => void }>({ open: false, setOpen: () => {} });
+
 function Popover({ children }: { children: React.ReactNode }) {
-  return <div className="relative inline-block">{children}</div>;
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <PopoverCtx.Provider value={{ open, setOpen }}>
+      <div ref={ref} className="relative inline-block">{children}</div>
+    </PopoverCtx.Provider>
+  );
 }
 
-function PopoverTrigger({ children, asChild, onClick, ...props }: React.HTMLAttributes<HTMLButtonElement> & { asChild?: boolean }) {
-  return <button type="button" onClick={onClick} {...props}>{children}</button>;
+function PopoverTrigger({ children, asChild, ...props }: React.HTMLAttributes<HTMLButtonElement> & { asChild?: boolean }) {
+  const { open, setOpen } = useContext(PopoverCtx);
+  return <button type="button" onClick={() => setOpen(!open)} {...props}>{children}</button>;
 }
 
 function PopoverContent({ className, children, align = "center", ...props }: React.HTMLAttributes<HTMLDivElement> & { align?: "start" | "end" | "center" }) {
+  const { open } = useContext(PopoverCtx);
+  if (!open) return null;
   return (
     <div className={cn(
       "absolute z-50 mt-2 w-72 rounded-md border bg-popover p-4 shadow-md outline-none animate-in fade-in-0 zoom-in-95",
