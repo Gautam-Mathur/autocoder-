@@ -1510,12 +1510,22 @@ export async function startDevServer(
       devServerPromise = null;
     });
 
+    const DEV_SERVER_TIMEOUT_MS = 60000;
+
     return new Promise<{ url: string; process: any }>((resolve, reject) => {
       let settled = false;
+
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        runnerLog.error('DevServer', `Dev server did not become ready within ${DEV_SERVER_TIMEOUT_MS / 1000}s`);
+        reject(new Error(`Dev server startup timed out after ${DEV_SERVER_TIMEOUT_MS / 1000}s`));
+      }, DEV_SERVER_TIMEOUT_MS);
 
       container.on('server-ready', (port, url) => {
         if (settled) return;
         settled = true;
+        clearTimeout(timeout);
         const startupMs = runnerLog.endTimer('dev-server-startup');
         runnerLog.success('DevServer', `Server ready at ${url} (port ${port})`, {
           port,
@@ -1530,6 +1540,7 @@ export async function startDevServer(
       process.exit.then((exitCode: number) => {
         if (settled) return;
         settled = true;
+        clearTimeout(timeout);
         reject(new Error(`Dev server exited with code ${exitCode} before becoming ready`));
       });
     });
