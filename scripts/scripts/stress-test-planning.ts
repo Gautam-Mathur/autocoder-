@@ -269,23 +269,111 @@ function validateGeneratedFiles(files: any[], plan: ProjectPlan): string[] {
   const hasIndexHtml = filePaths.some((p: string) => p.includes('index.html'));
   const hasSchema = filePaths.some((p: string) => p.includes('schema.ts'));
   const hasAppTsx = filePaths.some((p: string) => p.includes('App.tsx'));
+  const hasTsConfig = filePaths.some((p: string) => p === 'tsconfig.json');
+  const hasMainTsx = filePaths.some((p: string) => p.includes('main.tsx'));
+  const hasIndexCss = filePaths.some((p: string) => p.includes('index.css'));
 
   if (!hasPackageJson) errors.push('Missing package.json');
   if (!hasViteConfig) errors.push('Missing vite.config');
   if (!hasIndexHtml) errors.push('Missing index.html');
   if (!hasSchema) errors.push('Missing shared/schema.ts');
   if (!hasAppTsx) errors.push('Missing App.tsx');
+  if (!hasTsConfig) errors.push('Missing tsconfig.json');
+  if (!hasMainTsx) errors.push('Missing main.tsx');
+  if (!hasIndexCss) errors.push('Missing index.css');
 
   for (const file of files) {
-    if (!file.path) errors.push('File has no path');
-    if (!file.content && file.content !== '') errors.push(`File ${file.path} has null/undefined content`);
-    if (file.content === '') errors.push(`File ${file.path} has empty content`);
+    if (!file.path) { errors.push('File has no path'); continue; }
+    if (!file.content && file.content !== '') { errors.push(`${file.path}: null/undefined content`); continue; }
+    if (file.content === '') { errors.push(`${file.path}: empty content`); continue; }
 
-    if (file.path?.endsWith('.tsx') || file.path?.endsWith('.ts')) {
-      if (file.content?.includes('undefined.')) errors.push(`${file.path}: contains 'undefined.' — likely null reference`);
-      if (file.content?.includes('.undefined')) errors.push(`${file.path}: contains '.undefined' — likely null reference`);
-      if (file.content && /(?<![\w$])NaN(?![\w$]|\s*\()/g.test(file.content)) errors.push(`${file.path}: contains standalone NaN literal`);
-      if (/import\s+.*from\s+['"]['"]/g.test(file.content || '')) errors.push(`${file.path}: has empty import path`);
+    const c = file.content || '';
+    const isTS = file.path.endsWith('.ts') || file.path.endsWith('.tsx');
+    const isTSX = file.path.endsWith('.tsx');
+
+    if (isTS) {
+      if (c.includes('undefined.')) errors.push(`${file.path}: contains 'undefined.' — likely null reference`);
+      if (c.includes('.undefined')) errors.push(`${file.path}: contains '.undefined' — likely null reference`);
+      if (/(?<![\w$])NaN(?![\w$]|\s*\()/g.test(c)) errors.push(`${file.path}: contains standalone NaN literal`);
+      if (/import\s+.*from\s+['"]['"]/g.test(c)) errors.push(`${file.path}: has empty import path`);
+
+      const opens = (c.match(/\{/g) || []).length;
+      const closes = (c.match(/\}/g) || []).length;
+      if (Math.abs(opens - closes) > 1) errors.push(`${file.path}: unbalanced braces ({=${opens} }=${closes})`);
+
+      const parensOpen = (c.match(/\(/g) || []).length;
+      const parensClose = (c.match(/\)/g) || []).length;
+      if (Math.abs(parensOpen - parensClose) > 1) errors.push(`${file.path}: unbalanced parentheses ((=${parensOpen} )=${parensClose})`);
+
+      if (/function\s+\w+\s*\([^)]*\)\s*\{\s*\}/.test(c) && !c.includes('// empty')) {
+      }
+
+      if (/\bany\b/.test(c) && file.path.includes('schema.ts')) errors.push(`${file.path}: schema contains 'any' type`);
+
+      const duplicateImports = new Map<string, number>();
+      const importLineRegex = /import\s+(?:{[^}]+}|[^;]+)\s+from\s+["']([^"']+)["']/g;
+      let m;
+      importLineRegex.lastIndex = 0;
+      while ((m = importLineRegex.exec(c)) !== null) {
+        const source = m[1];
+        duplicateImports.set(source, (duplicateImports.get(source) || 0) + 1);
+      }
+      for (const [source, count] of duplicateImports) {
+        if (count > 1) errors.push(`${file.path}: duplicate import from "${source}" (${count}x)`);
+      }
+    }
+
+    if (isTSX) {
+      const hasExport = /export\s+(default|const|function|{)/.test(c);
+      if (!hasExport && !file.path.includes('main.tsx') && !file.path.includes('index.tsx')) {
+        errors.push(`${file.path}: TSX file has no export`);
+      }
+
+      if (/return\s*\(\s*\)\s*;/.test(c)) errors.push(`${file.path}: returns empty JSX ()`);
+
+      const jsxSelfClosingVoid = /<(div|span|p|h[1-6]|section|main|form|ul|ol|li|table|tr|td|th|thead|tbody|button|label|select|textarea|header|footer|nav|article|aside)\s[^>]*\/>/g;
+      let voidMatch;
+      jsxSelfClosingVoid.lastIndex = 0;
+      while ((voidMatch = jsxSelfClosingVoid.exec(c)) !== null) {
+        const tag = voidMatch[1];
+        if (!voidMatch[0].includes('>') || voidMatch[0].endsWith('/>')) {
+        }
+      }
+
+      if (c.includes('TODO') && !c.includes('todo')) {
+      }
+
+      if (c.includes('className=""') && (c.match(/className=""/g) || []).length > 3) {
+        errors.push(`${file.path}: excessive empty className attributes`);
+      }
+    }
+
+    if (file.path === 'package.json') {
+      try {
+        const pkg = JSON.parse(c);
+        if (!pkg.name) errors.push('package.json: missing "name"');
+        if (!pkg.scripts?.dev) errors.push('package.json: missing "dev" script');
+        if (!pkg.dependencies?.react) errors.push('package.json: missing react dependency');
+        if (!pkg.dependencies?.['react-dom']) errors.push('package.json: missing react-dom dependency');
+        if (!pkg.devDependencies?.vite && !pkg.dependencies?.vite) errors.push('package.json: missing vite');
+        if (!pkg.devDependencies?.typescript && !pkg.dependencies?.typescript) errors.push('package.json: missing typescript');
+      } catch (e) {
+        errors.push('package.json: invalid JSON');
+      }
+    }
+
+    if (file.path === 'tsconfig.json') {
+      try {
+        const stripped = c.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+        JSON.parse(stripped);
+      } catch (e) {
+        errors.push('tsconfig.json: invalid JSON');
+      }
+    }
+
+    if (file.path === 'index.html') {
+      if (!c.includes('<div id="root"')) errors.push('index.html: missing root div');
+      if (!c.includes('src/main.tsx') && !c.includes('main.tsx')) errors.push('index.html: missing main.tsx script');
     }
   }
 
@@ -300,6 +388,25 @@ function validateGeneratedFiles(files: any[], plan: ProjectPlan): string[] {
       const found = extensions.some(ext => filePaths.includes(importPath + ext));
       if (!found) {
         errors.push(`[broken-import] ${file.path}: "${match[1]}" → "${importPath}" not in output files`);
+      }
+    }
+  }
+
+  const appFile = files.find((f: any) => f.path?.includes('App.tsx'));
+  if (appFile) {
+    for (const page of plan.pages || []) {
+      if (page.path && !appFile.content?.includes(page.path)) {
+        errors.push(`[missing-route] App.tsx: page "${page.name}" route "${page.path}" not registered`);
+      }
+    }
+  }
+
+  const schemaFile = files.find((f: any) => f.path?.includes('schema.ts'));
+  if (schemaFile) {
+    for (const entity of plan.dataModel || []) {
+      const tableName = entity.name.toLowerCase().replace(/\s+/g, '');
+      if (!schemaFile.content?.toLowerCase().includes(tableName)) {
+        errors.push(`[missing-entity] schema.ts: entity "${entity.name}" not found in schema`);
       }
     }
   }

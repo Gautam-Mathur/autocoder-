@@ -936,6 +936,525 @@ export function useTheme() {
   };
 }
 
+export function getCheckboxComponent(): ComponentTemplate {
+  return {
+    id: 'ui-checkbox',
+    path: 'src/components/ui/checkbox.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+const Checkbox = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { label?: string }>(
+  ({ className, label, id, ...props }, ref) => {
+    const inputId = id || \`cb-\${Math.random().toString(36).slice(2, 8)}\`;
+    return (
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          ref={ref}
+          id={inputId}
+          className={cn(
+            "h-4 w-4 rounded border border-input accent-primary cursor-pointer",
+            className
+          )}
+          {...props}
+        />
+        {label && <label htmlFor={inputId} className="text-sm cursor-pointer select-none">{label}</label>}
+      </div>
+    );
+  }
+);
+Checkbox.displayName = "Checkbox";
+
+export { Checkbox };
+`,
+  };
+}
+
+export function getSwitchComponent(): ComponentTemplate {
+  return {
+    id: 'ui-switch',
+    path: 'src/components/ui/switch.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+const Switch = forwardRef<HTMLButtonElement, { checked?: boolean; onCheckedChange?: (checked: boolean) => void; disabled?: boolean; className?: string }>(
+  ({ checked = false, onCheckedChange, disabled, className }, ref) => {
+    return (
+      <button
+        ref={ref}
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        disabled={disabled}
+        onClick={() => onCheckedChange?.(!checked)}
+        className={cn(
+          "inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors",
+          checked ? "bg-primary" : "bg-input",
+          disabled && "cursor-not-allowed opacity-50",
+          className
+        )}
+      >
+        <span className={cn(
+          "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform",
+          checked ? "translate-x-4" : "translate-x-0"
+        )} />
+      </button>
+    );
+  }
+);
+Switch.displayName = "Switch";
+
+export { Switch };
+`,
+  };
+}
+
+export function getSeparatorComponent(): ComponentTemplate {
+  return {
+    id: 'ui-separator',
+    path: 'src/components/ui/separator.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+const Separator = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { orientation?: "horizontal" | "vertical" }>(
+  ({ className, orientation = "horizontal", ...props }, ref) => (
+    <div
+      ref={ref}
+      role="separator"
+      className={cn(
+        "shrink-0 bg-border",
+        orientation === "horizontal" ? "h-px w-full" : "h-full w-px",
+        className
+      )}
+      {...props}
+    />
+  )
+);
+Separator.displayName = "Separator";
+
+export { Separator };
+`,
+  };
+}
+
+export function getProgressComponent(): ComponentTemplate {
+  return {
+    id: 'ui-progress',
+    path: 'src/components/ui/progress.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+const Progress = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { value?: number; max?: number }>(
+  ({ className, value = 0, max = 100, ...props }, ref) => {
+    const pct = Math.min(100, Math.max(0, (value / max) * 100));
+    return (
+      <div ref={ref} className={cn("relative h-2 w-full overflow-hidden rounded-full bg-secondary", className)} {...props}>
+        <div className="h-full bg-primary transition-all duration-300" style={{ width: \`\${pct}%\` }} />
+      </div>
+    );
+  }
+);
+Progress.displayName = "Progress";
+
+export { Progress };
+`,
+  };
+}
+
+export function getAvatarComponent(): ComponentTemplate {
+  return {
+    id: 'ui-avatar',
+    path: 'src/components/ui/avatar.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+function Avatar({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full", className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+function AvatarImage({ src, alt, className }: { src?: string; alt?: string; className?: string }) {
+  const [error, setError] = useState(false);
+  if (!src || error) return null;
+  return <img src={src} alt={alt || ""} onError={() => setError(true)} className={cn("aspect-square h-full w-full object-cover", className)} />;
+}
+
+function AvatarFallback({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("flex h-full w-full items-center justify-center rounded-full bg-muted text-sm font-medium", className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export { Avatar, AvatarImage, AvatarFallback };
+`,
+  };
+}
+
+export function getDropdownMenuComponent(): ComponentTemplate {
+  return {
+    id: 'ui-dropdown-menu',
+    path: 'src/components/ui/dropdown-menu.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { useState, useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
+
+function DropdownMenu({ children }: { children: React.ReactNode }) {
+  return <div className="relative inline-block">{children}</div>;
+}
+
+function DropdownMenuTrigger({ children, asChild, ...props }: React.HTMLAttributes<HTMLButtonElement> & { asChild?: boolean }) {
+  return <button type="button" {...props}>{children}</button>;
+}
+
+function DropdownMenuContent({ className, children, align = "start", ...props }: React.HTMLAttributes<HTMLDivElement> & { align?: "start" | "end" | "center" }) {
+  return (
+    <div className={cn(
+      "absolute z-50 mt-1 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 shadow-md animate-in fade-in-0 zoom-in-95",
+      align === "end" && "right-0",
+      align === "center" && "left-1/2 -translate-x-1/2",
+      className
+    )} {...props}>
+      {children}
+    </div>
+  );
+}
+
+function DropdownMenuItem({ className, children, onClick, disabled, ...props }: React.HTMLAttributes<HTMLDivElement> & { disabled?: boolean }) {
+  return (
+    <div
+      role="menuitem"
+      tabIndex={disabled ? -1 : 0}
+      onClick={disabled ? undefined : onClick}
+      className={cn(
+        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground",
+        disabled && "pointer-events-none opacity-50",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DropdownMenuSeparator({ className }: { className?: string }) {
+  return <div className={cn("-mx-1 my-1 h-px bg-muted", className)} />;
+}
+
+function DropdownMenuLabel({ className, children }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("px-2 py-1.5 text-sm font-semibold", className)}>{children}</div>;
+}
+
+export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel };
+`,
+  };
+}
+
+export function getTooltipComponent(): ComponentTemplate {
+  return {
+    id: 'ui-tooltip',
+    path: 'src/components/ui/tooltip.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+function Tooltip({ children, content, side = "top", className }: { children: React.ReactNode; content: React.ReactNode; side?: "top" | "bottom" | "left" | "right"; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const positions: Record<string, string> = {
+    top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
+    bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
+    left: "right-full top-1/2 -translate-y-1/2 mr-2",
+    right: "left-full top-1/2 -translate-y-1/2 ml-2",
+  };
+  return (
+    <div className="relative inline-flex" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      {children}
+      {open && (
+        <div className={cn("absolute z-50 rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground shadow-md animate-in fade-in-0 whitespace-nowrap", positions[side], className)}>
+          {content}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export { Tooltip };
+`,
+  };
+}
+
+export function getScrollAreaComponent(): ComponentTemplate {
+  return {
+    id: 'ui-scroll-area',
+    path: 'src/components/ui/scroll-area.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+const ScrollArea = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { maxHeight?: string }>(
+  ({ className, maxHeight = "400px", children, ...props }, ref) => (
+    <div ref={ref} className={cn("relative overflow-auto", className)} style={{ maxHeight }} {...props}>
+      {children}
+    </div>
+  )
+);
+ScrollArea.displayName = "ScrollArea";
+
+export { ScrollArea };
+`,
+  };
+}
+
+export function getTableComponent(): ComponentTemplate {
+  return {
+    id: 'ui-table',
+    path: 'src/components/ui/table.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+const Table = forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(({ className, ...props }, ref) => (
+  <div className="relative w-full overflow-auto">
+    <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+  </div>
+));
+Table.displayName = "Table";
+
+const TableHeader = forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(({ className, ...props }, ref) => (
+  <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
+));
+TableHeader.displayName = "TableHeader";
+
+const TableBody = forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(({ className, ...props }, ref) => (
+  <tbody ref={ref} className={cn("[&_tr:last-child]:border-0", className)} {...props} />
+));
+TableBody.displayName = "TableBody";
+
+const TableRow = forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(({ className, ...props }, ref) => (
+  <tr ref={ref} className={cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted", className)} {...props} />
+));
+TableRow.displayName = "TableRow";
+
+const TableHead = forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<HTMLTableCellElement>>(({ className, ...props }, ref) => (
+  <th ref={ref} className={cn("h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0", className)} {...props} />
+));
+TableHead.displayName = "TableHead";
+
+const TableCell = forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTableCellElement>>(({ className, ...props }, ref) => (
+  <td ref={ref} className={cn("p-2 align-middle [&:has([role=checkbox])]:pr-0", className)} {...props} />
+));
+TableCell.displayName = "TableCell";
+
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell };
+`,
+  };
+}
+
+export function getPopoverComponent(): ComponentTemplate {
+  return {
+    id: 'ui-popover',
+    path: 'src/components/ui/popover.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { useState, useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
+
+function Popover({ children }: { children: React.ReactNode }) {
+  return <div className="relative inline-block">{children}</div>;
+}
+
+function PopoverTrigger({ children, asChild, onClick, ...props }: React.HTMLAttributes<HTMLButtonElement> & { asChild?: boolean }) {
+  return <button type="button" onClick={onClick} {...props}>{children}</button>;
+}
+
+function PopoverContent({ className, children, align = "center", ...props }: React.HTMLAttributes<HTMLDivElement> & { align?: "start" | "end" | "center" }) {
+  return (
+    <div className={cn(
+      "absolute z-50 mt-2 w-72 rounded-md border bg-popover p-4 shadow-md outline-none animate-in fade-in-0 zoom-in-95",
+      align === "end" && "right-0",
+      align === "start" && "left-0",
+      align === "center" && "left-1/2 -translate-x-1/2",
+      className
+    )} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export { Popover, PopoverTrigger, PopoverContent };
+`,
+  };
+}
+
+export function getAlertDialogComponent(): ComponentTemplate {
+  return {
+    id: 'ui-alert-dialog',
+    path: 'src/components/ui/alert-dialog.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils', 'ui-button'] },
+    content: `import { useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
+interface AlertDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  variant?: "default" | "destructive";
+}
+
+function AlertDialog({ open, onOpenChange, title, description, confirmLabel = "Continue", cancelLabel = "Cancel", onConfirm, variant = "default" }: AlertDialogProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onOpenChange(false); };
+    if (open) document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [open, onOpenChange]);
+
+  if (!open) return null;
+
+  return (
+    <div ref={overlayRef} className="fixed inset-0 z-50 flex items-center justify-center" onClick={(e) => { if (e.target === overlayRef.current) onOpenChange(false); }}>
+      <div className="fixed inset-0 bg-black/50" />
+      <div className="relative z-50 w-full max-w-md mx-4 bg-background rounded-lg border shadow-lg p-6">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {description && <p className="text-sm text-muted-foreground mt-2">{description}</p>}
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{cancelLabel}</Button>
+          <Button variant={variant === "destructive" ? "destructive" : "default"} onClick={() => { onConfirm(); onOpenChange(false); }}>{confirmLabel}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export { AlertDialog };
+`,
+  };
+}
+
+export function getAccordionComponent(): ComponentTemplate {
+  return {
+    id: 'ui-accordion',
+    path: 'src/components/ui/accordion.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'], lucideIcons: ['ChevronDown'] },
+    content: `import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { ChevronDown } from "lucide-react";
+
+function Accordion({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("divide-y", className)}>{children}</div>;
+}
+
+function AccordionItem({ value, children, className }: { value: string; children: React.ReactNode; className?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={cn("border-b", className)} data-state={open ? "open" : "closed"} data-value={value}>
+      {typeof children === "function" ? (children as any)({ open, toggle: () => setOpen(!open) }) : children}
+    </div>
+  );
+}
+
+function AccordionTrigger({ children, className, open, onClick }: { children: React.ReactNode; className?: string; open?: boolean; onClick?: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={cn("flex w-full items-center justify-between py-4 text-sm font-medium transition-all hover:underline", className)}>
+      {children}
+      <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
+    </button>
+  );
+}
+
+function AccordionContent({ children, className, open }: { children: React.ReactNode; className?: string; open?: boolean }) {
+  if (!open) return null;
+  return <div className={cn("pb-4 text-sm animate-in fade-in-0", className)}>{children}</div>;
+}
+
+export { Accordion, AccordionItem, AccordionTrigger, AccordionContent };
+`,
+  };
+}
+
+export function getRadioGroupComponent(): ComponentTemplate {
+  return {
+    id: 'ui-radio-group',
+    path: 'src/components/ui/radio-group.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { cn } from "@/lib/utils";
+
+function RadioGroup({ value, onValueChange, className, children }: { value?: string; onValueChange?: (value: string) => void; className?: string; children: React.ReactNode }) {
+  return <div role="radiogroup" className={cn("grid gap-2", className)}>{children}</div>;
+}
+
+function RadioGroupItem({ value, id, className, label, checked, onChange }: { value: string; id?: string; className?: string; label?: string; checked?: boolean; onChange?: (value: string) => void }) {
+  const inputId = id || \`radio-\${value}\`;
+  return (
+    <div className="flex items-center gap-2">
+      <input type="radio" id={inputId} value={value} checked={checked} onChange={() => onChange?.(value)} className={cn("h-4 w-4 accent-primary", className)} />
+      {label && <label htmlFor={inputId} className="text-sm cursor-pointer">{label}</label>}
+    </div>
+  );
+}
+
+export { RadioGroup, RadioGroupItem };
+`,
+  };
+}
+
+export function getSliderComponent(): ComponentTemplate {
+  return {
+    id: 'ui-slider',
+    path: 'src/components/ui/slider.tsx',
+    language: 'tsx',
+    deps: { ...emptyDeps(), components: ['lib-utils'] },
+    content: `import { forwardRef } from "react";
+import { cn } from "@/lib/utils";
+
+const Slider = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { label?: string }>(
+  ({ className, label, ...props }, ref) => (
+    <div className="w-full">
+      {label && <label className="text-sm font-medium mb-1 block">{label}</label>}
+      <input
+        type="range"
+        ref={ref}
+        className={cn("w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary", className)}
+        {...props}
+      />
+    </div>
+  )
+);
+Slider.displayName = "Slider";
+
+export { Slider };
+`,
+  };
+}
+
 export function getAllBaseComponents(plan: { dataModel: PlannedEntity[] }): ComponentTemplate[] {
   return [
     getUtilsComponent(),
@@ -951,6 +1470,20 @@ export function getAllBaseComponents(plan: { dataModel: PlannedEntity[] }): Comp
     getSelectComponent(),
     getToasterComponent(),
     getTabsComponent(),
+    getCheckboxComponent(),
+    getSwitchComponent(),
+    getSeparatorComponent(),
+    getProgressComponent(),
+    getAvatarComponent(),
+    getDropdownMenuComponent(),
+    getTooltipComponent(),
+    getScrollAreaComponent(),
+    getTableComponent(),
+    getPopoverComponent(),
+    getAlertDialogComponent(),
+    getAccordionComponent(),
+    getRadioGroupComponent(),
+    getSliderComponent(),
     getStatusBadgeComponent(plan),
     getEmptyStateComponent(),
     getConfirmDialogComponent(),
