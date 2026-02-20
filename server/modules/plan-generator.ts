@@ -1,6 +1,7 @@
 import type { UnderstandingResult } from './deep-understanding-engine.js';
 import type { DomainEntity, DomainModule, DomainWorkflow, UserRole, IndustryDomain } from './domain-knowledge.js';
 import { buildEntitiesForModules, buildPagesForModules, buildWorkflowsForEntities } from './domain-knowledge.js';
+import { learningEngine } from './generation-learning-engine.js';
 
 function toSnakeCase(str: string): string {
   return str.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
@@ -133,7 +134,7 @@ export function generatePlan(understanding: UnderstandingResult): ProjectPlan {
   const estimatedComplexity = entityCount > 8 || pageCount > 12 ? 'Large' :
     entityCount > 4 || pageCount > 6 ? 'Medium' : 'Small';
 
-  return {
+  const basePlan: ProjectPlan = {
     projectName,
     overview,
     techStack,
@@ -147,6 +148,12 @@ export function generatePlan(understanding: UnderstandingResult): ProjectPlan {
     kpis,
     estimatedComplexity,
   };
+
+  try {
+    return learningEngine.applyLearnedPatterns(basePlan);
+  } catch {
+    return basePlan;
+  }
 }
 
 function generateProjectName(intent: IntentDecomposition, domain: IndustryDomain | null): string {

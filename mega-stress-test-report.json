@@ -1,0 +1,104 @@
+{
+  "timestamp": "2026-02-20T20:50:02.907Z",
+  "totalIterations": 200,
+  "passed": 200,
+  "failed": 0,
+  "crashed": 0,
+  "passRate": "100.00",
+  "timeSeconds": 17.2,
+  "batchProgression": [
+    {
+      "batch": 1,
+      "passed": 200,
+      "failed": 0,
+      "passRate": "100.0"
+    }
+  ],
+  "categoryBreakdown": {
+    "gen-hybrid": {
+      "passed": 21,
+      "failed": 0,
+      "total": 21,
+      "passRate": "100.0"
+    },
+    "gen-feature": {
+      "passed": 21,
+      "failed": 0,
+      "total": 21,
+      "passRate": "100.0"
+    },
+    "gen-entity": {
+      "passed": 21,
+      "failed": 0,
+      "total": 21,
+      "passRate": "100.0"
+    },
+    "gen-domain": {
+      "passed": 14,
+      "failed": 0,
+      "total": 14,
+      "passRate": "100.0"
+    },
+    "gen-natural": {
+      "passed": 35,
+      "failed": 0,
+      "total": 35,
+      "passRate": "100.0"
+    },
+    "gen-large": {
+      "passed": 19,
+      "failed": 0,
+      "total": 19,
+      "passRate": "100.0"
+    },
+    "gen-novel": {
+      "passed": 22,
+      "failed": 0,
+      "total": 22,
+      "passRate": "100.0"
+    },
+    "gen-vague": {
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "passRate": "100.0"
+    },
+    "gen-medium": {
+      "passed": 19,
+      "failed": 0,
+      "total": 19,
+      "passRate": "100.0"
+    },
+    "gen-wellknown": {
+      "passed": 22,
+      "failed": 0,
+      "total": 22,
+      "passRate": "100.0"
+    },
+    "gen-edge": {
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "passRate": "100.0"
+    }
+  },
+  "errorClassDistribution": {},
+  "top50Errors": [],
+  "learningStats": {
+    "totalPatterns": 6169,
+    "reliablePatterns": 6107,
+    "totalPreferences": 3410,
+    "totalOutcomes": 0,
+    "patternsByType": {
+      "entity-structure": 621,
+      "workflow-design": 463,
+      "ui-layout": 112,
+      "tech-choice": 123,
+      "validation-rule": 115,
+      "page-structure": 978,
+      "field-naming": 119,
+      "domain-mapping": 3521,
+      "error-prevention": 117
+    }
+  }
+}

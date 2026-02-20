@@ -234,12 +234,16 @@ export function generateProject(
   emit('schema', `Schema: ${plan.dataModel?.length || 0} entities | Server: ${plan.apiEndpoints?.length || 0} endpoints`);
 
   emit('pages', `Building ${plan.pages.length} page components...`);
+  const generatedPagePaths = new Set<string>();
   for (let i = 0; i < plan.pages.length; i++) {
     const page = plan.pages[i];
+    const pagePath = `src/pages/${toKebab(page.componentName)}.tsx`;
+    if (generatedPagePaths.has(pagePath)) continue;
+    generatedPagePaths.add(pagePath);
     emit('pages', `[${i + 1}/${plan.pages.length}] Building ${page.componentName}...`);
     const content = generatePageContent(page, plan, reasoning);
     files.push({
-      path: `src/pages/${toKebab(page.componentName)}.tsx`,
+      path: pagePath,
       content,
       language: 'tsx',
     });
@@ -822,11 +826,19 @@ app.listen(port, "0.0.0.0", () => {
 }
 
 function generateAppTsx(plan: ProjectPlan): GeneratedFile {
-  const pageImports = plan.pages.map(page => {
-    const componentName = page.componentName;
-    const fileName = toKebab(componentName);
-    return `import ${componentName} from "@/pages/${fileName}";`;
-  }).join('\n');
+  const seen = new Set<string>();
+  const pageImports = plan.pages
+    .filter(page => {
+      const key = page.componentName;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map(page => {
+      const componentName = page.componentName;
+      const fileName = toKebab(componentName);
+      return `import ${componentName} from "@/pages/${fileName}";`;
+    }).join('\n');
 
   const routes = plan.pages.map(page => {
     return `          <Route path="${page.path}" component={${page.componentName}} />`;
