@@ -1441,6 +1441,26 @@ export async function startDevServer(
     
     await fixBinPermissions();
 
+    // Ensure vite.config.ts has ESM __dirname polyfill (prevents silent exit code 0)
+    try {
+      const viteContent = await container.fs.readFile('vite.config.ts', 'utf-8');
+      if (viteContent && !viteContent.includes('fileURLToPath')) {
+        const patched = `import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nimport path from 'path';\nimport { fileURLToPath } from 'url';\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n` +
+          viteContent
+            .replace(/import\s*\{?\s*defineConfig\s*\}?\s*from\s*['"]vite['"];?\n?/g, '')
+            .replace(/import\s+react\s+from\s*['"]@vitejs\/plugin-react['"];?\n?/g, '')
+            .replace(/import\s+path\s+from\s*['"]path['"];?\n?/g, '')
+            .replace(/import\s*\*\s*as\s+path\s+from\s*['"]path['"];?\n?/g, '')
+            .replace(/const\s+__dirname\s*=\s*[^;\n]+;?\n?/g, '')
+            .replace(/const\s+__filename\s*=\s*[^;\n]+;?\n?/g, '');
+        await container.fs.writeFile('vite.config.ts', patched);
+        runnerLog.info('DevServer', 'Patched vite.config.ts with ESM __dirname polyfill');
+      }
+    } catch {
+      await container.fs.writeFile('vite.config.ts', VITE_CONFIG_CONTENTS);
+      runnerLog.info('DevServer', 'Wrote fallback vite.config.ts with ESM __dirname polyfill');
+    }
+
     runnerLog.separator('DEV SERVER START');
     runnerLog.info('DevServer', 'Starting development server (npm run dev)...');
     runnerLog.startTimer('dev-server-startup');
