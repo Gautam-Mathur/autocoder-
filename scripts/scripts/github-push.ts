@@ -63,6 +63,11 @@ function getAllFiles(dir: string, baseDir: string = dir): string[] {
       continue;
     }
 
+    if (relativePath === 'public/cache/prewarm-snapshot.json.gz' ||
+        relativePath === path.join('public', 'cache', 'prewarm-snapshot.json.gz')) {
+      continue;
+    }
+
     if (entry.isSymbolicLink()) {
       continue;
     }
