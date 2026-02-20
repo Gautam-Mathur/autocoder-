@@ -928,6 +928,29 @@ export default {
       runnerLog.success('PreFlight', 'All critical files verified OK');
     }
 
+    // Step 4.6: Ensure vite.config.ts has ESM __dirname polyfill (prevents silent exit code 0)
+    if (projectType.type === 'vite') {
+      try {
+        const viteConfigContent = await readFile('vite.config.ts');
+        if (viteConfigContent && !viteConfigContent.includes('fileURLToPath')) {
+          const fixedConfig = `import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nimport path from 'path';\nimport { fileURLToPath } from 'url';\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n` +
+            viteConfigContent
+              .replace(/import\s*\{?\s*defineConfig\s*\}?\s*from\s*['"]vite['"];?\n?/g, '')
+              .replace(/import\s+react\s+from\s*['"]@vitejs\/plugin-react['"];?\n?/g, '')
+              .replace(/import\s+path\s+from\s*['"]path['"];?\n?/g, '')
+              .replace(/import\s*\*\s*as\s+path\s+from\s*['"]path['"];?\n?/g, '')
+              .replace(/const\s+__dirname\s*=\s*[^;\n]+;?\n?/g, '')
+              .replace(/const\s+__filename\s*=\s*[^;\n]+;?\n?/g, '');
+          await writeFile('vite.config.ts', fixedConfig);
+          runnerLog.info('PreFlight', 'Patched vite.config.ts with ESM __dirname polyfill');
+        }
+      } catch {
+        const fallbackConfig = `import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nimport path from 'path';\nimport { fileURLToPath } from 'url';\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\nexport default defineConfig({\n  plugins: [react()],\n  resolve: {\n    alias: {\n      '@': path.resolve(__dirname, './src'),\n    },\n  },\n});\n`;
+        await writeFile('vite.config.ts', fallbackConfig);
+        runnerLog.info('PreFlight', 'Wrote fallback vite.config.ts with ESM __dirname polyfill');
+      }
+    }
+
     // Step 5: Start dev server
     runnerLog.separator('DEV SERVER');
     updateState({ status: 'starting', progress: 80, message: 'Starting development server...' });
