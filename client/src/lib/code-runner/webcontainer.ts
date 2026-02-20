@@ -906,6 +906,66 @@ export async function installDependencies(
     }
   }
 
+  if (preWarmStatus === 'ready') {
+    try {
+      const pkgRaw = await container.fs.readFile('package.json', 'utf-8');
+      const pkgJson = JSON.parse(pkgRaw);
+      const projectDeps = pkgJson.dependencies || {};
+      const projectDevDeps = pkgJson.devDependencies || {};
+      const { deps: preWarmedDeps, devDeps: preWarmedDevDeps } = getPreWarmedPackages();
+      const allPreWarmed = { ...preWarmedDeps, ...preWarmedDevDeps };
+
+      const extraDeps = Object.keys(projectDeps).filter(d => !allPreWarmed[d]);
+      const extraDevDeps = Object.keys(projectDevDeps).filter(d => !allPreWarmed[d]);
+
+      runnerLog.separator('NPM INSTALL (SNAPSHOT-AWARE)');
+      runnerLog.info('NPM', `Snapshot loaded — diffing packages instead of full install`);
+      runnerLog.info('NPM', `Pre-warm diff: ${extraDeps.length} extra deps, ${extraDevDeps.length} extra devDeps`, {
+        extraDeps: extraDeps.join(', ') || '(none)',
+        extraDevDeps: extraDevDeps.join(', ') || '(none)',
+        cachedDeps: Object.keys(preWarmedDeps).length,
+        cachedDevDeps: Object.keys(preWarmedDevDeps).length,
+      });
+
+      if (extraDeps.length === 0 && extraDevDeps.length === 0) {
+        runnerLog.success('NPM', 'All packages already pre-installed, skipping npm install');
+        onOutput?.('✅ All packages pre-installed from snapshot, no npm install needed\n');
+        await fixBinPermissions();
+        runnerLog.separator('NPM INSTALL DONE (SNAPSHOT)');
+        return { success: true, output: [], errors: [], exitCode: 0 };
+      }
+
+      onOutput?.(`📦 Installing ${extraDeps.length + extraDevDeps.length} extra packages (snapshot has the rest)...\n`);
+      let allExtrasOk = true;
+
+      if (extraDeps.length > 0) {
+        const result = await runNpmInstall(extraDeps, false, onOutput, 120000, true);
+        if (!result.success) {
+          runnerLog.warn('NPM', 'Some extra dependency packages failed to install');
+          onOutput?.('⚠️ Some extra packages failed, continuing...\n');
+          allExtrasOk = false;
+        }
+      }
+      if (extraDevDeps.length > 0) {
+        const result = await runNpmInstall(extraDevDeps, true, onOutput, 120000, true);
+        if (!result.success) {
+          runnerLog.warn('NPM', 'Some extra devDependency packages failed to install');
+          onOutput?.('⚠️ Some extra dev packages failed, continuing...\n');
+          allExtrasOk = false;
+        }
+      }
+
+      await fixBinPermissions();
+      runnerLog.success('NPM', `Extra packages installed (${allExtrasOk ? 'all succeeded' : 'some failed'})`);
+      onOutput?.('✅ Dependencies ready\n');
+      runnerLog.separator('NPM INSTALL DONE (SNAPSHOT)');
+      return { success: true, output: [], errors: [], exitCode: 0 };
+    } catch (snapshotErr) {
+      runnerLog.warn('NPM', `Snapshot-aware install failed (${String(snapshotErr)}), falling back to full install`);
+      onOutput?.('⚠️ Could not use snapshot shortcut, running full install...\n');
+    }
+  }
+
   runnerLog.separator('NPM INSTALL');
   runnerLog.startTimer('npm-install-total');
 
@@ -1290,6 +1350,8 @@ export async function startDevServer(
   devServerPromise = (async () => {
     const container = await getWebContainer();
     
+    await fixBinPermissions();
+
     runnerLog.separator('DEV SERVER START');
     runnerLog.info('DevServer', 'Starting development server (npm run dev)...');
     runnerLog.startTimer('dev-server-startup');
