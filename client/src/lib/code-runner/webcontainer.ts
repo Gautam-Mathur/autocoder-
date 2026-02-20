@@ -603,10 +603,44 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@shared': path.resolve(__dirname, './shared'),
     },
+  },
+  server: {
+    host: '0.0.0.0',
+    port: 5200,
   },
 });
 `;
+
+const FALLBACK_INDEX_HTML = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+`;
+
+const FALLBACK_TSCONFIG_NODE = JSON.stringify({
+  compilerOptions: {
+    composite: true,
+    skipLibCheck: true,
+    module: "ESNext",
+    moduleResolution: "bundler",
+    allowSyntheticDefaultImports: true,
+  },
+  include: ["vite.config.ts"],
+}, null, 2);
+
+function stripAnsi(str: string): string {
+  return str.replace(/\x1B\[[0-9;]*[A-Za-z]|\x1B\].*?\x07|\x1B\[[\?]?[0-9;]*[A-Za-z]/g, '');
+}
 
 async function tryLoadSnapshot(container: WebContainer): Promise<boolean> {
   if (typeof window === 'undefined' || typeof fetch === 'undefined') {
@@ -1419,6 +1453,131 @@ export async function runNodeScript(
   return runCommand('node', [scriptPath], onOutput);
 }
 
+async function ensureCriticalFiles(container: WebContainer): Promise<void> {
+  // Ensure vite.config.ts has ESM __dirname polyfill
+  try {
+    const viteContent = await container.fs.readFile('vite.config.ts', 'utf-8');
+    if (viteContent && !viteContent.includes('fileURLToPath')) {
+      const patched = `import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nimport path from 'path';\nimport { fileURLToPath } from 'url';\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n` +
+        viteContent
+          .replace(/import\s*\{?\s*defineConfig\s*\}?\s*from\s*['"]vite['"];?\n?/g, '')
+          .replace(/import\s+react\s+from\s*['"]@vitejs\/plugin-react['"];?\n?/g, '')
+          .replace(/import\s+path\s+from\s*['"]path['"];?\n?/g, '')
+          .replace(/import\s*\*\s*as\s+path\s+from\s*['"]path['"];?\n?/g, '')
+          .replace(/const\s+__dirname\s*=\s*[^;\n]+;?\n?/g, '')
+          .replace(/const\s+__filename\s*=\s*[^;\n]+;?\n?/g, '');
+      await container.fs.writeFile('vite.config.ts', patched);
+      runnerLog.info('DevServer', 'Patched vite.config.ts with ESM __dirname polyfill');
+    }
+  } catch {
+    await container.fs.writeFile('vite.config.ts', VITE_CONFIG_CONTENTS);
+    runnerLog.info('DevServer', 'Wrote fallback vite.config.ts');
+  }
+
+  // Ensure index.html exists (Vite exits silently without it)
+  try {
+    await container.fs.readFile('index.html', 'utf-8');
+  } catch {
+    await container.fs.writeFile('index.html', FALLBACK_INDEX_HTML);
+    runnerLog.info('DevServer', 'Wrote fallback index.html');
+  }
+
+  // Ensure tsconfig.node.json exists (tsconfig.json references it)
+  try {
+    await container.fs.readFile('tsconfig.node.json', 'utf-8');
+  } catch {
+    await container.fs.writeFile('tsconfig.node.json', FALLBACK_TSCONFIG_NODE);
+    runnerLog.info('DevServer', 'Wrote fallback tsconfig.node.json');
+  }
+}
+
+async function attemptStartVite(
+  container: WebContainer,
+  onOutput?: (data: string) => void,
+  onServerReady?: (url: string) => void
+): Promise<{ url: string; process: any; stdinWriter: WritableStreamDefaultWriter<string> | null }> {
+  runnerLog.startTimer('dev-server-startup');
+
+  // Spawn vite directly instead of via `npm run dev`.
+  // npm doesn't forward stdin to child processes, so holding npm's stdin
+  // open does NOT prevent Vite from seeing EOF on its own stdin.
+  const proc = await container.spawn('./node_modules/.bin/vite', ['--host', '0.0.0.0']);
+  runnerLog.debug('DevServer', 'Vite process spawned directly (./node_modules/.bin/vite --host)');
+
+  // CRITICAL: Keep stdin open to prevent Vite from exiting.
+  // Vite 5+ in non-TTY mode listens for stdin EOF and calls server.close().
+  let stdinWriter: WritableStreamDefaultWriter<string> | null = null;
+  try {
+    stdinWriter = proc.input.getWriter();
+    runnerLog.debug('DevServer', 'Acquired stdin writer to keep Vite alive');
+  } catch (e) {
+    runnerLog.warn('DevServer', `Could not acquire stdin writer: ${e}`);
+  }
+
+  const outputChunks: string[] = [];
+
+  proc.output.pipeTo(
+    new WritableStream({
+      write(data) {
+        onOutput?.(data);
+        const clean = stripAnsi(data).trim();
+        if (clean) {
+          outputChunks.push(clean);
+          if (clean.includes('error') || clean.includes('Error') || clean.includes('ERR')) {
+            runnerLog.error('DevServer', clean);
+          } else if (clean.includes('warn') || clean.includes('WARN')) {
+            runnerLog.warn('DevServer', clean);
+          } else if (clean.includes('ready') || clean.includes('localhost') || clean.includes('Local:')) {
+            runnerLog.success('DevServer', clean);
+          } else {
+            runnerLog.debug('DevServer', clean);
+          }
+        }
+      },
+    })
+  );
+
+  const DEV_SERVER_TIMEOUT_MS = 60000;
+
+  return new Promise<{ url: string; process: any; stdinWriter: WritableStreamDefaultWriter<string> | null }>((resolve, reject) => {
+    let settled = false;
+
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      runnerLog.error('DevServer', `Dev server did not become ready within ${DEV_SERVER_TIMEOUT_MS / 1000}s`);
+      reject(new Error(`Dev server startup timed out after ${DEV_SERVER_TIMEOUT_MS / 1000}s`));
+    }, DEV_SERVER_TIMEOUT_MS);
+
+    container.on('server-ready', (port, url) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      const startupMs = runnerLog.endTimer('dev-server-startup');
+      runnerLog.success('DevServer', `Server ready at ${url} (port ${port})`, { port, url }, startupMs);
+      runnerLog.separator('DEV SERVER READY');
+      resolve({ url, process: proc, stdinWriter });
+    });
+
+    proc.exit.then((exitCode: number) => {
+      runnerLog.info('DevServer', `Vite process exited with code ${exitCode}`);
+      if (stdinWriter) {
+        try { stdinWriter.releaseLock(); } catch {}
+        stdinWriter = null;
+      }
+      if (settled) {
+        activeDevServer = null;
+        devServerPromise = null;
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      const lastOutput = outputChunks.slice(-5).join(' | ');
+      reject(new Error(`Vite exited with code ${exitCode} before becoming ready. Last output: ${lastOutput || '(none)'}`));
+    });
+  });
+}
+
 export async function startDevServer(
   onOutput?: (data: string) => void,
   onServerReady?: (url: string) => void
@@ -1438,112 +1597,41 @@ export async function startDevServer(
 
   devServerPromise = (async () => {
     const container = await getWebContainer();
-    
-    await fixBinPermissions();
 
-    // Ensure vite.config.ts has ESM __dirname polyfill (prevents silent exit code 0)
-    try {
-      const viteContent = await container.fs.readFile('vite.config.ts', 'utf-8');
-      if (viteContent && !viteContent.includes('fileURLToPath')) {
-        const patched = `import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nimport path from 'path';\nimport { fileURLToPath } from 'url';\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n` +
-          viteContent
-            .replace(/import\s*\{?\s*defineConfig\s*\}?\s*from\s*['"]vite['"];?\n?/g, '')
-            .replace(/import\s+react\s+from\s*['"]@vitejs\/plugin-react['"];?\n?/g, '')
-            .replace(/import\s+path\s+from\s*['"]path['"];?\n?/g, '')
-            .replace(/import\s*\*\s*as\s+path\s+from\s*['"]path['"];?\n?/g, '')
-            .replace(/const\s+__dirname\s*=\s*[^;\n]+;?\n?/g, '')
-            .replace(/const\s+__filename\s*=\s*[^;\n]+;?\n?/g, '');
-        await container.fs.writeFile('vite.config.ts', patched);
-        runnerLog.info('DevServer', 'Patched vite.config.ts with ESM __dirname polyfill');
-      }
-    } catch {
-      await container.fs.writeFile('vite.config.ts', VITE_CONFIG_CONTENTS);
-      runnerLog.info('DevServer', 'Wrote fallback vite.config.ts with ESM __dirname polyfill');
-    }
+    await fixBinPermissions();
+    await ensureCriticalFiles(container);
 
     runnerLog.separator('DEV SERVER START');
-    runnerLog.info('DevServer', 'Starting development server (npm run dev)...');
-    runnerLog.startTimer('dev-server-startup');
-    
-    const process = await container.spawn('npm', ['run', 'dev']);
-    runnerLog.debug('DevServer', 'Dev server process spawned');
+    runnerLog.info('DevServer', 'Starting Vite dev server (direct binary)...');
 
-    // CRITICAL: Keep stdin open to prevent Vite from exiting.
-    // Vite 5+ in non-TTY mode listens for stdin EOF and calls server.close() when it fires.
-    // WebContainer spawn() provides a WritableStream for stdin — if we don't hold it open,
-    // the stream may close/GC, causing Vite to detect EOF and exit with code 0.
-    let stdinWriter: WritableStreamDefaultWriter<string> | null = null;
-    try {
-      stdinWriter = process.input.getWriter();
-      runnerLog.debug('DevServer', 'Acquired stdin writer to keep process alive');
-    } catch (e) {
-      runnerLog.warn('DevServer', `Could not acquire stdin writer: ${e}`);
-    }
-    
-    process.output.pipeTo(
-      new WritableStream({
-        write(data) {
-          onOutput?.(data);
-          const trimmed = data.trim();
-          if (trimmed) {
-            if (trimmed.includes('error') || trimmed.includes('Error') || trimmed.includes('ERR')) {
-              runnerLog.error('DevServer', trimmed);
-            } else if (trimmed.includes('warn') || trimmed.includes('WARN')) {
-              runnerLog.warn('DevServer', trimmed);
-            } else if (trimmed.includes('ready') || trimmed.includes('localhost') || trimmed.includes('Local:')) {
-              runnerLog.success('DevServer', trimmed);
-            } else {
-              runnerLog.debug('DevServer', trimmed);
-            }
-          }
-        },
-      })
-    );
-    
-    process.exit.then((exitCode: number) => {
-      runnerLog.info('DevServer', `Dev server process exited with code ${exitCode}`);
-      if (stdinWriter) {
-        stdinWriter.releaseLock();
-        stdinWriter = null;
+    const MAX_RETRIES = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 1) {
+          runnerLog.info('DevServer', `Retry attempt ${attempt}/${MAX_RETRIES}...`);
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+          await fixBinPermissions();
+        }
+
+        const result = await attemptStartVite(container, onOutput, onServerReady);
+        activeDevServer = result;
+        onServerReady?.(result.url);
+
+        result.process.exit.then(() => {
+          activeDevServer = null;
+          devServerPromise = null;
+        });
+
+        return { url: result.url, process: result.process };
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        runnerLog.warn('DevServer', `Attempt ${attempt}/${MAX_RETRIES} failed: ${lastError.message}`);
       }
-      activeDevServer = null;
-      devServerPromise = null;
-    });
+    }
 
-    const DEV_SERVER_TIMEOUT_MS = 60000;
-
-    return new Promise<{ url: string; process: any }>((resolve, reject) => {
-      let settled = false;
-
-      const timeout = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        runnerLog.error('DevServer', `Dev server did not become ready within ${DEV_SERVER_TIMEOUT_MS / 1000}s`);
-        reject(new Error(`Dev server startup timed out after ${DEV_SERVER_TIMEOUT_MS / 1000}s`));
-      }, DEV_SERVER_TIMEOUT_MS);
-
-      container.on('server-ready', (port, url) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeout);
-        const startupMs = runnerLog.endTimer('dev-server-startup');
-        runnerLog.success('DevServer', `Server ready at ${url} (port ${port})`, {
-          port,
-          url,
-        }, startupMs);
-        runnerLog.separator('DEV SERVER READY');
-        activeDevServer = { url, process, stdinWriter };
-        onServerReady?.(url);
-        resolve({ url, process });
-      });
-
-      process.exit.then((exitCode: number) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeout);
-        reject(new Error(`Dev server exited with code ${exitCode} before becoming ready`));
-      });
-    });
+    throw lastError || new Error('Dev server failed to start after all retries');
   })();
 
   try {
