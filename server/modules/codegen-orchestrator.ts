@@ -231,7 +231,7 @@ export function generateProject(
   files.push(generateSharedSchema(plan, reasoning));
   files.push(generateServerRoutes(plan, reasoning));
   files.push(generateServerIndex(plan));
-  emit('schema', `Schema: ${plan.entities?.length || 0} entities | Server: ${plan.endpoints?.length || 0} endpoints`);
+  emit('schema', `Schema: ${plan.dataModel?.length || 0} entities | Server: ${plan.apiEndpoints?.length || 0} endpoints`);
 
   emit('pages', `Building ${plan.pages.length} page components...`);
   for (let i = 0; i < plan.pages.length; i++) {
