@@ -1549,15 +1549,17 @@ async function attemptStartVite(
       reject(new Error(`Dev server startup timed out after ${DEV_SERVER_TIMEOUT_MS / 1000}s`));
     }, DEV_SERVER_TIMEOUT_MS);
 
-    container.on('server-ready', (port, url) => {
+    const serverReadyHandler = (port: number, url: string) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
+      try { container.off('server-ready', serverReadyHandler); } catch {}
       const startupMs = runnerLog.endTimer('dev-server-startup');
       runnerLog.success('DevServer', `Server ready at ${url} (port ${port})`, { port, url }, startupMs);
       runnerLog.separator('DEV SERVER READY');
       resolve({ url, process: proc, stdinWriter });
-    });
+    };
+    container.on('server-ready', serverReadyHandler);
 
     proc.exit.then((exitCode: number) => {
       runnerLog.info('DevServer', `Vite process exited with code ${exitCode}`);
@@ -1572,6 +1574,7 @@ async function attemptStartVite(
       }
       settled = true;
       clearTimeout(timeout);
+      try { container.off('server-ready', serverReadyHandler); } catch {}
       const lastOutput = outputChunks.slice(-5).join(' | ');
       reject(new Error(`Vite exited with code ${exitCode} before becoming ready. Last output: ${lastOutput || '(none)'}`));
     });
