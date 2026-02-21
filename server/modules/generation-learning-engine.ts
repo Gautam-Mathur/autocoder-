@@ -777,7 +777,7 @@ export class GenerationLearningEngine {
               if (!fields.some(f => f.name === 'id')) {
                 fields.unshift({ name: 'id', type: 'serial', required: true });
               }
-              enhancedPlan.dataModel.push({ name: suggestedEntity, fields });
+              enhancedPlan.dataModel.push({ name: suggestedEntity, tableName: suggestedEntity.toLowerCase() + 's', fields, relationships: [] });
               existingEntityNames.add(suggestedEntity.toLowerCase());
             }
           }
