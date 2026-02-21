@@ -12,6 +12,7 @@ AutoCoder is not a toy code generator. It produces applications with **70+ serve
 
 | Metric | Value |
 |--------|-------|
+| Total lines of code (LOC) | 493,957 |
 | Total TypeScript files | 3,186 |
 | Server module files | 70 (60,858 lines) |
 | Client-side code | 41,223 lines across generators, runners, and UI |
