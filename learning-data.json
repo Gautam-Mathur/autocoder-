@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-02-21T03:21:43.816Z",
+  "exportedAt": "2026-02-21T04:09:41.370Z",
   "patterns": [
     {
       "id": 5462,
@@ -21,7 +21,14 @@
           "email",
           "phone",
           "status"
-        ]
+        ],
+        "fieldTypes": {
+          "firstName": "text",
+          "lastName": "text",
+          "email": "text",
+          "phone": "text",
+          "status": "enum"
+        }
       },
       "successCount": 10,
       "failureCount": 0,
@@ -44,7 +51,14 @@
           "status",
           "reference",
           "type"
-        ]
+        ],
+        "fieldTypes": {
+          "amount": "decimal",
+          "date": "date",
+          "status": "enum",
+          "reference": "text",
+          "type": "enum"
+        }
       },
       "successCount": 8,
       "failureCount": 0,
@@ -182,6 +196,7 @@
     {
       "id": 5471,
       "patternType": "domain-mapping",
+      "domainId": "veterinary",
       "patternKey": "veterinary",
       "patternValue": {
         "kpis": [
@@ -219,24 +234,45 @@
           "Revenue This Month",
           "New Leads",
           "Total Contacts",
-          "New This Week",
-          "Companies"
+          "Average Deal Size",
+          "Sales Velocity"
         ],
         "modules": [
           "Contacts",
-          "Sales Pipeline",
+          "Companies",
+          "Deals",
           "Activities",
-          "Dashboard"
+          "Pipeline",
+          "Reports"
         ],
         "entities": [
           "Contact",
           "Company",
           "Deal",
-          "Activity"
+          "Activity",
+          "Pipeline",
+          "Task"
         ],
-        "pageCount": 8
+        "pageCount": 8,
+        "relationships": {
+          "Deal": [
+            "belongsTo Contact",
+            "belongsTo Company"
+          ],
+          "Task": [
+            "belongsTo Contact",
+            "belongsTo Deal"
+          ],
+          "Contact": [
+            "belongsTo Company"
+          ],
+          "Activity": [
+            "belongsTo Contact",
+            "belongsTo Deal"
+          ]
+        }
       },
-      "successCount": 510,
+      "successCount": 610,
       "failureCount": 0,
       "reliability": 1
     },
@@ -248,10 +284,13 @@
       "patternKey": "entity-company",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "name": "text",
-          "size": "text",
+          "size": "enum(1-10,11-50,51-200,201-500,500+)",
+          "phone": "text",
           "address": "text",
+          "ownerId": "integer",
+          "revenue": "decimal",
           "website": "text",
           "industry": "text"
         },
@@ -259,12 +298,12 @@
           "id",
           "name",
           "industry",
-          "size",
           "website",
-          "address"
+          "size",
+          "ownerId"
         ]
       },
-      "successCount": 567,
+      "successCount": 667,
       "failureCount": 0,
       "reliability": 1
     },
@@ -276,29 +315,31 @@
       "patternKey": "entity-deal",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "stage": "enum(prospecting,qualification,proposal,negotiation,closed-won,closed-lost)",
+          "id": "serial",
+          "stage": "enum(prospecting,qualification,proposal,negotiation,closed_won,closed_lost)",
           "title": "text",
-          "value": "integer",
+          "value": "decimal",
           "ownerId": "integer",
           "companyId": "integer",
           "contactId": "integer",
+          "createdAt": "timestamp",
+          "closedDate": "date",
+          "lostReason": "text",
           "probability": "integer",
           "expectedCloseDate": "date"
         },
         "recommended": [
           "id",
           "title",
-          "contactId",
-          "companyId",
           "value",
           "stage",
           "probability",
-          "expectedCloseDate",
-          "ownerId"
+          "contactId",
+          "companyId",
+          "expectedCloseDate"
         ]
       },
-      "successCount": 374,
+      "successCount": 474,
       "failureCount": 0,
       "reliability": 1
     },
@@ -310,27 +351,30 @@
       "patternKey": "entity-activity",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "type": "enum(call,email,meeting,task,note)",
           "dealId": "integer",
+          "userId": "integer",
           "dueDate": "date",
+          "outcome": "text",
           "subject": "text",
+          "duration": "integer",
           "completed": "boolean",
           "contactId": "integer",
+          "createdAt": "timestamp",
           "description": "text"
         },
         "recommended": [
           "id",
           "type",
           "subject",
-          "description",
           "contactId",
           "dealId",
           "dueDate",
           "completed"
         ]
       },
-      "successCount": 389,
+      "successCount": 489,
       "failureCount": 0,
       "reliability": 1
     },
@@ -344,45 +388,40 @@
           "qualification",
           "proposal",
           "negotiation",
-          "closed-won",
-          "closed-lost"
+          "closed_won",
+          "closed_lost"
         ],
         "commonTransitions": [
           {
             "to": "qualification",
             "from": "prospecting",
-            "role": "sales",
             "action": "Qualify"
           },
           {
             "to": "proposal",
             "from": "qualification",
-            "role": "sales",
-            "action": "Send Proposal"
+            "action": "Propose"
           },
           {
             "to": "negotiation",
             "from": "proposal",
-            "role": "sales",
             "action": "Negotiate"
           },
           {
-            "to": "closed-won",
+            "to": "closed_won",
             "from": "negotiation",
-            "role": "sales",
-            "action": "Close Won"
+            "action": "Win"
           },
           {
-            "to": "closed-lost",
+            "to": "closed_lost",
             "from": "negotiation",
-            "role": "sales",
-            "action": "Close Lost"
+            "action": "Lose"
           }
         ]
       },
-      "successCount": 300,
+      "successCount": 400,
       "failureCount": 1,
-      "reliability": 0.9966777408637874
+      "reliability": 0.9975062344139651
     },
     {
       "id": 205,
@@ -392,16 +431,18 @@
       "patternKey": "entity-contact",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "tags": "text[]",
+          "id": "serial",
+          "tags": "text",
           "email": "text",
           "phone": "text",
           "title": "text",
-          "source": "text",
-          "status": "enum(lead,prospect,customer,churned)",
+          "source": "enum(web,referral,cold_call,event,social)",
+          "status": "enum(lead,prospect,customer,inactive)",
           "lastName": "text",
           "companyId": "integer",
-          "firstName": "text"
+          "createdAt": "timestamp",
+          "firstName": "text",
+          "lastContactedAt": "timestamp"
         },
         "recommended": [
           "id",
@@ -410,13 +451,11 @@
           "email",
           "phone",
           "companyId",
-          "title",
-          "tags",
           "source",
           "status"
         ]
       },
-      "successCount": 566,
+      "successCount": 666,
       "failureCount": 0,
       "reliability": 1
     },
@@ -428,33 +467,32 @@
       "patternKey": "entity-task",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
+          "tags": "text",
           "title": "text",
-          "labels": "text[]",
-          "status": "enum(backlog,todo,in-progress,review,done)",
+          "status": "enum(todo,in_progress,in_review,done,blocked)",
           "dueDate": "date",
           "priority": "enum(low,medium,high,urgent)",
+          "createdAt": "timestamp",
           "projectId": "integer",
           "assigneeId": "integer",
+          "actualHours": "decimal",
           "description": "text",
-          "commentCount": "text",
-          "estimatedHours": "integer"
+          "parentTaskId": "integer",
+          "estimatedHours": "decimal"
         },
         "recommended": [
           "id",
           "projectId",
           "title",
-          "description",
           "assigneeId",
           "status",
           "priority",
           "dueDate",
-          "labels",
-          "estimatedHours",
-          "commentCount"
+          "estimatedHours"
         ]
       },
-      "successCount": 2049,
+      "successCount": 2249,
       "failureCount": 0,
       "reliability": 1
     },
@@ -466,19 +504,24 @@
       "patternKey": "entity-comment",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "taskId": "integer",
+          "id": "serial",
+          "status": "enum(pending,approved,spam,deleted)",
           "content": "text",
-          "authorId": "integer"
+          "parentId": "integer",
+          "articleId": "integer",
+          "createdAt": "timestamp",
+          "authorName": "text",
+          "authorEmail": "text"
         },
         "recommended": [
           "id",
-          "taskId",
-          "authorId",
-          "content"
+          "articleId",
+          "authorName",
+          "content",
+          "status"
         ]
       },
-      "successCount": 975,
+      "successCount": 1275,
       "failureCount": 0,
       "reliability": 1
     },
@@ -508,19 +551,50 @@
           "Tasks Due Today",
           "Completion Rate",
           "Team Velocity",
-          "Completed This Week",
-          "In Progress"
+          "Overdue Tasks",
+          "Sprint Progress"
         ],
         "modules": [
-          "Tasks"
+          "Projects",
+          "Tasks",
+          "Sprints",
+          "Team",
+          "Time Tracking",
+          "Reports"
         ],
         "entities": [
+          "Project",
           "Task",
-          "Comment"
+          "Sprint",
+          "TeamMember",
+          "Comment",
+          "TimeEntry",
+          "Milestone"
         ],
-        "pageCount": 3
+        "pageCount": 9,
+        "relationships": {
+          "Task": [
+            "belongsTo Project",
+            "belongsTo Sprint"
+          ],
+          "Sprint": [
+            "belongsTo Project"
+          ],
+          "Comment": [
+            "belongsTo Task"
+          ],
+          "Milestone": [
+            "belongsTo Project"
+          ],
+          "TimeEntry": [
+            "belongsTo Task"
+          ],
+          "TeamMember": [
+            "belongsTo Project"
+          ]
+        }
       },
-      "successCount": 914,
+      "successCount": 1014,
       "failureCount": 0,
       "reliability": 1
     },
@@ -530,54 +604,43 @@
       "patternKey": "workflow-task",
       "patternValue": {
         "states": [
-          "backlog",
           "todo",
-          "in-progress",
-          "review",
-          "done"
+          "in_progress",
+          "in_review",
+          "done",
+          "blocked"
         ],
         "commonTransitions": [
           {
-            "to": "todo",
-            "from": "backlog",
-            "role": "member",
-            "action": "Move to Todo"
-          },
-          {
-            "to": "in-progress",
+            "to": "in_progress",
             "from": "todo",
-            "role": "member",
-            "action": "Start Work"
+            "action": "Start"
           },
           {
-            "to": "review",
-            "from": "in-progress",
-            "role": "member",
-            "action": "Submit for Review"
+            "to": "in_review",
+            "from": "in_progress",
+            "action": "Review"
           },
           {
             "to": "done",
-            "from": "review",
-            "role": "manager",
-            "action": "Approve & Complete"
+            "from": "in_review",
+            "action": "Approve"
           },
           {
-            "to": "in-progress",
-            "from": "review",
-            "role": "manager",
-            "action": "Request Changes"
+            "to": "in_progress",
+            "from": "in_review",
+            "action": "Revise"
           },
           {
-            "to": "backlog",
-            "from": "todo",
-            "role": "member",
-            "action": "Move to Backlog"
+            "to": "blocked",
+            "from": "in_progress",
+            "action": "Block"
           }
         ]
       },
-      "successCount": 2033,
+      "successCount": 2133,
       "failureCount": 14,
-      "reliability": 0.9931607230092818
+      "reliability": 0.9934792734047508
     },
     {
       "id": 5473,
@@ -1663,9 +1726,9 @@
           "Customer",
           "Cart",
           "CartItem",
-          "Payment",
           "Review",
-          "Coupon"
+          "Coupon",
+          "Payment"
         ],
         "relationships": {
           "Cart": [
@@ -1674,24 +1737,43 @@
           ],
           "Order": [
             "belongsTo Customer",
-            "hasMany OrderItem",
-            "hasOne Payment"
+            "hasMany OrderItem"
+          ],
+          "Review": [
+            "belongsTo Product",
+            "belongsTo Customer"
+          ],
+          "Payment": [
+            "belongsTo Order"
           ],
           "Product": [
             "belongsTo Category",
             "hasMany Review",
             "hasMany OrderItem"
+          ],
+          "CartItem": [
+            "belongsTo Cart",
+            "belongsTo Product"
+          ],
+          "OrderItem": [
+            "belongsTo Order",
+            "belongsTo Product"
           ]
         },
-        "requiredFeatures": [
-          "product catalog",
-          "cart management",
-          "checkout flow",
-          "order tracking",
-          "inventory management"
-        ]
+        "entityFieldCounts": {
+          "Cart": 6,
+          "Order": 14,
+          "Coupon": 9,
+          "Review": 8,
+          "Payment": 7,
+          "Product": 11,
+          "CartItem": 5,
+          "Category": 7,
+          "Customer": 11,
+          "OrderItem": 6
+        }
       },
-      "successCount": 16,
+      "successCount": 50,
       "failureCount": 0,
       "reliability": 1
     },
@@ -1707,36 +1789,48 @@
           "Appointment",
           "MedicalRecord",
           "Prescription",
+          "Department",
           "Insurance",
-          "Billing",
-          "Department"
+          "Billing"
         ],
         "relationships": {
-          "Patient": [
-            "hasMany Appointment",
-            "hasMany MedicalRecord",
-            "hasMany Prescription"
+          "Billing": [
+            "belongsTo Patient",
+            "belongsTo Appointment"
           ],
           "Provider": [
-            "hasMany Appointment",
             "belongsTo Department"
+          ],
+          "Insurance": [
+            "belongsTo Patient"
           ],
           "Appointment": [
             "belongsTo Patient",
             "belongsTo Provider"
+          ],
+          "Prescription": [
+            "belongsTo Patient",
+            "belongsTo Provider"
+          ],
+          "MedicalRecord": [
+            "belongsTo Patient",
+            "belongsTo Provider"
           ]
         },
-        "requiredFeatures": [
-          "patient registration",
-          "appointment scheduling",
-          "medical records",
-          "prescription management",
-          "billing"
-        ]
+        "entityFieldCounts": {
+          "Billing": 9,
+          "Patient": 14,
+          "Provider": 10,
+          "Insurance": 8,
+          "Department": 6,
+          "Appointment": 10,
+          "Prescription": 11,
+          "MedicalRecord": 10
+        }
       },
-      "successCount": 12,
-      "failureCount": 1,
-      "reliability": 0.9230769230769231
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
     },
     {
       "id": 5517,
@@ -1746,39 +1840,45 @@
         "domain": "education",
         "coreEntities": [
           "Student",
-          "Teacher",
           "Course",
           "Enrollment",
+          "Instructor",
           "Assignment",
-          "Grade",
-          "Schedule",
-          "Department"
+          "Submission",
+          "Attendance"
         ],
         "relationships": {
           "Course": [
-            "belongsTo Teacher",
-            "belongsTo Department",
-            "hasMany Assignment"
+            "belongsTo Instructor",
+            "belongsTo Department"
           ],
-          "Student": [
-            "hasMany Enrollment",
-            "hasMany Grade"
+          "Assignment": [
+            "belongsTo Course"
+          ],
+          "Attendance": [
+            "belongsTo Student",
+            "belongsTo Course"
           ],
           "Enrollment": [
             "belongsTo Student",
             "belongsTo Course"
+          ],
+          "Submission": [
+            "belongsTo Assignment",
+            "belongsTo Student"
           ]
         },
-        "requiredFeatures": [
-          "student management",
-          "course catalog",
-          "enrollment",
-          "grade tracking",
-          "assignment submission",
-          "attendance"
-        ]
+        "entityFieldCounts": {
+          "Course": 12,
+          "Student": 13,
+          "Assignment": 9,
+          "Attendance": 6,
+          "Enrollment": 7,
+          "Instructor": 10,
+          "Submission": 10
+        }
       },
-      "successCount": 13,
+      "successCount": 50,
       "failureCount": 0,
       "reliability": 1
     },
@@ -1790,39 +1890,42 @@
         "domain": "real-estate",
         "coreEntities": [
           "Property",
-          "Listing",
           "Agent",
-          "Client",
+          "Listing",
           "Showing",
           "Offer",
-          "Transaction",
-          "Document"
+          "Client"
         ],
         "relationships": {
-          "Agent": [
-            "hasMany Listing",
-            "hasMany Client"
+          "Offer": [
+            "belongsTo Property"
+          ],
+          "Client": [
+            "belongsTo Agent"
           ],
           "Listing": [
             "belongsTo Property",
+            "belongsTo Agent"
+          ],
+          "Showing": [
+            "belongsTo Property",
             "belongsTo Agent",
-            "hasMany Offer"
+            "belongsTo Client"
           ],
           "Property": [
-            "hasMany Listing",
-            "hasMany Showing"
+            "belongsTo Agent"
           ]
         },
-        "requiredFeatures": [
-          "property listings",
-          "search with filters",
-          "appointment scheduling",
-          "offer management",
-          "document management",
-          "agent profiles"
-        ]
+        "entityFieldCounts": {
+          "Agent": 10,
+          "Offer": 8,
+          "Client": 10,
+          "Listing": 10,
+          "Showing": 9,
+          "Property": 19
+        }
       },
-      "successCount": 11,
+      "successCount": 50,
       "failureCount": 0,
       "reliability": 1
     },
@@ -1834,41 +1937,38 @@
         "domain": "restaurant",
         "coreEntities": [
           "MenuItem",
-          "Category",
-          "Order",
-          "OrderItem",
-          "Table",
+          "MenuCategory",
+          "TableOrder",
+          "OrderDetail",
           "Reservation",
-          "Customer",
+          "Inventory",
           "Staff"
         ],
         "relationships": {
-          "Order": [
-            "hasMany OrderItem",
-            "belongsTo Table",
-            "belongsTo Customer"
-          ],
           "MenuItem": [
-            "belongsTo Category",
-            "hasMany OrderItem"
+            "belongsTo MenuCategory"
           ],
-          "Reservation": [
-            "belongsTo Table",
-            "belongsTo Customer"
+          "TableOrder": [
+            "belongsTo Staff"
+          ],
+          "OrderDetail": [
+            "belongsTo TableOrder",
+            "belongsTo MenuItem"
           ]
         },
-        "requiredFeatures": [
-          "menu management",
-          "table management",
-          "order taking",
-          "reservation system",
-          "kitchen display",
-          "bill generation"
-        ]
+        "entityFieldCounts": {
+          "Staff": 9,
+          "MenuItem": 11,
+          "Inventory": 10,
+          "TableOrder": 11,
+          "OrderDetail": 7,
+          "Reservation": 10,
+          "MenuCategory": 6
+        }
       },
-      "successCount": 12,
-      "failureCount": 1,
-      "reliability": 0.9230769230769231
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
     },
     {
       "id": 5520,
@@ -1878,39 +1978,34 @@
         "domain": "fitness",
         "coreEntities": [
           "Member",
-          "Trainer",
-          "Class",
-          "ClassSchedule",
-          "Membership",
           "Workout",
           "Exercise",
-          "Payment"
+          "WorkoutExercise",
+          "Class",
+          "MembershipPlan"
         ],
         "relationships": {
           "Class": [
-            "belongsTo Trainer",
-            "hasMany ClassSchedule"
-          ],
-          "Member": [
-            "hasOne Membership",
-            "hasMany Workout",
-            "hasMany ClassSchedule"
+            "belongsTo Instructor"
           ],
           "Workout": [
-            "belongsTo Member",
-            "hasMany Exercise"
+            "belongsTo Member"
+          ],
+          "WorkoutExercise": [
+            "belongsTo Workout",
+            "belongsTo Exercise"
           ]
         },
-        "requiredFeatures": [
-          "member management",
-          "class scheduling",
-          "workout tracking",
-          "membership plans",
-          "trainer profiles",
-          "check-in system"
-        ]
+        "entityFieldCounts": {
+          "Class": 10,
+          "Member": 12,
+          "Workout": 9,
+          "Exercise": 8,
+          "MembershipPlan": 8,
+          "WorkoutExercise": 9
+        }
       },
-      "successCount": 10,
+      "successCount": 50,
       "failureCount": 0,
       "reliability": 1
     },
@@ -2127,36 +2222,37 @@
       "patternKey": "entity-product",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "sku": "text",
           "name": "text",
-          "price": "integer",
-          "stock": "integer",
-          "status": "enum(active,draft,archived)",
-          "imageUrl": "text",
+          "unit": "text",
+          "status": "enum(active,discontinued,out_of_stock)",
+          "weight": "decimal",
+          "barcode": "text",
+          "location": "text",
+          "quantity": "integer",
+          "costPrice": "decimal",
+          "unitPrice": "decimal",
           "categoryId": "integer",
+          "supplierId": "integer",
           "description": "text",
-          "compareAtPrice": "integer"
+          "reorderLevel": "integer",
+          "lastRestocked": "date",
+          "reorderQuantity": "integer"
         },
         "recommended": [
           "id",
-          "name",
           "sku",
-          "description",
-          "price",
-          "compareAtPrice",
+          "name",
           "categoryId",
-          "imageUrl",
-          "stock",
-          "status",
-          "orderItemCount",
-          "inventoryItemCount",
-          "category",
-          "unitCost",
-          "sellingPrice"
+          "unitPrice",
+          "costPrice",
+          "quantity",
+          "reorderLevel",
+          "barcode"
         ]
       },
-      "successCount": 1570,
+      "successCount": 1770,
       "failureCount": 0,
       "reliability": 1
     },
@@ -2168,19 +2264,22 @@
       "patternKey": "entity-category",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "name": "text",
+          "slug": "text",
+          "imageUrl": "text",
           "parentId": "integer",
-          "productCount": "text"
+          "sortOrder": "integer",
+          "description": "text"
         },
         "recommended": [
           "id",
           "name",
-          "parentId",
-          "productCount"
+          "slug",
+          "parentId"
         ]
       },
-      "successCount": 856,
+      "successCount": 1056,
       "failureCount": 0,
       "reliability": 1
     },
@@ -2371,8 +2470,11 @@
           "reportCount"
         ],
         "fieldTypes": {
-          "likes": "integer DEFAULT 0",
-          "status": "enum(visible,hidden,flagged,deleted)"
+          "content": "text",
+          "authorId": "integer",
+          "postId": "integer",
+          "createdAt": "timestamp",
+          "status": "enum"
         },
         "recommended": [
           "content",
@@ -2427,8 +2529,9 @@
           "isSystem"
         ],
         "fieldTypes": {
-          "slug": "text UNIQUE",
-          "usageCount": "integer DEFAULT 0"
+          "name": "text",
+          "slug": "text",
+          "color": "text"
         },
         "recommended": [
           "name",
@@ -2453,8 +2556,12 @@
           "senderId"
         ],
         "fieldTypes": {
-          "type": "enum(info,warning,success,error,action)",
-          "isRead": "boolean DEFAULT false"
+          "userId": "integer",
+          "type": "enum",
+          "title": "text",
+          "message": "text",
+          "isRead": "text",
+          "createdAt": "timestamp"
         },
         "recommended": [
           "userId",
@@ -2762,8 +2869,12 @@
           "threadId"
         ],
         "fieldTypes": {
-          "type": "enum(text,image,file,system)",
-          "status": "enum(sent,delivered,read,deleted)"
+          "senderId": "integer",
+          "recipientId": "integer",
+          "content": "text",
+          "type": "enum",
+          "sentAt": "timestamp",
+          "status": "enum"
         },
         "recommended": [
           "senderId",
@@ -2792,8 +2903,11 @@
           "settings"
         ],
         "fieldTypes": {
-          "type": "enum(direct,group,channel)",
-          "participantCount": "integer DEFAULT 2"
+          "title": "text",
+          "type": "enum",
+          "createdById": "integer",
+          "lastMessageAt": "timestamp",
+          "participantCount": "text"
         },
         "recommended": [
           "title",
@@ -2952,8 +3066,11 @@
           "feedback"
         ],
         "fieldTypes": {
-          "status": "enum(active,completed,dropped,paused)",
-          "progress": "decimal(5,2) DEFAULT 0"
+          "studentId": "integer",
+          "courseId": "integer",
+          "enrolledAt": "timestamp",
+          "status": "enum",
+          "progress": "text"
         },
         "recommended": [
           "studentId",
@@ -3043,8 +3160,13 @@
           "interactions"
         ],
         "fieldTypes": {
-          "status": "enum(active,completed,cancelled,expired)",
-          "refills": "integer DEFAULT 0"
+          "patientId": "integer",
+          "doctorId": "integer",
+          "medication": "text",
+          "dosage": "text",
+          "frequency": "text",
+          "startDate": "date",
+          "endDate": "date"
         },
         "recommended": [
           "patientId",
@@ -3074,8 +3196,12 @@
           "icdCode"
         ],
         "fieldTypes": {
-          "type": "enum(consultation,followup,emergency,surgery,lab_test)",
-          "visitDate": "timestamp"
+          "patientId": "integer",
+          "doctorId": "integer",
+          "visitDate": "date",
+          "diagnosis": "text",
+          "treatment": "text",
+          "type": "enum"
         },
         "recommended": [
           "patientId",
@@ -3435,8 +3561,12 @@
           "burndownData"
         ],
         "fieldTypes": {
-          "status": "enum(planning,active,completed,cancelled)",
-          "velocity": "integer"
+          "name": "text",
+          "projectId": "integer",
+          "startDate": "date",
+          "endDate": "date",
+          "goal": "text",
+          "status": "enum"
         },
         "recommended": [
           "name",
@@ -3658,8 +3788,12 @@
           "severity"
         ],
         "fieldTypes": {
-          "action": "enum(create,read,update,delete,login,logout,export,import)",
-          "severity": "enum(info,warning,critical)"
+          "userId": "integer",
+          "action": "text",
+          "entityType": "text",
+          "entityId": "integer",
+          "timestamp": "text",
+          "ipAddress": "text"
         },
         "recommended": [
           "userId",
@@ -3722,7 +3856,12 @@
           "interviewDate"
         ],
         "fieldTypes": {
-          "status": "enum(received,screening,interview,offer,hired,rejected,withdrawn)"
+          "jobId": "integer",
+          "applicantName": "text",
+          "email": "text",
+          "resume": "text",
+          "status": "enum",
+          "appliedAt": "timestamp"
         },
         "recommended": [
           "jobId",
@@ -3814,8 +3953,11 @@
           "templateId"
         ],
         "fieldTypes": {
-          "status": "enum(not_started,in_progress,completed)",
-          "completedCount": "integer DEFAULT 0"
+          "title": "text",
+          "description": "text",
+          "ownerId": "integer",
+          "status": "enum",
+          "dueDate": "date"
         },
         "recommended": [
           "title",
@@ -4065,7 +4207,11 @@
           "reason"
         ],
         "fieldTypes": {
-          "status": "enum(present,absent,late,excused,half_day)"
+          "studentId": "integer",
+          "classId": "integer",
+          "date": "date",
+          "status": "enum",
+          "markedById": "integer"
         },
         "recommended": [
           "studentId",
@@ -4188,8 +4334,12 @@
           "notes"
         ],
         "fieldTypes": {
-          "rating": "decimal(3,1)",
-          "status": "enum(active,inactive,blocked,pending_approval)"
+          "name": "text",
+          "contactName": "text",
+          "email": "text",
+          "phone": "text",
+          "category": "text",
+          "status": "enum"
         },
         "recommended": [
           "name",
@@ -4218,8 +4368,12 @@
           "swapRequestedWith"
         ],
         "fieldTypes": {
-          "type": "enum(morning,afternoon,night,split,on_call)",
-          "status": "enum(scheduled,in_progress,completed,missed,swapped)"
+          "employeeId": "integer",
+          "date": "date",
+          "startTime": "text",
+          "endTime": "text",
+          "type": "enum",
+          "status": "enum"
         },
         "recommended": [
           "employeeId",
@@ -4248,8 +4402,12 @@
           "submittedAt"
         ],
         "fieldTypes": {
-          "type": "enum(annual,sick,personal,maternity,paternity,bereavement,unpaid)",
-          "status": "enum(pending,approved,rejected,cancelled)"
+          "employeeId": "integer",
+          "type": "enum",
+          "startDate": "date",
+          "endDate": "date",
+          "status": "enum",
+          "reason": "text"
         },
         "recommended": [
           "employeeId",
@@ -4311,8 +4469,12 @@
           "nextReviewDate"
         ],
         "fieldTypes": {
-          "rating": "decimal(3,1)",
-          "status": "enum(scheduled,self_assessment,manager_review,calibration,completed)"
+          "employeeId": "integer",
+          "reviewerId": "integer",
+          "period": "text",
+          "rating": "decimal",
+          "status": "enum",
+          "reviewDate": "date"
         },
         "recommended": [
           "employeeId",
@@ -4342,8 +4504,12 @@
           "tip"
         ],
         "fieldTypes": {
-          "rating": "integer CHECK(rating BETWEEN 1 AND 5)",
-          "status": "enum(pending,assigned,picked_up,in_transit,delivered,failed,returned)"
+          "orderId": "integer",
+          "driverId": "integer",
+          "pickupAddress": "text",
+          "deliveryAddress": "text",
+          "status": "enum",
+          "scheduledTime": "text"
         },
         "recommended": [
           "orderId",
@@ -4373,8 +4539,13 @@
           "ownerId"
         ],
         "fieldTypes": {
-          "type": "enum(sensor,actuator,gateway,camera,thermostat,lock,light)",
-          "status": "enum(online,offline,error,maintenance,decommissioned)"
+          "deviceId": "integer",
+          "name": "text",
+          "type": "enum",
+          "status": "enum",
+          "locationId": "integer",
+          "lastSeenAt": "timestamp",
+          "firmwareVersion": "text"
         },
         "recommended": [
           "deviceId",
@@ -4403,8 +4574,11 @@
           "batchId"
         ],
         "fieldTypes": {
-          "value": "decimal(15,6)",
-          "isAnomaly": "boolean DEFAULT false"
+          "deviceId": "integer",
+          "metric": "text",
+          "value": "text",
+          "unit": "text",
+          "timestamp": "text"
         },
         "recommended": [
           "deviceId",
@@ -4494,7 +4668,12 @@
           "notes"
         ],
         "fieldTypes": {
-          "status": "enum(pending,confirmed,cancelled,completed,no_show)"
+          "roomId": "integer",
+          "bookerId": "integer",
+          "startTime": "text",
+          "endTime": "text",
+          "purpose": "text",
+          "status": "enum"
         },
         "recommended": [
           "roomId",
@@ -4648,8 +4827,12 @@
           "version"
         ],
         "fieldTypes": {
-          "status": "enum(active,paused,failed,disabled)",
-          "failureCount": "integer DEFAULT 0"
+          "url": "text",
+          "events": "text",
+          "secret": "text",
+          "status": "enum",
+          "userId": "integer",
+          "createdAt": "timestamp"
         },
         "recommended": [
           "url",
@@ -4677,8 +4860,11 @@
           "deliverables"
         ],
         "fieldTypes": {
-          "status": "enum(not_started,in_progress,completed,overdue,cancelled)",
-          "progress": "decimal(5,2) DEFAULT 0"
+          "title": "text",
+          "projectId": "integer",
+          "dueDate": "date",
+          "status": "enum",
+          "description": "text"
         },
         "recommended": [
           "title",
@@ -4769,8 +4955,12 @@
           "scopes"
         ],
         "fieldTypes": {
-          "status": "enum(connected,disconnected,error,pending)",
-          "provider": "varchar(50)"
+          "name": "text",
+          "provider": "text",
+          "status": "enum",
+          "apiKey": "text",
+          "webhookUrl": "text",
+          "createdById": "integer"
         },
         "recommended": [
           "name",
@@ -4831,7 +5021,11 @@
           "lastVisitedAt"
         ],
         "fieldTypes": {
-          "isArchived": "boolean DEFAULT false"
+          "url": "text",
+          "title": "text",
+          "userId": "integer",
+          "folderId": "integer",
+          "createdAt": "timestamp"
         },
         "recommended": [
           "url",
@@ -4890,8 +5084,13 @@
           "preferredEvents"
         ],
         "fieldTypes": {
-          "status": "enum(active,inactive,pending,suspended)",
-          "hoursLogged": "decimal(8,1) DEFAULT 0"
+          "firstName": "text",
+          "lastName": "text",
+          "email": "text",
+          "phone": "text",
+          "skills": "text",
+          "availability": "text",
+          "status": "enum"
         },
         "recommended": [
           "firstName",
@@ -4984,8 +5183,12 @@
           "cost"
         ],
         "fieldTypes": {
-          "status": "enum(ordered,sample_collected,processing,completed,reviewed)",
-          "testType": "enum(blood,urine,imaging,pathology,genetic,microbiology)"
+          "patientId": "integer",
+          "orderedById": "integer",
+          "testType": "text",
+          "status": "enum",
+          "sampleCollectedAt": "timestamp",
+          "results": "text"
         },
         "recommended": [
           "patientId",
@@ -5172,8 +5375,10 @@
           "closeFriend"
         ],
         "fieldTypes": {
-          "status": "enum(active,pending,blocked)",
-          "notificationsEnabled": "boolean DEFAULT true"
+          "followerId": "integer",
+          "followingId": "integer",
+          "createdAt": "timestamp",
+          "status": "enum"
         },
         "recommended": [
           "followerId",
@@ -16255,6 +16460,7 @@
     {
       "id": 6467,
       "patternType": "entity-structure",
+      "entityType": "Task",
       "patternKey": "Task",
       "patternValue": {
         "type": "primary",
@@ -16265,7 +16471,29 @@
           "delete",
           "status-transition"
         ],
-        "fieldCount": 7
+        "fieldCount": 7,
+        "fieldTypes": {
+          "id": "serial",
+          "title": "text",
+          "description": "text",
+          "assigneeId": "integer",
+          "status": "enum(todo,in_progress,done)",
+          "priority": "enum(low,medium,high)",
+          "dueDate": "date",
+          "projectId": "integer",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "title",
+          "description",
+          "assigneeId",
+          "status",
+          "priority",
+          "dueDate",
+          "projectId",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -16274,6 +16502,7 @@
     {
       "id": 6468,
       "patternType": "entity-structure",
+      "entityType": "Project",
       "patternKey": "Project",
       "patternValue": {
         "type": "primary",
@@ -16284,7 +16513,29 @@
           "delete",
           "status-transition"
         ],
-        "fieldCount": 3
+        "fieldCount": 3,
+        "fieldTypes": {
+          "id": "serial",
+          "name": "text",
+          "description": "text",
+          "ownerId": "integer",
+          "status": "enum(active,completed,archived)",
+          "startDate": "date",
+          "endDate": "date",
+          "budget": "decimal",
+          "progress": "integer"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "description",
+          "ownerId",
+          "status",
+          "startDate",
+          "endDate",
+          "budget",
+          "progress"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -16293,6 +16544,7 @@
     {
       "id": 6469,
       "patternType": "entity-structure",
+      "entityType": "Team",
       "patternKey": "Team",
       "patternValue": {
         "type": "primary",
@@ -16303,7 +16555,25 @@
           "delete",
           "status-transition"
         ],
-        "fieldCount": 3
+        "fieldCount": 3,
+        "fieldTypes": {
+          "id": "serial",
+          "name": "text",
+          "description": "text",
+          "leadId": "integer",
+          "memberCount": "integer",
+          "departmentId": "integer",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "description",
+          "leadId",
+          "memberCount",
+          "departmentId",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -16312,6 +16582,7 @@
     {
       "id": 6470,
       "patternType": "entity-structure",
+      "entityType": "Build",
       "patternKey": "Build",
       "patternValue": {
         "type": "primary",
@@ -16321,7 +16592,27 @@
           "update",
           "delete"
         ],
-        "fieldCount": 1
+        "fieldCount": 1,
+        "fieldTypes": {
+          "id": "serial",
+          "projectId": "integer",
+          "version": "text",
+          "status": "enum(pending,building,success,failed)",
+          "startedAt": "timestamp",
+          "completedAt": "timestamp",
+          "logs": "text",
+          "commitHash": "text"
+        },
+        "recommended": [
+          "id",
+          "projectId",
+          "version",
+          "status",
+          "startedAt",
+          "completedAt",
+          "logs",
+          "commitHash"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -16438,6 +16729,7 @@
     {
       "id": 6480,
       "patternType": "entity-structure",
+      "entityType": "Product",
       "patternKey": "Product",
       "patternValue": {
         "type": "primary",
@@ -16448,7 +16740,31 @@
           "delete",
           "status-transition"
         ],
-        "fieldCount": 6
+        "fieldCount": 6,
+        "fieldTypes": {
+          "id": "serial",
+          "name": "text",
+          "description": "text",
+          "price": "decimal",
+          "sku": "text",
+          "stock": "integer",
+          "categoryId": "integer",
+          "imageUrl": "text",
+          "status": "enum(active,draft,archived)",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "description",
+          "price",
+          "sku",
+          "stock",
+          "categoryId",
+          "imageUrl",
+          "status",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -16457,6 +16773,7 @@
     {
       "id": 6481,
       "patternType": "entity-structure",
+      "entityType": "Order",
       "patternKey": "Order",
       "patternValue": {
         "type": "primary",
@@ -16467,7 +16784,25 @@
           "delete",
           "status-transition"
         ],
-        "fieldCount": 5
+        "fieldCount": 5,
+        "fieldTypes": {
+          "id": "serial",
+          "userId": "integer",
+          "status": "enum(pending,processing,shipped,delivered,cancelled)",
+          "total": "decimal",
+          "shippingAddress": "text",
+          "paymentStatus": "text",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "userId",
+          "status",
+          "total",
+          "shippingAddress",
+          "paymentStatus",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -16532,6 +16867,7 @@
     {
       "id": 6485,
       "patternType": "entity-structure",
+      "entityType": "Post",
       "patternKey": "Post",
       "patternValue": {
         "type": "primary",
@@ -16542,7 +16878,27 @@
           "delete",
           "status-transition"
         ],
-        "fieldCount": 4
+        "fieldCount": 4,
+        "fieldTypes": {
+          "id": "serial",
+          "title": "text",
+          "content": "text",
+          "authorId": "integer",
+          "status": "enum(draft,published,archived)",
+          "tags": "text",
+          "publishedAt": "timestamp",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "title",
+          "content",
+          "authorId",
+          "status",
+          "tags",
+          "publishedAt",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -16551,6 +16907,7 @@
     {
       "id": 6486,
       "patternType": "entity-structure",
+      "entityType": "Comment",
       "patternKey": "Comment",
       "patternValue": {
         "type": "primary",
@@ -16561,7 +16918,23 @@
           "delete",
           "status-transition"
         ],
-        "fieldCount": 4
+        "fieldCount": 4,
+        "fieldTypes": {
+          "id": "serial",
+          "content": "text",
+          "authorId": "integer",
+          "targetId": "integer",
+          "parentId": "integer",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "content",
+          "authorId",
+          "targetId",
+          "parentId",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -16594,36 +16967,31 @@
       "patternKey": "entity-project",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "name": "text",
-          "status": "enum(planning,active,on-hold,completed,archived)",
+          "budget": "decimal",
+          "status": "enum(planning,active,on_hold,completed,cancelled)",
           "endDate": "date",
           "ownerId": "integer",
-          "duration": "text",
-          "priority": "enum(low,medium,high)",
+          "priority": "enum(low,medium,high,critical)",
           "progress": "integer",
+          "createdAt": "timestamp",
           "startDate": "date",
-          "taskCount": "text",
           "description": "text"
         },
         "recommended": [
           "id",
           "name",
           "description",
-          "status",
           "ownerId",
+          "status",
           "startDate",
           "endDate",
-          "progress",
           "priority",
-          "duration",
-          "taskCount",
-          "clientId",
-          "budget",
-          "managerId"
+          "progress"
         ]
       },
-      "successCount": 1737,
+      "successCount": 1837,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16635,21 +17003,20 @@
       "patternKey": "entity-teammember",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
+          "id": "serial",
           "role": "enum(owner,admin,member,viewer)",
-          "email": "text",
-          "avatar": "text"
+          "userId": "integer",
+          "joinedAt": "timestamp",
+          "projectId": "integer"
         },
         "recommended": [
           "id",
-          "name",
-          "email",
-          "role",
-          "avatar"
+          "userId",
+          "projectId",
+          "role"
         ]
       },
-      "successCount": 738,
+      "successCount": 838,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16780,6 +17147,7 @@
     {
       "id": 6488,
       "patternType": "entity-structure",
+      "entityType": "Appointment",
       "patternKey": "Appointment",
       "patternValue": {
         "type": "primary",
@@ -16790,7 +17158,25 @@
           "delete",
           "status-transition"
         ],
-        "fieldCount": 3
+        "fieldCount": 3,
+        "fieldTypes": {
+          "id": "serial",
+          "patientId": "integer",
+          "providerId": "integer",
+          "dateTime": "timestamp",
+          "duration": "integer",
+          "status": "enum(scheduled,confirmed,completed,cancelled)",
+          "reason": "text"
+        },
+        "recommended": [
+          "id",
+          "patientId",
+          "providerId",
+          "dateTime",
+          "duration",
+          "status",
+          "reason"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -16841,38 +17227,34 @@
       "patternKey": "entity-order",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "type": "enum(dine-in,takeaway,delivery)",
-          "status": "enum(received,preparing,ready,served,completed,cancelled)",
-          "tableId": "integer",
-          "orderNumber": "text",
-          "totalAmount": "integer",
-          "customerName": "text",
-          "orderItemCount": "text"
+          "id": "serial",
+          "tax": "decimal",
+          "notes": "text",
+          "total": "decimal",
+          "status": "enum(pending,processing,shipped,delivered,cancelled,refunded)",
+          "userId": "integer",
+          "subtotal": "decimal",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp",
+          "shippingCost": "decimal",
+          "paymentMethod": "text",
+          "paymentStatus": "enum(pending,paid,failed,refunded)",
+          "trackingNumber": "text",
+          "shippingAddress": "text"
         },
         "recommended": [
           "id",
-          "orderNumber",
-          "type",
-          "tableId",
+          "userId",
           "status",
-          "totalAmount",
-          "customerName",
-          "orderItemCount",
-          "customerId",
+          "total",
+          "subtotal",
+          "tax",
           "shippingAddress",
-          "paymentMethod",
-          "orderDate",
-          "amount",
-          "date",
-          "reference",
-          "notes",
-          "rating",
-          "createdAt",
-          "price"
+          "paymentStatus",
+          "createdAt"
         ]
       },
-      "successCount": 1655,
+      "successCount": 1755,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16884,24 +17266,23 @@
       "patternKey": "entity-orderitem",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "orderId": "integer",
           "quantity": "integer",
-          "unitPrice": "integer",
-          "menuItemId": "integer",
-          "specialNotes": "text"
+          "productId": "integer",
+          "unitPrice": "decimal",
+          "totalPrice": "decimal"
         },
         "recommended": [
           "id",
           "orderId",
-          "menuItemId",
+          "productId",
           "quantity",
-          "specialNotes",
           "unitPrice",
-          "productId"
+          "totalPrice"
         ]
       },
-      "successCount": 1566,
+      "successCount": 1666,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16913,15 +17294,16 @@
       "patternKey": "entity-reservation",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "date": "date",
           "time": "text",
-          "notes": "text",
+          "email": "text",
           "phone": "text",
-          "status": "enum(confirmed,seated,completed,cancelled,no-show)",
-          "tableId": "integer",
+          "status": "enum(confirmed,seated,completed,cancelled,no_show)",
           "partySize": "integer",
-          "customerName": "text"
+          "tableNumber": "integer",
+          "customerName": "text",
+          "specialRequests": "text"
         },
         "recommended": [
           "id",
@@ -16930,12 +17312,10 @@
           "date",
           "time",
           "partySize",
-          "tableId",
-          "status",
-          "notes"
+          "status"
         ]
       },
-      "successCount": 737,
+      "successCount": 837,
       "failureCount": 0,
       "reliability": 1
     },
@@ -16975,49 +17355,44 @@
       "patternKey": "workflow-order",
       "patternValue": {
         "states": [
-          "received",
-          "preparing",
-          "ready",
-          "served",
-          "completed",
-          "cancelled"
+          "pending",
+          "processing",
+          "shipped",
+          "delivered",
+          "cancelled",
+          "refunded"
         ],
         "commonTransitions": [
           {
-            "to": "preparing",
-            "from": "received",
-            "role": "kitchen",
-            "action": "Start Preparing"
+            "to": "processing",
+            "from": "pending",
+            "action": "Process"
           },
           {
-            "to": "ready",
-            "from": "preparing",
-            "role": "kitchen",
-            "action": "Mark Ready"
+            "to": "shipped",
+            "from": "processing",
+            "action": "Ship"
           },
           {
-            "to": "served",
-            "from": "ready",
-            "role": "server",
-            "action": "Serve"
-          },
-          {
-            "to": "completed",
-            "from": "served",
-            "role": "server",
-            "action": "Complete"
+            "to": "delivered",
+            "from": "shipped",
+            "action": "Deliver"
           },
           {
             "to": "cancelled",
-            "from": "received",
-            "role": "manager",
+            "from": "pending",
             "action": "Cancel"
+          },
+          {
+            "to": "refunded",
+            "from": "delivered",
+            "action": "Refund"
           }
         ]
       },
-      "successCount": 1645,
+      "successCount": 1745,
       "failureCount": 9,
-      "reliability": 0.9945586457073761
+      "reliability": 0.9948688711516533
     },
     {
       "id": 32,
@@ -17083,27 +17458,44 @@
       "patternValue": {
         "kpis": [
           "Revenue Today",
-          "Orders Today",
-          "Table Occupancy",
-          "Avg Order Value",
-          "Popular Items",
-          "Avg Order Time",
+          "Orders This Hour",
+          "Table Turnover Rate",
+          "Average Ticket Size",
           "Reservations Today",
-          "No-Shows"
+          "Items Low Stock"
         ],
         "modules": [
+          "Menu",
           "Orders",
-          "Reservations"
+          "Reservations",
+          "Inventory",
+          "Staff",
+          "Reports"
         ],
         "entities": [
-          "Order",
-          "OrderItem",
+          "MenuItem",
+          "MenuCategory",
+          "TableOrder",
+          "OrderDetail",
           "Reservation",
-          "Table"
+          "Inventory",
+          "Staff"
         ],
-        "pageCount": 3
+        "pageCount": 9,
+        "relationships": {
+          "MenuItem": [
+            "belongsTo MenuCategory"
+          ],
+          "TableOrder": [
+            "belongsTo Staff"
+          ],
+          "OrderDetail": [
+            "belongsTo TableOrder",
+            "belongsTo MenuItem"
+          ]
+        }
       },
-      "successCount": 571,
+      "successCount": 671,
       "failureCount": 0,
       "reliability": 1
     },
@@ -17164,6 +17556,7 @@
     {
       "id": 6494,
       "patternType": "entity-structure",
+      "entityType": "User",
       "patternKey": "User",
       "patternValue": {
         "type": "primary",
@@ -17176,7 +17569,27 @@
           "authenticate",
           "authorize"
         ],
-        "fieldCount": 5
+        "fieldCount": 5,
+        "fieldTypes": {
+          "id": "serial",
+          "username": "text",
+          "email": "text",
+          "displayName": "text",
+          "role": "enum(admin,user)",
+          "avatarUrl": "text",
+          "active": "boolean",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "username",
+          "email",
+          "displayName",
+          "role",
+          "avatarUrl",
+          "active",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -17325,6 +17738,7 @@
     {
       "id": 6505,
       "patternType": "entity-structure",
+      "entityType": "Payment",
       "patternKey": "Payment",
       "patternValue": {
         "type": "primary",
@@ -17334,7 +17748,25 @@
           "update",
           "delete"
         ],
-        "fieldCount": 1
+        "fieldCount": 1,
+        "fieldTypes": {
+          "id": "serial",
+          "orderId": "integer",
+          "amount": "decimal",
+          "method": "text",
+          "status": "enum(pending,completed,failed,refunded)",
+          "transactionId": "text",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "orderId",
+          "amount",
+          "method",
+          "status",
+          "transactionId",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -17343,6 +17775,7 @@
     {
       "id": 6506,
       "patternType": "entity-structure",
+      "entityType": "Review",
       "patternKey": "Review",
       "patternValue": {
         "type": "primary",
@@ -17352,7 +17785,23 @@
           "update",
           "delete"
         ],
-        "fieldCount": 1
+        "fieldCount": 1,
+        "fieldTypes": {
+          "id": "serial",
+          "targetId": "integer",
+          "userId": "integer",
+          "rating": "integer",
+          "comment": "text",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "targetId",
+          "userId",
+          "rating",
+          "comment",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -17436,6 +17885,7 @@
     {
       "id": 6511,
       "patternType": "entity-structure",
+      "entityType": "Report",
       "patternKey": "Report",
       "patternValue": {
         "type": "primary",
@@ -17445,7 +17895,25 @@
           "update",
           "delete"
         ],
-        "fieldCount": 1
+        "fieldCount": 1,
+        "fieldTypes": {
+          "id": "serial",
+          "title": "text",
+          "type": "text",
+          "data": "json",
+          "createdBy": "integer",
+          "period": "text",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "title",
+          "type",
+          "data",
+          "createdBy",
+          "period",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -17454,6 +17922,7 @@
     {
       "id": 6512,
       "patternType": "entity-structure",
+      "entityType": "Notification",
       "patternKey": "Notification",
       "patternValue": {
         "type": "primary",
@@ -17463,7 +17932,23 @@
           "update",
           "delete"
         ],
-        "fieldCount": 1
+        "fieldCount": 1,
+        "fieldTypes": {
+          "id": "serial",
+          "userId": "integer",
+          "type": "text",
+          "message": "text",
+          "read": "boolean",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "userId",
+          "type",
+          "message",
+          "read",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -17585,47 +18070,36 @@
       "patternKey": "entity-employee",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "email": "text",
           "phone": "text",
-          "salary": "integer",
-          "status": "enum(active,on-leave,terminated,probation)",
-          "fullName": "text",
+          "title": "text",
+          "salary": "decimal",
+          "status": "enum(active,on_leave,terminated)",
+          "address": "text",
           "hireDate": "date",
           "lastName": "text",
-          "position": "text",
           "firstName": "text",
           "managerId": "integer",
+          "dateOfBirth": "date",
           "departmentId": "integer",
-          "paySlipCount": "text",
-          "leaveBalanceCount": "text",
-          "leaveRequestCount": "text"
+          "employmentType": "enum(full_time,part_time,contract,intern)",
+          "emergencyContact": "text"
         },
         "recommended": [
           "id",
           "firstName",
           "lastName",
           "email",
-          "phone",
           "departmentId",
-          "position",
-          "salary",
+          "title",
           "hireDate",
-          "managerId",
-          "status",
-          "fullName",
-          "leaveRequestCount",
-          "leaveBalanceCount",
-          "paySlipCount",
-          "name",
-          "role",
-          "hourlyRate",
-          "skills",
-          "avatar",
-          "createdAt"
+          "salary",
+          "employmentType",
+          "status"
         ]
       },
-      "successCount": 1626,
+      "successCount": 1726,
       "failureCount": 0,
       "reliability": 1
     },
@@ -17637,28 +18111,23 @@
       "patternKey": "entity-department",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "name": "text",
-          "budget": "integer",
-          "headId": "integer",
-          "employeeCount": "text",
-          "jobPostingCount": "text"
+          "budget": "decimal",
+          "location": "text",
+          "headcount": "integer",
+          "managerId": "integer",
+          "description": "text"
         },
         "recommended": [
           "id",
           "name",
-          "headId",
-          "budget",
-          "employeeCount",
-          "jobPostingCount",
           "managerId",
-          "description",
-          "category",
-          "status",
-          "createdAt"
+          "budget",
+          "headcount"
         ]
       },
-      "successCount": 1625,
+      "successCount": 1825,
       "failureCount": 0,
       "reliability": 1
     },
@@ -17670,14 +18139,15 @@
       "patternKey": "entity-leaverequest",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "days": "integer",
-          "type": "enum(vacation,sick,personal,maternity,paternity,unpaid)",
+          "id": "serial",
+          "days": "decimal",
+          "type": "enum(vacation,sick,personal,maternity,paternity,bereavement)",
           "reason": "text",
           "status": "enum(pending,approved,rejected,cancelled)",
           "endDate": "date",
-          "duration": "text",
           "startDate": "date",
+          "approvedAt": "timestamp",
+          "approvedBy": "integer",
           "employeeId": "integer"
         },
         "recommended": [
@@ -17687,12 +18157,10 @@
           "startDate",
           "endDate",
           "days",
-          "reason",
-          "status",
-          "duration"
+          "status"
         ]
       },
-      "successCount": 710,
+      "successCount": 810,
       "failureCount": 0,
       "reliability": 1
     },
@@ -17794,27 +18262,30 @@
       "patternKey": "entity-jobposting",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
+          "type": "enum(full_time,part_time,contract)",
           "title": "text",
-          "status": "enum(open,closed,on-hold)",
+          "status": "enum(draft,open,closed,filled)",
+          "location": "text",
+          "postedAt": "timestamp",
+          "closingDate": "date",
           "description": "text",
-          "salaryRange": "text",
           "departmentId": "integer",
           "requirements": "text",
-          "applicantCount": "text"
+          "salary_range": "text",
+          "applicantCount": "integer"
         },
         "recommended": [
           "id",
           "title",
           "departmentId",
           "description",
-          "requirements",
-          "salaryRange",
+          "type",
           "status",
-          "applicantCount"
+          "postedAt"
         ]
       },
-      "successCount": 559,
+      "successCount": 659,
       "failureCount": 0,
       "reliability": 1
     },
@@ -17826,27 +18297,28 @@
       "patternKey": "entity-applicant",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
+          "id": "serial",
           "email": "text",
           "notes": "text",
           "phone": "text",
-          "stage": "enum(applied,screening,interview,offer,hired,rejected)",
+          "status": "enum(applied,screening,interview,offer,hired,rejected)",
+          "lastName": "text",
+          "appliedAt": "timestamp",
+          "firstName": "text",
           "resumeUrl": "text",
           "jobPostingId": "integer"
         },
         "recommended": [
           "id",
           "jobPostingId",
-          "name",
+          "firstName",
+          "lastName",
           "email",
-          "phone",
-          "resumeUrl",
-          "stage",
-          "notes"
+          "status",
+          "appliedAt"
         ]
       },
-      "successCount": 559,
+      "successCount": 659,
       "failureCount": 0,
       "reliability": 1
     },
@@ -17858,29 +18330,28 @@
       "patternKey": "entity-customer",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
+          "id": "serial",
+          "city": "text",
           "email": "text",
           "phone": "text",
-          "status": "enum(active,inactive)",
+          "state": "text",
           "address": "text",
-          "orderCount": "text",
-          "totalSpent": "integer",
-          "totalOrders": "integer"
+          "country": "text",
+          "zipCode": "text",
+          "lastName": "text",
+          "createdAt": "timestamp",
+          "firstName": "text"
         },
         "recommended": [
           "id",
-          "name",
           "email",
+          "firstName",
+          "lastName",
           "phone",
-          "address",
-          "totalOrders",
-          "totalSpent",
-          "status",
-          "orderCount"
+          "address"
         ]
       },
-      "successCount": 1066,
+      "successCount": 1166,
       "failureCount": 0,
       "reliability": 1
     },
@@ -17892,26 +18363,28 @@
       "patternKey": "entity-inventoryitem",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
+          "sku": "text",
+          "name": "text",
+          "weight": "decimal",
+          "category": "text",
           "location": "text",
           "quantity": "integer",
-          "productId": "integer",
+          "lastCounted": "date",
+          "warehouseId": "integer",
           "reorderPoint": "integer"
         },
         "recommended": [
           "id",
-          "productId",
-          "location",
-          "quantity",
-          "reorderPoint",
-          "name",
           "sku",
-          "category",
-          "unit",
-          "unitCost"
+          "name",
+          "warehouseId",
+          "quantity",
+          "location",
+          "reorderPoint"
         ]
       },
-      "successCount": 1308,
+      "successCount": 1408,
       "failureCount": 0,
       "reliability": 1
     },
@@ -17930,24 +18403,21 @@
           {
             "to": "approved",
             "from": "pending",
-            "role": "manager",
             "action": "Approve"
           },
           {
             "to": "rejected",
             "from": "pending",
-            "role": "manager",
             "action": "Reject"
           },
           {
             "to": "cancelled",
             "from": "pending",
-            "role": "employee",
             "action": "Cancel"
           }
         ]
       },
-      "successCount": 710,
+      "successCount": 810,
       "failureCount": 0,
       "reliability": 1
     },
@@ -17968,42 +18438,31 @@
           {
             "to": "screening",
             "from": "applied",
-            "role": "hr",
             "action": "Screen"
           },
           {
             "to": "interview",
             "from": "screening",
-            "role": "hr",
-            "action": "Schedule Interview"
+            "action": "Interview"
           },
           {
             "to": "offer",
             "from": "interview",
-            "role": "hr",
-            "action": "Extend Offer"
+            "action": "Offer"
           },
           {
             "to": "hired",
             "from": "offer",
-            "role": "candidate",
-            "action": "Accept Offer"
+            "action": "Hire"
           },
           {
             "to": "rejected",
             "from": "screening",
-            "role": "hr",
-            "action": "Reject"
-          },
-          {
-            "to": "rejected",
-            "from": "interview",
-            "role": "hr",
             "action": "Reject"
           }
         ]
       },
-      "successCount": 522,
+      "successCount": 622,
       "failureCount": 0,
       "reliability": 1
     },
@@ -18245,45 +18704,53 @@
       "patternKey": "domain-hr",
       "patternValue": {
         "kpis": [
-          "Headcount",
-          "Turnover Rate",
-          "Pending Leave Requests",
-          "Open Positions",
-          "Payroll Cost",
           "Total Employees",
-          "New Hires This Month",
-          "Pending Requests"
+          "Open Positions",
+          "Pending Leave Requests",
+          "Average Rating",
+          "Turnover Rate",
+          "Time to Hire"
         ],
         "modules": [
-          "Employee Directory",
+          "Employees",
+          "Departments",
           "Leave Management",
+          "Performance",
           "Payroll",
-          "Recruitment",
-          "Dashboard",
-          "Product Catalog",
-          "Order Management",
-          "Inventory",
-          "Customers"
+          "Recruitment"
         ],
         "entities": [
           "Employee",
           "Department",
           "LeaveRequest",
-          "LeaveBalance",
-          "PayrollRun",
-          "PaySlip",
+          "PerformanceReview",
+          "Payroll",
           "JobPosting",
-          "Applicant",
-          "Product",
-          "Category",
-          "Order",
-          "OrderItem",
-          "Customer",
-          "InventoryItem"
+          "Applicant"
         ],
-        "pageCount": 16
+        "pageCount": 9,
+        "relationships": {
+          "Payroll": [
+            "belongsTo Employee"
+          ],
+          "Employee": [
+            "belongsTo Department"
+          ],
+          "Applicant": [
+            "belongsTo JobPosting"
+          ],
+          "JobPosting": [
+            "belongsTo Department"
+          ],
+          "LeaveRequest": [
+            "belongsTo Employee"
+          ],
+          "PerformanceReview": [
+            "belongsTo Employee"
+          ]
+        }
       },
-      "successCount": 1187,
+      "successCount": 1287,
       "failureCount": 0,
       "reliability": 1
     },
@@ -18347,6 +18814,7 @@
     {
       "id": 6522,
       "patternType": "entity-structure",
+      "entityType": "Customer",
       "patternKey": "Customer",
       "patternValue": {
         "type": "primary",
@@ -18357,7 +18825,27 @@
           "delete",
           "status-transition"
         ],
-        "fieldCount": 5
+        "fieldCount": 5,
+        "fieldTypes": {
+          "id": "serial",
+          "firstName": "text",
+          "lastName": "text",
+          "email": "text",
+          "phone": "text",
+          "address": "text",
+          "city": "text",
+          "createdAt": "timestamp"
+        },
+        "recommended": [
+          "id",
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "address",
+          "city",
+          "createdAt"
+        ]
       },
       "successCount": 0,
       "failureCount": 0,
@@ -18501,26 +18989,27 @@
       "patternKey": "entity-stockmovement",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "date": "date",
-          "type": "enum(inbound,outbound,transfer,adjustment)",
-          "notes": "text",
-          "itemId": "integer",
+          "id": "serial",
+          "date": "timestamp",
+          "type": "enum(in,out,adjustment,transfer)",
+          "reason": "text",
+          "userId": "integer",
           "quantity": "integer",
-          "reference": "text"
+          "productId": "integer",
+          "reference": "text",
+          "toLocation": "text",
+          "fromLocation": "text"
         },
         "recommended": [
           "id",
-          "itemId",
+          "productId",
           "type",
           "quantity",
-          "reference",
-          "date",
-          "notes",
-          "inventoryItemId"
+          "reason",
+          "date"
         ]
       },
-      "successCount": 1024,
+      "successCount": 1124,
       "failureCount": 0,
       "reliability": 1
     },
@@ -18532,25 +19021,27 @@
       "patternKey": "entity-purchaseorder",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "status": "enum(draft,ordered,shipped,received,cancelled)",
-          "poNumber": "text",
+          "id": "serial",
+          "notes": "text",
+          "status": "enum(draft,submitted,confirmed,shipped,received,cancelled)",
           "orderDate": "date",
           "supplierId": "integer",
-          "totalAmount": "integer",
-          "expectedDate": "date"
+          "orderNumber": "text",
+          "totalAmount": "decimal",
+          "receivedDate": "date",
+          "expectedDelivery": "date"
         },
         "recommended": [
           "id",
-          "poNumber",
           "supplierId",
+          "orderNumber",
           "status",
           "totalAmount",
           "orderDate",
-          "expectedDate"
+          "expectedDelivery"
         ]
       },
-      "successCount": 682,
+      "successCount": 782,
       "failureCount": 0,
       "reliability": 1
     },
@@ -18562,29 +19053,27 @@
       "patternKey": "entity-supplier",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "name": "text",
           "email": "text",
           "phone": "text",
-          "status": "enum(active,inactive)",
+          "active": "boolean",
+          "rating": "decimal",
           "address": "text",
-          "contactName": "text"
+          "website": "text",
+          "paymentTerms": "text",
+          "contactPerson": "text"
         },
         "recommended": [
           "id",
           "name",
-          "contactName",
+          "contactPerson",
           "email",
           "phone",
-          "address",
-          "status",
-          "rating",
-          "firstName",
-          "lastName",
-          "createdAt"
+          "paymentTerms"
         ]
       },
-      "successCount": 693,
+      "successCount": 793,
       "failureCount": 0,
       "reliability": 1
     },
@@ -18595,38 +19084,38 @@
       "patternValue": {
         "states": [
           "draft",
-          "pending",
-          "approved",
-          "in-progress",
-          "completed",
+          "submitted",
+          "confirmed",
+          "shipped",
+          "received",
           "cancelled"
         ],
         "commonTransitions": [
           {
-            "to": "pending",
+            "to": "submitted",
             "from": "draft",
             "action": "Submit"
           },
           {
-            "to": "approved",
-            "from": "pending",
-            "action": "Approve"
+            "to": "confirmed",
+            "from": "submitted",
+            "action": "Confirm"
           },
           {
-            "to": "in-progress",
-            "from": "approved",
-            "action": "Start"
+            "to": "shipped",
+            "from": "confirmed",
+            "action": "Mark Shipped"
           },
           {
-            "to": "completed",
-            "from": "in-progress",
-            "action": "Complete"
+            "to": "received",
+            "from": "shipped",
+            "action": "Receive"
           }
         ]
       },
-      "successCount": 672,
+      "successCount": 772,
       "failureCount": 10,
-      "reliability": 0.9853372434017595
+      "reliability": 0.9872122762148338
     },
     {
       "id": 17,
@@ -18724,29 +19213,49 @@
       "patternKey": "domain-inventory",
       "patternValue": {
         "kpis": [
-          "Total Stock Value",
+          "Total SKUs",
           "Low Stock Items",
-          "Pending Orders",
-          "Items Moved Today",
-          "Total Items",
           "Stock Value",
-          "Low Stock Alerts",
-          "Items to Reorder"
+          "Pending Orders",
+          "Items to Reorder",
+          "Inventory Turnover"
         ],
         "modules": [
-          "Inventory",
+          "Products",
+          "Suppliers",
           "Purchase Orders",
-          "Dashboard"
+          "Stock Movements",
+          "Warehouses",
+          "Reports"
         ],
         "entities": [
-          "Item",
-          "StockMovement",
+          "Product",
+          "Supplier",
           "PurchaseOrder",
-          "Supplier"
+          "PurchaseOrderItem",
+          "StockMovement",
+          "Warehouse"
         ],
-        "pageCount": 6
+        "pageCount": 8,
+        "relationships": {
+          "Product": [
+            "belongsTo Category",
+            "belongsTo Supplier"
+          ],
+          "PurchaseOrder": [
+            "belongsTo Supplier",
+            "hasMany PurchaseOrderItem"
+          ],
+          "StockMovement": [
+            "belongsTo Product"
+          ],
+          "PurchaseOrderItem": [
+            "belongsTo PurchaseOrder",
+            "belongsTo Product"
+          ]
+        }
       },
-      "successCount": 710,
+      "successCount": 810,
       "failureCount": 0,
       "reliability": 1
     },
@@ -18758,15 +19267,17 @@
       "patternKey": "entity-menuitem",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "name": "text",
-          "price": "integer",
+          "price": "decimal",
+          "calories": "integer",
           "imageUrl": "text",
-          "prepTime": "integer",
-          "allergens": "text[]",
+          "allergens": "text",
           "available": "boolean",
           "categoryId": "integer",
-          "description": "text"
+          "spiceLevel": "enum(mild,medium,hot,extra_hot)",
+          "description": "text",
+          "preparationTime": "integer"
         },
         "recommended": [
           "id",
@@ -18774,13 +19285,11 @@
           "description",
           "price",
           "categoryId",
-          "imageUrl",
           "available",
-          "allergens",
-          "prepTime"
+          "calories"
         ]
       },
-      "successCount": 682,
+      "successCount": 782,
       "failureCount": 0,
       "reliability": 1
     },
@@ -18792,17 +19301,21 @@
       "patternKey": "entity-menucategory",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "name": "text",
-          "sortOrder": "integer"
+          "active": "boolean",
+          "imageUrl": "text",
+          "sortOrder": "integer",
+          "description": "text"
         },
         "recommended": [
           "id",
           "name",
-          "sortOrder"
+          "sortOrder",
+          "active"
         ]
       },
-      "successCount": 682,
+      "successCount": 782,
       "failureCount": 0,
       "reliability": 1
     },
@@ -18833,18 +19346,20 @@
       "patternKey": "entity-patient",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "email": "text",
           "phone": "text",
-          "gender": "text",
-          "status": "enum(active,inactive)",
+          "gender": "enum(male,female,other)",
           "address": "text",
           "lastName": "text",
-          "bloodType": "enum(A+,A-,B+,B-,AB+,AB-,O+,O-)",
+          "allergies": "text",
+          "bloodType": "text",
+          "createdAt": "timestamp",
           "firstName": "text",
           "dateOfBirth": "date",
-          "insuranceNumber": "text",
-          "insuranceProvider": "text"
+          "insuranceId": "text",
+          "emergencyPhone": "text",
+          "emergencyContact": "text"
         },
         "recommended": [
           "id",
@@ -18852,16 +19367,12 @@
           "lastName",
           "dateOfBirth",
           "gender",
-          "phone",
           "email",
-          "address",
-          "insuranceProvider",
-          "insuranceNumber",
-          "status",
-          "bloodType"
+          "phone",
+          "insuranceId"
         ]
       },
-      "successCount": 853,
+      "successCount": 953,
       "failureCount": 0,
       "reliability": 1
     },
@@ -18873,27 +19384,28 @@
       "patternKey": "entity-medicalrecord",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
+          "date": "date",
           "notes": "text",
+          "vitals": "json",
+          "symptoms": "text",
           "diagnosis": "text",
           "patientId": "integer",
           "treatment": "text",
-          "visitDate": "date",
-          "doctorName": "text",
-          "prescription": "text"
+          "providerId": "integer",
+          "followUpDate": "date"
         },
         "recommended": [
           "id",
           "patientId",
+          "providerId",
+          "date",
           "diagnosis",
-          "treatment",
-          "prescription",
-          "doctorName",
-          "visitDate",
-          "notes"
+          "symptoms",
+          "treatment"
         ]
       },
-      "successCount": 853,
+      "successCount": 953,
       "failureCount": 0,
       "reliability": 1
     },
@@ -18940,23 +19452,57 @@
       "patternValue": {
         "kpis": [
           "Patients Today",
-          "Revenue",
-          "Appointment Fill Rate",
-          "Patient Satisfaction",
-          "Total Patients",
-          "New Patients This Month",
-          "Active Patients"
+          "Appointments Scheduled",
+          "Average Wait Time",
+          "Bed Occupancy Rate",
+          "Revenue This Month",
+          "Pending Bills"
         ],
         "modules": [
-          "Patient Management"
+          "Patients",
+          "Appointments",
+          "Medical Records",
+          "Prescriptions",
+          "Billing",
+          "Departments"
         ],
         "entities": [
           "Patient",
-          "MedicalRecord"
+          "Provider",
+          "Appointment",
+          "MedicalRecord",
+          "Prescription",
+          "Department",
+          "Insurance",
+          "Billing"
         ],
-        "pageCount": 2
+        "pageCount": 10,
+        "relationships": {
+          "Billing": [
+            "belongsTo Patient",
+            "belongsTo Appointment"
+          ],
+          "Provider": [
+            "belongsTo Department"
+          ],
+          "Insurance": [
+            "belongsTo Patient"
+          ],
+          "Appointment": [
+            "belongsTo Patient",
+            "belongsTo Provider"
+          ],
+          "Prescription": [
+            "belongsTo Patient",
+            "belongsTo Provider"
+          ],
+          "MedicalRecord": [
+            "belongsTo Patient",
+            "belongsTo Provider"
+          ]
+        }
       },
-      "successCount": 1031,
+      "successCount": 1131,
       "failureCount": 0,
       "reliability": 1
     },
@@ -19180,32 +19726,30 @@
       "patternKey": "entity-invoice",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "amount": "decimal(12,2)",
+          "id": "serial",
+          "tax": "decimal",
+          "items": "json",
+          "notes": "text",
+          "total": "decimal",
+          "amount": "decimal",
           "status": "enum(draft,sent,paid,overdue,cancelled)",
           "dueDate": "date",
-          "issueDate": "date",
-          "clientName": "text",
-          "clientEmail": "text",
-          "totalAmount": "integer",
+          "clientId": "integer",
+          "paidDate": "date",
+          "createdAt": "timestamp",
           "invoiceNumber": "text"
         },
         "recommended": [
           "id",
-          "invoiceNumber",
-          "clientName",
-          "clientEmail",
-          "totalAmount",
-          "status",
-          "issueDate",
-          "dueDate",
-          "amount",
           "clientId",
-          "projectId",
-          "paidDate"
+          "invoiceNumber",
+          "amount",
+          "total",
+          "status",
+          "dueDate"
         ]
       },
-      "successCount": 1503,
+      "successCount": 1603,
       "failureCount": 0,
       "reliability": 1
     },
@@ -19262,24 +19806,48 @@
       "patternKey": "domain-finance",
       "patternValue": {
         "kpis": [
-          "Revenue",
-          "Expenses",
-          "Net Income",
-          "Cash Flow",
-          "Outstanding Invoices",
-          "Revenue This Month",
-          "Overdue Amount"
+          "Total Balance",
+          "Monthly Income",
+          "Monthly Expenses",
+          "Savings Rate",
+          "Budget Adherence",
+          "Pending Invoices"
         ],
         "modules": [
-          "Invoicing"
+          "Accounts",
+          "Transactions",
+          "Budgets",
+          "Invoices",
+          "Goals",
+          "Reports"
         ],
         "entities": [
+          "Account",
+          "Transaction",
+          "Budget",
+          "TransactionCategory",
           "Invoice",
-          "InvoiceItem"
+          "RecurringTransaction",
+          "Goal"
         ],
-        "pageCount": 1
+        "pageCount": 9,
+        "relationships": {
+          "Budget": [
+            "belongsTo TransactionCategory"
+          ],
+          "Invoice": [
+            "belongsTo Client"
+          ],
+          "Transaction": [
+            "belongsTo Account",
+            "belongsTo TransactionCategory"
+          ],
+          "RecurringTransaction": [
+            "belongsTo Account"
+          ]
+        }
       },
-      "successCount": 780,
+      "successCount": 880,
       "failureCount": 0,
       "reliability": 1
     },
@@ -19859,25 +20427,33 @@
       "patternKey": "entity-student",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
+          "gpa": "decimal",
           "email": "text",
-          "grade": "text",
-          "status": "enum(active,graduated,withdrawn,suspended)",
+          "major": "text",
+          "phone": "text",
+          "status": "enum(active,graduated,suspended,withdrawn)",
+          "address": "text",
           "lastName": "text",
           "firstName": "text",
-          "enrollmentDate": "date"
+          "studentId": "text",
+          "dateOfBirth": "date",
+          "enrollmentDate": "date",
+          "graduationDate": "date"
         },
         "recommended": [
           "id",
           "firstName",
           "lastName",
           "email",
-          "grade",
+          "studentId",
           "enrollmentDate",
+          "gpa",
+          "major",
           "status"
         ]
       },
-      "successCount": 664,
+      "successCount": 764,
       "failureCount": 0,
       "reliability": 1
     },
@@ -20054,31 +20630,29 @@
       "patternKey": "entity-appointment",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "type": "enum(consultation,follow-up,procedure,emergency)",
+          "id": "serial",
+          "type": "enum(consultation,follow_up,emergency,checkup)",
           "notes": "text",
-          "status": "enum(scheduled,checked-in,in-progress,completed,cancelled,no-show)",
-          "endTime": "timestamp",
+          "reason": "text",
+          "status": "enum(scheduled,confirmed,in_progress,completed,cancelled,no_show)",
           "dateTime": "timestamp",
           "duration": "integer",
           "patientId": "integer",
-          "startTime": "timestamp",
-          "doctorName": "text"
+          "providerId": "integer",
+          "roomNumber": "text"
         },
         "recommended": [
           "id",
           "patientId",
-          "doctorName",
+          "providerId",
           "dateTime",
           "duration",
           "type",
           "status",
-          "notes",
-          "startTime",
-          "endTime"
+          "reason"
         ]
       },
-      "successCount": 914,
+      "successCount": 1014,
       "failureCount": 0,
       "reliability": 1
     },
@@ -20147,48 +20721,44 @@
       "patternValue": {
         "states": [
           "scheduled",
-          "checked-in",
-          "in-progress",
+          "confirmed",
+          "checked_in",
+          "in_progress",
           "completed",
           "cancelled",
-          "no-show"
+          "no_show"
         ],
         "commonTransitions": [
           {
-            "to": "checked-in",
+            "to": "confirmed",
             "from": "scheduled",
-            "role": "receptionist",
+            "action": "Confirm"
+          },
+          {
+            "to": "checked_in",
+            "from": "confirmed",
             "action": "Check In"
           },
           {
-            "to": "in-progress",
-            "from": "checked-in",
-            "role": "doctor",
-            "action": "Start Visit"
+            "to": "in_progress",
+            "from": "checked_in",
+            "action": "Start"
           },
           {
             "to": "completed",
-            "from": "in-progress",
-            "role": "doctor",
-            "action": "Complete Visit"
+            "from": "in_progress",
+            "action": "Complete"
           },
           {
             "to": "cancelled",
             "from": "scheduled",
-            "role": "receptionist",
             "action": "Cancel"
-          },
-          {
-            "to": "no-show",
-            "from": "scheduled",
-            "role": "receptionist",
-            "action": "Mark No-Show"
           }
         ]
       },
-      "successCount": 902,
+      "successCount": 1002,
       "failureCount": 2,
-      "reliability": 0.9977876106194691
+      "reliability": 0.99800796812749
     },
     {
       "id": 90,
@@ -20230,25 +20800,28 @@
       "patternKey": "entity-client",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
+          "type": "enum(buyer,seller,both)",
           "email": "text",
           "phone": "text",
-          "status": "enum(active,inactive)",
-          "address": "text",
-          "companyName": "text",
-          "contactName": "text"
+          "budget": "decimal",
+          "agentId": "integer",
+          "lastName": "text",
+          "createdAt": "timestamp",
+          "firstName": "text",
+          "preferences": "json"
         },
         "recommended": [
           "id",
-          "companyName",
-          "contactName",
+          "firstName",
+          "lastName",
           "email",
-          "phone",
-          "address",
-          "status"
+          "type",
+          "budget",
+          "agentId"
         ]
       },
-      "successCount": 915,
+      "successCount": 1015,
       "failureCount": 0,
       "reliability": 1
     },
@@ -20260,21 +20833,23 @@
       "patternKey": "entity-milestone",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
-          "status": "enum(pending,in-progress,completed)",
+          "id": "serial",
+          "title": "text",
+          "status": "enum(pending,completed,overdue)",
           "dueDate": "date",
-          "projectId": "integer"
+          "projectId": "integer",
+          "completedAt": "timestamp",
+          "description": "text"
         },
         "recommended": [
           "id",
           "projectId",
-          "name",
+          "title",
           "dueDate",
           "status"
         ]
       },
-      "successCount": 1075,
+      "successCount": 1175,
       "failureCount": 0,
       "reliability": 1
     },
@@ -20358,34 +20933,23 @@
       "patternKey": "entity-payment",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "amount": "integer",
-          "method": "enum(bank-transfer,credit-card,check,cash)",
-          "status": "enum(pending,completed,failed,refunded,disputed)",
-          "currency": "varchar(3) DEFAULT 'USD'",
-          "invoiceId": "integer",
-          "paymentDate": "date"
+          "id": "serial",
+          "amount": "decimal",
+          "method": "enum(credit_card,debit_card,cash,bank_transfer)",
+          "paidAt": "timestamp",
+          "status": "enum(pending,completed,refunded,failed)",
+          "bookingId": "integer",
+          "transactionId": "text"
         },
         "recommended": [
           "id",
-          "invoiceId",
+          "bookingId",
           "amount",
-          "paymentDate",
           "method",
-          "currency",
-          "status",
-          "type",
-          "date",
-          "reference",
-          "notes",
-          "createdAt",
-          "address",
-          "city",
-          "tags",
-          "rating"
+          "status"
         ]
       },
-      "successCount": 994,
+      "successCount": 1194,
       "failureCount": 0,
       "reliability": 1
     },
@@ -20447,32 +21011,28 @@
           {
             "to": "sent",
             "from": "draft",
-            "role": "admin",
-            "action": "Send to Client"
+            "action": "Send"
           },
           {
             "to": "paid",
             "from": "sent",
-            "role": "admin",
-            "action": "Record Payment"
+            "action": "Mark Paid"
           },
           {
             "to": "overdue",
             "from": "sent",
-            "role": "system",
-            "action": "Mark Overdue"
+            "action": "Past Due"
           },
           {
             "to": "cancelled",
-            "from": "sent",
-            "role": "admin",
+            "from": "draft",
             "action": "Cancel"
           }
         ]
       },
-      "successCount": 1420,
+      "successCount": 1520,
       "failureCount": 1,
-      "reliability": 0.9992962702322308
+      "reliability": 0.9993425378040762
     },
     {
       "id": 102,
@@ -20700,27 +21260,25 @@
       "patternKey": "entity-budget",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
-          "period": "text",
-          "status": "enum(active,frozen,closed)",
-          "category": "text",
-          "spentAmount": "integer",
-          "totalAmount": "decimal(14,2)",
-          "allocatedAmount": "integer"
+          "id": "serial",
+          "spent": "decimal",
+          "amount": "decimal",
+          "period": "enum(weekly,monthly,yearly)",
+          "userId": "integer",
+          "endDate": "date",
+          "startDate": "date",
+          "categoryId": "integer"
         },
         "recommended": [
           "id",
-          "name",
-          "category",
-          "allocatedAmount",
-          "spentAmount",
-          "period",
-          "totalAmount",
-          "status"
+          "userId",
+          "categoryId",
+          "amount",
+          "spent",
+          "period"
         ]
       },
-      "successCount": 455,
+      "successCount": 555,
       "failureCount": 0,
       "reliability": 1
     },
@@ -21036,23 +21594,27 @@
       "patternKey": "entity-assignment",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
+          "type": "enum(homework,quiz,exam,project,lab)",
           "title": "text",
-          "dueDate": "date",
+          "weight": "decimal",
+          "dueDate": "timestamp",
           "courseId": "integer",
-          "maxScore": "integer",
+          "createdAt": "timestamp",
+          "maxPoints": "integer",
           "description": "text"
         },
         "recommended": [
           "id",
           "courseId",
           "title",
-          "description",
           "dueDate",
-          "maxScore"
+          "maxPoints",
+          "type",
+          "weight"
         ]
       },
-      "successCount": 665,
+      "successCount": 765,
       "failureCount": 0,
       "reliability": 1
     },
@@ -21112,22 +21674,53 @@
       "patternValue": {
         "kpis": [
           "Total Students",
-          "Active Courses",
+          "Course Enrollment Rate",
           "Average GPA",
           "Attendance Rate",
-          "Pass Rate",
-          "Assignments Due"
+          "Graduation Rate",
+          "Active Courses"
         ],
         "modules": [
-          "Grades & Assignments"
+          "Students",
+          "Courses",
+          "Enrollments",
+          "Assignments",
+          "Grades",
+          "Attendance"
         ],
         "entities": [
+          "Student",
+          "Course",
+          "Enrollment",
+          "Instructor",
           "Assignment",
-          "Grade"
+          "Submission",
+          "Attendance"
         ],
-        "pageCount": 1
+        "pageCount": 9,
+        "relationships": {
+          "Course": [
+            "belongsTo Instructor",
+            "belongsTo Department"
+          ],
+          "Assignment": [
+            "belongsTo Course"
+          ],
+          "Attendance": [
+            "belongsTo Student",
+            "belongsTo Course"
+          ],
+          "Enrollment": [
+            "belongsTo Student",
+            "belongsTo Course"
+          ],
+          "Submission": [
+            "belongsTo Assignment",
+            "belongsTo Student"
+          ]
+        }
       },
-      "successCount": 525,
+      "successCount": 625,
       "failureCount": 0,
       "reliability": 1
     },
@@ -21294,33 +21887,31 @@
       "patternKey": "entity-course",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "code": "text",
           "name": "text",
-          "level": "enum(beginner,intermediate,advanced,expert)",
-          "price": "decimal(10,2)",
-          "status": "enum(active,completed,upcoming)",
+          "status": "enum(active,archived,cancelled)",
+          "credits": "integer",
           "capacity": "integer",
+          "enrolled": "integer",
           "schedule": "text",
           "semester": "text",
-          "department": "text",
-          "instructor": "text"
+          "description": "text",
+          "departmentId": "integer",
+          "instructorId": "integer"
         },
         "recommended": [
           "id",
           "code",
           "name",
-          "instructor",
-          "department",
-          "semester",
+          "credits",
+          "departmentId",
+          "instructorId",
           "capacity",
-          "schedule",
-          "status",
-          "level",
-          "price"
+          "semester"
         ]
       },
-      "successCount": 667,
+      "successCount": 767,
       "failureCount": 0,
       "reliability": 1
     },
@@ -21332,25 +21923,24 @@
       "patternKey": "entity-enrollment",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "grade": "text",
-          "status": "enum(active,completed,dropped,paused)",
+          "status": "enum(enrolled,dropped,completed,failed)",
           "courseId": "integer",
-          "progress": "decimal(5,2) DEFAULT 0",
           "studentId": "integer",
-          "enrolledDate": "date"
+          "enrolledAt": "timestamp",
+          "completedAt": "timestamp"
         },
         "recommended": [
           "id",
           "studentId",
           "courseId",
-          "enrolledDate",
           "grade",
           "status",
-          "progress"
+          "enrolledAt"
         ]
       },
-      "successCount": 666,
+      "successCount": 766,
       "failureCount": 0,
       "reliability": 1
     },
@@ -21443,23 +22033,48 @@
       "patternKey": "domain-logistics",
       "patternValue": {
         "kpis": [
-          "Active Shipments",
-          "On-Time Delivery %",
+          "Shipments Today",
+          "On-Time Delivery Rate",
           "Fleet Utilization",
           "Warehouse Capacity",
-          "Total Items",
-          "Warehouse Utilization",
-          "Items to Ship"
+          "Average Transit Time",
+          "Pending Pickups"
         ],
         "modules": [
-          "Warehouse"
+          "Shipments",
+          "Warehouses",
+          "Fleet",
+          "Routes",
+          "Inventory",
+          "Tracking"
         ],
         "entities": [
-          "WarehouseItem"
+          "Shipment",
+          "Warehouse",
+          "Vehicle",
+          "Driver",
+          "Route",
+          "InventoryItem"
         ],
-        "pageCount": 1
+        "pageCount": 8,
+        "relationships": {
+          "Route": [
+            "belongsTo Vehicle",
+            "belongsTo Driver"
+          ],
+          "Vehicle": [
+            "belongsTo Driver"
+          ],
+          "Shipment": [
+            "belongsTo Driver",
+            "belongsTo Vehicle"
+          ],
+          "InventoryItem": [
+            "belongsTo Warehouse"
+          ]
+        }
       },
-      "successCount": 806,
+      "successCount": 906,
       "failureCount": 0,
       "reliability": 1
     },
@@ -21743,29 +22358,30 @@
       "patternKey": "entity-member",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "email": "text",
+          "goals": "text",
           "phone": "text",
           "status": "enum(active,expired,frozen,cancelled)",
-          "joinDate": "date",
+          "endDate": "date",
           "lastName": "text",
           "firstName": "text",
+          "startDate": "date",
           "dateOfBirth": "date",
-          "membershipId": "integer"
+          "membershipType": "enum(basic,premium,vip)",
+          "emergencyContact": "text"
         },
         "recommended": [
           "id",
           "firstName",
           "lastName",
           "email",
-          "phone",
-          "dateOfBirth",
-          "membershipId",
-          "joinDate",
+          "membershipType",
+          "startDate",
           "status"
         ]
       },
-      "successCount": 715,
+      "successCount": 815,
       "failureCount": 0,
       "reliability": 1
     },
@@ -21803,36 +22419,28 @@
       "patternKey": "entity-class",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "name": "text",
-          "time": "text",
-          "type": "text",
+          "room": "text",
+          "level": "enum(all,beginner,intermediate,advanced)",
           "capacity": "integer",
           "duration": "integer",
-          "dayOfWeek": "text",
-          "instructor": "text"
+          "enrolled": "integer",
+          "schedule": "text",
+          "description": "text",
+          "instructorId": "integer"
         },
         "recommended": [
           "id",
           "name",
-          "instructor",
-          "dayOfWeek",
-          "time",
-          "duration",
+          "instructorId",
+          "schedule",
           "capacity",
-          "type",
-          "title",
-          "description",
-          "startDate",
-          "endDate",
-          "location",
-          "status",
-          "address",
-          "city",
-          "createdAt"
+          "duration",
+          "level"
         ]
       },
-      "successCount": 743,
+      "successCount": 843,
       "failureCount": 0,
       "reliability": 1
     },
@@ -21929,23 +22537,42 @@
         "kpis": [
           "Active Members",
           "Check-ins Today",
-          "Revenue",
-          "Class Attendance Rate"
+          "Classes Today",
+          "Monthly Revenue",
+          "New Sign-ups",
+          "Member Retention Rate"
         ],
         "modules": [
-          "Dashboard"
+          "Members",
+          "Workouts",
+          "Classes",
+          "Trainers",
+          "Membership Plans",
+          "Reports"
         ],
         "entities": [
           "Member",
-          "Membership",
+          "Workout",
+          "Exercise",
+          "WorkoutExercise",
           "Class",
-          "ClassBooking",
-          "WorkoutPlan",
-          "WorkoutLog"
+          "MembershipPlan"
         ],
-        "pageCount": 1
+        "pageCount": 8,
+        "relationships": {
+          "Class": [
+            "belongsTo Instructor"
+          ],
+          "Workout": [
+            "belongsTo Member"
+          ],
+          "WorkoutExercise": [
+            "belongsTo Workout",
+            "belongsTo Exercise"
+          ]
+        }
       },
-      "successCount": 749,
+      "successCount": 849,
       "failureCount": 0,
       "reliability": 1
     },
@@ -21957,27 +22584,29 @@
       "patternKey": "entity-account",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "code": "text",
+          "id": "serial",
           "name": "text",
-          "role": "enum(admin,user,moderator)",
-          "type": "enum(asset,liability,equity,revenue,expense)",
-          "status": "enum(active,inactive,suspended,banned)",
-          "balance": "integer",
-          "parentId": "integer"
+          "type": "enum(checking,savings,credit,investment,loan)",
+          "status": "enum(active,closed,frozen)",
+          "userId": "integer",
+          "balance": "decimal",
+          "currency": "text",
+          "openedDate": "date",
+          "institution": "text",
+          "interestRate": "decimal",
+          "accountNumber": "text"
         },
         "recommended": [
           "id",
-          "code",
+          "userId",
           "name",
           "type",
           "balance",
-          "parentId",
-          "role",
+          "currency",
           "status"
         ]
       },
-      "successCount": 391,
+      "successCount": 491,
       "failureCount": 0,
       "reliability": 1
     },
@@ -22081,13 +22710,16 @@
       "patternKey": "entity-shipment",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "cost": "integer",
+          "id": "serial",
+          "cost": "decimal",
           "origin": "text",
-          "status": "enum(booked,picked-up,in-transit,out-for-delivery,delivered,exception)",
-          "weight": "integer",
-          "driverId": "integer",
-          "vehicleId": "integer",
+          "status": "enum(created,picked_up,in_transit,out_for_delivery,delivered,returned)",
+          "weight": "decimal",
+          "carrier": "text",
+          "senderId": "integer",
+          "createdAt": "timestamp",
+          "dimensions": "text",
+          "receiverId": "integer",
           "destination": "text",
           "actualDelivery": "date",
           "trackingNumber": "text",
@@ -22099,19 +22731,12 @@
           "origin",
           "destination",
           "status",
-          "weight",
-          "cost",
+          "carrier",
           "estimatedDelivery",
-          "actualDelivery",
-          "vehicleId",
-          "driverId",
-          "name",
-          "description",
-          "category",
-          "createdAt"
+          "cost"
         ]
       },
-      "successCount": 807,
+      "successCount": 907,
       "failureCount": 0,
       "reliability": 1
     },
@@ -22123,14 +22748,14 @@
       "patternKey": "entity-vehicle",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "type": "text",
-          "price": "decimal(12,2)",
-          "status": "enum(available,on-route,maintenance,retired)",
+          "id": "serial",
+          "type": "enum(van,truck,trailer,refrigerated)",
+          "status": "enum(available,in_use,maintenance)",
           "mileage": "integer",
-          "capacity": "integer",
-          "lastService": "date",
-          "plateNumber": "text"
+          "capacity": "decimal",
+          "driverId": "integer",
+          "plateNumber": "text",
+          "lastMaintenance": "date"
         },
         "recommended": [
           "id",
@@ -22138,12 +22763,10 @@
           "type",
           "capacity",
           "status",
-          "mileage",
-          "lastService",
-          "price"
+          "driverId"
         ]
       },
-      "successCount": 816,
+      "successCount": 916,
       "failureCount": 0,
       "reliability": 1
     },
@@ -22155,23 +22778,25 @@
       "patternKey": "entity-driver",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
+          "id": "serial",
           "phone": "text",
-          "status": "enum(available,on-route,off-duty)",
-          "vehicleId": "integer",
-          "licenseNumber": "text"
+          "rating": "decimal",
+          "status": "enum(available,on_route,off_duty)",
+          "lastName": "text",
+          "firstName": "text",
+          "licenseNumber": "text",
+          "completedDeliveries": "integer"
         },
         "recommended": [
           "id",
-          "name",
-          "phone",
+          "firstName",
+          "lastName",
           "licenseNumber",
-          "vehicleId",
+          "phone",
           "status"
         ]
       },
-      "successCount": 813,
+      "successCount": 913,
       "failureCount": 0,
       "reliability": 1
     },
@@ -22519,30 +23144,41 @@
       "patternKey": "entity-property",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
-          "type": "enum(apartment,house,commercial,condo,townhouse)",
-          "units": "integer",
-          "status": "enum(available,occupied,maintenance,sold)",
+          "id": "serial",
+          "city": "text",
+          "sqft": "integer",
+          "type": "enum(house,apartment,condo,land,commercial)",
+          "price": "decimal",
+          "state": "text",
+          "title": "text",
+          "status": "enum(available,pending,sold,rented,off_market)",
           "address": "text",
-          "monthlyRent": "integer",
-          "purchasePrice": "integer"
+          "agentId": "integer",
+          "lotSize": "decimal",
+          "zipCode": "text",
+          "bedrooms": "integer",
+          "features": "text",
+          "bathrooms": "decimal",
+          "createdAt": "timestamp",
+          "imageUrls": "json",
+          "yearBuilt": "integer",
+          "description": "text"
         },
         "recommended": [
           "id",
-          "name",
-          "address",
+          "title",
           "type",
-          "units",
           "status",
-          "monthlyRent",
-          "purchasePrice",
-          "description",
-          "category",
-          "createdAt"
+          "price",
+          "address",
+          "city",
+          "bedrooms",
+          "bathrooms",
+          "sqft",
+          "agentId"
         ]
       },
-      "successCount": 362,
+      "successCount": 462,
       "failureCount": 0,
       "reliability": 1
     },
@@ -23586,25 +24222,25 @@
       "patternKey": "entity-billing",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
-          "status": "enum(active,inactive,archived)",
-          "category": "text",
-          "createdAt": "timestamp",
-          "description": "text"
+          "id": "serial",
+          "amount": "decimal",
+          "status": "enum(pending,billed,paid,overdue)",
+          "dueDate": "date",
+          "paidDate": "date",
+          "patientId": "integer",
+          "patientOwes": "decimal",
+          "appointmentId": "integer",
+          "insuranceCovered": "decimal"
         },
         "recommended": [
           "id",
-          "name",
-          "description",
-          "category",
+          "patientId",
+          "amount",
           "status",
-          "createdAt",
-          "tags",
-          "price"
+          "dueDate"
         ]
       },
-      "successCount": 22,
+      "successCount": 122,
       "failureCount": 0,
       "reliability": 1
     },
@@ -23703,49 +24339,39 @@
       "patternKey": "workflow-shipment",
       "patternValue": {
         "states": [
-          "booked",
-          "picked-up",
-          "in-transit",
-          "out-for-delivery",
+          "created",
+          "picked_up",
+          "in_transit",
+          "out_for_delivery",
           "delivered",
-          "exception"
+          "returned"
         ],
         "commonTransitions": [
           {
-            "to": "picked-up",
-            "from": "booked",
-            "role": "driver",
+            "to": "picked_up",
+            "from": "created",
             "action": "Pick Up"
           },
           {
-            "to": "in-transit",
-            "from": "picked-up",
-            "role": "system",
-            "action": "In Transit"
+            "to": "in_transit",
+            "from": "picked_up",
+            "action": "Ship"
           },
           {
-            "to": "out-for-delivery",
-            "from": "in-transit",
-            "role": "driver",
+            "to": "out_for_delivery",
+            "from": "in_transit",
             "action": "Out for Delivery"
           },
           {
             "to": "delivered",
-            "from": "out-for-delivery",
-            "role": "driver",
+            "from": "out_for_delivery",
             "action": "Deliver"
-          },
-          {
-            "to": "exception",
-            "from": "in-transit",
-            "role": "driver",
-            "action": "Report Issue"
           }
         ]
       },
-      "successCount": 787,
+      "successCount": 887,
       "failureCount": 1,
-      "reliability": 0.998730964467005
+      "reliability": 0.9988738738738738
     },
     {
       "id": 275,
@@ -25226,27 +25852,22 @@
       "patternKey": "entity-attendance",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
-          "status": "enum(active,inactive,archived)",
-          "category": "text",
-          "createdAt": "timestamp",
-          "description": "text"
+          "id": "serial",
+          "date": "date",
+          "notes": "text",
+          "status": "enum(present,absent,late,excused)",
+          "courseId": "integer",
+          "studentId": "integer"
         },
         "recommended": [
           "id",
-          "name",
-          "description",
-          "category",
-          "status",
-          "createdAt",
-          "price",
-          "quantity",
-          "rating",
-          "tags"
+          "studentId",
+          "courseId",
+          "date",
+          "status"
         ]
       },
-      "successCount": 26,
+      "successCount": 126,
       "failureCount": 0,
       "reliability": 1
     },
@@ -26058,23 +26679,25 @@
       "patternKey": "entity-notification",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
-          "status": "enum(active,inactive,archived)",
-          "category": "text",
+          "id": "serial",
+          "read": "boolean",
+          "type": "enum(like,comment,follow,mention,share)",
+          "userId": "integer",
+          "actorId": "integer",
+          "targetId": "integer",
           "createdAt": "timestamp",
-          "description": "text"
+          "targetType": "text"
         },
         "recommended": [
           "id",
-          "name",
-          "description",
-          "category",
-          "status",
+          "userId",
+          "type",
+          "actorId",
+          "read",
           "createdAt"
         ]
       },
-      "successCount": 6,
+      "successCount": 106,
       "failureCount": 0,
       "reliability": 1
     },
@@ -30083,25 +30706,24 @@
       "patternKey": "entity-message",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
-          "type": "enum(text,image,file,system)",
-          "status": "enum(active,inactive,archived)",
-          "category": "text",
+          "id": "serial",
+          "read": "boolean",
+          "content": "text",
+          "senderId": "integer",
           "createdAt": "timestamp",
-          "description": "text"
+          "receiverId": "integer",
+          "conversationId": "integer"
         },
         "recommended": [
           "id",
-          "name",
-          "description",
-          "category",
-          "status",
-          "createdAt",
-          "type"
+          "senderId",
+          "receiverId",
+          "content",
+          "read",
+          "conversationId"
         ]
       },
-      "successCount": 5,
+      "successCount": 105,
       "failureCount": 0,
       "reliability": 1
     },
@@ -36665,23 +37287,27 @@
       "patternKey": "entity-room",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "name": "text",
-          "status": "enum(active,inactive,archived)",
-          "category": "text",
-          "createdAt": "timestamp",
-          "description": "text"
+          "type": "enum(single,double,suite,deluxe,penthouse)",
+          "floor": "integer",
+          "status": "enum(available,occupied,maintenance,reserved)",
+          "venueId": "integer",
+          "capacity": "integer",
+          "amenities": "text",
+          "pricePerNight": "decimal"
         },
         "recommended": [
           "id",
+          "venueId",
           "name",
-          "description",
-          "category",
-          "status",
-          "createdAt"
+          "type",
+          "capacity",
+          "pricePerNight",
+          "status"
         ]
       },
-      "successCount": 4,
+      "successCount": 104,
       "failureCount": 0,
       "reliability": 1
     },
@@ -39511,27 +40137,30 @@
       "patternKey": "entity-booking",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "date": "date",
-          "type": "text",
-          "notes": "text",
-          "amount": "integer",
-          "status": "enum(pending,completed,cancelled)",
+          "id": "serial",
+          "status": "enum(pending,confirmed,checked_in,completed,cancelled,no_show)",
+          "userId": "integer",
+          "endDate": "timestamp",
+          "venueId": "integer",
           "createdAt": "timestamp",
-          "reference": "text"
+          "startDate": "timestamp",
+          "guestCount": "integer",
+          "totalPrice": "decimal",
+          "specialRequests": "text",
+          "confirmationCode": "text"
         },
         "recommended": [
           "id",
-          "type",
-          "amount",
-          "date",
+          "venueId",
+          "userId",
+          "startDate",
+          "endDate",
           "status",
-          "reference",
-          "notes",
-          "createdAt"
+          "totalPrice",
+          "confirmationCode"
         ]
       },
-      "successCount": 11,
+      "successCount": 111,
       "failureCount": 0,
       "reliability": 1
     },
@@ -39542,28 +40171,36 @@
       "patternValue": {
         "states": [
           "pending",
+          "confirmed",
+          "checked_in",
           "completed",
-          "cancelled"
+          "cancelled",
+          "no_show"
         ],
         "commonTransitions": [
           {
-            "to": "completed",
+            "to": "confirmed",
             "from": "pending",
-            "action": "Move to completed"
+            "action": "Confirm"
+          },
+          {
+            "to": "checked_in",
+            "from": "confirmed",
+            "action": "Check In"
+          },
+          {
+            "to": "completed",
+            "from": "checked_in",
+            "action": "Check Out"
           },
           {
             "to": "cancelled",
-            "from": "completed",
-            "action": "Move to cancelled"
-          },
-          {
-            "to": "pending",
-            "from": "completed",
-            "action": "Reset to pending"
+            "from": "pending",
+            "action": "Cancel"
           }
         ]
       },
-      "successCount": 11,
+      "successCount": 111,
       "failureCount": 0,
       "reliability": 1
     },
@@ -52046,23 +52683,29 @@
       "patternKey": "entity-prescription",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
-          "status": "enum(active,inactive,archived)",
-          "category": "text",
-          "createdAt": "timestamp",
-          "description": "text"
+          "id": "serial",
+          "dosage": "text",
+          "status": "enum(active,completed,cancelled)",
+          "refills": "integer",
+          "duration": "text",
+          "pharmacy": "text",
+          "frequency": "text",
+          "patientId": "integer",
+          "medication": "text",
+          "providerId": "integer",
+          "prescribedDate": "date"
         },
         "recommended": [
           "id",
-          "name",
-          "description",
-          "category",
-          "status",
-          "createdAt"
+          "patientId",
+          "providerId",
+          "medication",
+          "dosage",
+          "frequency",
+          "status"
         ]
       },
-      "successCount": 5,
+      "successCount": 105,
       "failureCount": 0,
       "reliability": 1
     },
@@ -54530,27 +55173,19 @@
       "patternKey": "entity-tag",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
           "name": "text",
-          "tags": "text[]",
-          "status": "enum(active,inactive,archived)",
-          "category": "text",
-          "createdAt": "timestamp",
+          "slug": "text",
+          "count": "integer",
           "description": "text"
         },
         "recommended": [
           "id",
           "name",
-          "description",
-          "category",
-          "status",
-          "tags",
-          "createdAt",
-          "address",
-          "city"
+          "slug"
         ]
       },
-      "successCount": 5,
+      "successCount": 105,
       "failureCount": 0,
       "reliability": 1
     },
@@ -72222,27 +72857,29 @@
       "patternKey": "entity-route",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
+          "id": "serial",
+          "date": "date",
           "name": "text",
-          "status": "enum(active,inactive,archived)",
-          "category": "text",
-          "distance": "decimal(10,2)",
-          "createdAt": "timestamp",
-          "description": "text",
-          "estimatedTime": "integer"
+          "stops": "json",
+          "status": "enum(planned,active,completed)",
+          "distance": "decimal",
+          "driverId": "integer",
+          "vehicleId": "integer",
+          "endLocation": "text",
+          "estimatedTime": "integer",
+          "startLocation": "text"
         },
         "recommended": [
           "id",
           "name",
-          "description",
-          "category",
-          "status",
-          "createdAt",
+          "vehicleId",
+          "driverId",
           "distance",
-          "estimatedTime"
+          "status",
+          "date"
         ]
       },
-      "successCount": 3,
+      "successCount": 103,
       "failureCount": 0,
       "reliability": 1
     },
@@ -95752,27 +96389,23 @@
       "patternKey": "entity-review",
       "patternValue": {
         "fieldTypes": {
-          "id": "serial (auto-increment)",
-          "name": "text",
-          "type": "text",
-          "notes": "text",
-          "value": "text",
+          "id": "serial",
           "rating": "integer",
-          "status": "enum(scheduled,self_assessment,manager_review,calibration,completed)",
+          "userId": "integer",
+          "comment": "text",
+          "response": "text",
+          "bookingId": "integer",
           "createdAt": "timestamp"
         },
         "recommended": [
           "id",
-          "name",
-          "type",
-          "value",
-          "notes",
+          "bookingId",
+          "userId",
           "rating",
-          "createdAt",
-          "status"
+          "comment"
         ]
       },
-      "successCount": 5,
+      "successCount": 205,
       "failureCount": 0,
       "reliability": 1
     },
@@ -156399,6 +157032,2186 @@
       "successCount": 1,
       "failureCount": 0,
       "reliability": 1
+    },
+    {
+      "id": 6528,
+      "patternType": "domain-mapping",
+      "domainId": "ecommerce",
+      "patternKey": "domain-ecommerce",
+      "patternValue": {
+        "kpis": [
+          "Total Revenue",
+          "Orders Today",
+          "Average Order Value",
+          "Conversion Rate",
+          "Cart Abandonment Rate",
+          "Products Sold"
+        ],
+        "modules": [
+          "Products",
+          "Orders",
+          "Customers",
+          "Analytics",
+          "Inventory",
+          "Promotions"
+        ],
+        "entities": [
+          "Product",
+          "Category",
+          "Order",
+          "OrderItem",
+          "Customer",
+          "Cart",
+          "CartItem",
+          "Review",
+          "Coupon",
+          "Payment"
+        ],
+        "pageCount": 12,
+        "relationships": {
+          "Cart": [
+            "belongsTo Customer",
+            "hasMany CartItem"
+          ],
+          "Order": [
+            "belongsTo Customer",
+            "hasMany OrderItem"
+          ],
+          "Review": [
+            "belongsTo Product",
+            "belongsTo Customer"
+          ],
+          "Payment": [
+            "belongsTo Order"
+          ],
+          "Product": [
+            "belongsTo Category",
+            "hasMany Review",
+            "hasMany OrderItem"
+          ],
+          "CartItem": [
+            "belongsTo Cart",
+            "belongsTo Product"
+          ],
+          "OrderItem": [
+            "belongsTo Order",
+            "belongsTo Product"
+          ]
+        }
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6529,
+      "patternType": "entity-structure",
+      "domainId": "ecommerce",
+      "entityType": "Cart",
+      "patternKey": "entity-cart",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "status": "enum(active,abandoned,converted)",
+          "userId": "integer",
+          "createdAt": "timestamp",
+          "expiresAt": "timestamp",
+          "sessionId": "text"
+        },
+        "recommended": [
+          "id",
+          "userId",
+          "sessionId",
+          "status"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6530,
+      "patternType": "entity-structure",
+      "domainId": "ecommerce",
+      "entityType": "CartItem",
+      "patternKey": "entity-cartitem",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "cartId": "integer",
+          "addedAt": "timestamp",
+          "quantity": "integer",
+          "productId": "integer"
+        },
+        "recommended": [
+          "id",
+          "cartId",
+          "productId",
+          "quantity"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6531,
+      "patternType": "entity-structure",
+      "domainId": "ecommerce",
+      "entityType": "Coupon",
+      "patternKey": "entity-coupon",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "code": "text",
+          "type": "enum(percentage,fixed)",
+          "value": "decimal",
+          "active": "boolean",
+          "maxUses": "integer",
+          "expiresAt": "timestamp",
+          "usedCount": "integer",
+          "minOrderAmount": "decimal"
+        },
+        "recommended": [
+          "id",
+          "code",
+          "type",
+          "value",
+          "expiresAt",
+          "active"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6532,
+      "patternType": "entity-structure",
+      "domainId": "healthcare",
+      "entityType": "Provider",
+      "patternKey": "entity-provider",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "bio": "text",
+          "email": "text",
+          "phone": "text",
+          "lastName": "text",
+          "schedule": "json",
+          "firstName": "text",
+          "specialty": "text",
+          "departmentId": "integer",
+          "licenseNumber": "text"
+        },
+        "recommended": [
+          "id",
+          "firstName",
+          "lastName",
+          "specialty",
+          "licenseNumber",
+          "departmentId"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6533,
+      "patternType": "entity-structure",
+      "domainId": "healthcare",
+      "entityType": "Insurance",
+      "patternKey": "entity-insurance",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "copay": "decimal",
+          "provider": "text",
+          "patientId": "integer",
+          "groupNumber": "text",
+          "coverageType": "text",
+          "policyNumber": "text",
+          "expirationDate": "date"
+        },
+        "recommended": [
+          "id",
+          "patientId",
+          "provider",
+          "policyNumber",
+          "coverageType",
+          "expirationDate"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6534,
+      "patternType": "entity-structure",
+      "domainId": "crm",
+      "entityType": "Pipeline",
+      "patternKey": "entity-pipeline",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "name": "text",
+          "stages": "json",
+          "createdAt": "timestamp",
+          "isDefault": "boolean"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "stages",
+          "isDefault"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6535,
+      "patternType": "domain-mapping",
+      "domainId": "crm",
+      "patternKey": "crm-domain-entities",
+      "patternValue": {
+        "domain": "crm",
+        "coreEntities": [
+          "Contact",
+          "Company",
+          "Deal",
+          "Activity",
+          "Pipeline",
+          "Task"
+        ],
+        "relationships": {
+          "Deal": [
+            "belongsTo Contact",
+            "belongsTo Company"
+          ],
+          "Task": [
+            "belongsTo Contact",
+            "belongsTo Deal"
+          ],
+          "Contact": [
+            "belongsTo Company"
+          ],
+          "Activity": [
+            "belongsTo Contact",
+            "belongsTo Deal"
+          ]
+        },
+        "entityFieldCounts": {
+          "Deal": 12,
+          "Task": 10,
+          "Company": 9,
+          "Contact": 12,
+          "Activity": 12,
+          "Pipeline": 5
+        }
+      },
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6536,
+      "patternType": "entity-structure",
+      "domainId": "education",
+      "entityType": "Instructor",
+      "patternKey": "entity-instructor",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "bio": "text",
+          "email": "text",
+          "phone": "text",
+          "title": "text",
+          "lastName": "text",
+          "firstName": "text",
+          "officeHours": "text",
+          "departmentId": "integer",
+          "specialization": "text"
+        },
+        "recommended": [
+          "id",
+          "firstName",
+          "lastName",
+          "email",
+          "departmentId",
+          "title",
+          "specialization"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6537,
+      "patternType": "entity-structure",
+      "domainId": "education",
+      "entityType": "Submission",
+      "patternKey": "entity-submission",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "score": "decimal",
+          "status": "enum(submitted,graded,returned,late)",
+          "content": "text",
+          "fileUrl": "text",
+          "feedback": "text",
+          "gradedAt": "timestamp",
+          "studentId": "integer",
+          "submittedAt": "timestamp",
+          "assignmentId": "integer"
+        },
+        "recommended": [
+          "id",
+          "assignmentId",
+          "studentId",
+          "score",
+          "submittedAt",
+          "status"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6538,
+      "patternType": "workflow-design",
+      "domainId": "education",
+      "patternKey": "workflow-enrollment",
+      "patternValue": {
+        "states": [
+          "pending",
+          "enrolled",
+          "in_progress",
+          "completed",
+          "dropped",
+          "failed"
+        ],
+        "commonTransitions": [
+          {
+            "to": "enrolled",
+            "from": "pending",
+            "action": "Enroll"
+          },
+          {
+            "to": "in_progress",
+            "from": "enrolled",
+            "action": "Start"
+          },
+          {
+            "to": "completed",
+            "from": "in_progress",
+            "action": "Complete"
+          },
+          {
+            "to": "dropped",
+            "from": "enrolled",
+            "action": "Drop"
+          }
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6539,
+      "patternType": "entity-structure",
+      "domainId": "project-management",
+      "entityType": "Sprint",
+      "patternKey": "entity-sprint",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "goal": "text",
+          "name": "text",
+          "status": "enum(planning,active,completed)",
+          "endDate": "date",
+          "velocity": "integer",
+          "projectId": "integer",
+          "startDate": "date"
+        },
+        "recommended": [
+          "id",
+          "projectId",
+          "name",
+          "goal",
+          "startDate",
+          "endDate",
+          "status"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6540,
+      "patternType": "entity-structure",
+      "domainId": "project-management",
+      "entityType": "TimeEntry",
+      "patternKey": "entity-timeentry",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "date": "date",
+          "hours": "decimal",
+          "taskId": "integer",
+          "userId": "integer",
+          "billable": "boolean",
+          "description": "text"
+        },
+        "recommended": [
+          "id",
+          "taskId",
+          "userId",
+          "hours",
+          "date",
+          "billable"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6541,
+      "patternType": "domain-mapping",
+      "domainId": "project-management",
+      "patternKey": "project-management-domain-entities",
+      "patternValue": {
+        "domain": "project-management",
+        "coreEntities": [
+          "Project",
+          "Task",
+          "Sprint",
+          "TeamMember",
+          "Comment",
+          "TimeEntry",
+          "Milestone"
+        ],
+        "relationships": {
+          "Task": [
+            "belongsTo Project",
+            "belongsTo Sprint"
+          ],
+          "Sprint": [
+            "belongsTo Project"
+          ],
+          "Comment": [
+            "belongsTo Task"
+          ],
+          "Milestone": [
+            "belongsTo Project"
+          ],
+          "TimeEntry": [
+            "belongsTo Task"
+          ],
+          "TeamMember": [
+            "belongsTo Project"
+          ]
+        },
+        "entityFieldCounts": {
+          "Task": 13,
+          "Sprint": 8,
+          "Comment": 6,
+          "Project": 11,
+          "Milestone": 7,
+          "TimeEntry": 7,
+          "TeamMember": 5
+        }
+      },
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6542,
+      "patternType": "domain-mapping",
+      "domainId": "real-estate",
+      "patternKey": "domain-real-estate",
+      "patternValue": {
+        "kpis": [
+          "Active Listings",
+          "Properties Sold",
+          "Average Days on Market",
+          "Total Sales Volume",
+          "New Leads",
+          "Pending Offers"
+        ],
+        "modules": [
+          "Properties",
+          "Listings",
+          "Clients",
+          "Showings",
+          "Offers",
+          "Reports"
+        ],
+        "entities": [
+          "Property",
+          "Agent",
+          "Listing",
+          "Showing",
+          "Offer",
+          "Client"
+        ],
+        "pageCount": 8,
+        "relationships": {
+          "Offer": [
+            "belongsTo Property"
+          ],
+          "Client": [
+            "belongsTo Agent"
+          ],
+          "Listing": [
+            "belongsTo Property",
+            "belongsTo Agent"
+          ],
+          "Showing": [
+            "belongsTo Property",
+            "belongsTo Agent",
+            "belongsTo Client"
+          ],
+          "Property": [
+            "belongsTo Agent"
+          ]
+        }
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6543,
+      "patternType": "entity-structure",
+      "domainId": "real-estate",
+      "entityType": "Agent",
+      "patternKey": "entity-agent",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "bio": "text",
+          "email": "text",
+          "phone": "text",
+          "rating": "decimal",
+          "lastName": "text",
+          "photoUrl": "text",
+          "firstName": "text",
+          "licenseNumber": "text",
+          "listingsCount": "integer"
+        },
+        "recommended": [
+          "id",
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "licenseNumber"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6544,
+      "patternType": "entity-structure",
+      "domainId": "real-estate",
+      "entityType": "Listing",
+      "patternKey": "entity-listing",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "status": "enum(active,pending,sold,expired,withdrawn)",
+          "agentId": "integer",
+          "listDate": "date",
+          "listPrice": "decimal",
+          "mlsNumber": "text",
+          "propertyId": "integer",
+          "description": "text",
+          "expirationDate": "date",
+          "virtualTourUrl": "text"
+        },
+        "recommended": [
+          "id",
+          "propertyId",
+          "agentId",
+          "listPrice",
+          "listDate",
+          "status",
+          "mlsNumber"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6545,
+      "patternType": "entity-structure",
+      "domainId": "real-estate",
+      "entityType": "Showing",
+      "patternKey": "entity-showing",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "status": "enum(scheduled,completed,cancelled,no_show)",
+          "agentId": "integer",
+          "clientId": "integer",
+          "dateTime": "timestamp",
+          "duration": "integer",
+          "feedback": "text",
+          "propertyId": "integer",
+          "interestLevel": "enum(low,medium,high)"
+        },
+        "recommended": [
+          "id",
+          "propertyId",
+          "agentId",
+          "clientId",
+          "dateTime",
+          "status"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6546,
+      "patternType": "entity-structure",
+      "domainId": "real-estate",
+      "entityType": "Offer",
+      "patternKey": "entity-offer",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "amount": "decimal",
+          "status": "enum(pending,accepted,rejected,countered,expired)",
+          "buyerId": "integer",
+          "conditions": "text",
+          "propertyId": "integer",
+          "submittedAt": "timestamp",
+          "expirationDate": "date"
+        },
+        "recommended": [
+          "id",
+          "propertyId",
+          "buyerId",
+          "amount",
+          "status",
+          "expirationDate"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6547,
+      "patternType": "workflow-design",
+      "domainId": "real-estate",
+      "patternKey": "workflow-listing",
+      "patternValue": {
+        "states": [
+          "draft",
+          "active",
+          "pending",
+          "sold",
+          "expired",
+          "withdrawn"
+        ],
+        "commonTransitions": [
+          {
+            "to": "active",
+            "from": "draft",
+            "action": "Publish"
+          },
+          {
+            "to": "pending",
+            "from": "active",
+            "action": "Accept Offer"
+          },
+          {
+            "to": "sold",
+            "from": "pending",
+            "action": "Close"
+          },
+          {
+            "to": "expired",
+            "from": "active",
+            "action": "Expire"
+          }
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6548,
+      "patternType": "entity-structure",
+      "domainId": "restaurant",
+      "entityType": "TableOrder",
+      "patternKey": "entity-tableorder",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "tax": "decimal",
+          "tip": "decimal",
+          "total": "decimal",
+          "status": "enum(open,preparing,served,closed,cancelled)",
+          "closedAt": "timestamp",
+          "serverId": "integer",
+          "subtotal": "decimal",
+          "createdAt": "timestamp",
+          "guestCount": "integer",
+          "tableNumber": "integer"
+        },
+        "recommended": [
+          "id",
+          "tableNumber",
+          "serverId",
+          "status",
+          "total",
+          "guestCount",
+          "createdAt"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6549,
+      "patternType": "entity-structure",
+      "domainId": "restaurant",
+      "entityType": "OrderDetail",
+      "patternKey": "entity-orderdetail",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "price": "decimal",
+          "status": "enum(pending,preparing,ready,served,cancelled)",
+          "orderId": "integer",
+          "quantity": "integer",
+          "menuItemId": "integer",
+          "specialInstructions": "text"
+        },
+        "recommended": [
+          "id",
+          "orderId",
+          "menuItemId",
+          "quantity",
+          "price",
+          "status"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6550,
+      "patternType": "entity-structure",
+      "domainId": "restaurant",
+      "entityType": "Inventory",
+      "patternKey": "entity-inventory",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "cost": "decimal",
+          "name": "text",
+          "unit": "text",
+          "category": "text",
+          "quantity": "decimal",
+          "supplierId": "integer",
+          "reorderLevel": "decimal",
+          "lastRestocked": "date",
+          "expirationDate": "date"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "quantity",
+          "unit",
+          "reorderLevel",
+          "cost"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6551,
+      "patternType": "entity-structure",
+      "domainId": "restaurant",
+      "entityType": "Staff",
+      "patternKey": "entity-staff",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "role": "enum(manager,server,chef,bartender,host,busser)",
+          "email": "text",
+          "phone": "text",
+          "active": "boolean",
+          "hireDate": "date",
+          "lastName": "text",
+          "firstName": "text",
+          "hourlyRate": "decimal"
+        },
+        "recommended": [
+          "id",
+          "firstName",
+          "lastName",
+          "role",
+          "hourlyRate",
+          "active"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6552,
+      "patternType": "workflow-design",
+      "domainId": "restaurant",
+      "patternKey": "workflow-tableorder",
+      "patternValue": {
+        "states": [
+          "open",
+          "preparing",
+          "served",
+          "closed",
+          "cancelled"
+        ],
+        "commonTransitions": [
+          {
+            "to": "preparing",
+            "from": "open",
+            "action": "Send to Kitchen"
+          },
+          {
+            "to": "served",
+            "from": "preparing",
+            "action": "Serve"
+          },
+          {
+            "to": "closed",
+            "from": "served",
+            "action": "Close Check"
+          }
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6553,
+      "patternType": "entity-structure",
+      "domainId": "fitness",
+      "entityType": "Workout",
+      "patternKey": "entity-workout",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "date": "date",
+          "name": "text",
+          "type": "enum(strength,cardio,flexibility,hiit,yoga,crossfit)",
+          "notes": "text",
+          "duration": "integer",
+          "memberId": "integer",
+          "trainerId": "integer",
+          "caloriesBurned": "integer"
+        },
+        "recommended": [
+          "id",
+          "memberId",
+          "name",
+          "date",
+          "duration",
+          "type",
+          "caloriesBurned"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6554,
+      "patternType": "entity-structure",
+      "domainId": "fitness",
+      "entityType": "Exercise",
+      "patternKey": "entity-exercise",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "name": "text",
+          "category": "text",
+          "videoUrl": "text",
+          "equipment": "text",
+          "difficulty": "enum(beginner,intermediate,advanced)",
+          "description": "text",
+          "muscleGroup": "text"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "category",
+          "muscleGroup",
+          "equipment",
+          "difficulty"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6555,
+      "patternType": "entity-structure",
+      "domainId": "fitness",
+      "entityType": "WorkoutExercise",
+      "patternKey": "entity-workoutexercise",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "reps": "integer",
+          "sets": "integer",
+          "order": "integer",
+          "weight": "decimal",
+          "duration": "integer",
+          "restTime": "integer",
+          "workoutId": "integer",
+          "exerciseId": "integer"
+        },
+        "recommended": [
+          "id",
+          "workoutId",
+          "exerciseId",
+          "sets",
+          "reps",
+          "weight"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6556,
+      "patternType": "entity-structure",
+      "domainId": "fitness",
+      "entityType": "MembershipPlan",
+      "patternKey": "entity-membershipplan",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "name": "text",
+          "price": "decimal",
+          "active": "boolean",
+          "duration": "integer",
+          "features": "text",
+          "classAccess": "boolean",
+          "trainerSessions": "integer"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "price",
+          "duration",
+          "features",
+          "active"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6557,
+      "patternType": "workflow-design",
+      "domainId": "fitness",
+      "patternKey": "workflow-member",
+      "patternValue": {
+        "states": [
+          "trial",
+          "active",
+          "frozen",
+          "expired",
+          "cancelled"
+        ],
+        "commonTransitions": [
+          {
+            "to": "active",
+            "from": "trial",
+            "action": "Activate"
+          },
+          {
+            "to": "frozen",
+            "from": "active",
+            "action": "Freeze"
+          },
+          {
+            "to": "active",
+            "from": "frozen",
+            "action": "Unfreeze"
+          },
+          {
+            "to": "expired",
+            "from": "active",
+            "action": "Expire"
+          }
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6558,
+      "patternType": "entity-structure",
+      "domainId": "finance",
+      "entityType": "Transaction",
+      "patternKey": "entity-transaction",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "date": "date",
+          "type": "enum(deposit,withdrawal,transfer,payment,refund)",
+          "amount": "decimal",
+          "status": "enum(pending,completed,failed,reversed)",
+          "balance": "decimal",
+          "merchant": "text",
+          "accountId": "integer",
+          "reference": "text",
+          "categoryId": "integer",
+          "description": "text"
+        },
+        "recommended": [
+          "id",
+          "accountId",
+          "type",
+          "amount",
+          "description",
+          "categoryId",
+          "date",
+          "status"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6559,
+      "patternType": "entity-structure",
+      "domainId": "finance",
+      "entityType": "TransactionCategory",
+      "patternKey": "entity-transactioncategory",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "icon": "text",
+          "name": "text",
+          "type": "enum(income,expense)",
+          "color": "text",
+          "parentId": "integer"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "type",
+          "icon",
+          "color"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6560,
+      "patternType": "entity-structure",
+      "domainId": "finance",
+      "entityType": "RecurringTransaction",
+      "patternKey": "entity-recurringtransaction",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "active": "boolean",
+          "amount": "decimal",
+          "nextDate": "date",
+          "accountId": "integer",
+          "frequency": "enum(daily,weekly,biweekly,monthly,yearly)",
+          "categoryId": "integer",
+          "description": "text"
+        },
+        "recommended": [
+          "id",
+          "accountId",
+          "amount",
+          "description",
+          "frequency",
+          "nextDate",
+          "active"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6561,
+      "patternType": "entity-structure",
+      "domainId": "finance",
+      "entityType": "Goal",
+      "patternKey": "entity-goal",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "name": "text",
+          "status": "enum(active,achieved,cancelled)",
+          "userId": "integer",
+          "category": "text",
+          "deadline": "date",
+          "targetAmount": "decimal",
+          "currentAmount": "decimal"
+        },
+        "recommended": [
+          "id",
+          "userId",
+          "name",
+          "targetAmount",
+          "currentAmount",
+          "deadline",
+          "status"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6562,
+      "patternType": "domain-mapping",
+      "domainId": "finance",
+      "patternKey": "finance-domain-entities",
+      "patternValue": {
+        "domain": "finance",
+        "coreEntities": [
+          "Account",
+          "Transaction",
+          "Budget",
+          "TransactionCategory",
+          "Invoice",
+          "RecurringTransaction",
+          "Goal"
+        ],
+        "relationships": {
+          "Budget": [
+            "belongsTo TransactionCategory"
+          ],
+          "Invoice": [
+            "belongsTo Client"
+          ],
+          "Transaction": [
+            "belongsTo Account",
+            "belongsTo TransactionCategory"
+          ],
+          "RecurringTransaction": [
+            "belongsTo Account"
+          ]
+        },
+        "entityFieldCounts": {
+          "Goal": 8,
+          "Budget": 8,
+          "Account": 11,
+          "Invoice": 12,
+          "Transaction": 11,
+          "TransactionCategory": 6,
+          "RecurringTransaction": 8
+        }
+      },
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6563,
+      "patternType": "domain-mapping",
+      "domainId": "social-media",
+      "patternKey": "domain-social-media",
+      "patternValue": {
+        "kpis": [
+          "Daily Active Users",
+          "Posts Today",
+          "Engagement Rate",
+          "New Sign-ups",
+          "Messages Sent",
+          "Content Reports"
+        ],
+        "modules": [
+          "Feed",
+          "Profile",
+          "Messages",
+          "Notifications",
+          "Search",
+          "Settings"
+        ],
+        "entities": [
+          "User",
+          "Post",
+          "Comment",
+          "Like",
+          "Follow",
+          "Message",
+          "Notification"
+        ],
+        "pageCount": 9,
+        "relationships": {
+          "Like": [
+            "belongsTo User"
+          ],
+          "Post": [
+            "belongsTo User"
+          ],
+          "Follow": [
+            "belongsTo User"
+          ],
+          "Comment": [
+            "belongsTo Post",
+            "belongsTo User"
+          ],
+          "Message": [
+            "belongsTo User"
+          ],
+          "Notification": [
+            "belongsTo User"
+          ]
+        }
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6564,
+      "patternType": "entity-structure",
+      "domainId": "social-media",
+      "entityType": "User",
+      "patternKey": "entity-user",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "bio": "text",
+          "email": "text",
+          "website": "text",
+          "location": "text",
+          "username": "text",
+          "verified": "boolean",
+          "avatarUrl": "text",
+          "createdAt": "timestamp",
+          "postsCount": "integer",
+          "displayName": "text",
+          "coverImageUrl": "text",
+          "followersCount": "integer",
+          "followingCount": "integer"
+        },
+        "recommended": [
+          "id",
+          "username",
+          "email",
+          "displayName",
+          "bio",
+          "avatarUrl",
+          "verified"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6565,
+      "patternType": "entity-structure",
+      "domainId": "social-media",
+      "entityType": "Post",
+      "patternKey": "entity-post",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "type": "enum(text,image,video,link,poll)",
+          "content": "text",
+          "authorId": "integer",
+          "editedAt": "timestamp",
+          "hashtags": "text",
+          "location": "text",
+          "createdAt": "timestamp",
+          "mediaUrls": "json",
+          "likesCount": "integer",
+          "visibility": "enum(public,followers,private)",
+          "sharesCount": "integer",
+          "commentsCount": "integer"
+        },
+        "recommended": [
+          "id",
+          "authorId",
+          "content",
+          "type",
+          "visibility",
+          "likesCount",
+          "commentsCount",
+          "createdAt"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6566,
+      "patternType": "entity-structure",
+      "domainId": "social-media",
+      "entityType": "Like",
+      "patternKey": "entity-like",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "userId": "integer",
+          "targetId": "integer",
+          "createdAt": "timestamp",
+          "targetType": "enum(post,comment)"
+        },
+        "recommended": [
+          "id",
+          "userId",
+          "targetType",
+          "targetId"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6567,
+      "patternType": "entity-structure",
+      "domainId": "social-media",
+      "entityType": "Follow",
+      "patternKey": "entity-follow",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "createdAt": "timestamp",
+          "followerId": "integer",
+          "followingId": "integer"
+        },
+        "recommended": [
+          "id",
+          "followerId",
+          "followingId"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6568,
+      "patternType": "domain-mapping",
+      "domainId": "social-media",
+      "patternKey": "social-media-domain-entities",
+      "patternValue": {
+        "domain": "social-media",
+        "coreEntities": [
+          "User",
+          "Post",
+          "Comment",
+          "Like",
+          "Follow",
+          "Message",
+          "Notification"
+        ],
+        "relationships": {
+          "Like": [
+            "belongsTo User"
+          ],
+          "Post": [
+            "belongsTo User"
+          ],
+          "Follow": [
+            "belongsTo User"
+          ],
+          "Comment": [
+            "belongsTo Post",
+            "belongsTo User"
+          ],
+          "Message": [
+            "belongsTo User"
+          ],
+          "Notification": [
+            "belongsTo User"
+          ]
+        },
+        "entityFieldCounts": {
+          "Like": 5,
+          "Post": 13,
+          "User": 14,
+          "Follow": 4,
+          "Comment": 8,
+          "Message": 7,
+          "Notification": 8
+        }
+      },
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6569,
+      "patternType": "workflow-design",
+      "domainId": "social-media",
+      "patternKey": "workflow-post",
+      "patternValue": {
+        "states": [
+          "draft",
+          "published",
+          "flagged",
+          "removed",
+          "archived"
+        ],
+        "commonTransitions": [
+          {
+            "to": "published",
+            "from": "draft",
+            "action": "Publish"
+          },
+          {
+            "to": "flagged",
+            "from": "published",
+            "action": "Report"
+          },
+          {
+            "to": "removed",
+            "from": "flagged",
+            "action": "Remove"
+          },
+          {
+            "to": "archived",
+            "from": "published",
+            "action": "Archive"
+          }
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6570,
+      "patternType": "entity-structure",
+      "domainId": "hr",
+      "entityType": "PerformanceReview",
+      "patternKey": "entity-performancereview",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "goals": "text",
+          "period": "text",
+          "rating": "integer",
+          "status": "enum(draft,submitted,reviewed,acknowledged)",
+          "createdAt": "timestamp",
+          "strengths": "text",
+          "employeeId": "integer",
+          "reviewerId": "integer",
+          "improvements": "text"
+        },
+        "recommended": [
+          "id",
+          "employeeId",
+          "reviewerId",
+          "period",
+          "rating",
+          "status"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6571,
+      "patternType": "entity-structure",
+      "domainId": "hr",
+      "entityType": "Payroll",
+      "patternKey": "entity-payroll",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "taxes": "decimal",
+          "netPay": "decimal",
+          "period": "text",
+          "status": "enum(pending,processed,paid)",
+          "basePay": "decimal",
+          "overtime": "decimal",
+          "paidDate": "date",
+          "deductions": "decimal",
+          "employeeId": "integer"
+        },
+        "recommended": [
+          "id",
+          "employeeId",
+          "period",
+          "basePay",
+          "netPay",
+          "status"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6572,
+      "patternType": "domain-mapping",
+      "domainId": "hr",
+      "patternKey": "hr-domain-entities",
+      "patternValue": {
+        "domain": "hr",
+        "coreEntities": [
+          "Employee",
+          "Department",
+          "LeaveRequest",
+          "PerformanceReview",
+          "Payroll",
+          "JobPosting",
+          "Applicant"
+        ],
+        "relationships": {
+          "Payroll": [
+            "belongsTo Employee"
+          ],
+          "Employee": [
+            "belongsTo Department"
+          ],
+          "Applicant": [
+            "belongsTo JobPosting"
+          ],
+          "JobPosting": [
+            "belongsTo Department"
+          ],
+          "LeaveRequest": [
+            "belongsTo Employee"
+          ],
+          "PerformanceReview": [
+            "belongsTo Employee"
+          ]
+        },
+        "entityFieldCounts": {
+          "Payroll": 10,
+          "Employee": 15,
+          "Applicant": 10,
+          "Department": 7,
+          "JobPosting": 12,
+          "LeaveRequest": 10,
+          "PerformanceReview": 10
+        }
+      },
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6573,
+      "patternType": "entity-structure",
+      "domainId": "logistics",
+      "entityType": "Warehouse",
+      "patternKey": "entity-warehouse",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "name": "text",
+          "type": "enum(main,satellite,cold_storage)",
+          "address": "text",
+          "capacity": "integer",
+          "managerId": "integer",
+          "utilization": "integer"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "address",
+          "capacity",
+          "utilization"
+        ]
+      },
+      "successCount": 200,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6574,
+      "patternType": "domain-mapping",
+      "domainId": "logistics",
+      "patternKey": "logistics-domain-entities",
+      "patternValue": {
+        "domain": "logistics",
+        "coreEntities": [
+          "Shipment",
+          "Warehouse",
+          "Vehicle",
+          "Driver",
+          "Route",
+          "InventoryItem"
+        ],
+        "relationships": {
+          "Route": [
+            "belongsTo Vehicle",
+            "belongsTo Driver"
+          ],
+          "Vehicle": [
+            "belongsTo Driver"
+          ],
+          "Shipment": [
+            "belongsTo Driver",
+            "belongsTo Vehicle"
+          ],
+          "InventoryItem": [
+            "belongsTo Warehouse"
+          ]
+        },
+        "entityFieldCounts": {
+          "Route": 11,
+          "Driver": 8,
+          "Vehicle": 8,
+          "Shipment": 14,
+          "Warehouse": 9,
+          "InventoryItem": 10
+        }
+      },
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6575,
+      "patternType": "domain-mapping",
+      "domainId": "booking",
+      "patternKey": "domain-booking",
+      "patternValue": {
+        "kpis": [
+          "Bookings Today",
+          "Occupancy Rate",
+          "Revenue This Month",
+          "Average Rating",
+          "Cancellation Rate",
+          "Upcoming Check-ins"
+        ],
+        "modules": [
+          "Bookings",
+          "Venues",
+          "Rooms",
+          "Guests",
+          "Payments",
+          "Reviews"
+        ],
+        "entities": [
+          "Venue",
+          "Booking",
+          "Room",
+          "Guest",
+          "Payment",
+          "Review"
+        ],
+        "pageCount": 8,
+        "relationships": {
+          "Room": [
+            "belongsTo Venue"
+          ],
+          "Review": [
+            "belongsTo Booking"
+          ],
+          "Booking": [
+            "belongsTo Venue",
+            "belongsTo Guest"
+          ],
+          "Payment": [
+            "belongsTo Booking"
+          ]
+        }
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6576,
+      "patternType": "entity-structure",
+      "domainId": "booking",
+      "entityType": "Venue",
+      "patternKey": "entity-venue",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "city": "text",
+          "name": "text",
+          "type": "enum(hotel,conference,restaurant,event_space,coworking)",
+          "rating": "decimal",
+          "address": "text",
+          "ownerId": "integer",
+          "capacity": "integer",
+          "amenities": "text",
+          "imageUrls": "json",
+          "description": "text",
+          "pricePerHour": "decimal"
+        },
+        "recommended": [
+          "id",
+          "name",
+          "address",
+          "capacity",
+          "type",
+          "pricePerHour",
+          "rating"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6577,
+      "patternType": "entity-structure",
+      "domainId": "booking",
+      "entityType": "Guest",
+      "patternKey": "entity-guest",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "tier": "enum(standard,silver,gold,platinum)",
+          "email": "text",
+          "phone": "text",
+          "visits": "integer",
+          "lastName": "text",
+          "createdAt": "timestamp",
+          "firstName": "text",
+          "preferences": "text",
+          "loyaltyPoints": "integer"
+        },
+        "recommended": [
+          "id",
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "loyaltyPoints",
+          "tier"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6578,
+      "patternType": "domain-mapping",
+      "domainId": "booking",
+      "patternKey": "booking-domain-entities",
+      "patternValue": {
+        "domain": "booking",
+        "coreEntities": [
+          "Venue",
+          "Booking",
+          "Room",
+          "Guest",
+          "Payment",
+          "Review"
+        ],
+        "relationships": {
+          "Room": [
+            "belongsTo Venue"
+          ],
+          "Review": [
+            "belongsTo Booking"
+          ],
+          "Booking": [
+            "belongsTo Venue",
+            "belongsTo Guest"
+          ],
+          "Payment": [
+            "belongsTo Booking"
+          ]
+        },
+        "entityFieldCounts": {
+          "Room": 9,
+          "Guest": 10,
+          "Venue": 12,
+          "Review": 7,
+          "Booking": 11,
+          "Payment": 7
+        }
+      },
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6579,
+      "patternType": "domain-mapping",
+      "domainId": "content-management",
+      "patternKey": "domain-content-management",
+      "patternValue": {
+        "kpis": [
+          "Published Articles",
+          "Total Views",
+          "Comments Today",
+          "Draft Articles",
+          "Top Authors",
+          "Media Storage Used"
+        ],
+        "modules": [
+          "Articles",
+          "Categories",
+          "Media Library",
+          "Comments",
+          "Pages",
+          "SEO"
+        ],
+        "entities": [
+          "Article",
+          "Category",
+          "Author",
+          "Tag",
+          "Media",
+          "Comment",
+          "Page"
+        ],
+        "pageCount": 9,
+        "relationships": {
+          "Page": [
+            "hasMany Page"
+          ],
+          "Media": [
+            "belongsTo Author"
+          ],
+          "Article": [
+            "belongsTo Author",
+            "belongsTo Category"
+          ],
+          "Comment": [
+            "belongsTo Article"
+          ]
+        }
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6580,
+      "patternType": "entity-structure",
+      "domainId": "content-management",
+      "entityType": "Article",
+      "patternKey": "entity-article",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "slug": "text",
+          "tags": "text",
+          "title": "text",
+          "status": "enum(draft,review,published,archived)",
+          "content": "text",
+          "excerpt": "text",
+          "authorId": "integer",
+          "seoTitle": "text",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp",
+          "viewCount": "integer",
+          "categoryId": "integer",
+          "publishedAt": "timestamp",
+          "featuredImage": "text",
+          "seoDescription": "text"
+        },
+        "recommended": [
+          "id",
+          "title",
+          "slug",
+          "content",
+          "authorId",
+          "categoryId",
+          "status",
+          "publishedAt"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6581,
+      "patternType": "entity-structure",
+      "domainId": "content-management",
+      "entityType": "Author",
+      "patternKey": "entity-author",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "bio": "text",
+          "role": "enum(admin,editor,author,contributor)",
+          "email": "text",
+          "lastName": "text",
+          "avatarUrl": "text",
+          "firstName": "text",
+          "socialLinks": "json",
+          "articlesCount": "integer"
+        },
+        "recommended": [
+          "id",
+          "firstName",
+          "lastName",
+          "email",
+          "bio",
+          "role"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6582,
+      "patternType": "entity-structure",
+      "domainId": "content-management",
+      "entityType": "Media",
+      "patternKey": "entity-media",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "alt": "text",
+          "url": "text",
+          "size": "integer",
+          "type": "enum(image,video,document,audio)",
+          "filename": "text",
+          "mimeType": "text",
+          "createdAt": "timestamp",
+          "uploadedBy": "integer"
+        },
+        "recommended": [
+          "id",
+          "filename",
+          "url",
+          "type",
+          "size",
+          "uploadedBy"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6583,
+      "patternType": "entity-structure",
+      "domainId": "content-management",
+      "entityType": "Page",
+      "patternKey": "entity-page",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "slug": "text",
+          "title": "text",
+          "status": "enum(draft,published)",
+          "content": "text",
+          "parentId": "integer",
+          "seoTitle": "text",
+          "template": "text",
+          "sortOrder": "integer",
+          "seoDescription": "text"
+        },
+        "recommended": [
+          "id",
+          "title",
+          "slug",
+          "content",
+          "status",
+          "template"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6584,
+      "patternType": "domain-mapping",
+      "domainId": "content-management",
+      "patternKey": "content-management-domain-entities",
+      "patternValue": {
+        "domain": "content-management",
+        "coreEntities": [
+          "Article",
+          "Category",
+          "Author",
+          "Tag",
+          "Media",
+          "Comment",
+          "Page"
+        ],
+        "relationships": {
+          "Page": [
+            "hasMany Page"
+          ],
+          "Media": [
+            "belongsTo Author"
+          ],
+          "Article": [
+            "belongsTo Author",
+            "belongsTo Category"
+          ],
+          "Comment": [
+            "belongsTo Article"
+          ]
+        },
+        "entityFieldCounts": {
+          "Tag": 5,
+          "Page": 10,
+          "Media": 9,
+          "Author": 9,
+          "Article": 16,
+          "Comment": 8,
+          "Category": 7
+        }
+      },
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6585,
+      "patternType": "workflow-design",
+      "domainId": "content-management",
+      "patternKey": "workflow-article",
+      "patternValue": {
+        "states": [
+          "draft",
+          "review",
+          "published",
+          "archived"
+        ],
+        "commonTransitions": [
+          {
+            "to": "review",
+            "from": "draft",
+            "action": "Submit for Review"
+          },
+          {
+            "to": "published",
+            "from": "review",
+            "action": "Publish"
+          },
+          {
+            "to": "draft",
+            "from": "review",
+            "action": "Request Changes"
+          },
+          {
+            "to": "archived",
+            "from": "published",
+            "action": "Archive"
+          }
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6586,
+      "patternType": "entity-structure",
+      "domainId": "inventory",
+      "entityType": "PurchaseOrderItem",
+      "patternKey": "entity-purchaseorderitem",
+      "patternValue": {
+        "fieldTypes": {
+          "id": "serial",
+          "quantity": "integer",
+          "productId": "integer",
+          "unitPrice": "decimal",
+          "totalPrice": "decimal",
+          "purchaseOrderId": "integer",
+          "receivedQuantity": "integer"
+        },
+        "recommended": [
+          "id",
+          "purchaseOrderId",
+          "productId",
+          "quantity",
+          "unitPrice",
+          "receivedQuantity"
+        ]
+      },
+      "successCount": 100,
+      "failureCount": 0,
+      "reliability": 1
+    },
+    {
+      "id": 6587,
+      "patternType": "domain-mapping",
+      "domainId": "inventory",
+      "patternKey": "inventory-domain-entities",
+      "patternValue": {
+        "domain": "inventory",
+        "coreEntities": [
+          "Product",
+          "Supplier",
+          "PurchaseOrder",
+          "PurchaseOrderItem",
+          "StockMovement",
+          "Warehouse"
+        ],
+        "relationships": {
+          "Product": [
+            "belongsTo Category",
+            "belongsTo Supplier"
+          ],
+          "PurchaseOrder": [
+            "belongsTo Supplier",
+            "hasMany PurchaseOrderItem"
+          ],
+          "StockMovement": [
+            "belongsTo Product"
+          ],
+          "PurchaseOrderItem": [
+            "belongsTo PurchaseOrder",
+            "belongsTo Product"
+          ]
+        },
+        "entityFieldCounts": {
+          "Product": 17,
+          "Supplier": 10,
+          "Warehouse": 7,
+          "PurchaseOrder": 9,
+          "StockMovement": 10,
+          "PurchaseOrderItem": 7
+        }
+      },
+      "successCount": 50,
+      "failureCount": 0,
+      "reliability": 1
     }
   ],
   "preferences": [
@@ -177858,8 +180671,8 @@
     }
   ],
   "stats": {
-    "totalPatterns": 6523,
-    "reliablePatterns": 6461,
+    "totalPatterns": 6583,
+    "reliablePatterns": 6521,
     "totalPreferences": 3575
   }
 }

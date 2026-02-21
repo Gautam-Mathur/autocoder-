@@ -521,16 +521,22 @@ export class GenerationLearningEngine {
   private learnEntityPattern(entity: PlannedEntity, domainId?: string): void {
     const key = `entity-${entity.name.toLowerCase()}`;
     const fieldNames = entity.fields.map(f => f.name);
+    const newFieldTypes = Object.fromEntries(entity.fields.map(f => [f.name, f.type]));
 
     const existing = this.patterns.get(key);
     if (existing) {
       const existingFields = existing.patternValue.recommended || [];
       const mergedFields = Array.from(new Set([...existingFields, ...fieldNames]));
       existing.patternValue.recommended = mergedFields;
+      const existingFieldTypes = existing.patternValue.fieldTypes || {};
+      existing.patternValue.fieldTypes = { ...existingFieldTypes, ...newFieldTypes };
       existing.successCount += 1;
       existing.reliability = existing.successCount / (existing.successCount + existing.failureCount);
       if (domainId) {
         existing.domainId = domainId;
+      }
+      if (entity.name) {
+        existing.entityType = entity.name;
       }
       this.persistPattern(existing);
     } else {
@@ -541,7 +547,7 @@ export class GenerationLearningEngine {
         patternKey: key,
         patternValue: {
           recommended: fieldNames,
-          fieldTypes: Object.fromEntries(entity.fields.map(f => [f.name, f.type])),
+          fieldTypes: newFieldTypes,
         },
         successCount: 1,
         failureCount: 0,
@@ -588,9 +594,35 @@ export class GenerationLearningEngine {
     const key = `domain-${domainId}`;
     const existing = this.patterns.get(key);
 
+    const relationships: Record<string, string[]> = {};
+    for (const entity of plan.dataModel) {
+      const rels: string[] = [];
+      for (const field of entity.fields) {
+        if (field.name.endsWith('Id') && field.name !== 'id') {
+          const refEntity = field.name.replace(/Id$/, '');
+          const capitalized = refEntity.charAt(0).toUpperCase() + refEntity.slice(1);
+          rels.push(`belongsTo ${capitalized}`);
+        }
+      }
+      if (rels.length > 0) {
+        relationships[entity.name] = rels;
+      }
+    }
+
     if (existing) {
+      const existingEntities = existing.patternValue.entities || [];
+      const newEntities = plan.dataModel.map(e => e.name);
+      existing.patternValue.entities = Array.from(new Set([...existingEntities, ...newEntities]));
+      const existingModules = existing.patternValue.modules || [];
+      const newModules = plan.modules.map(m => m.name);
+      existing.patternValue.modules = Array.from(new Set([...existingModules, ...newModules]));
+      const existingKpis = existing.patternValue.kpis || [];
+      existing.patternValue.kpis = Array.from(new Set([...existingKpis, ...plan.kpis]));
+      existing.patternValue.pageCount = Math.max(existing.patternValue.pageCount || 0, plan.pages.length);
+      existing.patternValue.relationships = { ...(existing.patternValue.relationships || {}), ...relationships };
       existing.successCount += 1;
       existing.reliability = existing.successCount / (existing.successCount + existing.failureCount);
+      if (!existing.domainId) existing.domainId = domainId;
       this.persistPattern(existing);
     } else {
       const newPattern: LearnedPattern = {
@@ -602,6 +634,7 @@ export class GenerationLearningEngine {
           modules: plan.modules.map(m => m.name),
           kpis: plan.kpis,
           pageCount: plan.pages.length,
+          relationships,
         },
         successCount: 1,
         failureCount: 0,
@@ -726,6 +759,39 @@ export class GenerationLearningEngine {
 
   applyLearnedPatterns(plan: ProjectPlan): ProjectPlan {
     const enhancedPlan = { ...plan };
+
+    const domainId = (enhancedPlan as any).domainId;
+    if (domainId) {
+      const domainMapping = this.getDomainMapping(domainId);
+      if (domainMapping) {
+        const existingEntityNames = new Set(enhancedPlan.dataModel.map(e => e.name.toLowerCase()));
+        for (const suggestedEntity of domainMapping.entities) {
+          if (!existingEntityNames.has(suggestedEntity.toLowerCase())) {
+            const entityRec = this.getEntityRecommendations(suggestedEntity);
+            if (entityRec && entityRec.recommendedFields.length > 0) {
+              const fields = entityRec.recommendedFields.slice(0, 8).map(f => ({
+                name: f,
+                type: entityRec.fieldTypes[f] || 'text',
+                required: f === 'id' || f === 'name' || f === 'title',
+              }));
+              if (!fields.some(f => f.name === 'id')) {
+                fields.unshift({ name: 'id', type: 'serial', required: true });
+              }
+              enhancedPlan.dataModel.push({ name: suggestedEntity, fields });
+              existingEntityNames.add(suggestedEntity.toLowerCase());
+            }
+          }
+        }
+
+        const existingKpis = new Set(enhancedPlan.kpis.map(k => k.toLowerCase()));
+        for (const kpi of domainMapping.kpis) {
+          if (!existingKpis.has(kpi.toLowerCase())) {
+            enhancedPlan.kpis.push(kpi);
+            existingKpis.add(kpi.toLowerCase());
+          }
+        }
+      }
+    }
 
     for (const entity of enhancedPlan.dataModel) {
       const recommendations = this.getEntityRecommendations(entity.name);
