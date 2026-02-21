@@ -25,7 +25,9 @@ import { parseErrors, analyzeAndFix, validateImportPaths, addDependenciesToPacka
 import { analyzeAndPlan, formatReasoningAsMarkdown, quickAnalysis } from "./modules/advanced-reasoning";
 import { learnFromInteraction, getContextPreferences, applyContextPreferences, getRelevantContext, formatMemorySummary } from "./modules/context-memory";
 import { analyzeCode, diagnoseError, formatAnalysisAsMarkdown, autoFixCode } from "./modules/live-code-analysis";
-import { findPatterns, getPattern, getAllPatterns } from "./modules/framework-patterns";
+import { getAllFrameworks, getFramework, getFrameworksByLanguage, getFrameworksByCategory, getFrameworkCount, getFrameworkSummary } from "./modules/framework-patterns";
+import { getLanguage, getAllLanguages, getLanguageIds, getLanguageCount, getLanguageSummary } from "./modules/language-registry";
+import { emitProject, previewEmission, type ProjectBlueprint } from "./modules/universal-code-emitter";
 
 // Generation Learning Engine
 import { learningEngine } from "./modules/generation-learning-engine";
@@ -4689,19 +4691,33 @@ Output ONLY the fixed code. No explanations.`;
       if (!parsed.success) {
         return res.status(400).json({ error: 'Invalid query parameters', details: parsed.error.issues });
       }
-      
-      const patterns = findPatterns(parsed.data);
-      
+
+      let frameworks = getAllFrameworks();
+      if (parsed.data.language) {
+        frameworks = getFrameworksByLanguage(parsed.data.language);
+      }
+      if (parsed.data.category) {
+        frameworks = frameworks.filter(f => f.category === parsed.data.category);
+      }
+      if (parsed.data.search) {
+        const search = parsed.data.search.toLowerCase();
+        frameworks = frameworks.filter(f =>
+          f.name.toLowerCase().includes(search) ||
+          f.description.toLowerCase().includes(search) ||
+          f.language.toLowerCase().includes(search)
+        );
+      }
+
       res.json({
         success: true,
-        count: patterns.length,
-        patterns: patterns.map(p => ({
-          id: p.id,
-          name: p.name,
-          language: p.language,
-          framework: p.framework,
-          category: p.category,
-          description: p.description,
+        count: frameworks.length,
+        patterns: frameworks.map(f => ({
+          id: f.id,
+          name: f.name,
+          language: f.language,
+          category: f.category,
+          description: f.description,
+          version: f.version,
         })),
       });
     } catch (error) {
@@ -4710,17 +4726,95 @@ Output ONLY the fixed code. No explanations.`;
     }
   });
 
-  // Get specific pattern with code
+  // Get specific framework pattern
   app.get("/api/ai/patterns/:id", async (req, res) => {
     try {
-      const pattern = getPattern(req.params.id);
-      if (!pattern) {
+      const framework = getFramework(req.params.id);
+      if (!framework) {
         return res.status(404).json({ error: 'Pattern not found' });
       }
-      
-      res.json({ success: true, pattern });
+
+      res.json({ success: true, pattern: framework });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get pattern';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  // Universal Language Engine endpoints
+  app.get("/api/ai/languages", async (_req, res) => {
+    try {
+      res.json({
+        success: true,
+        count: getLanguageCount(),
+        languages: getLanguageSummary(),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get languages';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/ai/languages/:id", async (req, res) => {
+    try {
+      const lang = getLanguage(req.params.id);
+      if (!lang) {
+        return res.status(404).json({ error: 'Language not found' });
+      }
+      const frameworks = getFrameworksByLanguage(req.params.id);
+      res.json({ success: true, language: lang, frameworks: frameworks.map(f => ({ id: f.id, name: f.name, version: f.version, category: f.category })) });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get language';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/ai/frameworks", async (_req, res) => {
+    try {
+      res.json({
+        success: true,
+        count: getFrameworkCount(),
+        frameworks: getFrameworkSummary(),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get frameworks';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.post("/api/ai/emit", async (req, res) => {
+    try {
+      const blueprint = req.body as ProjectBlueprint;
+      if (!blueprint.language || !blueprint.entities || !blueprint.name) {
+        return res.status(400).json({ error: 'Blueprint must include name, language, and entities' });
+      }
+
+      const result = emitProject(blueprint);
+      res.json({
+        success: true,
+        fileCount: result.files.length,
+        language: result.language.displayName,
+        framework: result.framework?.name || null,
+        startCommand: result.startCommand,
+        installCommand: result.installCommand,
+        files: result.files,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to emit project';
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.post("/api/ai/emit/preview", async (req, res) => {
+    try {
+      const blueprint = req.body as ProjectBlueprint;
+      if (!blueprint.language || !blueprint.entities || !blueprint.name) {
+        return res.status(400).json({ error: 'Blueprint must include name, language, and entities' });
+      }
+      const preview = previewEmission(blueprint);
+      res.json({ success: true, ...preview });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to preview emission';
       res.status(500).json({ error: message });
     }
   });

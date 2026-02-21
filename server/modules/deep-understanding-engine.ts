@@ -3,12 +3,21 @@ import type { IndustryDomain, DomainEntity, DomainModule, DomainWorkflow, UserRo
 import { synthesizeDomain, extractEntitiesFromText as nlpExtractEntities, isDomainSynthesized, type NLPEntityExtraction } from './domain-synthesis-engine.js';
 import { assessComplexity, identifyInformationGaps, generateClarificationQuestions as generateAdaptiveClarifications, shouldAskMoreQuestions, calculateReadinessScore, formatClarificationMessage, createClarificationState, type ClarificationState, type ClarificationQuestion as AdaptiveClarificationQuestion } from './adaptive-clarification-engine.js';
 
+export interface TechnologyDetectionResult {
+  detectedLanguage: string | null;
+  detectedFramework: string | null;
+  detectedDatabase: string | null;
+  confidence: number;
+  signals: string[];
+}
+
 export interface UnderstandingResult {
   level1_intent: IntentDecomposition;
   level2_domain: DomainDetectionResult;
   level3_entities: EntityExtractionResult;
   level4_workflows: WorkflowDetectionResult;
   level5_clarification: ClarificationResult;
+  level6_technology: TechnologyDetectionResult;
   confidence: number;
   readyForPlan: boolean;
 }
@@ -199,6 +208,8 @@ export function analyzeRequest(userMessage: string, conversationContext?: string
   const wellKnownMatch = isWellKnownApp(userMessage);
   const isSimpleRequest = userMessage.split(/\s+/).length <= 15;
 
+  const level6 = detectTechnology(lower);
+
   if (wellKnownMatch && isSimpleRequest && clarificationRound === 0) {
     const appInfo = WELL_KNOWN_APP_PATTERNS[wellKnownMatch];
     const assumptions: string[] = [];
@@ -224,6 +235,7 @@ export function analyzeRequest(userMessage: string, conversationContext?: string
       level3_entities: level3,
       level4_workflows: level4,
       level5_clarification: { needsClarification: false, questions: [], assumptions },
+      level6_technology: level6,
       confidence: boostedConfidence,
       readyForPlan: true,
     };
@@ -240,6 +252,7 @@ export function analyzeRequest(userMessage: string, conversationContext?: string
     level3_entities: level3,
     level4_workflows: level4,
     level5_clarification: level5,
+    level6_technology: level6,
     confidence,
     readyForPlan,
   };
@@ -801,4 +814,126 @@ export function formatUnderstandingResponse(result: UnderstandingResult): string
   }
 
   return sections.join('\n');
+}
+
+interface TechSignal {
+  language: string;
+  framework?: string;
+  priority: number;
+  signals: string[];
+}
+
+const TECHNOLOGY_SIGNALS: TechSignal[] = [
+  { language: 'python', framework: 'django', priority: 10, signals: ['\\bdjango\\b', '\\bdrf\\b', '\\bdjango rest\\b'] },
+  { language: 'python', framework: 'fastapi', priority: 10, signals: ['\\bfastapi\\b', '\\bfast api\\b'] },
+  { language: 'python', framework: 'flask', priority: 10, signals: ['\\bflask\\b'] },
+  { language: 'python', priority: 5, signals: ['\\bpython\\b', '\\bpip\\b', '\\bpytest\\b', '\\bsqlalchemy\\b'] },
+  { language: 'go', framework: 'gin', priority: 10, signals: ['\\bgin\\b(?!\\s+and\\b)'] },
+  { language: 'go', framework: 'echo', priority: 10, signals: ['\\becho framework\\b', '\\blabstack\\b'] },
+  { language: 'go', framework: 'fiber', priority: 10, signals: ['\\bgofiber\\b', '\\bfiber framework\\b'] },
+  { language: 'go', priority: 5, signals: ['\\bgolang\\b', '\\bgo\\b(?=\\s+(?:api|app|server|backend|project|service|microservice))'] },
+  { language: 'rust', framework: 'actix-web', priority: 10, signals: ['\\bactix\\b'] },
+  { language: 'rust', framework: 'axum', priority: 10, signals: ['\\baxum\\b'] },
+  { language: 'rust', framework: 'rocket', priority: 10, signals: ['\\brocket\\b(?=\\s+(?:framework|server|api))'] },
+  { language: 'rust', priority: 5, signals: ['\\brust\\b', '\\bcargo\\b'] },
+  { language: 'java', framework: 'spring-boot', priority: 10, signals: ['\\bspring boot\\b', '\\bspring framework\\b', '\\bspringboot\\b'] },
+  { language: 'java', priority: 5, signals: ['\\bjava\\b', '\\bmaven\\b', '\\bgradle\\b', '\\bjvm\\b'] },
+  { language: 'csharp', framework: 'aspnet-core', priority: 10, signals: ['\\basp\\.net\\b', '\\baspnet\\b'] },
+  { language: 'csharp', priority: 5, signals: ['\\bc#\\b', '\\bcsharp\\b', '\\b\\.net\\b', '\\bdotnet\\b', '\\bblazor\\b'] },
+  { language: 'ruby', framework: 'rails', priority: 10, signals: ['\\brails\\b', '\\bruby on rails\\b'] },
+  { language: 'ruby', framework: 'sinatra', priority: 10, signals: ['\\bsinatra\\b'] },
+  { language: 'ruby', priority: 5, signals: ['\\bruby\\b'] },
+  { language: 'php', framework: 'laravel', priority: 10, signals: ['\\blaravel\\b'] },
+  { language: 'php', priority: 5, signals: ['\\bphp\\b', '\\bsymfony\\b', '\\bcomposer\\b'] },
+  { language: 'kotlin', framework: 'ktor', priority: 10, signals: ['\\bktor\\b'] },
+  { language: 'kotlin', priority: 5, signals: ['\\bkotlin\\b'] },
+  { language: 'swift', priority: 5, signals: ['\\bswift\\b', '\\bvapor\\b'] },
+  { language: 'dart', priority: 5, signals: ['\\bdart\\b', '\\bflutter\\b'] },
+  { language: 'elixir', framework: 'phoenix', priority: 10, signals: ['\\bphoenix\\b(?=\\s+(?:framework|server|api|app))'] },
+  { language: 'elixir', priority: 5, signals: ['\\belixir\\b'] },
+  { language: 'scala', priority: 5, signals: ['\\bscala\\b', '\\bplay framework\\b', '\\bakka\\b'] },
+  { language: 'haskell', priority: 5, signals: ['\\bhaskell\\b', '\\byesod\\b', '\\bservant\\b'] },
+  { language: 'typescript', framework: 'express', priority: 8, signals: ['\\bexpress\\b(?=\\s+(?:server|api|app|backend))'] },
+  { language: 'typescript', priority: 4, signals: ['\\btypescript\\b', '\\bnestjs\\b', '\\bnode\\.?js\\b'] },
+  { language: 'cpp', priority: 5, signals: ['\\bc\\+\\+\\b', '\\bcpp\\b'] },
+  { language: 'c', priority: 5, signals: ['\\bc language\\b', '\\bansi c\\b', '\\bplain c\\b'] },
+  { language: 'zig', priority: 5, signals: ['\\bzig\\b'] },
+  { language: 'lua', priority: 5, signals: ['\\blua\\b'] },
+  { language: 'perl', priority: 5, signals: ['\\bperl\\b', '\\bmojolicious\\b'] },
+  { language: 'r', priority: 5, signals: ['\\br language\\b', '\\bshiny\\b', '\\bplumber\\b', '\\brstudio\\b'] },
+  { language: 'julia', priority: 5, signals: ['\\bjulia\\b(?=\\s+(?:lang|language|server|api|app))'] },
+];
+
+const DATABASE_PATTERNS: Record<string, string[]> = {
+  postgresql: ['\\bpostgres\\b', '\\bpostgresql\\b', '\\bpg\\b'],
+  mysql: ['\\bmysql\\b', '\\bmariadb\\b'],
+  sqlite: ['\\bsqlite\\b'],
+  mongodb: ['\\bmongodb\\b', '\\bmongo\\b', '\\bnosql\\b'],
+  redis: ['\\bredis\\b'],
+  dynamodb: ['\\bdynamodb\\b'],
+  firebase: ['\\bfirebase\\b', '\\bfirestore\\b'],
+};
+
+function matchesSignal(text: string, signal: string): boolean {
+  try {
+    return new RegExp(signal, 'i').test(text);
+  } catch {
+    return text.includes(signal);
+  }
+}
+
+function detectTechnology(lower: string): TechnologyDetectionResult {
+  const signals: string[] = [];
+  let detectedLanguage: string | null = null;
+  let detectedFramework: string | null = null;
+  let detectedDatabase: string | null = null;
+  let bestPriority = 0;
+
+  const sortedSignals = [...TECHNOLOGY_SIGNALS].sort((a, b) => b.priority - a.priority);
+
+  for (const tech of sortedSignals) {
+    for (const signal of tech.signals) {
+      if (matchesSignal(lower, signal)) {
+        signals.push(signal.replace(/\\b/g, ''));
+        if (tech.priority > bestPriority) {
+          detectedLanguage = tech.language;
+          if (tech.framework) {
+            detectedFramework = tech.framework;
+          }
+          bestPriority = tech.priority;
+        } else if (tech.priority === bestPriority && tech.framework && !detectedFramework) {
+          detectedFramework = tech.framework;
+          detectedLanguage = tech.language;
+        }
+        break;
+      }
+    }
+  }
+
+  for (const [db, patterns] of Object.entries(DATABASE_PATTERNS)) {
+    if (patterns.some(p => matchesSignal(lower, p))) {
+      detectedDatabase = db;
+      signals.push(db);
+      break;
+    }
+  }
+
+  let confidence = 0;
+  if (detectedFramework) {
+    confidence = 0.9;
+  } else if (detectedLanguage) {
+    confidence = 0.8;
+  }
+
+  if (!detectedLanguage) {
+    detectedLanguage = 'typescript';
+    confidence = 0.5;
+    signals.push('default: typescript');
+  }
+
+  if (!detectedDatabase) {
+    detectedDatabase = 'postgresql';
+  }
+
+  return { detectedLanguage, detectedFramework, detectedDatabase, confidence, signals };
 }
